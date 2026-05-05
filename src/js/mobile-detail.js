@@ -1,0 +1,509 @@
+import { getStorage } from './storage.js';
+import { formatDate } from './utils.js';
+import { navigate, goBack, showMobileToast, showActionSheet } from './mobile-utils.js';
+import { getCurrentRoute } from './mobile-router.js';
+import { getPromptSetMenuItems } from './mobile-menu-actions.js';
+import { getTagStyleClass } from './tag-utils.js';
+
+let currentSet = null;
+let imageUrls = [];
+let currentImageIndex = 0;
+
+function render(params = {}) {
+    return `
+        <div class="m-top-nav">
+            <button class="m-top-nav-back" id="mDetailBack">←</button>
+            <span class="m-top-nav-title" id="mDetailTitle">提示词详情</span>
+            <div class="m-top-nav-actions">
+                <button class="m-top-nav-action" id="mDetailStar">☆</button>
+                <button class="m-top-nav-action" id="mDetailMore">⋯</button>
+            </div>
+        </div>
+        <div class="m-page-inner" id="mDetailContent">
+            <div class="m-empty-state">
+                <span class="m-empty-icon">⏳</span>
+                <span class="m-empty-text">加载中...</span>
+            </div>
+        </div>
+        <div class="m-bottom-actions" id="mDetailActions">
+            <button class="m-action-btn m-btn-yellow" id="mDetailEdit">✏️ 编辑</button>
+            <button class="m-action-btn m-btn-blue" id="mDetailCopy">📋 复制</button>
+            <button class="m-action-btn m-btn-gray" id="mDetailMoreActions">⋯ 更多</button>
+        </div>
+    `;
+}
+
+async function mount(pageEl, params = {}) {
+    const route = getCurrentRoute();
+    const id = params.id || extractIdFromRoute(route);
+    if (id) {
+        await loadDetail(pageEl, id);
+    }
+    setupDetailEvents(pageEl, id);
+}
+
+function extractIdFromRoute(route) {
+    if (!route) return null;
+    const path = route.path || '';
+    const match = path.match(/\/detail\/(.+)$/);
+    return match ? match[1] : null;
+}
+
+async function loadDetail(pageEl, id) {
+    try {
+        const storage = getStorage();
+        currentSet = await storage.getPromptSet(id);
+        if (!currentSet) {
+            showMobileToast('提示词不存在', 'error');
+            goBack();
+            return;
+        }
+        renderDetail(pageEl, currentSet);
+    } catch (e) {
+        console.error('loadDetail error:', e);
+        showMobileToast('加载失败', 'error');
+    }
+}
+
+async function renderDetail(pageEl, set) {
+    const content = pageEl.querySelector('#mDetailContent');
+    if (!content) return;
+
+    const titleEl = pageEl.querySelector('#mDetailTitle');
+    if (titleEl) titleEl.textContent = set.name;
+
+    const starBtn = pageEl.querySelector('#mDetailStar');
+    if (starBtn) {
+        if (set.isFavorite) {
+            starBtn.classList.add('m-starred');
+            starBtn.textContent = '⭐';
+        } else {
+            starBtn.classList.remove('m-starred');
+            starBtn.textContent = '☆';
+        }
+    }
+
+    const currentVersion = set.versions && set.versions.length > 0 ? set.versions[0] : null;
+    const positivePrompt = currentVersion ? (currentVersion.prompt || '') : '';
+    const negativePrompt = currentVersion ? (currentVersion.negativePrompt || currentVersion.negative_prompt || '') : '';
+    const note = currentVersion ? (currentVersion.note || '') : '';
+
+    const allImages = currentVersion && currentVersion.images ? currentVersion.images : [];
+    imageUrls = [];
+    for (const img of allImages) {
+        const storage = getStorage();
+        const url = await storage.getImageUrl(img);
+        imageUrls.push({ url, name: img.name || '', note: img.note || '' });
+    }
+    currentImageIndex = 0;
+
+    let coverHtml = '';
+    if (imageUrls.length > 0) {
+        coverHtml = `<div class="m-cover-image m-fade-in" id="mCoverImage" style="cursor:pointer;"><img src="${imageUrls[0].url}" alt="封面" onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\\'m-cover-placeholder\\'>🖼 图片加载失败</span>';"></div>`;
+    } else {
+        coverHtml = `<div class="m-cover-image m-fade-in"><span class="m-cover-placeholder">🖼</span></div>`;
+    }
+
+    let imageThumbsHtml = '';
+    if (imageUrls.length > 1) {
+        const displayImages = imageUrls.slice(0, 10);
+        const moreCount = imageUrls.length - 10;
+        imageThumbsHtml = `
+            <div class="m-image-thumbs-section m-section-gap">
+                <div class="m-section-title">
+                    <span class="m-section-title-text">图片预览</span>
+                    <span class="m-section-title-action">${imageUrls.length} 张</span>
+                </div>
+                <div class="m-image-thumbs-scroll">
+                    ${displayImages.map((img, idx) => `
+                        <div class="m-image-thumb ${idx === 0 ? 'm-image-thumb-active' : ''}" data-thumb-idx="${idx}" style="animation-delay: ${idx * 30}ms">
+                            <img src="${img.url}" alt="${escapeHtml(img.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='🖼'">
+                        </div>
+                    `).join('')}
+                    ${moreCount > 0 ? `<div class="m-image-thumb m-image-thumb-more">+${moreCount}</div>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    let tags = [];
+    try { tags = JSON.parse(set.tags || '[]'); } catch (e) { tags = []; }
+    if (!Array.isArray(tags)) tags = [];
+    const tagsHtml = tags.length > 0
+        ? tags.map(t => `<span class="m-tag-pill ${getTagStyleClass(t)}">${escapeHtml(t)}</span>`).join('')
+        : '<span class="m-tag-pill m-tag-default">提示词</span>';
+
+    content.innerHTML = `
+        ${coverHtml}
+        ${imageThumbsHtml}
+
+        <div style="margin-top:var(--m-space-lg); margin-bottom: var(--m-space-md);">
+            <h2 style="font:var(--m-font-h2); color:var(--m-text); margin-bottom: var(--m-space-sm);">${escapeHtml(set.name)}</h2>
+            <div style="display:flex; gap:var(--m-space-xs); flex-wrap:wrap;">
+                ${tagsHtml}
+            </div>
+        </div>
+
+        <div class="m-prompt-section m-positive m-section-gap m-fade-in">
+            <div class="m-prompt-section-header">
+                <span class="m-prompt-section-title">正向提示词（Positive）${positivePrompt ? `<span style="font-size:12px;color:var(--m-text3);font-weight:400;margin-left:4px">${positivePrompt.length}字</span>` : ''}</span>
+                <button class="m-prompt-copy-btn" id="mCopyPositive">复制</button>
+            </div>
+            <div class="m-prompt-text" id="mPositiveText">${positivePrompt || '<span style="color:var(--m-text3)">暂无正向提示词</span>'}</div>
+            ${positivePrompt && positivePrompt.length > 80 ? `<button class="m-prompt-toggle" id="mTogglePositive" data-expanded="false">展开查看 ▾</button>` : ''}
+            ${positivePrompt ? `<button class="m-prompt-toggle" id="mDetailPositive" style="color:var(--m-blue)">查看完整提示词 📋</button>` : ''}
+        </div>
+
+        <div class="m-prompt-section m-negative m-section-gap m-fade-in">
+            <div class="m-prompt-section-header">
+                <span class="m-prompt-section-title">负向提示词（Negative）${negativePrompt ? `<span style="font-size:12px;color:var(--m-text3);font-weight:400;margin-left:4px">${negativePrompt.length}字</span>` : ''}</span>
+                <button class="m-prompt-copy-btn" id="mCopyNegative">复制</button>
+            </div>
+            <div class="m-prompt-text" id="mNegativeText">${negativePrompt || '<span style="color:var(--m-text3)">暂无负向提示词</span>'}</div>
+            ${negativePrompt && negativePrompt.length > 80 ? `<button class="m-prompt-toggle" id="mToggleNegative" data-expanded="false">展开查看 ▾</button>` : ''}
+            ${negativePrompt ? `<button class="m-prompt-toggle" id="mDetailNegative" style="color:var(--m-blue)">查看完整提示词 📋</button>` : ''}
+        </div>
+
+        <div class="m-info-card m-section-gap m-fade-in">
+            <div class="m-info-row">
+                <span class="m-info-label">风格/模型</span>
+                <span class="m-info-value">${currentVersion ? (currentVersion.version || '默认') : '-'}</span>
+            </div>
+            <div class="m-info-row">
+                <span class="m-info-label">比例</span>
+                <span class="m-info-value">1:1</span>
+            </div>
+            <div class="m-info-row">
+                <span class="m-info-label">创建时间</span>
+                <span class="m-info-value">${formatDate(set.createdAt)}</span>
+            </div>
+            <div class="m-info-row">
+                <span class="m-info-label">标签</span>
+                <span class="m-info-value">${tags.length > 0 ? tags.map(t => escapeHtml(t)).join('、') : '-'}</span>
+            </div>
+        </div>
+
+        ${set.versions && set.versions.length > 0 ? `
+            <div class="m-section-gap">
+                <div class="m-section-title">
+                    <span class="m-section-title-text">版本记录</span>
+                </div>
+                <div class="m-list-gap">
+                    ${set.versions.map((v, idx) => `
+                        <div class="m-version-item m-fade-in" data-version-idx="${idx}" style="animation-delay: ${idx * 30}ms">
+                            <div class="m-version-info">
+                                <span class="m-version-name">${v.version || 'v' + (idx + 1)}${idx === 0 ? ' (当前版本)' : ''}</span>
+                                <span class="m-version-date">${formatDate(v.createdAt || v.created_at)}</span>
+                            </div>
+                            <span class="m-version-arrow">→</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        ` : ''}
+    `;
+
+    setupContentEvents(pageEl, set, positivePrompt, negativePrompt);
+}
+
+function setupContentEvents(pageEl, set, positivePrompt, negativePrompt) {
+    pageEl.querySelector('#mCopyPositive')?.addEventListener('click', () => {
+        copyToClipboard(positivePrompt, pageEl.querySelector('#mCopyPositive'));
+    });
+
+    pageEl.querySelector('#mCopyNegative')?.addEventListener('click', () => {
+        copyToClipboard(negativePrompt, pageEl.querySelector('#mCopyNegative'));
+    });
+
+    pageEl.querySelector('#mTogglePositive')?.addEventListener('click', (e) => {
+        togglePromptExpand(pageEl, 'mPositiveText', e.target);
+    });
+
+    pageEl.querySelector('#mToggleNegative')?.addEventListener('click', (e) => {
+        togglePromptExpand(pageEl, 'mNegativeText', e.target);
+    });
+
+    pageEl.querySelector('#mDetailPositive')?.addEventListener('click', () => {
+        showPromptDetailPanel('正向提示词', positivePrompt);
+    });
+
+    pageEl.querySelector('#mDetailNegative')?.addEventListener('click', () => {
+        showPromptDetailPanel('负向提示词', negativePrompt);
+    });
+
+    pageEl.querySelector('#mCoverImage')?.addEventListener('click', () => {
+        if (imageUrls.length > 0) {
+            showImageViewer(pageEl, currentImageIndex);
+        }
+    });
+
+    pageEl.querySelector('.m-image-thumbs-scroll')?.addEventListener('click', (e) => {
+        const thumb = e.target.closest('.m-image-thumb');
+        if (!thumb || thumb.classList.contains('m-image-thumb-more')) return;
+        const idx = parseInt(thumb.dataset.thumbIdx);
+        if (isNaN(idx)) return;
+        currentImageIndex = idx;
+        const coverImg = pageEl.querySelector('#mCoverImage img');
+        if (coverImg && imageUrls[idx]) {
+            coverImg.src = imageUrls[idx].url;
+        }
+        pageEl.querySelectorAll('.m-image-thumb').forEach(t => t.classList.remove('m-image-thumb-active'));
+        thumb.classList.add('m-image-thumb-active');
+    });
+}
+
+function setupDetailEvents(pageEl, id) {
+    pageEl.querySelector('#mDetailBack')?.addEventListener('click', () => {
+        goBack();
+    });
+
+    pageEl.querySelector('#mDetailStar')?.addEventListener('click', async () => {
+        const btn = pageEl.querySelector('#mDetailStar');
+        try {
+            const storage = getStorage();
+            const result = await storage.toggleFavorite(id);
+            const isStarred = result.isFavorite;
+            if (isStarred) {
+                btn.classList.add('m-starred');
+                btn.textContent = '⭐';
+            } else {
+                btn.classList.remove('m-starred');
+                btn.textContent = '☆';
+            }
+            if (currentSet) currentSet.isFavorite = isStarred;
+            showMobileToast(isStarred ? '已收藏' : '已取消收藏');
+        } catch (e) {
+            showMobileToast('操作失败', 'error');
+        }
+    });
+
+    pageEl.querySelector('#mDetailMore')?.addEventListener('click', () => {
+        showActionSheet(
+            getPromptSetMenuItems(id, pageEl, {
+                showEdit: true,
+                onActionDone: () => loadDetail(pageEl, id)
+            })
+        );
+    });
+
+    pageEl.querySelector('#mDetailEdit')?.addEventListener('click', () => {
+        navigate('/editor/' + id);
+    });
+
+    pageEl.querySelector('#mDetailCopy')?.addEventListener('click', () => {
+        if (!currentSet || !currentSet.versions || currentSet.versions.length === 0) return;
+        const v = currentSet.versions[0];
+        const full = (v.prompt || '') + (v.negativePrompt || v.negative_prompt ? '\n\nNegative: ' + (v.negativePrompt || v.negative_prompt) : '');
+        copyToClipboard(full, pageEl.querySelector('#mDetailCopy'));
+    });
+
+    pageEl.querySelector('#mDetailMoreActions')?.addEventListener('click', () => {
+        showActionSheet([
+            { action: 'addVersion', icon: '➕', label: '添加新版本', handler: () => showMobileToast('添加版本功能开发中') },
+            { action: 'compare', icon: '🔄', label: '版本对比', handler: () => showMobileToast('版本对比功能开发中') },
+        ]);
+    });
+}
+
+function togglePromptExpand(pageEl, textId, btnEl) {
+    const textEl = pageEl.querySelector('#' + textId);
+    if (!textEl) return;
+    const isExpanded = textEl.classList.toggle('m-prompt-expanded');
+    btnEl.textContent = isExpanded ? '收起 ▴' : '展开查看 ▾';
+    btnEl.dataset.expanded = isExpanded;
+}
+
+function showPromptDetailPanel(title, text) {
+    const overlay = document.createElement('div');
+    overlay.className = 'm-prompt-detail-overlay';
+    overlay.innerHTML = `
+        <div class="m-prompt-detail-panel">
+            <div class="m-prompt-detail-header">
+                <span class="m-prompt-detail-title">${title}</span>
+                <button class="m-prompt-detail-close" id="mPromptDetailClose">✕</button>
+            </div>
+            <div class="m-prompt-detail-body">
+                <div class="m-prompt-detail-text">${escapeHtml(text)}</div>
+            </div>
+            <div class="m-prompt-detail-footer">
+                <button class="m-prompt-detail-copy" id="mPromptDetailCopy">复制提示词</button>
+            </div>
+        </div>
+    `;
+
+    getMobileContainer().appendChild(overlay);
+    setTimeout(() => overlay.classList.add('m-prompt-detail-show'), 30);
+
+    function closePanel() {
+        overlay.classList.remove('m-prompt-detail-show');
+        setTimeout(() => overlay.remove(), 300);
+    }
+
+    overlay.querySelector('#mPromptDetailClose')?.addEventListener('click', closePanel);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closePanel();
+    });
+    overlay.querySelector('#mPromptDetailCopy')?.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(text);
+            showMobileToast('已复制到剪贴板');
+        } catch (e) {
+            showMobileToast('复制失败', 'error');
+        }
+    });
+}
+
+function getMobileContainer() {
+    return document.getElementById('mobileApp') || document.body;
+}
+
+function showImageViewer(pageEl, startIndex) {
+    if (imageUrls.length === 0) return;
+    let viewerIndex = startIndex;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'm-image-viewer-overlay';
+    overlay.innerHTML = `
+        <div class="m-image-viewer-header">
+            <button class="m-image-viewer-close" id="mViewerClose">✕</button>
+            <span class="m-image-viewer-counter" id="mViewerCounter">${viewerIndex + 1} / ${imageUrls.length}</span>
+        </div>
+        <div class="m-image-viewer-body" id="mViewerBody">
+            <img class="m-image-viewer-img" id="mViewerImg" src="${imageUrls[viewerIndex].url}" alt="" style="opacity:0;transition:opacity 0.2s" onload="this.style.opacity='1'" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\\'color:white;font-size:16px\\'>图片加载失败</span>';">
+        </div>
+        <div class="m-image-viewer-footer" id="mViewerFooter">
+            ${imageUrls[viewerIndex].note ? `<span class="m-image-viewer-note">${escapeHtml(imageUrls[viewerIndex].note)}</span>` : ''}
+        </div>
+        ${imageUrls.length > 1 ? `
+            <button class="m-image-viewer-nav m-image-viewer-prev" id="mViewerPrev">‹</button>
+            <button class="m-image-viewer-nav m-image-viewer-next" id="mViewerNext">›</button>
+        ` : ''}
+    `;
+
+    getMobileContainer().appendChild(overlay);
+    setTimeout(() => overlay.classList.add('m-image-viewer-show'), 30);
+
+    function updateViewer() {
+        const img = overlay.querySelector('#mViewerImg');
+        const counter = overlay.querySelector('#mViewerCounter');
+        const footer = overlay.querySelector('#mViewerFooter');
+        if (img) {
+            img.style.display = '';
+            img.style.opacity = '0';
+            img.src = imageUrls[viewerIndex].url;
+        }
+        if (counter) counter.textContent = `${viewerIndex + 1} / ${imageUrls.length}`;
+        if (footer) {
+            footer.innerHTML = imageUrls[viewerIndex].note
+                ? `<span class="m-image-viewer-note">${escapeHtml(imageUrls[viewerIndex].note)}</span>`
+                : '';
+        }
+    }
+
+    function closeViewer() {
+        overlay.classList.remove('m-image-viewer-show');
+        setTimeout(() => overlay.remove(), 300);
+    }
+
+    overlay.querySelector('#mViewerClose')?.addEventListener('click', closeViewer);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay || e.target.classList.contains('m-image-viewer-body')) {
+            closeViewer();
+        }
+    });
+
+    overlay.querySelector('#mViewerPrev')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewerIndex = (viewerIndex - 1 + imageUrls.length) % imageUrls.length;
+        updateViewer();
+    });
+
+    overlay.querySelector('#mViewerNext')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        viewerIndex = (viewerIndex + 1) % imageUrls.length;
+        updateViewer();
+    });
+
+    let touchStartX = 0;
+    const viewerBody = overlay.querySelector('#mViewerBody');
+    if (viewerBody && imageUrls.length > 1) {
+        viewerBody.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        viewerBody.addEventListener('touchend', (e) => {
+            const diff = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) {
+                    viewerIndex = (viewerIndex - 1 + imageUrls.length) % imageUrls.length;
+                } else {
+                    viewerIndex = (viewerIndex + 1) % imageUrls.length;
+                }
+                updateViewer();
+            }
+        }, { passive: true });
+    }
+
+    let initialScale = 1;
+    let currentScale = 1;
+    let pinchStartDist = 0;
+    const viewerImg = overlay.querySelector('#mViewerImg');
+    if (viewerImg) {
+        viewerImg.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                pinchStartDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialScale = currentScale;
+            }
+        }, { passive: false });
+        viewerImg.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                currentScale = Math.min(Math.max(initialScale * (dist / pinchStartDist), 0.5), 5);
+                viewerImg.style.transform = `scale(${currentScale})`;
+            }
+        }, { passive: false });
+        viewerImg.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                if (currentScale < 1.1) {
+                    currentScale = 1;
+                    viewerImg.style.transform = 'scale(1)';
+                }
+            }
+        }, { passive: true });
+    }
+}
+
+async function copyToClipboard(text, btnEl) {
+    try {
+        await navigator.clipboard.writeText(text);
+        if (btnEl) {
+            const original = btnEl.textContent;
+            btnEl.textContent = '已复制✓';
+            setTimeout(() => { btnEl.textContent = original; }, 1500);
+        }
+        showMobileToast('已复制到剪贴板');
+    } catch (e) {
+        showMobileToast('复制失败', 'error');
+    }
+}
+
+function unmount(pageEl) {
+    currentSet = null;
+    imageUrls = [];
+    currentImageIndex = 0;
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+export { render, mount, unmount };
