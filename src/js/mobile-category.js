@@ -1,0 +1,647 @@
+import { getStorage } from './storage.js';
+import { showMobileToast, showActionSheet, goBack } from './mobile-utils.js';
+import { aggregateTags, getTagStyleClass, saveCustomTag, removeCustomTag } from './tag-utils.js';
+import rabbitTip from '../assets/mobile/mascots/rabbit-tip.png';
+
+let currentSegment = 'category';
+let categoryData = null;
+
+const CATEGORY_ICONS = ['🎨', '📷', '🚀', '🏯', '🏠', '👤'];
+const CATEGORY_COLORS = [
+    { bg: '#E8F4FF', text: '#2580D6' },
+    { bg: '#FFE8A3', text: '#C4A030' },
+    { bg: '#EFE5FF', text: '#8B6FCC' },
+    { bg: '#FFF0F5', text: '#D4567F' },
+    { bg: '#CFF7D7', text: '#3D9942' },
+    { bg: '#FFE0CC', text: '#E07020' },
+];
+
+const FOLDER_COLORS = [
+    { name: '蓝', value: '#2580D6', bg: '#E8F4FF' },
+    { name: '黄', value: '#C4A030', bg: '#FFE8A3' },
+    { name: '紫', value: '#8B6FCC', bg: '#EFE5FF' },
+    { name: '粉', value: '#D4567F', bg: '#FFF0F5' },
+    { name: '绿', value: '#3D9942', bg: '#CFF7D7' },
+    { name: '橙', value: '#E07020', bg: '#FFE0CC' },
+    { name: '红', value: '#D64545', bg: '#FFE8E8' },
+    { name: '青', value: '#2BA5A5', bg: '#E0F5F5' },
+    { name: '灰', value: '#888888', bg: '#F0F0F0' },
+];
+
+function getFolderColor(folder, idx) {
+    if (folder.color) {
+        const match = FOLDER_COLORS.find(c => c.value === folder.color);
+        if (match) return match;
+        return { bg: folder.color + '22', text: folder.color };
+    }
+    return CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+}
+
+function render(params = {}) {
+    return `
+        <div class="m-top-nav">
+            <button class="m-top-nav-back" id="mCategoryBack">←</button>
+            <span class="m-top-nav-title">分类与标签</span>
+        </div>
+        <div class="m-page-inner">
+            <div class="m-segment-control" id="mSegmentControl">
+                <button class="m-segment-btn m-segment-active" data-segment="category">分类管理</button>
+                <button class="m-segment-btn" data-segment="tag">标签管理</button>
+            </div>
+
+            <div id="mCategoryView">
+                <div class="m-section-title" style="margin-bottom: var(--m-space-md);">
+                    <span class="m-section-title-text">分类管理</span>
+                    <button class="m-save-btn" id="mCreateFolderBtn" style="font-size:13px; padding:6px 14px;">+ 新建分类</button>
+                </div>
+                <div class="m-list-gap" id="mCategoryList"></div>
+
+                <div class="m-section-gap" style="margin-top: var(--m-space-xl);">
+                    <div class="m-section-title" style="margin-bottom: var(--m-space-md);">
+                        <span class="m-section-title-text">快速操作</span>
+                    </div>
+                    <div class="m-quick-actions">
+                        <button class="m-quick-action-btn m-action-green" id="mSortBtn">
+                            <span class="m-quick-action-icon">📊</span>
+                            <span>排序</span>
+                        </button>
+                        <button class="m-quick-action-btn m-action-blue" id="mBatchEditBtn">
+                            <span class="m-quick-action-icon">✏️</span>
+                            <span>批量编辑</span>
+                        </button>
+                        <button class="m-quick-action-btn m-action-purple" id="mMergeBtn">
+                            <span class="m-quick-action-icon">🔀</span>
+                            <span>合并分类</span>
+                        </button>
+                        <button class="m-quick-action-btn m-action-pink" id="mDeleteBtn">
+                            <span class="m-quick-action-icon">🗑️</span>
+                            <span>删除</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-top: var(--m-space-xl);">
+                    <div class="m-tip-banner">
+                        <img class="m-tip-banner-icon" src="${rabbitTip}" alt="兔子助手">
+                        <span>长按并拖拽可调整顺序哦~ ❤️</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="mTagView" style="display:none;">
+                <div class="m-section-title" style="margin-bottom: var(--m-space-md);">
+                    <span class="m-section-title-text">标签管理</span>
+                    <div style="display:flex; gap:var(--m-space-sm);">
+                        <button class="m-save-btn" id="mCreateTagBtn" style="font-size:13px; padding:6px 14px;">+ 新建标签</button>
+                        <button class="m-text-btn m-text-btn-danger" id="mClearAllTagsBtn">清除全部</button>
+                    </div>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:var(--m-space-sm);" id="mTagList"></div>
+                <div id="mTagEmpty" style="display:none;">
+                    <div class="m-empty-state" style="padding: var(--m-space-lg);">
+                        <span class="m-empty-icon">🏷️</span>
+                        <span class="m-empty-text">还没有标签，在编辑提示词时添加标签后会自动显示</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="m-folder-dialog-overlay" id="mFolderDialogOverlay">
+            <div class="m-folder-dialog" id="mFolderDialog"></div>
+        </div>
+
+        <div class="m-confirm-overlay" id="mCategoryConfirmOverlay">
+            <div class="m-confirm-dialog" id="mCategoryConfirmDialog"></div>
+        </div>
+    `;
+}
+
+async function mount(pageEl, params = {}) {
+    await loadCategoryData(pageEl);
+    setupCategoryEvents(pageEl);
+}
+
+async function loadCategoryData(pageEl) {
+    try {
+        const storage = getStorage();
+        const [folders, promptSets] = await Promise.all([
+            storage.getFolders(),
+            storage.getPromptSets()
+        ]);
+        categoryData = { folders, promptSets };
+        renderCategoryList(pageEl);
+        renderTagList(pageEl);
+    } catch (e) {
+        console.error('loadCategoryData error:', e);
+    }
+}
+
+function renderCategoryList(pageEl) {
+    const container = pageEl.querySelector('#mCategoryList');
+    if (!container || !categoryData) return;
+
+    if (categoryData.folders.length === 0) {
+        container.innerHTML = `
+            <div class="m-empty-state">
+                <span class="m-empty-icon">📂</span>
+                <span class="m-empty-text">还没有分类，点击上方新建吧~</span>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = categoryData.folders.map((folder, idx) => {
+        const icon = CATEGORY_ICONS[idx % CATEGORY_ICONS.length];
+        const color = getFolderColor(folder, idx);
+        const count = categoryData.promptSets.filter(p => p.folderId === folder.id).length;
+        return `
+            <div class="m-category-list-item m-fade-in" data-folder-id="${folder.id}" style="animation-delay: ${idx * 30}ms">
+                <div class="m-category-icon" style="background: ${color.bg}; color: ${color.text};">${icon}</div>
+                <div class="m-category-item-info">
+                    <span class="m-category-item-name">${escapeHtml(folder.name)}</span>
+                    <span class="m-category-item-count">${count} 个提示词</span>
+                </div>
+                <div class="m-category-item-actions">
+                    <button class="m-more-btn" data-folder-id="${folder.id}">⋯</button>
+                    <span class="m-drag-handle">⋮⋮</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderTagList(pageEl) {
+    const tagListEl = pageEl.querySelector('#mTagList');
+    const tagEmptyEl = pageEl.querySelector('#mTagEmpty');
+    if (!tagListEl) return;
+
+    const tags = aggregateTags(categoryData?.promptSets || []);
+
+    if (tags.length === 0) {
+        tagListEl.innerHTML = '';
+        tagListEl.style.display = 'none';
+        if (tagEmptyEl) tagEmptyEl.style.display = '';
+        return;
+    }
+
+    tagListEl.style.display = '';
+    if (tagEmptyEl) tagEmptyEl.style.display = 'none';
+
+    tagListEl.innerHTML = tags.map(tag => `
+        <div class="m-tag-pill ${tag.style} m-tag-manageable" data-tag-name="${escapeHtml(tag.name)}" style="padding:8px 16px; font-size:14px; cursor:pointer;">
+            ${escapeHtml(tag.name)} <span style="opacity:0.7; margin-left:4px;">${tag.count}</span>
+        </div>
+    `).join('');
+}
+
+function setupCategoryEvents(pageEl) {
+    pageEl.querySelector('#mCategoryBack')?.addEventListener('click', () => {
+        goBack();
+    });
+
+    pageEl.querySelector('#mSegmentControl')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.m-segment-btn');
+        if (!btn) return;
+        const segment = btn.dataset.segment;
+        currentSegment = segment;
+        pageEl.querySelectorAll('.m-segment-btn').forEach(b => b.classList.remove('m-segment-active'));
+        btn.classList.add('m-segment-active');
+
+        const categoryView = pageEl.querySelector('#mCategoryView');
+        const tagView = pageEl.querySelector('#mTagView');
+        if (segment === 'category') {
+            if (categoryView) categoryView.style.display = '';
+            if (tagView) tagView.style.display = 'none';
+        } else {
+            if (categoryView) categoryView.style.display = 'none';
+            if (tagView) tagView.style.display = '';
+        }
+    });
+
+    pageEl.querySelector('#mCreateFolderBtn')?.addEventListener('click', () => {
+        showCreateFolderDialog(pageEl);
+    });
+
+    pageEl.querySelector('#mCategoryList')?.addEventListener('click', (e) => {
+        const moreBtn = e.target.closest('.m-more-btn');
+        if (moreBtn) {
+            const folderId = moreBtn.dataset.folderId;
+            showActionSheet([
+                { action: 'rename', icon: '✏️', label: '重命名', handler: () => showRenameDialog(pageEl, folderId) },
+                { action: 'color', icon: '🎨', label: '更改颜色', handler: () => showChangeColorDialog(pageEl, folderId) },
+                { action: 'delete', icon: '🗑️', label: '删除分类', danger: true, handler: () => handleDeleteFolder(pageEl, folderId) },
+            ]);
+        }
+    });
+
+    pageEl.querySelector('#mTagList')?.addEventListener('click', (e) => {
+        const tagEl = e.target.closest('.m-tag-manageable');
+        if (!tagEl) return;
+        const tagName = tagEl.dataset.tagName;
+        if (tagName) showTagActionMenu(pageEl, tagName);
+    });
+
+    pageEl.querySelector('#mClearAllTagsBtn')?.addEventListener('click', () => {
+        showClearAllTagsConfirm(pageEl);
+    });
+
+    pageEl.querySelector('#mCreateTagBtn')?.addEventListener('click', () => {
+        showCreateTagDialog(pageEl);
+    });
+
+    pageEl.querySelector('#mSortBtn')?.addEventListener('click', () => {
+        showMobileToast('排序功能开发中');
+    });
+
+    pageEl.querySelector('#mBatchEditBtn')?.addEventListener('click', () => {
+        showMobileToast('批量编辑功能开发中');
+    });
+
+    pageEl.querySelector('#mMergeBtn')?.addEventListener('click', () => {
+        showMobileToast('合并分类功能开发中');
+    });
+
+    pageEl.querySelector('#mDeleteBtn')?.addEventListener('click', () => {
+        showMobileToast('请选择要删除的分类');
+    });
+}
+
+function showCreateFolderDialog(pageEl) {
+    const overlay = pageEl.querySelector('#mFolderDialogOverlay');
+    const dialog = pageEl.querySelector('#mFolderDialog');
+    if (!overlay || !dialog) return;
+
+    let selectedColorIdx = 0;
+
+    function renderDialog() {
+        dialog.innerHTML = `
+            <div class="m-folder-dialog-title">新建分类</div>
+            <div class="m-folder-dialog-label">分类名称</div>
+            <input type="text" class="m-folder-dialog-input" id="mFolderNameInput" placeholder="输入分类名称..." maxlength="20">
+            <div class="m-folder-dialog-label">选择颜色</div>
+            <div class="m-folder-dialog-colors">
+                ${FOLDER_COLORS.map((c, i) => `
+                    <button class="m-folder-color-dot ${i === selectedColorIdx ? 'm-folder-color-selected' : ''}" data-color-idx="${i}" style="background: ${c.value};" title="${c.name}"></button>
+                `).join('')}
+            </div>
+            <div class="m-folder-dialog-actions">
+                <button class="m-folder-dialog-btn m-folder-dialog-cancel" id="mFolderDialogCancel">取消</button>
+                <button class="m-folder-dialog-btn m-folder-dialog-ok" id="mFolderDialogOk">创建</button>
+            </div>
+        `;
+
+        const nameInput = dialog.querySelector('#mFolderNameInput');
+        const okBtn = dialog.querySelector('#mFolderDialogOk');
+
+        function updateOkBtn() {
+            if (nameInput.value.trim()) {
+                okBtn.classList.remove('m-folder-dialog-ok-disabled');
+            } else {
+                okBtn.classList.add('m-folder-dialog-ok-disabled');
+            }
+        }
+
+        nameInput.addEventListener('input', updateOkBtn);
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && nameInput.value.trim()) {
+                doCreate();
+            }
+        });
+
+        dialog.querySelectorAll('.m-folder-color-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                selectedColorIdx = parseInt(dot.dataset.colorIdx);
+                dialog.querySelectorAll('.m-folder-color-dot').forEach(d => d.classList.remove('m-folder-color-selected'));
+                dot.classList.add('m-folder-color-selected');
+            });
+        });
+
+        dialog.querySelector('#mFolderDialogCancel')?.addEventListener('click', () => {
+            closeFolderDialog(overlay);
+        });
+
+        okBtn.addEventListener('click', () => {
+            if (!nameInput.value.trim()) return;
+            doCreate();
+        });
+
+        updateOkBtn();
+
+        setTimeout(() => nameInput.focus(), 100);
+    }
+
+    async function doCreate() {
+        const nameInput = dialog.querySelector('#mFolderNameInput');
+        const name = nameInput.value.trim();
+        const color = FOLDER_COLORS[selectedColorIdx].value;
+        try {
+            await getStorage().createFolder(name, color);
+            closeFolderDialog(overlay);
+            await loadCategoryData(pageEl);
+            showMobileToast('分类已创建');
+        } catch (e) {
+            showMobileToast('创建失败', 'error');
+        }
+    }
+
+    renderDialog();
+    overlay.classList.add('m-folder-dialog-show');
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeFolderDialog(overlay);
+    }, { once: true });
+}
+
+function showChangeColorDialog(pageEl, folderId) {
+    const folder = categoryData?.folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    const overlay = pageEl.querySelector('#mFolderDialogOverlay');
+    const dialog = pageEl.querySelector('#mFolderDialog');
+    if (!overlay || !dialog) return;
+
+    let selectedColorIdx = FOLDER_COLORS.findIndex(c => c.value === folder.color);
+    if (selectedColorIdx < 0) selectedColorIdx = 0;
+
+    function renderDialog() {
+        dialog.innerHTML = `
+            <div class="m-folder-dialog-title">更改颜色</div>
+            <div class="m-folder-dialog-label">「${escapeHtml(folder.name)}」的颜色</div>
+            <div class="m-folder-dialog-colors">
+                ${FOLDER_COLORS.map((c, i) => `
+                    <button class="m-folder-color-dot ${i === selectedColorIdx ? 'm-folder-color-selected' : ''}" data-color-idx="${i}" style="background: ${c.value};" title="${c.name}"></button>
+                `).join('')}
+            </div>
+            <div class="m-folder-dialog-actions">
+                <button class="m-folder-dialog-btn m-folder-dialog-cancel" id="mFolderDialogCancel">取消</button>
+                <button class="m-folder-dialog-btn m-folder-dialog-ok" id="mFolderDialogOk">确定</button>
+            </div>
+        `;
+
+        dialog.querySelectorAll('.m-folder-color-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                selectedColorIdx = parseInt(dot.dataset.colorIdx);
+                dialog.querySelectorAll('.m-folder-color-dot').forEach(d => d.classList.remove('m-folder-color-selected'));
+                dot.classList.add('m-folder-color-selected');
+            });
+        });
+
+        dialog.querySelector('#mFolderDialogCancel')?.addEventListener('click', () => {
+            closeFolderDialog(overlay);
+        });
+
+        dialog.querySelector('#mFolderDialogOk')?.addEventListener('click', async () => {
+            const color = FOLDER_COLORS[selectedColorIdx].value;
+            try {
+                await getStorage().updateFolder(folderId, { color });
+                closeFolderDialog(overlay);
+                await loadCategoryData(pageEl);
+                showMobileToast('颜色已更新');
+            } catch (e) {
+                showMobileToast('更新失败', 'error');
+            }
+        });
+    }
+
+    renderDialog();
+    overlay.classList.add('m-folder-dialog-show');
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeFolderDialog(overlay);
+    }, { once: true });
+}
+
+function closeFolderDialog(overlay) {
+    overlay.classList.remove('m-folder-dialog-show');
+}
+
+async function showRenameDialog(pageEl, folderId) {
+    const folder = categoryData?.folders.find(f => f.id === folderId);
+    if (!folder) return;
+    const name = prompt('请输入新名称：', folder.name);
+    if (!name || !name.trim()) return;
+    try {
+        await getStorage().updateFolder(folderId, { name: name.trim() });
+        await loadCategoryData(pageEl);
+        showMobileToast('已重命名');
+    } catch (e) {
+        showMobileToast('重命名失败', 'error');
+    }
+}
+
+async function handleDeleteFolder(pageEl, folderId) {
+    const folder = categoryData?.folders.find(f => f.id === folderId);
+    if (!folder) return;
+    showCategoryConfirm(pageEl, `确定删除分类「${folder.name}」？\n分类下的提示词将变为未分类`, async () => {
+        try {
+            await getStorage().deleteFolder(folderId);
+            await loadCategoryData(pageEl);
+            showMobileToast('分类已删除');
+        } catch (e) {
+            showMobileToast('删除失败', 'error');
+        }
+    });
+}
+
+function showTagActionMenu(pageEl, tagName) {
+    const tags = aggregateTags(categoryData?.promptSets || []);
+    const tagInfo = tags.find(t => t.name === tagName);
+    const count = tagInfo ? tagInfo.count : 0;
+    showActionSheet([
+        { action: 'info', icon: '🏷️', label: `标签：${tagName}（${count} 个提示词）`, handler: () => {} },
+        { action: 'rename', icon: '✏️', label: '重命名', handler: () => showRenameTagDialog(pageEl, tagName, count) },
+        { action: 'clear', icon: '🗑️', label: '清除该标签', danger: true, handler: () => showClearTagConfirm(pageEl, tagName, count) },
+    ]);
+}
+
+function showRenameTagDialog(pageEl, tagName, count) {
+    const newName = prompt(`重命名标签「${tagName}」：`, tagName);
+    if (!newName || !newName.trim() || newName.trim() === tagName) return;
+    showCategoryConfirm(pageEl, `确定将标签「${tagName}」重命名为「${newName.trim()}」？\n将影响 ${count} 个提示词，此操作不可撤销。`, async () => {
+        try {
+            const affected = await renameTag(tagName, newName.trim());
+            await loadCategoryData(pageEl);
+            showMobileToast(`已重命名，影响 ${affected} 个提示词`);
+        } catch (e) {
+            showMobileToast('重命名失败', 'error');
+        }
+    });
+}
+
+async function renameTag(oldName, newName) {
+    const storage = getStorage();
+    const promptSets = await storage.getPromptSets();
+    const updates = [];
+
+    for (const set of promptSets) {
+        let tags = [];
+        try {
+            tags = JSON.parse(set.tags || '[]');
+        } catch (e) {
+            tags = [];
+        }
+        if (!Array.isArray(tags)) tags = [];
+
+        const newTags = tags.map(t => t === oldName ? newName : t);
+        if (JSON.stringify(newTags) !== JSON.stringify(tags)) {
+            updates.push(storage.updatePromptSet(set.id, { tags: JSON.stringify(newTags) }));
+        }
+    }
+
+    await Promise.all(updates);
+    return updates.length;
+}
+
+function showClearTagConfirm(pageEl, tagName, count) {
+    showCategoryConfirm(pageEl, `确定清除标签「${tagName}」？\n将从 ${count} 个提示词中移除该标签，此操作不可撤销。`, async () => {
+        try {
+            const affected = await clearTagFromAll(tagName);
+            await loadCategoryData(pageEl);
+            showMobileToast(`已从 ${affected} 个提示词中移除标签`);
+        } catch (e) {
+            showMobileToast('清除失败', 'error');
+        }
+    });
+}
+
+function showCreateTagDialog(pageEl) {
+    const overlay = pageEl.querySelector('#mFolderDialogOverlay');
+    const dialog = pageEl.querySelector('#mFolderDialog');
+    if (!overlay || !dialog) return;
+
+    dialog.innerHTML = `
+        <div class="m-folder-dialog-title">新建标签</div>
+        <div class="m-folder-dialog-label">标签名称</div>
+        <input type="text" class="m-folder-dialog-input" id="mTagNameInput" placeholder="输入标签名称..." maxlength="10">
+        <div class="m-folder-dialog-actions">
+            <button class="m-folder-dialog-btn m-folder-dialog-cancel" id="mTagDialogCancel">取消</button>
+            <button class="m-folder-dialog-btn m-folder-dialog-ok m-folder-dialog-ok-disabled" id="mTagDialogOk">创建</button>
+        </div>
+    `;
+
+    const nameInput = dialog.querySelector('#mTagNameInput');
+    const okBtn = dialog.querySelector('#mTagDialogOk');
+
+    function updateOkBtn() {
+        if (nameInput.value.trim()) {
+            okBtn.classList.remove('m-folder-dialog-ok-disabled');
+        } else {
+            okBtn.classList.add('m-folder-dialog-ok-disabled');
+        }
+    }
+
+    nameInput.addEventListener('input', updateOkBtn);
+    nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && nameInput.value.trim()) {
+            doCreateTag();
+        }
+    });
+
+    dialog.querySelector('#mTagDialogCancel')?.addEventListener('click', () => {
+        overlay.classList.remove('m-folder-dialog-show');
+    });
+
+    okBtn.addEventListener('click', () => {
+        if (!nameInput.value.trim()) return;
+        doCreateTag();
+    });
+
+    async function doCreateTag() {
+        const tagName = nameInput.value.trim();
+        const existingTags = aggregateTags(categoryData?.promptSets || []);
+        if (existingTags.find(t => t.name === tagName)) {
+            showMobileToast('该标签已存在');
+            return;
+        }
+        saveCustomTag(tagName);
+        overlay.classList.remove('m-folder-dialog-show');
+        await loadCategoryData(pageEl);
+        showMobileToast(`标签「${tagName}」已创建`);
+    }
+
+    overlay.classList.add('m-folder-dialog-show');
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.classList.remove('m-folder-dialog-show');
+    }, { once: true });
+    setTimeout(() => nameInput.focus(), 100);
+}
+
+function showClearAllTagsConfirm(pageEl) {
+    const tags = aggregateTags(categoryData?.promptSets || []);
+    if (tags.length === 0) {
+        showMobileToast('没有标签可清除');
+        return;
+    }
+    showCategoryConfirm(pageEl, `⚠️ 确定清除所有标签？\n将从所有提示词中移除全部 ${tags.length} 个标签，此操作不可撤销！`, async () => {
+        try {
+            let totalAffected = 0;
+            for (const tag of tags) {
+                totalAffected += await clearTagFromAll(tag.name);
+            }
+            await loadCategoryData(pageEl);
+            showMobileToast(`已清除所有标签，共影响 ${totalAffected} 处`);
+        } catch (e) {
+            showMobileToast('清除失败', 'error');
+        }
+    });
+}
+
+async function clearTagFromAll(tagName) {
+    const storage = getStorage();
+    const promptSets = await storage.getPromptSets();
+    const updates = [];
+
+    for (const set of promptSets) {
+        let tags = [];
+        try {
+            tags = JSON.parse(set.tags || '[]');
+        } catch (e) {
+            tags = [];
+        }
+        if (!Array.isArray(tags)) tags = [];
+
+        const newTags = tags.filter(t => t !== tagName);
+        if (newTags.length !== tags.length) {
+            updates.push(storage.updatePromptSet(set.id, { tags: JSON.stringify(newTags) }));
+        }
+    }
+
+    await Promise.all(updates);
+    return updates.length;
+}
+
+function showCategoryConfirm(pageEl, text, onOk) {
+    const overlay = pageEl.querySelector('#mCategoryConfirmOverlay');
+    const dialogEl = pageEl.querySelector('#mCategoryConfirmDialog');
+    if (!overlay || !dialogEl) return;
+
+    dialogEl.innerHTML = `
+        <div class="m-confirm-text">${escapeHtml(text).replace(/\n/g, '<br>')}</div>
+        <div class="m-confirm-actions">
+            <button class="m-confirm-btn m-confirm-cancel" id="mCatConfirmCancel">取消</button>
+            <button class="m-confirm-btn m-confirm-ok" id="mCatConfirmOk">确定</button>
+        </div>
+    `;
+
+    overlay.classList.add('m-confirm-show');
+
+    dialogEl.querySelector('#mCatConfirmCancel')?.addEventListener('click', () => {
+        overlay.classList.remove('m-confirm-show');
+    }, { once: true });
+
+    dialogEl.querySelector('#mCatConfirmOk')?.addEventListener('click', async () => {
+        overlay.classList.remove('m-confirm-show');
+        await onOk();
+    }, { once: true });
+}
+
+function unmount(pageEl) {
+    currentSegment = 'category';
+    categoryData = null;
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+export { render, mount, unmount };

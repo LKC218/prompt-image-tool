@@ -1,0 +1,36 @@
+[
+  {
+    "id": "e6691f72",
+    "name": "12344",
+    "folderId": "9a916977",
+    "tags": "[]",
+    "createdAt": "2026-05-05T21:30:59.150816",
+    "updatedAt": "2026-05-05T21:32:58.969714",
+    "versions": [
+      {
+        "prompt": "123",
+        "negativePrompt": "",
+        "note": "",
+        "aspectRatio": "16:9",
+        "images": [
+          {
+            "id": "moso4wqcc7tw2hlga",
+            "name": "ChatGPT Image 2026年5月5日 11_35_53 (1).png",
+            "path": "ChatGPT Image 2026年5月5日 11_35_53 (1).png",
+            "file": "moso4wqcc7tw2hlga.jpg",
+            "note": "",
+            "createdAt": "2026-05-05T13:32:58.947Z"
+          },
+          {
+            "id": "moso4wqr9dqm6wjmh",
+            "name": "ChatGPT Image 2026年5月5日 11_36_01.png",
+            "path": "ChatGPT Image 2026年5月5日 11_36_01.png",
+            "file": "moso4wqr9dqm6wjmh.jpg",
+            "note": "",
+            "createdAt": "2026-05-05T13:32:58.967Z"
+          }
+        ]
+      }
+    ]
+  }
+]
