@@ -117,14 +117,14 @@ async function loadHomeData(pageEl) {
         if (tagsEl) tagsEl.textContent = aggregateTags(promptSets).length;
         if (favEl) favEl.textContent = promptSets.filter(p => p.isFavorite === true).length;
 
-        renderRecentList(pageEl, promptSets);
+        await renderRecentList(pageEl, promptSets);
         renderCategoryGrid(pageEl, folders, promptSets);
     } catch (e) {
         console.error('loadHomeData error:', e);
     }
 }
 
-function renderRecentList(pageEl, promptSets) {
+async function renderRecentList(pageEl, promptSets) {
     const container = pageEl.querySelector('#mRecentList');
     if (!container) return;
 
@@ -142,7 +142,7 @@ function renderRecentList(pageEl, promptSets) {
 
     container.innerHTML = recent.map((item, idx) => `
         <div class="m-prompt-card m-fade-in" data-id="${item.id}" style="animation-delay: ${idx * 30}ms">
-            <div class="m-prompt-thumb">🖼</div>
+            <div class="m-prompt-thumb${item.firstImage ? '' : ' m-prompt-thumb-default'}">${item.firstImage ? `<img alt="" data-first-image='${JSON.stringify(item.firstImage).replace(/'/g, "&#39;")}'>` : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'}</div>
             <div class="m-prompt-info">
                 <div class="m-prompt-name">${escapeHtml(item.name)}</div>
                 <div class="m-prompt-tags">
@@ -156,6 +156,23 @@ function renderRecentList(pageEl, promptSets) {
             </div>
         </div>
     `).join('');
+
+    loadHomeThumbImages(container);
+}
+
+async function loadHomeThumbImages(container) {
+    const imgs = container.querySelectorAll('.m-prompt-thumb img[data-first-image]');
+    if (imgs.length === 0) return;
+    const storage = getStorage();
+    imgs.forEach(async (img) => {
+        const raw = img.dataset.firstImage;
+        if (!raw) return;
+        try {
+            const imgData = JSON.parse(raw);
+            const url = await storage.getImageUrl(imgData);
+            if (url) img.src = url;
+        } catch (e) {}
+    });
 }
 
 function renderCategoryGrid(pageEl, folders, promptSets) {

@@ -32,6 +32,8 @@
 | **签名** | 不需要 | 需要 keystore 签名 |
 | **详细文档** | [PC端安装包构建方案](./PC端安装包构建方案.md) | [Android安装包构建方案](./Android安装包构建方案.md) |
 
+> **⚠️ pywebview 6.x API 变更**：`icon` 参数从 `create_window()` 移到了 `start()`。如果传错位置，窗口会静默降级为浏览器打开。详见 [PC端构建方案 - Q3](./PC端安装包构建方案.md)。
+
 ---
 
 ## 三、完整构建流程（PC + Android）

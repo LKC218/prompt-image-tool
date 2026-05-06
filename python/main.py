@@ -164,6 +164,9 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         elif path.startswith('/api/prompt-set/'):
             set_id = path.split('/api/prompt-set/')[1]
             self.handle_get_prompt_set(set_id)
+        elif path.startswith('/api/images/'):
+            filename = path.split('/api/images/')[1]
+            self.serve_image('images/' + filename)
         elif path.startswith('/images/'):
             self.serve_image(path[1:])
         else:
@@ -320,6 +323,12 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         summary = []
         for s in data:
             total_images = sum(len(v.get('images', [])) for v in s.get('versions', []))
+            first_image = None
+            for v in s.get('versions', []):
+                images = v.get('images', [])
+                if images:
+                    first_image = images[0]
+                    break
             summary.append({
                 'id': s['id'],
                 'name': s['name'],
@@ -329,7 +338,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
                 'createdAt': s['createdAt'],
                 'updatedAt': s['updatedAt'],
                 'versionCount': len(s.get('versions', [])),
-                'imageCount': total_images
+                'imageCount': total_images,
+                'firstImage': first_image
             })
         self.send_json(summary)
 

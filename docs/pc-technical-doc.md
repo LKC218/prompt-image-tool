@@ -214,6 +214,7 @@ Tauri 启动
 | 数据目录回退 | 应用目录无写权限时回退到用户目录 | `main.py` → `get_data_dir()` |
 | 局域网同步服务 | 作为同步服务端，Android 端可拉取数据 | `main.py` → `/api/sync` |
 | 本机 IP 显示 | 显示本机局域网 IP，方便同步 | `app.js` → `loadPCNetworkInfo()` |
+| SVG 图标系统 | 所有 Emoji 替换为语义化 SVG 图标 | `src/assets/icons/*.svg` |
 
 ---
 

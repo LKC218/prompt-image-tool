@@ -149,6 +149,8 @@ export class SqliteStorage {
         for (const row of rows) {
             const vCount = (await this.query('SELECT COUNT(*) as cnt FROM versions WHERE prompt_set_id = ?', [row.id]))[0]?.cnt || 0;
             const iCount = (await this.query('SELECT COUNT(*) as cnt FROM images WHERE version_id IN (SELECT id FROM versions WHERE prompt_set_id = ?)', [row.id]))[0]?.cnt || 0;
+            const firstImgRows = await this.query('SELECT i.* FROM images i JOIN versions v ON i.version_id = v.id WHERE v.prompt_set_id = ? ORDER BY v.sort_order, i.created_at LIMIT 1', [row.id]);
+            const firstImage = firstImgRows.length > 0 ? { file: firstImgRows[0].file, data: firstImgRows[0].path, path: firstImgRows[0].path, name: firstImgRows[0].name } : null;
             result.push({
                 id: row.id,
                 name: row.name,
@@ -158,7 +160,8 @@ export class SqliteStorage {
                 createdAt: row.created_at,
                 updatedAt: row.updated_at,
                 versionCount: vCount,
-                imageCount: iCount
+                imageCount: iCount,
+                firstImage
             });
         }
         return result;

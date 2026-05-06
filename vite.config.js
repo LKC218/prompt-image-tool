@@ -9,8 +9,14 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8888',
-      '/images': 'http://localhost:8888',
+      '/api': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+      },
+      '^/images': {
+        target: 'http://localhost:8888',
+        changeOrigin: true,
+      },
     },
   },
   test: {

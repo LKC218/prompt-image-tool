@@ -88,18 +88,18 @@
   - 使用源图生成所有尺寸：icon.png、icon.ico、icon.icns、32x32.png、128x128.png、128x128@2x.png、StoreLogo.png、Square*.png
   - 写入 `src-tauri/icons/` 目录
   - 确认 `tauri.conf.json` 中的图标路径引用无需变更
-- [ ] **F2.3** 替换 Android 移动端图标
+- [x] **F2.3** 替换 Android 移动端图标
   - 使用源图生成各密度尺寸（mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi）
   - 写入 `android/app/src/main/res/mipmap-*/` 目录
   - 同时更新 ic_launcher.png、ic_launcher_round.png、ic_launcher_foreground.png
-- [ ] **F2.4** 整理 UI 内图标到 `src/assets/icons/` 目录
+- [x] **F2.4** 整理 UI 内图标到 `src/assets/icons/` 目录
   - 将 `index.html` 和 `app.js` 中的内联 SVG 抽取为独立 `.svg` 文件，放入 `src/assets/icons/`
   - 涉及的 SVG：空状态图标、添加图片区域图标
-- [ ] **F2.5** 替换 Emoji 图标为 SVG 图标引用
+- [x] **F2.5** 替换 Emoji 图标为 SVG 图标引用
   - 将 Emoji（🎨📤📥🔄✏️📋🗑）替换为对应语义的 SVG 图标
   - SVG 图标放入 `src/assets/icons/` 统一管理
   - 更新 `index.html` 和 `app.js` 中的引用方式
-- [ ] **F2.6** 验证图标显示
+- [x] **F2.6** 验证图标显示
   - PC 端：任务栏图标、窗口标题栏图标、桌面快捷方式图标
   - 移动端：应用列表图标、最近任务图标
   - Web 端：页面内所有 SVG/Emoji 替换后的图标显示
@@ -133,21 +133,21 @@
 
 ### 4.2 功能 A：一键复制按钮
 
-- [ ] **F3.1** 在正向提示词 `<textarea>` 旁添加「复制」按钮
-- [ ] **F3.2** 在反向提示词 `<textarea>` 旁添加「复制」按钮
-- [ ] **F3.3** 实现复制逻辑
+- [x] **F3.1** 在正向提示词 `<textarea>` 旁添加「复制」按钮
+- [x] **F3.2** 在反向提示词 `<textarea>` 旁添加「复制」按钮
+- [x] **F3.3** 实现复制逻辑
   - 调用 `navigator.clipboard.writeText()` 写入剪贴板
   - 兼容回退：`navigator.clipboard` 不可用时使用 `document.execCommand('copy')`
   - 复制成功后调用 `showToast('已复制到剪贴板')`
   - 复制失败时调用 `showToast('复制失败', 'error')`
-- [ ] **F3.4** 按钮样式
+- [x] **F3.4** 按钮样式
   - 使用 `var(--accent)` 主色调，与现有 UI 风格一致
   - 使用 SVG 图标（复制图标）+ 文字「复制」
   - 悬停/点击状态反馈
 
 ### 4.3 功能 B：二级窗口完整预览提示词
 
-- [ ] **F3.5** 在 `index.html` 中添加提示词预览模态窗口 HTML 结构
+- [x] **F3.5** 在 `index.html` 中添加提示词预览模态窗口 HTML 结构
   ```html
   <div class="prompt-preview-overlay" id="promptPreview">
     <div class="prompt-preview-modal">
@@ -178,16 +178,16 @@
     </div>
   </div>
   ```
-- [ ] **F3.6** 在 `app.js` 中实现预览窗口逻辑
+- [x] **F3.6** 在 `app.js` 中实现预览窗口逻辑
   - 添加「预览」按钮到版本详情区域（与编辑区域并列）
   - 点击预览按钮 → 填充模态窗口内容 → 显示模态窗口
   - 模态窗口内复制按钮绑定对应提示词内容的复制逻辑
   - ESC 关闭 + 点击遮罩关闭
-- [ ] **F3.7** 在 `main.css` 中添加模态窗口样式
+- [x] **F3.7** 在 `main.css` 中添加模态窗口样式
   - 遮罩层：`position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200`
   - 模态框：`max-width: 700px; max-height: 80vh; overflow-y: auto; background: var(--surface); border-radius: 12px`
   - 内容区：只读展示，保留换行格式（`white-space: pre-wrap`）
-- [ ] **F3.8** 在 `responsive.css` 中添加响应式适配
+- [x] **F3.8** 在 `responsive.css` 中添加响应式适配
   - 移动端（≤768px）：模态框全屏展示，圆角为 0
   - 小屏（≤480px）：字体和间距适当缩小
 
@@ -213,7 +213,7 @@
 
 ### 5.2 实现清单
 
-- [ ] **F4.1** 在 `main.css` 中定义亮色主题变量
+- [x] **F4.1** 在 `main.css` 中定义亮色主题变量
   ```css
   [data-theme="light"] {
     --bg: #f5f5f5;
@@ -229,29 +229,29 @@
     --warning: #f39c12;
   }
   ```
-- [ ] **F4.2** 在 `index.html` 导航栏添加主题切换按钮
+- [x] **F4.2** 在 `index.html` 导航栏添加主题切换按钮
   - 使用太阳/月亮 SVG 图标
   - 暗色模式显示太阳图标（切换到亮色），亮色模式显示月亮图标（切换到暗色）
   - 按钮位置：导航栏右侧（导出/导入/同步按钮之后）
-- [ ] **F4.3** 在 `app.js` 中实现主题切换逻辑
+- [x] **F4.3** 在 `app.js` 中实现主题切换逻辑
   - 切换 `document.documentElement.dataset.theme`（值为 `"dark"` 或 `"light"`）
   - 将主题偏好存入 `localStorage`（key: `theme`）
   - 页面加载时读取 `localStorage` 中的主题偏好
   - 若无存储偏好，跟随系统 `window.matchMedia('(prefers-color-scheme: dark)')` 判断
   - 监听系统主题变化 `matchMedia.addEventListener('change', ...)` 自动跟随（仅当用户未手动设置时）
-- [ ] **F4.4** 动态更新 `<meta name="theme-color">`
+- [x] **F4.4** 动态更新 `<meta name="theme-color">`
   - 暗色模式：`#0f0f0f`
   - 亮色模式：`#f5f5f5`
-- [ ] **F4.5** 补充亮色主题下的特殊样式
+- [x] **F4.5** 补充亮色主题下的特殊样式
   - 图片查看器遮罩层：暗色 `rgba(0,0,0,0.9)` → 亮色 `rgba(255,255,255,0.9)`
   - 模态框遮罩层：暗色 `rgba(0,0,0,0.6)` → 亮色 `rgba(0,0,0,0.3)`
   - 拖拽区域高亮：暗色 `rgba(108,92,231,0.1)` → 亮色 `rgba(108,92,231,0.15)`
   - 输入框焦点边框、按钮悬停等交互状态在亮色下的对比度调整
-- [ ] **F4.6** 确保所有组件双主题兼容
+- [x] **F4.6** 确保所有组件双主题兼容
   - 已有组件：侧边栏、详情页、图片网格、版本对比、模态框、Toast
   - 新增组件（T3）：复制按钮、提示词预览窗口
   - 所有颜色必须使用 CSS 变量，禁止硬编码颜色值
-- [ ] **F4.7** 移动端验证
+- [x] **F4.7** 移动端验证
   - Android 端状态栏颜色跟随主题
   - 触摸交互在亮色主题下的视觉反馈
 

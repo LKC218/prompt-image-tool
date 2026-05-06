@@ -173,8 +173,15 @@ build/dist/PromptImageManager/
 |------|------|
 | `build/app_main.py` | PC 独立版主程序：Python HTTP 服务器 + pywebview 桌面窗口 + 全部 API 逻辑 |
 | `build/app.spec` | PyInstaller 打包配置：入口文件、前端资源打包规则、隐藏导入、图标、是否显示控制台 |
-| `build/installer.nsi` | NSIS 安装包脚本：安装向导页面、快捷方式、注册表、卸载逻辑 |
+| `build/installer.nsi` | NSIS 安装包脚本：安装向导页面、快捷方式、注册表、卸载逻辑（必须为无 BOM 的 UTF-8 编码） |
 | `build/icon.ico` | 应用图标（同时用于 exe 和安装包） |
+
+> **⚠️ 编码注意**：`installer.nsi` 必须使用无 BOM 的 UTF-8 编码保存。如果文件包含 UTF-8 BOM（`EF BB BF`），NSIS 会报语法错误。可用以下 PowerShell 命令转换：
+> ```powershell
+> $content = [System.IO.File]::ReadAllText("build\installer.nsi")
+> $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+> [System.IO.File]::WriteAllText("build\installer.nsi", $content, $utf8NoBom)
+> ```
 
 ---
 
@@ -203,9 +210,27 @@ build/dist/PromptImageManager/
 
 在命令末尾加 `-y` 参数。
 
-### Q3：pywebview 窗口打开失败
+### Q3：pywebview 窗口打开失败，变成浏览器打开
 
-确保安装了 pywebview：`pip install pywebview`。如果 pywebview 不可用，程序会自动降级为浏览器模式打开。
+**最常见原因**：pywebview 6.x API 变更，`icon` 参数从 `create_window()` 移到了 `start()`。
+
+```python
+# ❌ 错误写法（pywebview 5.x）
+window = webview.create_window(..., icon=icon_path)
+webview.start()
+
+# ✅ 正确写法（pywebview 6.x）
+window = webview.create_window(...)
+webview.start(icon=icon_path)
+```
+
+如果 `create_window()` 传入了不支持的参数，会抛出 `TypeError`，被 `except Exception` 捕获后静默降级为浏览器打开。
+
+**排查方法**：检查打包目录下是否存在 `webview_error.log` 文件，如果有则说明 pywebview 启动失败，日志中包含具体错误信息。
+
+**其他可能原因**：
+- 未安装 pythonnet：`pip install pythonnet`（pywebview 在 Windows 上依赖 pythonnet 调用 .NET WinForms）
+- 未安装 WebView2 Runtime：Windows 10/11 通常已预装，旧系统需手动安装
 
 ### Q4：PyInstaller 打包报错找不到模块
 
