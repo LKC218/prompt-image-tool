@@ -132,7 +132,7 @@ function renderList(pageEl) {
 
     container.innerHTML = list.map((item, idx) => `
         <div class="m-prompt-list-card m-fade-in" data-id="${item.id}" style="animation-delay: ${idx * 30}ms">
-            <div class="m-prompt-list-thumb">🖼</div>
+            <div class="m-prompt-list-thumb${item.firstImage ? '' : ' m-prompt-thumb-default'}">${item.firstImage ? `<img alt="" data-first-image='${JSON.stringify(item.firstImage).replace(/'/g, "&#39;")}'>` : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'}</div>
             <div class="m-prompt-list-content">
                 <div class="m-prompt-list-title">${escapeHtml(item.name)}</div>
                 <div class="m-prompt-list-desc">${item.versionCount ? item.versionCount + ' 个版本' : ''}${item.imageCount ? ' · ' + item.imageCount + ' 张图片' : ''}</div>
@@ -146,6 +146,23 @@ function renderList(pageEl) {
             </div>
         </div>
     `).join('');
+
+    loadThumbImages(container);
+}
+
+async function loadThumbImages(container) {
+    const imgs = container.querySelectorAll('.m-prompt-list-thumb img[data-first-image]');
+    if (imgs.length === 0) return;
+    const storage = getStorage();
+    imgs.forEach(async (img) => {
+        const raw = img.dataset.firstImage;
+        if (!raw) return;
+        try {
+            const imgData = JSON.parse(raw);
+            const url = await storage.getImageUrl(imgData);
+            if (url) img.src = url;
+        } catch (e) {}
+    });
 }
 
 function setupLibraryEvents(pageEl) {

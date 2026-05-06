@@ -112,7 +112,7 @@ export class ApiStorage {
     }
 
     async getImageUrl(img) {
-        if (img.file) return `${this.baseUrl}/images/${img.file}`;
+        if (img.file) return `${this.baseUrl}/api/images/${img.file}`;
         return img.data || '';
     }
 

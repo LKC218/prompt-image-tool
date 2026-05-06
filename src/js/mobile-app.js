@@ -58,6 +58,7 @@ function renderShell() {
 
 function mount(el) {
     appEl = el;
+    document.documentElement.setAttribute('data-theme', 'light');
     appEl.innerHTML = renderShell();
     pageContainer = document.getElementById('mPageContainer');
 

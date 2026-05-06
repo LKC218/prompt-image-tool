@@ -1,4 +1,4 @@
-﻿!define APPNAME "PromptImageManager"
+﻿﻿﻿﻿!define APPNAME "PromptImageManager"
 !define APPVERSION "2.3.1"
 !define APPEXE "PromptImageManager.exe"
 
