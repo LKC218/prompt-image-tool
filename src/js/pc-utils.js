@@ -3,6 +3,21 @@ let folderContextMenuTargetId = null;
 let contextMenuJustOpened = false;
 let activeContextMenuHandler = null;
 let activeContextMenuObserver = null;
+const IMAGE_VIEWER_MIN_SCALE = 1;
+const IMAGE_VIEWER_MAX_SCALE = 5;
+const IMAGE_VIEWER_WHEEL_STEP = 1.12;
+const IMAGE_VIEWER_DOUBLE_CLICK_SCALE = 2;
+const imageViewerState = {
+    scale: 1,
+    translateX: 0,
+    translateY: 0,
+    isDragging: false,
+    pointerId: null,
+    dragStartX: 0,
+    dragStartY: 0,
+    startTranslateX: 0,
+    startTranslateY: 0
+};
 
 function getPcApp() {
     return document.getElementById('pcApp');
@@ -177,25 +192,219 @@ function getFolderContextMenuTargetId() {
     return folderContextMenuTargetId;
 }
 
-function showImageViewer(src) {
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+
+function getImageViewerParts() {
+    return {
+        viewer: document.getElementById('pcImageViewer'),
+        stage: document.getElementById('pcImageViewerStage'),
+        img: document.getElementById('pcImageViewerImg'),
+        zoom: document.getElementById('pcImageViewerZoom'),
+        reset: document.getElementById('pcImageViewerReset')
+    };
+}
+
+function getImageViewerTranslateLimit() {
+    const { stage, img } = getImageViewerParts();
+    if (!stage || !img) return { x: 0, y: 0 };
+
+    const stageRect = stage.getBoundingClientRect();
+    const scaledWidth = img.offsetWidth * imageViewerState.scale;
+    const scaledHeight = img.offsetHeight * imageViewerState.scale;
+
+    return {
+        x: scaledWidth > stageRect.width ? (scaledWidth - stageRect.width) / 2 + 32 : 0,
+        y: scaledHeight > stageRect.height ? (scaledHeight - stageRect.height) / 2 + 32 : 0
+    };
+}
+
+function clampImageViewerTranslate() {
+    if (imageViewerState.scale <= IMAGE_VIEWER_MIN_SCALE) {
+        imageViewerState.translateX = 0;
+        imageViewerState.translateY = 0;
+        return;
+    }
+
+    const limit = getImageViewerTranslateLimit();
+    imageViewerState.translateX = clamp(imageViewerState.translateX, -limit.x, limit.x);
+    imageViewerState.translateY = clamp(imageViewerState.translateY, -limit.y, limit.y);
+}
+
+function applyImageViewerTransform() {
+    const { viewer, img, zoom, reset } = getImageViewerParts();
+    if (!viewer || !img) return;
+
+    clampImageViewerTranslate();
+    img.style.transform = `translate(${imageViewerState.translateX}px, ${imageViewerState.translateY}px) scale(${imageViewerState.scale})`;
+    img.classList.toggle('pc-image-viewer-img-dragging', imageViewerState.isDragging);
+    viewer.classList.toggle('pc-image-viewer-zoomed', imageViewerState.scale > IMAGE_VIEWER_MIN_SCALE);
+
+    if (zoom) zoom.textContent = `${Math.round(imageViewerState.scale * 100)}%`;
+    if (reset) reset.disabled = imageViewerState.scale <= IMAGE_VIEWER_MIN_SCALE;
+}
+
+function resetImageViewerTransform() {
+    imageViewerState.scale = IMAGE_VIEWER_MIN_SCALE;
+    imageViewerState.translateX = 0;
+    imageViewerState.translateY = 0;
+    imageViewerState.isDragging = false;
+    imageViewerState.pointerId = null;
+    applyImageViewerTransform();
+}
+
+function zoomImageViewerAt(clientX, clientY, nextScale) {
+    const { stage } = getImageViewerParts();
+    if (!stage) return;
+
+    const previousScale = imageViewerState.scale;
+    const scale = clamp(nextScale, IMAGE_VIEWER_MIN_SCALE, IMAGE_VIEWER_MAX_SCALE);
+    if (Math.abs(scale - previousScale) < 0.001) return;
+
+    if (scale <= IMAGE_VIEWER_MIN_SCALE) {
+        resetImageViewerTransform();
+        return;
+    }
+
+    const stageRect = stage.getBoundingClientRect();
+    const pointerX = clientX - stageRect.left - stageRect.width / 2;
+    const pointerY = clientY - stageRect.top - stageRect.height / 2;
+    const ratio = scale / previousScale;
+
+    imageViewerState.scale = scale;
+    imageViewerState.translateX = pointerX - (pointerX - imageViewerState.translateX) * ratio;
+    imageViewerState.translateY = pointerY - (pointerY - imageViewerState.translateY) * ratio;
+    applyImageViewerTransform();
+}
+
+function handleImageViewerWheel(e) {
+    e.preventDefault();
+    const direction = e.deltaY < 0 ? 1 : -1;
+    const factor = direction > 0 ? IMAGE_VIEWER_WHEEL_STEP : 1 / IMAGE_VIEWER_WHEEL_STEP;
+    zoomImageViewerAt(e.clientX, e.clientY, imageViewerState.scale * factor);
+}
+
+function handleImageViewerPointerDown(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (imageViewerState.scale <= IMAGE_VIEWER_MIN_SCALE) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    imageViewerState.isDragging = true;
+    imageViewerState.pointerId = e.pointerId;
+    imageViewerState.dragStartX = e.clientX;
+    imageViewerState.dragStartY = e.clientY;
+    imageViewerState.startTranslateX = imageViewerState.translateX;
+    imageViewerState.startTranslateY = imageViewerState.translateY;
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    applyImageViewerTransform();
+}
+
+function handleImageViewerPointerMove(e) {
+    if (!imageViewerState.isDragging || imageViewerState.pointerId !== e.pointerId) return;
+
+    const deltaX = e.clientX - imageViewerState.dragStartX;
+    const deltaY = e.clientY - imageViewerState.dragStartY;
+    imageViewerState.translateX = imageViewerState.startTranslateX + deltaX;
+    imageViewerState.translateY = imageViewerState.startTranslateY + deltaY;
+    applyImageViewerTransform();
+}
+
+function stopImageViewerDrag(e) {
+    if (!imageViewerState.isDragging) return;
+    if (e && imageViewerState.pointerId === e.pointerId && e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+
+    imageViewerState.isDragging = false;
+    imageViewerState.pointerId = null;
+    applyImageViewerTransform();
+}
+
+function handleImageViewerDblClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (imageViewerState.scale > IMAGE_VIEWER_MIN_SCALE) {
+        resetImageViewerTransform();
+        return;
+    }
+
+    zoomImageViewerAt(e.clientX, e.clientY, IMAGE_VIEWER_DOUBLE_CLICK_SCALE);
+}
+
+function ensureImageViewer() {
     let viewer = document.getElementById('pcImageViewer');
     if (!viewer) {
         viewer = document.createElement('div');
         viewer.className = 'pc-image-viewer';
         viewer.id = 'pcImageViewer';
-        viewer.innerHTML = '<img id="pcImageViewerImg" alt="">';
+        viewer.setAttribute('role', 'dialog');
+        viewer.setAttribute('aria-modal', 'true');
+        viewer.setAttribute('aria-label', '图片查看器');
+        viewer.tabIndex = -1;
+        viewer.innerHTML = `
+            <div class="pc-image-viewer-toolbar" aria-label="图片查看工具">
+                <span class="pc-image-viewer-zoom" id="pcImageViewerZoom">100%</span>
+                <button class="pc-image-viewer-tool" id="pcImageViewerReset" type="button" title="复位" aria-label="复位图片">↺</button>
+                <button class="pc-image-viewer-tool" id="pcImageViewerClose" type="button" title="关闭" aria-label="关闭图片查看器">×</button>
+            </div>
+            <div class="pc-image-viewer-stage" id="pcImageViewerStage">
+                <img class="pc-image-viewer-img" id="pcImageViewerImg" alt="图片预览">
+            </div>
+        `;
         const app = getPcApp();
         if (app) app.appendChild(viewer);
         else document.body.appendChild(viewer);
-        viewer.addEventListener('click', closeImageViewer);
+
+        const stage = viewer.querySelector('#pcImageViewerStage');
+        const img = viewer.querySelector('#pcImageViewerImg');
+        const resetBtn = viewer.querySelector('#pcImageViewerReset');
+        const closeBtn = viewer.querySelector('#pcImageViewerClose');
+
+        viewer.addEventListener('click', (e) => {
+            if (e.target === viewer || e.target === stage) closeImageViewer();
+        });
+        stage.addEventListener('wheel', handleImageViewerWheel, { passive: false });
+        img.addEventListener('click', (e) => e.stopPropagation());
+        img.addEventListener('dblclick', handleImageViewerDblClick);
+        img.addEventListener('pointerdown', handleImageViewerPointerDown);
+        img.addEventListener('pointermove', handleImageViewerPointerMove);
+        img.addEventListener('pointerup', stopImageViewerDrag);
+        img.addEventListener('pointercancel', stopImageViewerDrag);
+        img.addEventListener('load', resetImageViewerTransform);
+        resetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetImageViewerTransform();
+        });
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeImageViewer();
+        });
     }
-    document.getElementById('pcImageViewerImg').src = src;
+
+    return viewer;
+}
+
+function showImageViewer(src) {
+    const viewer = ensureImageViewer();
+    const img = document.getElementById('pcImageViewerImg');
+    if (img) {
+        resetImageViewerTransform();
+        img.src = src;
+    }
     viewer.classList.add('pc-image-viewer-active');
+    viewer.focus({ preventScroll: true });
 }
 
 function closeImageViewer() {
     const viewer = document.getElementById('pcImageViewer');
-    if (viewer) viewer.classList.remove('pc-image-viewer-active');
+    if (!viewer) return;
+    viewer.classList.remove('pc-image-viewer-active');
+    resetImageViewerTransform();
 }
 
 async function copyToClipboard(text) {

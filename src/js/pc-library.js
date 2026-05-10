@@ -173,21 +173,23 @@ function renderLibraryContent(pageEl) {
     container.innerHTML = `
         <div class="pc-library-workspace">
             <div class="pc-library-table-card">
-                <table class="pc-library-table">
-                    <thead>
-                        <tr>
-                            <th class="pc-library-col-prompt">提示词</th>
-                            <th>标签</th>
-                            <th>创建时间</th>
-                            <th>最近使用</th>
-                            <th>收藏</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="pcLibraryTableBody">
-                        ${pageItems.map(item => renderTableRow(item)).join('')}
-                    </tbody>
-                </table>
+                <div class="pc-library-table-scroll">
+                    <table class="pc-library-table">
+                        <thead>
+                            <tr>
+                                <th class="pc-library-col-prompt">提示词</th>
+                                <th>标签</th>
+                                <th>创建时间</th>
+                                <th>最近使用</th>
+                                <th>收藏</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pcLibraryTableBody">
+                            ${pageItems.map(item => renderTableRow(item)).join('')}
+                        </tbody>
+                    </table>
+                </div>
                 ${renderPagination(items.length, pageCount)}
             </div>
             <aside class="pc-library-preview" id="pcLibraryPreview">

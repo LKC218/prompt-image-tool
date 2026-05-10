@@ -18,6 +18,8 @@ BUILD_DIR = ROOT_DIR / "build"
 DIST_DIR = ROOT_DIR / "dist"
 PYINSTALLER_APP_DIR = BUILD_DIR / "dist" / "PromptImageManager"
 RELEASES_DIR = ROOT_DIR / "releases"
+INSTALLER_SCRIPT = BUILD_DIR / "installer.nsi"
+INSTALLER_ICON = BUILD_DIR / "icon.ico"
 
 
 def resolve_command(command: str) -> str:
@@ -46,6 +48,11 @@ def require_file(path: Path, message: str) -> None:
         raise SystemExit(f"[失败] {message}：{path}")
 
 
+def require_text(text: str, needle: str, message: str) -> None:
+    if needle not in text:
+        raise SystemExit(f"[失败] {message}：缺少 {needle}")
+
+
 def get_package_version() -> str:
     package_path = ROOT_DIR / "package.json"
     with package_path.open("r", encoding="utf-8") as file:
@@ -54,6 +61,26 @@ def get_package_version() -> str:
     if not version:
         raise SystemExit("[失败] package.json 缺少 version 字段")
     return str(version)
+
+
+def validate_pc_installer_config() -> None:
+    require_file(INSTALLER_SCRIPT, "NSIS 安装脚本缺失")
+    require_file(INSTALLER_ICON, "PC 安装包图标缺失")
+
+    installer_text = INSTALLER_SCRIPT.read_text(encoding="utf-8")
+    required_items = [
+        ("Unicode true", "NSIS 未启用 Unicode"),
+        ('!insertmacro MUI_LANGUAGE "SimpChinese"', "NSIS 未声明简体中文语言"),
+        ('Icon "icon.ico"', "安装器未声明图标"),
+        ('UninstallIcon "icon.ico"', "卸载器未声明图标"),
+        ('File "icon.ico"', "安装目录未复制图标"),
+        ('CreateShortCut "$DESKTOP\\生图提示词管理器.lnk"', "桌面快捷方式未配置"),
+        ('CreateShortCut "$SMPROGRAMS\\生图提示词管理器\\生图提示词管理器.lnk"', "开始菜单快捷方式未配置"),
+        ('"$INSTDIR\\icon.ico" 0', "快捷方式未绑定安装目录图标"),
+        ('"DisplayIcon" "$INSTDIR\\icon.ico"', "卸载项图标未配置"),
+    ]
+    for needle, message in required_items:
+        require_text(installer_text, needle, message)
 
 
 def check_environment(skip_nsis: bool) -> None:
@@ -143,6 +170,7 @@ def main() -> None:
     args = parse_args()
     version = get_package_version()
     print(f"[开始] PromptImageManager v{version} PC 独立安装包构建")
+    validate_pc_installer_config()
 
     if not args.skip_env_check:
         check_environment(args.skip_nsis)

@@ -22,6 +22,18 @@ PC 独立安装包构建：
 python scripts\build_pc_package.py
 ```
 
+Android 安装包构建：
+
+```powershell
+python scripts\build_android_package.py
+```
+
+PC 与 Android 发布包一键构建：
+
+```powershell
+python scripts\build_release_packages.py
+```
+
 ## 目录说明
 
 - `src/`：前端源码、样式、交互脚本和运行时资源。

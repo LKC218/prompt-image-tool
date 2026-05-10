@@ -1,6 +1,8 @@
 import { getStorage } from './storage.js';
-import { navigate, goBack } from './pc-app.js';
+import { navigate } from './pc-app.js';
 import { showToast, showConfirmModal, copyToClipboard, showImageViewer, showContextMenu, escapeHtml, formatDate } from './pc-utils.js';
+import safetyMascot from '../assets/mobile/mascots/corgi-settings.png';
+import detailImagePlaceholder from '../assets/pc/detail-image-placeholder.png';
 
 const TAG_COLORS = ['pc-tag-blue', 'pc-tag-pink', 'pc-tag-green', 'pc-tag-yellow', 'pc-tag-purple'];
 const TAG_BG_COLORS = ['#EAF5FF', '#FFF0F5', '#EFFFF4', '#FFF8E0', '#EFE5FF'];
@@ -13,18 +15,29 @@ let currentImageIndex = 0;
 
 function render(params = {}) {
     return `
-        <div class="pc-detail-top-nav">
-            <button class="pc-detail-top-nav-back" id="pcDetailBack">←</button>
-            <span class="pc-detail-top-nav-title">提示词详情</span>
-            <div class="pc-detail-top-nav-actions">
-                <button class="pc-detail-top-nav-btn" id="pcDetailStar" title="收藏">☆</button>
-                <button class="pc-detail-top-nav-btn" id="pcDetailMoreTop" title="更多">⋮</button>
+        <div class="pc-detail-screen">
+            <div class="pc-detail-sky" aria-hidden="true"></div>
+            <div class="pc-detail-hero">
+                <div class="pc-detail-hero-copy">
+                    <h1 class="pc-detail-page-title">提示词详情</h1>
+                    <nav class="pc-detail-breadcrumb" aria-label="当前位置">
+                        <button class="pc-detail-breadcrumb-link" id="pcDetailBack" type="button">首页</button>
+                        <span class="pc-detail-breadcrumb-sep">›</span>
+                        <button class="pc-detail-breadcrumb-link" id="pcDetailLibraryCrumb" type="button">提示词库</button>
+                        <span class="pc-detail-breadcrumb-sep">›</span>
+                        <span class="pc-detail-breadcrumb-current" id="pcDetailBreadcrumbName">加载中</span>
+                    </nav>
+                </div>
+                <div class="pc-detail-top-nav-actions">
+                    <button class="pc-detail-top-nav-btn" id="pcDetailStar" title="收藏" type="button">☆ 收藏</button>
+                    <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-more" id="pcDetailMoreTop" title="更多" type="button">⋯</button>
+                </div>
             </div>
-        </div>
-        <div class="pc-detail-page" id="pcDetailContent">
-            <div class="pc-empty-state" style="padding:80px 0;">
-                <span class="pc-empty-icon">⏳</span>
-                <span class="pc-empty-text">加载中...</span>
+            <div class="pc-detail-page" id="pcDetailContent">
+                <div class="pc-empty-state" style="padding:80px 0;">
+                    <span class="pc-empty-icon">⏳</span>
+                    <span class="pc-empty-text">加载中...</span>
+                </div>
             </div>
         </div>
     `;
@@ -85,18 +98,34 @@ function renderDetailContent(pageEl) {
     const isFavorite = promptSet.isFavorite === true;
 
     updateStarButton(pageEl, isFavorite);
+    updateBreadcrumbName(pageEl, promptSet.name);
 
     container.innerHTML = `
-        ${renderCoverImage()}
-        ${renderTitleRow(promptSet.name, tags)}
-        ${renderPositivePromptCard(positivePrompt)}
-        ${renderNegativePromptCard(negativePrompt)}
-        ${renderInfoCard(currentVersion, tags, promptSet)}
-        ${renderVersionCard(versions)}
-        ${renderBottomBar()}
+        <div class="pc-detail-shell">
+            <div class="pc-detail-layout">
+                <section class="pc-detail-main-column" aria-label="提示词主内容">
+                    ${renderCoverImage()}
+                    ${renderTitleRow(promptSet.name, tags)}
+                    ${renderMetaStrip(tags, promptSet)}
+                    ${renderPositivePromptCard(positivePrompt)}
+                    ${renderNegativePromptCard(negativePrompt)}
+                    ${renderBottomBar()}
+                </section>
+                <aside class="pc-detail-side-column" aria-label="提示词辅助信息">
+                    ${renderInfoCard(currentVersion, tags, promptSet)}
+                    ${renderVersionCard(versions)}
+                    ${renderLocalSafetyCard()}
+                </aside>
+            </div>
+        </div>
     `;
 
     loadCoverImage();
+}
+
+function updateBreadcrumbName(pageEl, name) {
+    const current = pageEl.querySelector('#pcDetailBreadcrumbName');
+    if (current) current.textContent = name || '未命名提示词';
 }
 
 function renderCoverImage() {
@@ -119,7 +148,7 @@ function renderCoverImage() {
                 ` : ''}
             ` : `
                 <div class="pc-detail-cover-placeholder">
-                    🖼
+                    <img class="pc-detail-cover-placeholder-icon" src="${detailImagePlaceholder}" alt="暂无封面图片" loading="lazy">
                     <span>暂无封面图片</span>
                 </div>
             `}
@@ -162,12 +191,7 @@ function switchImage(newIndex) {
 }
 
 function renderTitleRow(name, tags) {
-    const tagsHtml = tags.length > 0
-        ? tags.map((t, i) => {
-            const colorIdx = i % TAG_COLORS.length;
-            return `<span class="pc-tag-pill ${TAG_COLORS[colorIdx]}">${escapeHtml(t)}</span>`;
-        }).join('')
-        : '<span class="pc-tag-pill pc-tag-default">提示词</span>';
+    const tagsHtml = renderTagPills(tags);
 
     return `
         <div class="pc-detail-title-row pc-detail-fade-in">
@@ -180,6 +204,37 @@ function renderTitleRow(name, tags) {
             <div class="pc-detail-fav">
                 <span class="pc-detail-fav-icon">♥</span>
                 <span class="pc-detail-fav-count">${promptSet.isFavorite ? '1' : '0'}</span>
+            </div>
+        </div>
+    `;
+}
+
+function renderTagPills(tags) {
+    return tags.length > 0
+        ? tags.map((t, i) => {
+            const colorIdx = i % TAG_COLORS.length;
+            return `<span class="pc-tag-pill ${TAG_COLORS[colorIdx]}">${escapeHtml(t)}</span>`;
+        }).join('')
+        : '<span class="pc-tag-pill pc-tag-default">提示词</span>';
+}
+
+function renderMetaStrip(tags, set) {
+    return `
+        <div class="pc-detail-meta-strip pc-detail-fade-in">
+            <div class="pc-detail-meta-item">
+                <span class="pc-detail-meta-icon">◎</span>
+                <span class="pc-detail-meta-label">创建时间</span>
+                <span class="pc-detail-meta-value">${formatDate(set.createdAt) || '-'}</span>
+            </div>
+            <div class="pc-detail-meta-item">
+                <span class="pc-detail-meta-icon">◇</span>
+                <span class="pc-detail-meta-label">标签</span>
+                <span class="pc-detail-meta-tags">${renderTagPills(tags)}</span>
+            </div>
+            <div class="pc-detail-meta-item">
+                <span class="pc-detail-meta-icon">♙</span>
+                <span class="pc-detail-meta-label">创建者</span>
+                <span class="pc-detail-meta-value">提示词管家</span>
             </div>
         </div>
     `;
@@ -226,7 +281,6 @@ function renderNegativePromptCard(text) {
 }
 
 function renderInfoCard(currentVersion, tags, set) {
-    const styleModel = currentVersion ? (currentVersion.version || '默认') : '-';
     const aspectRatio = currentVersion ? (currentVersion.aspectRatio || '1:1') : '-';
     const createdAt = formatDate(set.createdAt);
 
@@ -239,10 +293,13 @@ function renderInfoCard(currentVersion, tags, set) {
 
     return `
         <div class="pc-detail-info-card pc-detail-fade-in">
+            <h2 class="pc-detail-side-title">信息概览</h2>
             <div class="pc-detail-info-grid">
                 <div class="pc-detail-info-item">
-                    <span class="pc-detail-info-label">风格/模型</span>
-                    <span class="pc-detail-info-value">${escapeHtml(styleModel)}</span>
+                    <span class="pc-detail-info-label">标签</span>
+                    <div class="pc-detail-info-tags">
+                        ${tagsHtml}
+                    </div>
                 </div>
                 <div class="pc-detail-info-item">
                     <span class="pc-detail-info-label">比例</span>
@@ -250,13 +307,7 @@ function renderInfoCard(currentVersion, tags, set) {
                 </div>
                 <div class="pc-detail-info-item">
                     <span class="pc-detail-info-label">创建时间</span>
-                    <span class="pc-detail-info-value">${createdAt}</span>
-                </div>
-                <div class="pc-detail-info-item">
-                    <span class="pc-detail-info-label">标签</span>
-                    <div class="pc-detail-info-tags">
-                        ${tagsHtml}
-                    </div>
+                    <span class="pc-detail-info-value">${createdAt || '-'}</span>
                 </div>
             </div>
         </div>
@@ -272,10 +323,7 @@ function renderVersionCard(versions) {
     return `
         <div class="pc-detail-version-card pc-detail-fade-in">
             <div class="pc-detail-version-header">
-                <div class="pc-detail-version-header-left">
-                    <span class="pc-detail-version-icon">🕐</span>
-                    <span class="pc-detail-version-title">版本记录</span>
-                </div>
+                <h2 class="pc-detail-side-title">版本记录</h2>
                 ${hasMore ? '<button class="pc-detail-version-view-all" id="pcDetailViewAllVersions">查看全部 ></button>' : ''}
             </div>
             ${displayVersions.map((v, i) => {
@@ -292,6 +340,20 @@ function renderVersionCard(versions) {
                     </div>
                 `;
             }).join('')}
+        </div>
+    `;
+}
+
+function renderLocalSafetyCard() {
+    return `
+        <div class="pc-detail-safety-card pc-detail-fade-in">
+            <div class="pc-detail-safety-copy">
+                <span class="pc-detail-safety-icon">♢</span>
+                <div>
+                    <strong>开始编写提示词</strong>
+                </div>
+            </div>
+            <img class="pc-detail-safety-mascot" src="${safetyMascot}" alt="" loading="lazy">
         </div>
     `;
 }
@@ -319,10 +381,10 @@ function updateStarButton(pageEl, isFavorite) {
     const btn = pageEl.querySelector('#pcDetailStar');
     if (!btn) return;
     if (isFavorite) {
-        btn.textContent = '⭐';
+        btn.textContent = '★ 收藏';
         btn.classList.add('pc-detail-top-nav-btn-starred');
     } else {
-        btn.textContent = '☆';
+        btn.textContent = '☆ 收藏';
         btn.classList.remove('pc-detail-top-nav-btn-starred');
     }
 }
@@ -341,7 +403,8 @@ async function loadCoverImage() {
 }
 
 function setupEvents(pageEl) {
-    pageEl.querySelector('#pcDetailBack')?.addEventListener('click', () => goBack());
+    pageEl.querySelector('#pcDetailBack')?.addEventListener('click', () => navigate('/'));
+    pageEl.querySelector('#pcDetailLibraryCrumb')?.addEventListener('click', () => navigate('/library'));
 
     pageEl.querySelector('#pcDetailStar')?.addEventListener('click', async () => {
         if (!promptSet) return;

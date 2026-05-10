@@ -1,10 +1,11 @@
 import { escapeHtml } from './pc-utils.js';
 import corgiHome from '../assets/mobile/mascots/corgi-home.png';
 import homeBg from '../assets/pc/home-bg.png';
+import greetingHand from '../assets/mobile/greeting-hand.png';
 
 function renderPcWelcomeBanner(options = {}) {
     const {
-        title = 'Hi，创作者 👋',
+        title = 'Hi，创作者',
         subtitle = '今天也要快乐创作呀~',
         className = '',
         leadingHtml = '',
@@ -20,7 +21,7 @@ function renderPcWelcomeBanner(options = {}) {
             <div class="pc-welcome-section">
                 ${leadingHtml ? `<div class="pc-welcome-leading">${leadingHtml}</div>` : ''}
                 <div class="pc-welcome-text">
-                    <h2>${escapeHtml(title)}</h2>
+                    <h2>${escapeHtml(title)}<img src="${greetingHand}" alt="" class="pc-greeting-hand"></h2>
                     <p>${escapeHtml(subtitle)}</p>
                 </div>
                 <div class="pc-welcome-right">

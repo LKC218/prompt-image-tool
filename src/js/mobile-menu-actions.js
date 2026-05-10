@@ -1,5 +1,6 @@
 import { getStorage } from './storage.js';
-import { navigate, goBack, showMobileToast, showActionSheet } from './mobile-utils.js';
+import { navigate, goBack, showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
+import folderIcon from '../assets/mobile/folder.png';
 
 function showRenameDialog(pageEl, id, currentName, onDone) {
     let overlay = pageEl.querySelector('.m-rename-overlay');
@@ -74,24 +75,12 @@ async function showMoveDialog(pageEl, id, currentFolderId, onDone) {
         return;
     }
 
-    const FOLDER_ICONS = [
-        { keyword: '插画', icon: '🎨' },
-        { keyword: '写实', icon: '📷' },
-        { keyword: '科幻', icon: '🚀' },
-        { keyword: '国风', icon: '🏯' },
-        { keyword: '场景', icon: '🌄' },
-        { keyword: '人物', icon: '👤' },
-    ];
-
-    function getFolderIcon(name) {
-        const found = FOLDER_ICONS.find(f => name.includes(f.keyword));
-        return found ? found.icon : '📁';
-    }
+    const FOLDER_ICON = iconImg(folderIcon);
 
     showActionSheet([
         {
             action: 'none',
-            icon: '📁',
+            icon: FOLDER_ICON,
             label: '未分类',
             handler: async () => {
                 await getStorage().updatePromptSet(id, { folderId: '' });
@@ -101,7 +90,7 @@ async function showMoveDialog(pageEl, id, currentFolderId, onDone) {
         },
         ...folders.map(f => ({
             action: f.id,
-            icon: getFolderIcon(f.name),
+            icon: FOLDER_ICON,
             label: f.name + (f.id === currentFolderId ? ' ✓' : ''),
             handler: async () => {
                 await getStorage().updatePromptSet(id, { folderId: f.id });

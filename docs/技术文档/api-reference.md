@@ -22,14 +22,20 @@
 
 ### GET /api/health
 
-健康检查接口，前端启动时轮询此接口等待后端就绪。
+健康检查接口，前端启动时轮询此接口等待后端就绪；移动端搜索局域网 PC 端时也通过该接口确认候选地址是否为可同步的 PC 服务。
 
 **响应**：
 
 ```json
 {
   "status": "ok",
-  "dataDir": "/path/to/data"
+  "dataDir": "/path/to/data",
+  "device_name": "PC-NAME",
+  "device_id": "uuid",
+  "platform": "pc",
+  "sync_version": 2,
+  "pairing_required": true,
+  "capabilities": ["pull", "push", "bidirectional", "pairing"]
 }
 ```
 
@@ -488,9 +494,111 @@
 
 下载单张图片，返回二进制流。
 
+### GET /api/sync/capabilities
+
+返回 PC 端局域网互通能力，供 PC 设置页展示和 Android 端判断是否支持回传、双向同步。
+
+**响应**：
+
+```json
+{
+  "status": "ok",
+  "device_id": "uuid",
+  "device_name": "PC-NAME",
+  "platform": "pc",
+  "sync_version": 2,
+  "ip": "192.168.1.100",
+  "port": 8888,
+  "pairing_required": true,
+  "capabilities": ["pull", "push", "bidirectional", "pairing"]
+}
+```
+
+### GET /api/sync/pairing
+
+返回当前 PC 的局域网同步令牌。Android 回传或双向同步前会读取该令牌，并在写入类请求中通过 `X-Sync-Token` 提交。
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "device_id": "uuid",
+  "device_name": "PC-NAME",
+  "sync_token": "token",
+  "pairing_code": "ABC123",
+  "expires": null
+}
+```
+
+### POST /api/sync/import
+
+Android 将本机完整备份回传到 PC。该接口必须携带 `X-Sync-Token`，默认保护 PC 端同 ID 数据。
+
+**请求头**：
+
+```text
+X-Sync-Token: token
+X-Device-Id: android-device-id
+X-Device-Name: Android
+```
+
+**请求体**：
+
+```json
+{
+  "mode": "keep_pc",
+  "payload": {
+    "folders": [],
+    "prompt_sets": []
+  }
+}
+```
+
+`mode` 支持：
+
+| 模式 | 说明 |
+|------|------|
+| `keep_pc` | 默认模式，同 ID 冲突时保留 PC 数据，并将 Android 数据保存为冲突副本 |
+| `add_only` | 只新增 PC 不存在的数据，同 ID 冲突跳过 |
+| `android_wins` | Android 覆盖 PC，仅适合明确确认后的强制回传 |
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "imported": 1,
+  "added": 1,
+  "updated": 0,
+  "conflicts": 1,
+  "skipped": 0,
+  "imagesRestored": 2,
+  "conflictItems": []
+}
+```
+
+### POST /api/sync/bidirectional
+
+Android 上传本机快照，PC 以 `keep_pc` 策略合并后返回最新 PC 同步快照。移动端随后可用该快照刷新本机数据。
+
+写入权限同 `/api/sync/import`，必须携带 `X-Sync-Token`。
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "pushReport": {},
+  "syncData": {}
+}
+```
+
 ### GET /api/network-info
 
 返回 PC 端局域网 IP 和端口。
+
+移动端搜索 PC 功能不新增后端接口，仍使用 `/api/health` 对候选 IP 做健康检查；`/api/network-info` 主要用于 PC 端设置页展示本机同步地址。
 
 **响应**：
 

@@ -24,3 +24,15 @@ python scripts\build_pc_package.py --skip-nsis
 ```
 
 Android 安装包仍按 Android 构建方案执行。
+
+Android 安装包：
+
+```powershell
+python scripts\build_android_package.py
+```
+
+PC 与 Android 发布包总入口：
+
+```powershell
+python scripts\build_release_packages.py
+```

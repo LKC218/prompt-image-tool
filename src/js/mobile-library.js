@@ -1,10 +1,14 @@
 import { getStorage } from './storage.js';
 import { formatDate } from './utils.js';
-import { navigate, showMobileToast, showActionSheet } from './mobile-utils.js';
+import { navigate, showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { aggregateTags, getTagStyleClass } from './tag-utils.js';
 import { getCurrentRoute } from './mobile-router.js';
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
+import searchIcon from '../assets/mobile/search.png';
+import imagePlaceholder from '../assets/mobile/image-placeholder.png';
+import dataIcon from '../assets/mobile/data.png';
+import emptyMailboxIcon from '../assets/mobile/empty-mailbox.png';
 
 let libraryData = null;
 let currentFilter = 'all';
@@ -23,7 +27,7 @@ function render(params = {}) {
         <div class="m-top-nav">
             <span class="m-top-nav-title">提示词库</span>
             <div class="m-top-nav-actions">
-                <button class="m-top-nav-action" id="mLibSearchBtn">🔍</button>
+                <button class="m-top-nav-action" id="mLibSearchBtn">${iconImg(searchIcon)}</button>
                 <button class="m-top-nav-action" id="mLibMoreBtn">⋯</button>
             </div>
         </div>
@@ -124,7 +128,7 @@ function renderList(pageEl) {
     if (list.length === 0) {
         container.innerHTML = `
             <div class="m-empty-state">
-                <span class="m-empty-icon">📚</span>
+                <span class="m-empty-icon"><img src="${emptyMailboxIcon}" alt="空状态" class="m-empty-icon-img"></span>
                 <span class="m-empty-text">${searchKeyword ? '未找到匹配的提示词' : '还没有提示词，点击下方加号创建吧~'}</span>
             </div>
         `;
@@ -133,7 +137,7 @@ function renderList(pageEl) {
 
     container.innerHTML = list.map((item, idx) => `
         <div class="m-prompt-list-card m-fade-in" data-id="${item.id}" style="animation-delay: ${idx * 30}ms">
-            <div class="m-prompt-list-thumb${item.firstImage ? '' : ' m-prompt-thumb-default'}">${item.firstImage ? `<img alt="" data-first-image='${JSON.stringify(item.firstImage).replace(/'/g, "&#39;")}'>` : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'}</div>
+            <div class="m-prompt-list-thumb${item.firstImage ? '' : ' m-prompt-thumb-default'}">${item.firstImage ? `<img alt="" data-first-image='${JSON.stringify(item.firstImage).replace(/'/g, "&#39;")}'>` : `<img src="${imagePlaceholder}" alt="默认图片" class="m-prompt-thumb-placeholder">`}</div>
             <div class="m-prompt-list-content">
                 <div class="m-prompt-list-title">${escapeHtml(item.name)}</div>
                 <div class="m-prompt-list-desc">${item.versionCount ? item.versionCount + ' 个版本' : ''}${item.imageCount ? ' · ' + item.imageCount + ' 张图片' : ''}</div>
@@ -219,7 +223,7 @@ function setupLibraryEvents(pageEl) {
         searchBar.className = 'm-search-bar m-section-gap';
         searchBar.id = 'mLibSearchBar';
         searchBar.innerHTML = `
-            <span class="m-search-icon">🔍</span>
+            <span class="m-search-icon"><img src="${searchIcon}" alt="搜索" class="m-search-icon-img"></span>
             <input type="text" class="m-search-input" placeholder="搜索提示词..." id="mLibSearchInput" value="${searchKeyword}">
             <button style="color:var(--m-text2);font-size:14px" id="mLibSearchClose">取消</button>
         `;
@@ -244,7 +248,7 @@ function setupLibraryEvents(pageEl) {
     pageEl.querySelector('#mLibMoreBtn')?.addEventListener('click', () => {
         showActionSheet([
             { action: 'sort', icon: '📊', label: '排序方式', handler: () => showMobileToast('排序功能开发中') },
-            { action: 'export', icon: '📤', label: '导出数据', handler: () => handleExport() },
+            { action: 'export', icon: `<img src="${dataIcon}" alt="" class="m-icon-img-native">`, label: '导出数据', handler: () => handleExport() },
         ]);
     });
 }

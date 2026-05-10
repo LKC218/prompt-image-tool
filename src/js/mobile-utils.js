@@ -26,4 +26,8 @@ function goBack() {
     if (_goBack) _goBack();
 }
 
-export { initMobileUtils, showMobileToast, showActionSheet, navigate, goBack };
+function iconImg(src, alt = '') {
+    return `<img src="${src}" alt="${alt}" class="m-icon-img">`;
+}
+
+export { initMobileUtils, showMobileToast, showActionSheet, navigate, goBack, iconImg };

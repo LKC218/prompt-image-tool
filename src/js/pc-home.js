@@ -31,7 +31,6 @@ const ICONS = {
     plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>',
     import: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"></path><path d="M12 4v12"></path><path d="m7 11 5 5 5-5"></path></svg>',
     image: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="m21 15-4.5-4.5L8 19"></path></svg>',
-    lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>',
     arrowRight: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>'
 };
 
@@ -101,12 +100,6 @@ function render(params = {}) {
                         </button>
                     </div>
                 </section>
-            </div>
-
-            <div class="pc-home-safe-tip">
-                <span class="pc-home-safe-icon pc-home-inline-icon">${ICONS.lock}</span>
-                <span>本地应用完全本地运行，不联网，不收集任何数据，您的创作数据安全有保障。</span>
-                <span class="pc-home-safe-arrow pc-home-inline-icon">${ICONS.arrowRight}</span>
             </div>
         </section>
     `;
@@ -192,7 +185,7 @@ function renderRecentList(pageEl, promptSets) {
 
     if (recent.length === 0) {
         container.innerHTML = `
-            <div class="pc-empty-state">
+            <div class="pc-empty-state pc-home-recent-empty">
                 <span class="pc-empty-icon pc-home-inline-icon">${homeSearchKeyword ? ICONS.search : ICONS.prompt}</span>
                 <span class="pc-empty-text">${homeSearchKeyword ? '没有找到匹配的提示词' : '还没有提示词，点击下方快速创建吧~'}</span>
             </div>

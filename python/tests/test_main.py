@@ -42,6 +42,17 @@ def request_json(url, data=None, method='GET'):
         return response.status, json.loads(response.read().decode('utf-8'))
 
 
+def request_json_with_headers(url, data=None, method='GET', headers=None):
+    body = None
+    request_headers = dict(headers or {})
+    if data is not None:
+        body = json.dumps(data, ensure_ascii=False).encode('utf-8')
+        request_headers['Content-Type'] = 'application/json'
+    request = urllib.request.Request(url, data=body, headers=request_headers, method=method)
+    with urllib.request.urlopen(request, timeout=5) as response:
+        return response.status, json.loads(response.read().decode('utf-8'))
+
+
 class TestLoadSaveData:
     def test_load_data_no_file(self, tmp_path, monkeypatch):
         monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'nonexistent.json'))
@@ -172,6 +183,160 @@ class TestBackupExport:
             assert status == 200
             assert body['backup_meta']['format'] == 'prompt-image-tool-backup'
             assert body['prompt_sets'][0]['id'] == 'set1'
+        finally:
+            stop_test_server(server, thread)
+
+    def test_sync_import_requires_pairing_token(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        monkeypatch.setattr('main.SYNC_DEVICE_FILE', str(tmp_path / 'sync-device.json'))
+        save_data([])
+
+        server, thread = start_test_server()
+        try:
+            base_url = f'http://127.0.0.1:{server.server_address[1]}'
+            request = urllib.request.Request(
+                f'{base_url}/api/sync/import',
+                data=json.dumps({'payload': {'prompt_sets': []}}).encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST',
+            )
+            try:
+                urllib.request.urlopen(request, timeout=5)
+                assert False, 'sync import without token should fail'
+            except urllib.error.HTTPError as error:
+                body = json.loads(error.read().decode('utf-8'))
+                assert error.code == 401
+                assert body['success'] is False
+        finally:
+            stop_test_server(server, thread)
+
+    def test_sync_import_keep_pc_creates_conflict_copy(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        monkeypatch.setattr('main.SYNC_DEVICE_FILE', str(tmp_path / 'sync-device.json'))
+        save_data([{
+            'id': 'set1',
+            'name': 'PC 版本',
+            'createdAt': '2026-05-10T00:00:00',
+            'updatedAt': '2026-05-10T00:00:00',
+            'versions': [{'id': 'v1', 'version': 'v1', 'prompt': 'pc', 'images': []}],
+        }])
+
+        server, thread = start_test_server()
+        try:
+            base_url = f'http://127.0.0.1:{server.server_address[1]}'
+            _, pairing = request_json(f'{base_url}/api/sync/pairing')
+            payload = {
+                'mode': 'keep_pc',
+                'payload': {
+                    'prompt_sets': [{
+                        'id': 'set1',
+                        'name': 'Android 版本',
+                        'createdAt': '2026-05-10T00:00:00',
+                        'updatedAt': '2026-05-10T01:00:00',
+                        'versions': [{'id': 'v1', 'version': 'v1', 'prompt': 'android', 'images': []}],
+                    }]
+                }
+            }
+
+            status, result = request_json_with_headers(
+                f'{base_url}/api/sync/import',
+                payload,
+                'POST',
+                {'X-Sync-Token': pairing['sync_token']},
+            )
+
+            data = load_data()
+            assert status == 200
+            assert result['conflicts'] == 1
+            assert result['added'] == 1
+            assert len(data) == 2
+            assert data[0]['name'] == 'PC 版本'
+            assert data[1]['id'].startswith('set1-conflict-')
+        finally:
+            stop_test_server(server, thread)
+
+    def test_sync_import_keep_pc_skips_same_content_with_generated_ids(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        monkeypatch.setattr('main.SYNC_DEVICE_FILE', str(tmp_path / 'sync-device.json'))
+        save_data([{
+            'id': 'set1',
+            'name': 'PC 版本',
+            'folderId': '',
+            'tags': '[]',
+            'isFavorite': False,
+            'createdAt': '2026-05-10T00:00:00',
+            'updatedAt': '2026-05-10T00:00:00',
+            'versions': [{
+                'version': 'v1',
+                'prompt': 'same prompt',
+                'negativePrompt': '',
+                'note': '',
+                'aspectRatio': '1:1',
+                'stylePreset': '',
+                'sampler': 'DPM++ 2M Karras',
+                'steps': 30,
+                'cfgScale': 7.0,
+                'hrFix': True,
+                'model': '',
+                'images': [{'id': 'img-pc', 'file': 'img1.png', 'name': 'img1.png', 'path': '', 'note': ''}],
+            }],
+        }])
+
+        server, thread = start_test_server()
+        try:
+            base_url = f'http://127.0.0.1:{server.server_address[1]}'
+            _, pairing = request_json(f'{base_url}/api/sync/pairing')
+            payload = {
+                'mode': 'keep_pc',
+                'payload': {
+                    'prompt_sets': [{
+                        'id': 'set1',
+                        'name': 'PC 版本',
+                        'folder_id': '',
+                        'tags': '[]',
+                        'is_favorite': False,
+                        'created_at': '2026-05-10T00:00:00',
+                        'updated_at': '2026-05-10T01:00:00',
+                        'versions': [{
+                            'id': 'set1_v0',
+                            'version': 'v1',
+                            'prompt': 'same prompt',
+                            'negative_prompt': '',
+                            'note': '',
+                            'aspect_ratio': '1:1',
+                            'style_preset': '',
+                            'sampler': 'DPM++ 2M Karras',
+                            'steps': 30,
+                            'cfg_scale': 7.0,
+                            'hr_fix': True,
+                            'model': '',
+                            'images': [{'id': 'img-android', 'file': 'img1.png', 'name': 'img1.png', 'path': '', 'note': '', 'data': 'data:image/png;base64,AA=='}],
+                        }],
+                    }]
+                }
+            }
+
+            status, result = request_json_with_headers(
+                f'{base_url}/api/sync/import',
+                payload,
+                'POST',
+                {'X-Sync-Token': pairing['sync_token']},
+            )
+
+            assert status == 200
+            assert result['added'] == 0
+            assert result['conflicts'] == 0
+            assert result['skipped'] == 1
+            assert len(load_data()) == 1
         finally:
             stop_test_server(server, thread)
 

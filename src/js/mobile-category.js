@@ -1,12 +1,17 @@
 import { getStorage } from './storage.js';
-import { showMobileToast, showActionSheet, goBack } from './mobile-utils.js';
+import { showMobileToast, showActionSheet, goBack, iconImg } from './mobile-utils.js';
 import { aggregateTags, getTagStyleClass, saveCustomTag, removeCustomTag } from './tag-utils.js';
 import rabbitTip from '../assets/mobile/mascots/rabbit-tip.png';
+import folderIcon from '../assets/mobile/folder.png';
+import arrowUpDownIcon from '../assets/icons/arrow-up-down.svg';
+import pencilLineIcon from '../assets/icons/pencil-line.svg';
+import mergeIcon from '../assets/icons/merge.svg';
+import trashIcon from '../assets/icons/trash-2.svg';
+import emptyTagIcon from '../assets/mobile/tag.png';
 
 let currentSegment = 'category';
 let categoryData = null;
 
-const CATEGORY_ICONS = ['🎨', '📷', '🚀', '🏯', '🏠', '👤'];
 const CATEGORY_COLORS = [
     { bg: '#E8F4FF', text: '#2580D6' },
     { bg: '#FFE8A3', text: '#C4A030' },
@@ -62,19 +67,19 @@ function render(params = {}) {
                     </div>
                     <div class="m-quick-actions">
                         <button class="m-quick-action-btn m-action-green" id="mSortBtn">
-                            <span class="m-quick-action-icon">📊</span>
+                            <span class="m-quick-action-icon">${iconImg(arrowUpDownIcon)}</span>
                             <span>排序</span>
                         </button>
                         <button class="m-quick-action-btn m-action-blue" id="mBatchEditBtn">
-                            <span class="m-quick-action-icon">✏️</span>
+                            <span class="m-quick-action-icon">${iconImg(pencilLineIcon)}</span>
                             <span>批量编辑</span>
                         </button>
                         <button class="m-quick-action-btn m-action-purple" id="mMergeBtn">
-                            <span class="m-quick-action-icon">🔀</span>
+                            <span class="m-quick-action-icon">${iconImg(mergeIcon)}</span>
                             <span>合并分类</span>
                         </button>
                         <button class="m-quick-action-btn m-action-pink" id="mDeleteBtn">
-                            <span class="m-quick-action-icon">🗑️</span>
+                            <span class="m-quick-action-icon">${iconImg(trashIcon)}</span>
                             <span>删除</span>
                         </button>
                     </div>
@@ -99,7 +104,7 @@ function render(params = {}) {
                 <div style="display:flex; flex-wrap:wrap; gap:var(--m-space-sm);" id="mTagList"></div>
                 <div id="mTagEmpty" style="display:none;">
                     <div class="m-empty-state" style="padding: var(--m-space-lg);">
-                        <span class="m-empty-icon">🏷️</span>
+                        <span class="m-empty-icon"><img src="${emptyTagIcon}" alt="空状态" class="m-empty-icon-img"></span>
                         <span class="m-empty-text">还没有标签，在编辑提示词时添加标签后会自动显示</span>
                     </div>
                 </div>
@@ -143,7 +148,7 @@ function renderCategoryList(pageEl) {
     if (categoryData.folders.length === 0) {
         container.innerHTML = `
             <div class="m-empty-state">
-                <span class="m-empty-icon">📂</span>
+                <span class="m-empty-icon"><img src="${folderIcon}" alt="文件夹" class="m-empty-icon-img m-empty-folder-img"></span>
                 <span class="m-empty-text">还没有分类，点击上方新建吧~</span>
             </div>
         `;
@@ -151,12 +156,11 @@ function renderCategoryList(pageEl) {
     }
 
     container.innerHTML = categoryData.folders.map((folder, idx) => {
-        const icon = CATEGORY_ICONS[idx % CATEGORY_ICONS.length];
         const color = getFolderColor(folder, idx);
         const count = categoryData.promptSets.filter(p => p.folderId === folder.id).length;
         return `
             <div class="m-category-list-item m-fade-in" data-folder-id="${folder.id}" style="animation-delay: ${idx * 30}ms">
-                <div class="m-category-icon" style="background: ${color.bg}; color: ${color.text};">${icon}</div>
+                <div class="m-category-icon" style="background: ${color.bg};">${iconImg(folderIcon)}</div>
                 <div class="m-category-item-info">
                     <span class="m-category-item-name">${escapeHtml(folder.name)}</span>
                     <span class="m-category-item-count">${count} 个提示词</span>
@@ -227,9 +231,9 @@ function setupCategoryEvents(pageEl) {
         if (moreBtn) {
             const folderId = moreBtn.dataset.folderId;
             showActionSheet([
-                { action: 'rename', icon: '✏️', label: '重命名', handler: () => showRenameDialog(pageEl, folderId) },
-                { action: 'color', icon: '🎨', label: '更改颜色', handler: () => showChangeColorDialog(pageEl, folderId) },
-                { action: 'delete', icon: '🗑️', label: '删除分类', danger: true, handler: () => handleDeleteFolder(pageEl, folderId) },
+                { action: 'rename', icon: iconImg(pencilLineIcon), label: '重命名', handler: () => showRenameDialog(pageEl, folderId) },
+                { action: 'color', icon: iconImg(folderIcon), label: '更改颜色', handler: () => showChangeColorDialog(pageEl, folderId) },
+                { action: 'delete', icon: iconImg(trashIcon), label: '删除分类', danger: true, handler: () => handleDeleteFolder(pageEl, folderId) },
             ]);
         }
     });
@@ -250,19 +254,38 @@ function setupCategoryEvents(pageEl) {
     });
 
     pageEl.querySelector('#mSortBtn')?.addEventListener('click', () => {
-        showMobileToast('排序功能开发中');
+        const handles = pageEl.querySelectorAll('.m-drag-handle');
+        if (handles.length === 0) {
+            showMobileToast('暂无分类可排序');
+            return;
+        }
+        handles.forEach(h => {
+            h.classList.add('m-drag-handle-highlight');
+            setTimeout(() => h.classList.remove('m-drag-handle-highlight'), 2500);
+        });
+        showMobileToast('拖拽分类右侧 ⋮⋮ 手柄即可调整顺序');
     });
 
     pageEl.querySelector('#mBatchEditBtn')?.addEventListener('click', () => {
-        showMobileToast('批量编辑功能开发中');
+        const folders = categoryData?.folders || [];
+        if (folders.length === 0) {
+            showMobileToast('暂无分类可编辑');
+            return;
+        }
+        showBatchEditDialog(pageEl);
     });
 
     pageEl.querySelector('#mMergeBtn')?.addEventListener('click', () => {
-        showMobileToast('合并分类功能开发中');
+        const folders = categoryData?.folders || [];
+        if (folders.length < 2) {
+            showMobileToast('至少需要 2 个分类才能合并');
+            return;
+        }
+        showMergeFolderDialog(pageEl);
     });
 
     pageEl.querySelector('#mDeleteBtn')?.addEventListener('click', () => {
-        showMobileToast('请选择要删除的分类');
+        showCleanupEmptyFoldersConfirm(pageEl);
     });
 }
 
@@ -446,9 +469,9 @@ function showTagActionMenu(pageEl, tagName) {
     const tagInfo = tags.find(t => t.name === tagName);
     const count = tagInfo ? tagInfo.count : 0;
     showActionSheet([
-        { action: 'info', icon: '🏷️', label: `标签：${tagName}（${count} 个提示词）`, handler: () => {} },
-        { action: 'rename', icon: '✏️', label: '重命名', handler: () => showRenameTagDialog(pageEl, tagName, count) },
-        { action: 'clear', icon: '🗑️', label: '清除该标签', danger: true, handler: () => showClearTagConfirm(pageEl, tagName, count) },
+        { action: 'info', icon: iconImg(folderIcon), label: `标签：${tagName}（${count} 个提示词）`, handler: () => {} },
+        { action: 'rename', icon: iconImg(pencilLineIcon), label: '重命名', handler: () => showRenameTagDialog(pageEl, tagName, count) },
+        { action: 'clear', icon: iconImg(trashIcon), label: '清除该标签', danger: true, handler: () => showClearTagConfirm(pageEl, tagName, count) },
     ]);
 }
 
@@ -631,6 +654,221 @@ function showCategoryConfirm(pageEl, text, onOk) {
         overlay.classList.remove('m-confirm-show');
         await onOk();
     }, { once: true });
+}
+
+function showBatchEditDialog(pageEl) {
+    const overlay = pageEl.querySelector('#mFolderDialogOverlay');
+    const dialog = pageEl.querySelector('#mFolderDialog');
+    if (!overlay || !dialog) return;
+
+    const folders = [...(categoryData?.folders || [])].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    const selectedIds = new Set();
+    let step = 'select';
+    let selectedColor = FOLDER_COLORS[0].value;
+
+    function renderSelectStep() {
+        dialog.innerHTML = `
+            <div class="m-folder-dialog-title">批量编辑</div>
+            <div class="m-folder-dialog-label">选择要编辑的分类（可多选）</div>
+            <div class="m-batch-select-list">
+                ${folders.map(f => `
+                    <button class="m-batch-select-item" data-folder-id="${f.id}">
+                        <span class="m-batch-check ${selectedIds.has(f.id) ? 'm-batch-checked' : ''}" data-folder-id="${f.id}"></span>
+                        <span class="m-batch-item-name">${escapeHtml(f.name)}</span>
+                    </button>
+                `).join('')}
+            </div>
+            <div class="m-folder-dialog-actions">
+                <button class="m-folder-dialog-btn m-folder-dialog-cancel" id="mBatchSelectCancel">取消</button>
+                <button class="m-folder-dialog-btn m-folder-dialog-ok ${selectedIds.size === 0 ? 'm-folder-dialog-ok-disabled' : ''}" id="mBatchSelectNext">下一步</button>
+            </div>
+        `;
+
+        dialog.querySelectorAll('.m-batch-select-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const fid = item.dataset.folderId;
+                if (selectedIds.has(fid)) {
+                    selectedIds.delete(fid);
+                } else {
+                    selectedIds.add(fid);
+                }
+                item.querySelector('.m-batch-check').classList.toggle('m-batch-checked', selectedIds.has(fid));
+                const nextBtn = dialog.querySelector('#mBatchSelectNext');
+                if (nextBtn) nextBtn.classList.toggle('m-folder-dialog-ok-disabled', selectedIds.size === 0);
+            });
+        });
+
+        dialog.querySelector('#mBatchSelectCancel')?.addEventListener('click', () => closeFolderDialog(overlay));
+        dialog.querySelector('#mBatchSelectNext')?.addEventListener('click', () => {
+            if (selectedIds.size === 0) return;
+            step = 'color';
+            renderColorStep();
+        });
+    }
+
+    function renderColorStep() {
+        const selectedNames = folders.filter(f => selectedIds.has(f.id)).map(f => f.name);
+        dialog.innerHTML = `
+            <div class="m-folder-dialog-title">选择新颜色</div>
+            <div class="m-folder-dialog-label">已选 ${selectedIds.size} 个分类：${escapeHtml(selectedNames.join('、'))}</div>
+            <div class="m-folder-dialog-colors">
+                ${FOLDER_COLORS.map((c, i) => `
+                    <button class="m-folder-color-dot ${i === 0 ? 'm-folder-color-selected' : ''}" data-color-idx="${i}" style="background: ${c.value};" title="${c.name}"></button>
+                `).join('')}
+            </div>
+            <div class="m-folder-dialog-actions">
+                <button class="m-folder-dialog-btn m-folder-dialog-cancel" id="mBatchColorBack">返回</button>
+                <button class="m-folder-dialog-btn m-folder-dialog-ok" id="mBatchColorApply">应用</button>
+            </div>
+        `;
+
+        dialog.querySelectorAll('.m-folder-color-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                selectedColor = FOLDER_COLORS[parseInt(dot.dataset.colorIdx)].value;
+                dialog.querySelectorAll('.m-folder-color-dot').forEach(d => d.classList.remove('m-folder-color-selected'));
+                dot.classList.add('m-folder-color-selected');
+            });
+        });
+
+        dialog.querySelector('#mBatchColorBack')?.addEventListener('click', () => {
+            step = 'select';
+            selectedIds.clear();
+            renderSelectStep();
+        });
+
+        dialog.querySelector('#mBatchColorApply')?.addEventListener('click', async () => {
+            try {
+                const storage = getStorage();
+                for (const fid of selectedIds) {
+                    await storage.updateFolder(fid, { color: selectedColor });
+                }
+                closeFolderDialog(overlay);
+                await loadCategoryData(pageEl);
+                showMobileToast(`已更新 ${selectedIds.size} 个分类的颜色`);
+            } catch (e) {
+                showMobileToast('批量编辑失败', 'error');
+            }
+        });
+    }
+
+    renderSelectStep();
+    overlay.classList.add('m-folder-dialog-show');
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeFolderDialog(overlay);
+    }, { once: true });
+}
+
+function showMergeFolderDialog(pageEl) {
+    const overlay = pageEl.querySelector('#mFolderDialogOverlay');
+    const dialog = pageEl.querySelector('#mFolderDialog');
+    if (!overlay || !dialog) return;
+
+    const folders = [...(categoryData?.folders || [])].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    let sourceId = '';
+    let targetId = '';
+
+    function renderMerge() {
+        dialog.innerHTML = `
+            <div class="m-folder-dialog-title">合并分类</div>
+            <div class="m-folder-dialog-label">源分类（提示词将被移出）</div>
+            <div class="m-merge-select-list" id="mMergeSourceList">
+                ${folders.map(f => `
+                    <button class="m-merge-select-item ${sourceId === f.id ? 'm-merge-selected' : ''}" data-source-id="${f.id}">
+                        <span class="m-merge-item-name">${escapeHtml(f.name)}</span>
+                        <span class="m-merge-item-hint">${categoryData.promptSets.filter(p => p.folderId === f.id).length} 个提示词</span>
+                    </button>
+                `).join('')}
+            </div>
+            <div class="m-folder-dialog-label" style="margin-top: var(--m-space-md);">目标分类（提示词将移入）</div>
+            <div class="m-merge-select-list" id="mMergeTargetList">
+                ${folders.map(f => `
+                    <button class="m-merge-select-item ${targetId === f.id ? 'm-merge-selected' : ''} ${sourceId === f.id ? 'm-merge-disabled' : ''}" data-target-id="${f.id}">
+                        <span class="m-merge-item-name">${escapeHtml(f.name)}</span>
+                        <span class="m-merge-item-hint">${categoryData.promptSets.filter(p => p.folderId === f.id).length} 个提示词</span>
+                    </button>
+                `).join('')}
+            </div>
+            <div class="m-folder-dialog-actions">
+                <button class="m-folder-dialog-btn m-folder-dialog-cancel" id="mMergeCancel">取消</button>
+                <button class="m-folder-dialog-btn m-folder-dialog-ok ${(!sourceId || !targetId) ? 'm-folder-dialog-ok-disabled' : ''}" id="mMergeOk">合并</button>
+            </div>
+        `;
+
+        const sourceList = dialog.querySelector('#mMergeSourceList');
+        const targetList = dialog.querySelector('#mMergeTargetList');
+
+        sourceList?.addEventListener('click', (e) => {
+            const item = e.target.closest('.m-merge-select-item');
+            if (!item) return;
+            sourceId = item.dataset.sourceId;
+            renderMerge();
+        });
+
+        targetList?.addEventListener('click', (e) => {
+            const item = e.target.closest('.m-merge-select-item');
+            if (!item || item.classList.contains('m-merge-disabled')) return;
+            targetId = item.dataset.targetId;
+            renderMerge();
+        });
+
+        dialog.querySelector('#mMergeCancel')?.addEventListener('click', () => closeFolderDialog(overlay));
+        dialog.querySelector('#mMergeOk')?.addEventListener('click', () => {
+            if (!sourceId || !targetId) return;
+            const sourceFolder = folders.find(f => f.id === sourceId);
+            const targetFolder = folders.find(f => f.id === targetId);
+            const affected = categoryData.promptSets.filter(p => p.folderId === sourceId);
+            closeFolderDialog(overlay);
+            showCategoryConfirm(pageEl,
+                `将「${sourceFolder.name}」中的 ${affected.length} 个提示词移入「${targetFolder.name}」，\n源分类将被删除。确定？`,
+                async () => {
+                    try {
+                        const storage = getStorage();
+                        for (const ps of affected) {
+                            await storage.updatePromptSet(ps.id, { folderId: targetId });
+                        }
+                        await storage.deleteFolder(sourceId);
+                        await loadCategoryData(pageEl);
+                        showMobileToast(`已合并 ${affected.length} 个提示词到「${targetFolder.name}」`);
+                    } catch (e) {
+                        showMobileToast('合并失败', 'error');
+                    }
+                }
+            );
+        });
+    }
+
+    renderMerge();
+    overlay.classList.add('m-folder-dialog-show');
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeFolderDialog(overlay);
+    }, { once: true });
+}
+
+function showCleanupEmptyFoldersConfirm(pageEl) {
+    const emptyFolders = (categoryData?.folders || []).filter(f =>
+        (categoryData?.promptSets || []).filter(p => p.folderId === f.id).length === 0
+    );
+
+    if (emptyFolders.length === 0) {
+        showMobileToast('没有空分类需要清理');
+        return;
+    }
+
+    showCategoryConfirm(pageEl,
+        `发现 ${emptyFolders.length} 个空分类：${emptyFolders.map(f => f.name).join('、')}。\n确定删除？`,
+        async () => {
+            try {
+                const storage = getStorage();
+                for (const f of emptyFolders) {
+                    await storage.deleteFolder(f.id);
+                }
+                await loadCategoryData(pageEl);
+                showMobileToast(`已清理 ${emptyFolders.length} 个空分类`);
+            } catch (e) {
+                showMobileToast('清理失败', 'error');
+            }
+        }
+    );
 }
 
 function unmount(pageEl) {

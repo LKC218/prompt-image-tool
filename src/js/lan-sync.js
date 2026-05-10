@@ -13,6 +13,7 @@ export class LanScanner {
         this._abortController = null;
         this._scanning = false;
         this.onDeviceFound = null;
+        this.onProgress = null;
     }
 
     get scanning() { return this._scanning; }
@@ -52,45 +53,210 @@ export class LanScanner {
         });
     }
 
-    async scan(port = 8888, timeout = 1500) {
+    _normalizeScanOptions(portOrOptions = 8888, timeout = 1500) {
+        if (typeof portOrOptions === 'object' && portOrOptions !== null) {
+            return {
+                port: portOrOptions.port || 8888,
+                timeout: portOrOptions.timeout || 1500,
+                subnets: portOrOptions.subnets || null,
+                recentHosts: portOrOptions.recentHosts || [],
+                concurrency: portOrOptions.concurrency || 30,
+                rangeStart: portOrOptions.rangeStart || 1,
+                rangeEnd: portOrOptions.rangeEnd || 254,
+                onProgress: portOrOptions.onProgress || null,
+            };
+        }
+        return {
+            port: portOrOptions || 8888,
+            timeout,
+            subnets: null,
+            recentHosts: [],
+            concurrency: 30,
+            rangeStart: 1,
+            rangeEnd: 254,
+            onProgress: null,
+        };
+    }
+
+    _emitProgress(detail, onProgress) {
+        const payload = { ...detail };
+        if (onProgress) onProgress(payload);
+        if (this.onProgress) this.onProgress(payload);
+    }
+
+    _isValidIp(ip) {
+        return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip || '') &&
+            ip.split('.').every(part => Number(part) >= 0 && Number(part) <= 255);
+    }
+
+    _normalizeHost(host) {
+        if (typeof host === 'string') {
+            return { ip: host, source: 'recent' };
+        }
+        if (host && typeof host === 'object') {
+            return {
+                ip: host.ip,
+                name: host.name,
+                source: host.source || 'recent',
+                lastSyncAt: host.lastSyncAt,
+            };
+        }
+        return null;
+    }
+
+    _uniqueHosts(hosts) {
+        const seen = new Set();
+        const result = [];
+        for (const host of hosts) {
+            const item = this._normalizeHost(host);
+            if (!item || !this._isValidIp(item.ip) || seen.has(item.ip)) continue;
+            seen.add(item.ip);
+            result.push(item);
+        }
+        return result;
+    }
+
+    _uniqueSubnets(subnets) {
+        const seen = new Set();
+        const result = [];
+        for (const subnet of subnets) {
+            const value = String(subnet || '').trim();
+            if (!/^(\d{1,3}\.){2}\d{1,3}$/.test(value) || seen.has(value)) continue;
+            seen.add(value);
+            result.push(value);
+        }
+        return result;
+    }
+
+    _getDefaultSubnets(localIP) {
+        const fallback = [
+            '192.168.1',
+            '192.168.0',
+            '192.168.31',
+            '192.168.43',
+            '192.168.50',
+            '192.168.100',
+            '10.0.0',
+            '172.16.0',
+        ];
+        return this._uniqueSubnets(localIP
+            ? [localIP.split('.').slice(0, 3).join('.'), ...fallback]
+            : fallback);
+    }
+
+    _buildSubnetHosts(subnet, start, end) {
+        const hosts = [];
+        const from = Math.max(1, Number(start) || 1);
+        const to = Math.min(254, Number(end) || 254);
+        for (let i = from; i <= to; i++) {
+            hosts.push({ ip: `${subnet}.${i}`, source: 'subnet' });
+        }
+        return hosts;
+    }
+
+    _pushDevice(devices, seen, device) {
+        if (!device || seen.has(device.ip)) return;
+        seen.add(device.ip);
+        devices.push(device);
+        if (this.onDeviceFound) this.onDeviceFound(device);
+    }
+
+    async scan(portOrOptions = 8888, timeout = 1500) {
         if (this._scanning) return [];
         this._scanning = true;
         this._abortController = new AbortController();
         const signal = this._abortController.signal;
+        const options = this._normalizeScanOptions(portOrOptions, timeout);
 
         try {
-            const localIP = await this.getLocalIP();
-            const subnets = localIP
-                ? [localIP.split('.').slice(0, 3).join('.')]
-                : ['192.168.1', '192.168.0', '192.168.31', '10.0.0'];
-
             const devices = [];
-            const concurrency = 30;
+            const foundIps = new Set();
+            const recentHosts = this._uniqueHosts(options.recentHosts);
+
+            if (recentHosts.length > 0) {
+                this._emitProgress({
+                    phase: 'recent',
+                    message: '正在检查最近连接过的 PC',
+                    current: 0,
+                    total: recentHosts.length,
+                }, options.onProgress);
+
+                const recentResults = await Promise.allSettled(
+                    recentHosts.map(host => this._checkHost(host.ip, options.port, options.timeout, signal, host))
+                );
+                for (let i = 0; i < recentResults.length; i++) {
+                    if (signal.aborted) break;
+                    const result = recentResults[i];
+                    if (result.status === 'fulfilled' && result.value) {
+                        this._pushDevice(devices, foundIps, result.value);
+                    }
+                    this._emitProgress({
+                        phase: 'recent',
+                        message: '正在检查最近连接过的 PC',
+                        current: i + 1,
+                        total: recentHosts.length,
+                    }, options.onProgress);
+                }
+            }
+
+            this._emitProgress({
+                phase: 'detect',
+                message: '正在识别当前局域网网段',
+                current: 0,
+                total: 0,
+            }, options.onProgress);
+
+            const localIP = await this.getLocalIP();
+            const subnets = this._uniqueSubnets(options.subnets || this._getDefaultSubnets(localIP));
+            const totalHosts = subnets.length * (Math.min(254, options.rangeEnd) - Math.max(1, options.rangeStart) + 1);
+            let checkedHosts = 0;
 
             for (const subnet of subnets) {
                 if (signal.aborted) break;
 
-                const tasks = [];
-                for (let i = 1; i <= 254; i++) {
-                    tasks.push(`${subnet}.${i}`);
-                }
+                const tasks = this._buildSubnetHosts(subnet, options.rangeStart, options.rangeEnd);
+                this._emitProgress({
+                    phase: 'subnet',
+                    subnet,
+                    message: `正在扫描 ${subnet}.x`,
+                    current: checkedHosts,
+                    total: totalHosts,
+                    found: devices.length,
+                }, options.onProgress);
 
-                for (let i = 0; i < tasks.length; i += concurrency) {
+                for (let i = 0; i < tasks.length; i += options.concurrency) {
                     if (signal.aborted) break;
 
-                    const batch = tasks.slice(i, i + concurrency);
+                    const batch = tasks.slice(i, i + options.concurrency);
                     const results = await Promise.allSettled(
-                        batch.map(ip => this._checkHost(ip, port, timeout, signal))
+                        batch.map(host => this._checkHost(host.ip, options.port, options.timeout, signal, host))
                     );
+                    checkedHosts += batch.length;
 
                     for (const result of results) {
                         if (result.status === 'fulfilled' && result.value) {
-                            devices.push(result.value);
-                            if (this.onDeviceFound) this.onDeviceFound(result.value);
+                            this._pushDevice(devices, foundIps, result.value);
                         }
                     }
+
+                    this._emitProgress({
+                        phase: 'subnet',
+                        subnet,
+                        message: `正在扫描 ${subnet}.x`,
+                        current: checkedHosts,
+                        total: totalHosts,
+                        found: devices.length,
+                    }, options.onProgress);
                 }
             }
+
+            this._emitProgress({
+                phase: 'done',
+                message: devices.length ? `发现 ${devices.length} 台可同步 PC` : '未发现可同步 PC',
+                current: totalHosts,
+                total: totalHosts,
+                found: devices.length,
+            }, options.onProgress);
 
             return devices;
         } finally {
@@ -99,7 +265,7 @@ export class LanScanner {
         }
     }
 
-    async _checkHost(ip, port, timeout, parentSignal) {
+    async _checkHost(ip, port, timeout, parentSignal, meta = {}) {
         if (parentSignal.aborted) return null;
 
         const controller = new AbortController();
@@ -114,16 +280,24 @@ export class LanScanner {
             });
             clearTimeout(timer);
 
-            if (res.ok) {
-                const data = await res.json();
-                return {
-                    ip,
-                    port,
-                    name: data.device_name || ip,
-                    status: 'online',
-                };
-            }
-            return null;
+            if (!res.ok) return null;
+
+            const data = await res.json();
+            if (data.status !== 'ok') return null;
+
+            return {
+                ip,
+                port,
+                name: data.device_name || meta.name || ip,
+                deviceId: data.device_id || meta.deviceId || '',
+                syncVersion: data.sync_version || 1,
+                capabilities: Array.isArray(data.capabilities) ? data.capabilities : ['pull'],
+                pairingRequired: data.pairing_required !== false,
+                status: 'online',
+                source: meta.source || 'subnet',
+                lastSyncAt: meta.lastSyncAt,
+                token: meta.token,
+            };
         } catch (e) {
             clearTimeout(timer);
             return null;
@@ -395,5 +569,113 @@ export class LanSync {
             imagesSkipped: downloadResult.skipped,
             verification: verifyResult.details,
         };
+    }
+
+    async getCapabilities(serverIp) {
+        const res = await fetch(`http://${serverIp}:8888/api/sync/capabilities`);
+        if (!res.ok) throw new Error('无法读取 PC 互通能力');
+        return res.json();
+    }
+
+    async getPairing(serverIp) {
+        const res = await fetch(`http://${serverIp}:8888/api/sync/pairing`);
+        if (!res.ok) throw new Error('无法获取配对令牌');
+        return res.json();
+    }
+
+    _getAndroidDeviceId() {
+        const key = 'lan-sync-android-device-id';
+        try {
+            let value = localStorage.getItem(key);
+            if (!value) {
+                value = `android-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+                localStorage.setItem(key, value);
+            }
+            return value;
+        } catch (e) {
+            return `android-${Date.now().toString(36)}`;
+        }
+    }
+
+    async push(serverIp, options = {}) {
+        if (this.isSyncing()) return null;
+
+        this._abortController = new AbortController();
+        const signal = this._abortController.signal;
+        const baseUrl = `http://${serverIp}:8888`;
+        const mode = options.mode || 'keep_pc';
+
+        try {
+            this._setState(SyncState.CONNECTING);
+            this._setProgress(0, 4, '读取 PC 互通能力...');
+
+            const pairing = options.token
+                ? { sync_token: options.token }
+                : await this.getPairing(serverIp);
+            const token = pairing.sync_token;
+            if (!token) throw new Error('缺少同步令牌');
+
+            this._setState(SyncState.SYNCING);
+            this._setProgress(1, 4, '整理 Android 本机数据...');
+            const payload = await this.storage.exportData();
+
+            this._setProgress(2, 4, '回传到 PC...');
+            const res = await fetch(`${baseUrl}/api/sync/import`, {
+                method: 'POST',
+                signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Sync-Token': token,
+                    'X-Device-Id': this._getAndroidDeviceId(),
+                    'X-Device-Name': options.deviceName || 'Android',
+                },
+                body: JSON.stringify({ mode, payload }),
+            });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error || '回传失败');
+            }
+
+            this._setState(SyncState.VERIFYING);
+            this._setProgress(3, 4, '读取回传报告...');
+            const report = await res.json();
+            this.report = {
+                success: !!report.success,
+                mode,
+                token,
+                added: report.added || 0,
+                updated: report.updated || 0,
+                conflicts: report.conflicts || 0,
+                skipped: report.skipped || 0,
+                imagesRestored: report.imagesRestored || 0,
+                conflictItems: report.conflictItems || [],
+            };
+            this._setProgress(4, 4, '回传完成');
+            this._setState(this.report.success ? SyncState.SUCCESS : SyncState.PARTIAL);
+            return this.report;
+        } catch (e) {
+            if (e.name === 'AbortError') {
+                this._setState(SyncState.IDLE);
+                return null;
+            }
+            this._setState(SyncState.ERROR);
+            this.report = { error: e.message, success: false };
+            throw e;
+        } finally {
+            this._abortController = null;
+        }
+    }
+
+    async bidirectional(serverIp, options = {}) {
+        const pushReport = await this.push(serverIp, { ...options, mode: 'keep_pc' });
+        if (!pushReport) return null;
+        const pullReport = await this.sync(serverIp);
+        this.report = {
+            success: !!pullReport?.success && !!pushReport.success,
+            mode: 'bidirectional',
+            pushReport,
+            pullReport,
+        };
+        return this.report;
     }
 }

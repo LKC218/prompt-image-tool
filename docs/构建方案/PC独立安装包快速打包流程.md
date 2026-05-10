@@ -72,12 +72,23 @@ python scripts\build_pc_package.py --skip-env-check --skip-nsis
 `scripts/build_pc_package.py` 内部按以下顺序执行：
 
 1. 读取 `package.json` 的 `version`。
-2. 检查 Node、npm、Python、PyInstaller、pywebview、pythonnet、NSIS。
-3. 执行 `npm run build`，生成 `dist/`。
-4. 执行 `python -m PyInstaller build\app.spec --workpath build\build --distpath build\dist --clean -y`。
-5. 校验 `PromptImageManager.exe` 与内置前端 `index.html`。
-6. 执行 `makensis /INPUTCHARSET UTF8 installer.nsi`。
-7. 将 `build\PromptImageManager-Setup-{version}.exe` 复制到 `releases/`。
+2. 校验 `build/installer.nsi` 已启用 Unicode、简体中文语言、安装器图标、桌面快捷方式图标、开始菜单快捷方式图标和卸载项图标。
+3. 检查 Node、npm、Python、PyInstaller、pywebview、pythonnet、NSIS。
+4. 执行 `npm run build`，生成 `dist/`。
+5. 执行 `python -m PyInstaller build\app.spec --workpath build\build --distpath build\dist --clean -y`。
+6. 校验 `PromptImageManager.exe` 与内置前端 `index.html`。
+7. 执行 `makensis /INPUTCHARSET UTF8 installer.nsi`。
+8. 将 `build\PromptImageManager-Setup-{version}.exe` 复制到 `releases/`。
+
+## 快捷方式与中文显示校验
+
+PC 安装包正式交付前需确认：
+
+- `build/icon.ico` 存在。
+- `build/installer.nsi` 包含 `Unicode true` 和 `!insertmacro MUI_LANGUAGE "SimpChinese"`。
+- 桌面快捷方式、开始菜单快捷方式和卸载项均指向 `$INSTDIR\icon.ico`。
+- NSIS 构建命令使用 `makensis /INPUTCHARSET UTF8 installer.nsi`。
+- 安装器界面、快捷方式名称和 Windows 卸载项显示中文无乱码。
 
 ## 当前构建结果
 
@@ -89,6 +100,15 @@ releases\PromptImageManager-Setup-2.3.1.exe
 ```
 
 安装包大小：`21412654` 字节。
+
+2026-05-10 当前构建脚本加固后重新构建：
+
+```text
+build\PromptImageManager-Setup-2.3.1.exe
+releases\PromptImageManager-Setup-2.3.1.exe
+```
+
+安装包大小：`23803459` 字节。
 
 ## 常见问题
 

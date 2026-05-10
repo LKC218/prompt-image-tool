@@ -1,6 +1,11 @@
 import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showModal, closeModal, showConfirmModal, copyToClipboard, escapeHtml } from './pc-utils.js';
+import folderIcon from '../assets/mobile/folder.png';
+
+function iconImg(src, alt = '') {
+    return `<img src="${src}" alt="${alt}" class="pc-icon-img">`;
+}
 
 function showRenameDialog(pageEl, id, currentName, onDone) {
     const modal = showModal(`
@@ -51,31 +56,19 @@ async function showMoveDialog(pageEl, id, currentFolderId, onDone) {
         return;
     }
 
-    const FOLDER_ICONS = [
-        { keyword: '插画', icon: '🎨' },
-        { keyword: '写实', icon: '📷' },
-        { keyword: '科幻', icon: '🚀' },
-        { keyword: '国风', icon: '🏯' },
-        { keyword: '场景', icon: '🌄' },
-        { keyword: '人物', icon: '👤' },
-    ];
-
-    function getFolderIcon(name) {
-        const found = FOLDER_ICONS.find(f => name.includes(f.keyword));
-        return found ? found.icon : '📁';
-    }
+    const FOLDER_ICON = iconImg(folderIcon);
 
     const modal = showModal(`
         <h3>移动到分类</h3>
         <div class="pc-picker-list">
             <button class="pc-picker-list-item ${!currentFolderId ? 'pc-picker-list-active' : ''}" data-folder-id="">
-                <span class="pc-picker-list-icon">📁</span>
+                <span class="pc-picker-list-icon">${FOLDER_ICON}</span>
                 <span>未分类</span>
                 ${!currentFolderId ? '<span class="pc-picker-list-check">✓</span>' : ''}
             </button>
             ${folders.map(f => `
                 <button class="pc-picker-list-item ${f.id === currentFolderId ? 'pc-picker-list-active' : ''}" data-folder-id="${f.id}">
-                    <span class="pc-picker-list-icon">${getFolderIcon(f.name)}</span>
+                    <span class="pc-picker-list-icon">${FOLDER_ICON}</span>
                     <span>${escapeHtml(f.name)}</span>
                     ${f.id === currentFolderId ? '<span class="pc-picker-list-check">✓</span>' : ''}
                 </button>

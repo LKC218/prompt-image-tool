@@ -4,6 +4,9 @@ const config: CapacitorConfig = {
   appId: 'com.promptimagemanager.app',
   appName: '生图提示词管理器',
   webDir: 'dist',
+  android: {
+    allowMixedContent: true,
+  },
   server: {
     androidScheme: 'https'
   },

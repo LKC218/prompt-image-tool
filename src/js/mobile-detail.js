@@ -1,9 +1,10 @@
 import { getStorage } from './storage.js';
 import { formatDate } from './utils.js';
-import { navigate, goBack, showMobileToast, showActionSheet } from './mobile-utils.js';
+import { navigate, goBack, showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
 import { getCurrentRoute } from './mobile-router.js';
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { getTagStyleClass } from './tag-utils.js';
+import imagePlaceholder from '../assets/mobile/image-placeholder.png';
 
 let currentSet = null;
 let imageUrls = [];
@@ -99,9 +100,9 @@ async function renderDetail(pageEl, set) {
 
     let coverHtml = '';
     if (imageUrls.length > 0) {
-        coverHtml = `<div class="m-cover-image m-fade-in" id="mCoverImage" style="cursor:pointer;"><img src="${imageUrls[0].url}" alt="封面" onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\\'m-cover-placeholder\\'>🖼 图片加载失败</span>';"></div>`;
+        coverHtml = `<div class="m-cover-image m-fade-in" id="mCoverImage" style="cursor:pointer;"><img src="${imageUrls[0].url}" alt="封面" onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=m-cover-placeholder>图片加载失败</span>';"></div>`;
     } else {
-        coverHtml = `<div class="m-cover-image m-fade-in"><span class="m-cover-placeholder">🖼</span></div>`;
+        coverHtml = `<div class="m-cover-image m-fade-in"><span class="m-cover-placeholder">${iconImg(imagePlaceholder)}</span></div>`;
     }
 
     let imageThumbsHtml = '';
@@ -117,7 +118,7 @@ async function renderDetail(pageEl, set) {
                 <div class="m-image-thumbs-scroll">
                     ${displayImages.map((img, idx) => `
                         <div class="m-image-thumb ${idx === 0 ? 'm-image-thumb-active' : ''}" data-thumb-idx="${idx}" style="animation-delay: ${idx * 30}ms">
-                            <img src="${img.url}" alt="${escapeHtml(img.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='🖼'">
+                            <img src="${img.url}" alt="${escapeHtml(img.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='图片加载失败'">
                         </div>
                     `).join('')}
                     ${moreCount > 0 ? `<div class="m-image-thumb m-image-thumb-more">+${moreCount}</div>` : ''}
@@ -383,10 +384,39 @@ function showImageViewer(pageEl, startIndex) {
     getMobileContainer().appendChild(overlay);
     setTimeout(() => overlay.classList.add('m-image-viewer-show'), 30);
 
+    // 触摸交互状态：缩放 + 拖拽平移
+    let currentScale = 1;
+    let translateX = 0;
+    let translateY = 0;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragStartTX = 0;
+    let dragStartTY = 0;
+    let isDragging = false;
+    let pinchStartDist = 0;
+    let initialScale = 1;
+    let isPinching = false;
+
+    const viewerImg = overlay.querySelector('#mViewerImg');
+
+    function applyTransform() {
+        if (viewerImg) {
+            viewerImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentScale})`;
+        }
+    }
+
+    function resetTransform() {
+        currentScale = 1;
+        translateX = 0;
+        translateY = 0;
+        if (viewerImg) viewerImg.style.transform = '';
+    }
+
     function updateViewer() {
         const img = overlay.querySelector('#mViewerImg');
         const counter = overlay.querySelector('#mViewerCounter');
         const footer = overlay.querySelector('#mViewerFooter');
+        resetTransform();
         if (img) {
             img.style.display = '';
             img.style.opacity = '0';
@@ -424,56 +454,50 @@ function showImageViewer(pageEl, startIndex) {
         updateViewer();
     });
 
-    let touchStartX = 0;
-    const viewerBody = overlay.querySelector('#mViewerBody');
-    if (viewerBody && imageUrls.length > 1) {
-        viewerBody.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].clientX;
-        }, { passive: true });
-        viewerBody.addEventListener('touchend', (e) => {
-            const diff = e.changedTouches[0].clientX - touchStartX;
-            if (Math.abs(diff) > 50) {
-                if (diff > 0) {
-                    viewerIndex = (viewerIndex - 1 + imageUrls.length) % imageUrls.length;
-                } else {
-                    viewerIndex = (viewerIndex + 1) % imageUrls.length;
-                }
-                updateViewer();
-            }
-        }, { passive: true });
-    }
-
-    let initialScale = 1;
-    let currentScale = 1;
-    let pinchStartDist = 0;
-    const viewerImg = overlay.querySelector('#mViewerImg');
     if (viewerImg) {
         viewerImg.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
+                isPinching = true;
+                isDragging = false;
                 e.preventDefault();
                 pinchStartDist = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
                 initialScale = currentScale;
+            } else if (e.touches.length === 1 && !isPinching) {
+                isDragging = true;
+                dragStartX = e.touches[0].clientX;
+                dragStartY = e.touches[0].clientY;
+                dragStartTX = translateX;
+                dragStartTY = translateY;
             }
         }, { passive: false });
+
         viewerImg.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2) {
+            if (e.touches.length === 2 && isPinching) {
                 e.preventDefault();
                 const dist = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
                 );
                 currentScale = Math.min(Math.max(initialScale * (dist / pinchStartDist), 0.5), 5);
-                viewerImg.style.transform = `scale(${currentScale})`;
+                applyTransform();
+            } else if (e.touches.length === 1 && isDragging) {
+                const dx = e.touches[0].clientX - dragStartX;
+                const dy = e.touches[0].clientY - dragStartY;
+                translateX = dragStartTX + dx;
+                translateY = dragStartTY + dy;
+                applyTransform();
             }
         }, { passive: false });
+
         viewerImg.addEventListener('touchend', (e) => {
-            if (e.touches.length < 2) {
+            if (e.touches.length === 0) {
+                isDragging = false;
+                isPinching = false;
                 if (currentScale < 1.1) {
-                    currentScale = 1;
-                    viewerImg.style.transform = 'scale(1)';
+                    resetTransform();
                 }
             }
         }, { passive: true });

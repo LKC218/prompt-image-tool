@@ -179,7 +179,17 @@ Tauri 启动
 - 写入 `data/images/` 目录
 - 使用 `shutil.copy2()` 复制图片文件（版本复制时）
 
-### 5.6 网络信息
+### 5.6 导入压缩策略
+
+PC 编辑器导入图片时先在前端执行统一优化：
+
+- 支持 JPG、PNG、WebP，单张源文件上限为 15MB，单版本最多 10 张。
+- 使用 `src/js/image-utils.js` 解码 Data URL 后通过 Canvas 输出 JPEG，质量参数为 `0.9`。
+- 最大边长限制为 `2560px`，最大输入像素为 `4000 万`，避免超大图拖慢 WebView。
+- 当未缩放且 JPEG 结果不小于原图时保留原始 Data URL，避免 PNG/WebP 反向增大。
+- 图片元数据中的 `file` 字段以 `uploadImage()` 返回值为准，保证回退原图时扩展名与真实落盘文件一致。
+
+### 5.7 网络信息
 
 `get_local_ip()` 函数：通过 UDP Socket 获取本机局域网 IP 地址，供局域网同步使用。
 
@@ -197,7 +207,7 @@ Tauri 启动
 | 提示词编辑 | 正向/反向提示词，500ms 防抖自动保存 | `app.js` → `promptHandler()` |
 | 提示词预览 | 二级窗口完整预览 + 一键复制 | `app.js` → `openPromptPreview()` |
 | 图片上传 | 点击/拖拽上传，支持 PNG/JPG/WEBP/GIF | `app.js` → `ApiStorage` → Python API |
-| 图片查看 | 全屏查看，ESC/点击关闭 | `app.js` → `viewImage()` |
+| 图片查看 | 全屏查看，支持滚轮缩放、拖拽平移、双击缩放/复位、复位按钮、ESC/点击遮罩关闭 | `pc-utils.js` → `showImageViewer()` |
 | 版本对比 | 并排对比两个版本的提示词和图片 | `app.js` → `toggleCompare()` |
 | 数据导入导出 | 完整备份 JSON，包含文件夹、提示词、版本和图片文件内容；Web 优先使用系统文件选择器或下载，桌面 WebView 可由后端兜底保存；相同 ID 默认覆盖 | `pc-settings.js` / `backup-utils.js` → `ApiStorage` → Python API |
 | 暗色/亮色主题 | 主题切换，localStorage 持久化 | `app.js` → `initTheme()` / `toggleTheme()` |
@@ -212,7 +222,7 @@ Tauri 启动
 | 自动启动后端 | Tauri 启动时自动查找并启动 Python 进程 | `lib.rs` → `start_python_backend()` |
 | 隐藏控制台 | Windows 下 Python 子进程无控制台窗口 | `lib.rs` → `CREATE_NO_WINDOW` |
 | 数据目录回退 | 应用目录无写权限时回退到用户目录 | `main.py` → `get_data_dir()` |
-| 局域网同步服务 | 只作为同步服务端，Android 端可拉取数据，PC 端不主动连接其他设备 | `main.py` → `/api/sync` |
+| 局域网互通服务 | 作为同步服务端，Android 端可拉取、回传和发起双向同步，PC 端不主动连接其他设备 | `main.py` → `/api/sync`、`/api/sync/import` |
 | 桌面端备份兜底 | WebView 下载不可靠时，由 Python 后端写入 `data/backups/` 并返回保存路径 | `backup-utils.js` → `ApiStorage.exportFile()` → `/api/export-file` |
 | 本机 IP 显示 | 显示本机局域网 IP、端口和复制入口，方便移动端连接 | `pc-settings.js` → `getNetworkInfo()` |
 | SVG 图标系统 | 所有 Emoji 替换为语义化 SVG 图标 | `src/assets/icons/*.svg` |
@@ -257,6 +267,7 @@ async init() {
 | `exportFile(filename)` | POST | `/api/export-file` | 后端直接生成备份文件并返回保存路径 |
 | `importData(data)` | POST | `/api/import` | 导入完整备份，相同 ID 覆盖并恢复图片 |
 | `getNetworkInfo()` | GET | `/api/network-info` | 获取 PC 同步服务 IP 和端口 |
+| `getSyncCapabilities()` | GET | `/api/sync/capabilities` | 获取 PC 局域网互通能力 |
 | `estimateStorageSize()` | GET | `/api/export` | 基于完整备份估算数据大小 |
 | `getImageUrl(img)` | - | `${baseUrl}/images/${img.file}` | 获取图片 URL |
 | `getPlatform()` | - | - | 返回 `'pc'` |
@@ -355,7 +366,7 @@ build.bat → 选择 4（开发模式）
 | PC-001 | Python 后端 `load_data()`/`save_data()` 非原子操作，高并发下可能数据丢失 | 中 | 加文件锁（`fcntl` / `msvcrt`）或改用 SQLite |
 | PC-002 | Python 后端日志被静默（`log_message` 为空函数），生产环境无法排查问题 | 中 | 接入日志文件输出 |
 | PC-003 | 自动保存每次完整读取再写入，效率较低 | 低 | 实现增量更新机制 |
-| PC-004 | API 无认证机制，局域网内任何人可访问 | 低 | 按需添加 Token 认证 |
+| PC-004 | 普通读取接口仍允许局域网访问 | 低 | 写入类同步接口已增加 `X-Sync-Token`，后续可继续收紧读取权限 |
 | PC-005 | Python 进程随 Tauri 退出后不会自动清理 | 中 | 添加进程生命周期管理 |
 | PC-006 | Python 查找路径有限，不支持 conda/pyenv 等环境 | 低 | 扩展查找策略或允许用户配置 |
 

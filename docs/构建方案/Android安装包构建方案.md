@@ -87,6 +87,16 @@ powershell -ExecutionPolicy Bypass -File patch-java-version.ps1
 
 ### 3.1 一键构建
 
+推荐使用非交互脚本：
+
+```bash
+python scripts\build_android_package.py
+```
+
+脚本会自动检查版本一致性、签名配置、前端产物、Capacitor 同步结果和 APK 输出，并将正式签名包复制到 `releases/`。
+
+也可以使用批处理菜单：
+
 ```bash
 build.bat
 # 选择 3 → 构建 Android 端（Capacitor）
@@ -152,6 +162,12 @@ dir android\app\build\outputs\apk\release\app-release.apk
 
 ```bash
 copy android\app\build\outputs\apk\release\app-release.apk releases\PromptImageManager-v2.3.1-Android.apk
+```
+
+非交互脚本会自动执行复制。若只生成 `app-release-unsigned.apk`，默认会中断；临时验证可使用：
+
+```bash
+python scripts\build_android_package.py --allow-unsigned
 ```
 
 ---
@@ -225,6 +241,14 @@ releases/
 | targetSdkVersion | 36 |
 | versionCode | 6 |
 | versionName | `2.3.1` |
+
+2026-05-10 使用 `scripts/build_android_package.py` 构建的发布副本：
+
+```text
+releases/PromptImageManager-v2.3.1-Android.apk
+```
+
+APK 大小：`45025277` 字节。签名校验通过 APK Signature Scheme v2，签名者数量为 `1`。
 
 ---
 

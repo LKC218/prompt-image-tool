@@ -2,8 +2,9 @@ import { getStorage } from './storage.js';
 import { navigate, goBack } from './pc-app.js';
 import { showToast, showModal, closeModal, showConfirmModal, escapeHtml } from './pc-utils.js';
 import { aggregateTags } from './tag-utils.js';
-import { readFileAsDataURL, compressImageToJpeg } from './image-utils.js';
+import { readFileAsDataURL, optimizeImageDataUrl } from './image-utils.js';
 import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
+import editorImagePlaceholderIconUrl from '../../UI设计稿/图标/插画设计/图片.png';
 
 let editMode = false;
 let promptSetId = null;
@@ -35,6 +36,14 @@ const RATIO_OPTIONS = ['1:1', '3:4', '4:3', '16:9', '9:16'];
 const MAX_TITLE_LEN = 100;
 const MAX_PROMPT_LEN = 2000;
 const MAX_IMAGES = 10;
+const MAX_SOURCE_IMAGE_BYTES = 15 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const IMAGE_OPTIMIZE_OPTIONS = {
+    quality: 0.9,
+    maxSide: 2560,
+    maxInputPixels: 40 * 1000 * 1000,
+    outputType: 'image/jpeg'
+};
 
 const beforeUnloadHandler = (e) => {
     if (hasUnsavedChanges) {
@@ -147,6 +156,33 @@ function getAllImages() {
     return [...getExistingImages(), ...importedImages];
 }
 
+function getLocalPreviewSrc(img) {
+    return img?.compressedUrl || img?.data || img?.dataUrl || '';
+}
+
+async function loadEditorPreviewImages(container) {
+    const imgEls = container.querySelectorAll('img[data-editor-image-idx]');
+    if (imgEls.length === 0) return;
+
+    const storage = getStorage();
+    const allImages = getAllImages();
+
+    imgEls.forEach(async (imgEl) => {
+        if (imgEl.getAttribute('src')) return;
+
+        const idx = Number.parseInt(imgEl.dataset.editorImageIdx || '-1', 10);
+        const imgData = allImages[idx];
+        if (!imgData) return;
+
+        try {
+            const url = await storage.getImageUrl(imgData);
+            if (url) imgEl.src = url;
+        } catch (e) {
+            console.error('load editor image preview error:', e);
+        }
+    });
+}
+
 function renderEditorContent(pageEl) {
     const container = pageEl.querySelector('#pcEditorContent');
     if (!container) return;
@@ -185,17 +221,17 @@ function renderEditorContent(pageEl) {
                         <div class="pc-editor-image-area" id="pcEditorImageArea">
                             ${imageCount === 0 ? `
                                 <div class="pc-editor-image-placeholder" id="pcEditorImagePlaceholder">
-                                    <span class="pc-editor-image-placeholder-icon">🖼️</span>
+                                    <img class="pc-editor-image-placeholder-icon" src="${editorImagePlaceholderIconUrl}" alt="" aria-hidden="true">
                                     <span class="pc-editor-image-placeholder-text">点击上传图片</span>
                                 </div>
                             ` : `
                                 <div class="pc-editor-image-grid" id="pcEditorImageGrid">
                                     ${allImages.map((img, idx) => {
                                         const isExisting = idx < getExistingImages().length;
-                                        const src = img.compressedUrl || img.data || '';
+                                        const src = getLocalPreviewSrc(img);
                                         return `
                                             <div class="pc-editor-image-thumb" data-img-idx="${idx}" data-img-existing="${isExisting}">
-                                                <img src="${src}" alt="预览" loading="lazy">
+                                                <img ${src ? `src="${escapeAttr(src)}"` : ''} alt="预览" loading="lazy" data-editor-image-idx="${idx}">
                                                 <button class="pc-editor-image-delete" data-img-idx="${idx}" data-img-existing="${isExisting}">×</button>
                                             </div>
                                         `;
@@ -282,6 +318,7 @@ function renderEditorContent(pageEl) {
         </div>
 
     `;
+    loadEditorPreviewImages(container);
 }
 
 function setupEditorEvents(pageEl) {
@@ -444,6 +481,7 @@ async function handleImageUpload(pageEl, files) {
     const currentCount = getAllImages().length;
     const remaining = MAX_IMAGES - currentCount;
     const filesToProcess = Array.from(files).slice(0, remaining);
+    const beforeImportCount = importedImages.length;
 
     if (files.length > remaining) {
         showToast(`仅添加前 ${remaining} 张（上限 ${MAX_IMAGES} 张）`, 'warning');
@@ -452,39 +490,42 @@ async function handleImageUpload(pageEl, files) {
     showToast('正在处理图片...');
 
     for (const file of filesToProcess) {
-        if (file.size > 5 * 1024 * 1024) {
-            showToast(`${file.name} 超过 5MB，已跳过`, 'warning');
+        if (file.size > MAX_SOURCE_IMAGE_BYTES) {
+            showToast(`${file.name} 超过 15MB，已跳过`, 'warning');
             continue;
         }
 
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (!allowedTypes.includes(file.type)) {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
             showToast(`${file.name} 格式不支持，已跳过`, 'warning');
             continue;
         }
 
         try {
             const dataUrl = await readFileAsDataURL(file);
-            const compressed = await compressImageToJpeg(dataUrl);
+            const optimized = await optimizeImageDataUrl(dataUrl, IMAGE_OPTIMIZE_OPTIONS);
             importedImages.push({
                 file,
                 dataUrl,
-                compressedUrl: compressed,
+                compressedUrl: optimized.dataUrl,
+                optimized,
                 name: file.name
             });
         } catch (e) {
             console.error('image import error:', e);
-            showToast(`${file.name} 处理失败`, 'error');
+            if (e?.code === 'IMAGE_PIXELS_TOO_LARGE') {
+                showToast(`${file.name} 像素过大，已跳过`, 'warning');
+            } else {
+                showToast(`${file.name} 处理失败`, 'error');
+            }
         }
     }
 
-    hasUnsavedChanges = true;
-    renderEditorContent(pageEl);
-    setupEditorEvents(pageEl);
-
-    const addedCount = importedImages.length;
+    const addedCount = importedImages.length - beforeImportCount;
     if (addedCount > 0) {
-        showToast(`已导入图片`);
+        hasUnsavedChanges = true;
+        renderEditorContent(pageEl);
+        setupEditorEvents(pageEl);
+        showToast(`已导入 ${addedCount} 张图片`);
     }
 }
 
@@ -649,12 +690,12 @@ async function savePromptSet(pageEl) {
             const versionImages = [...getExistingImages()];
             for (const img of importedImages) {
                 const imgId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-                await storage.uploadImage(imgId, img.compressedUrl, img.file.name);
+                const uploaded = await storage.uploadImage(imgId, img.compressedUrl, img.file.name);
                 versionImages.push({
                     id: imgId,
                     name: img.file.name,
                     path: img.file.name,
-                    file: `${imgId}.jpg`,
+                    file: uploaded?.file || `${imgId}.jpg`,
                     note: '',
                     createdAt: new Date().toISOString()
                 });
@@ -676,12 +717,12 @@ async function savePromptSet(pageEl) {
                 const versionImages = [];
                 for (const img of importedImages) {
                     const imgId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-                    await storage.uploadImage(imgId, img.compressedUrl, img.file.name);
+                    const uploaded = await storage.uploadImage(imgId, img.compressedUrl, img.file.name);
                     versionImages.push({
                         id: imgId,
                         name: img.file.name,
                         path: img.file.name,
-                        file: `${imgId}.jpg`,
+                        file: uploaded?.file || `${imgId}.jpg`,
                         note: '',
                         createdAt: new Date().toISOString()
                     });

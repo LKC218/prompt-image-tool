@@ -2,7 +2,7 @@ import { getStorage, isCapacitor } from './storage.js';
 import { setAccent } from './pc-app.js';
 import { showToast, escapeHtml, formatBytes, copyToClipboard } from './pc-utils.js';
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
-import settingsBanner from '../assets/pc/settings-banner.png';
+import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
 import themeColorIcon from '../assets/icons/settings/theme-color.png';
 import backupIcon from '../assets/icons/settings/backup.svg';
 import importDataIcon from '../assets/icons/settings/import-data.svg';
@@ -31,13 +31,13 @@ function iconImg(icon, alt = '') {
 function render(params = {}) {
     const activeAccent = localStorage.getItem('pc-accent') || 'pink';
     return `
+        ${renderPcWelcomeBanner({
+            title: '设置',
+            subtitle: '一切数据仅在本地，安全又放心~',
+            className: 'pc-welcome-banner-settings'
+        })}
+
         <section class="pc-settings-page">
-            <h1 class="pc-page-title pc-settings-title">设置</h1>
-
-            <section class="pc-settings-hero" aria-label="本地数据安全提示">
-                <img class="pc-settings-hero-image" src="${settingsBanner}" alt="一切数据仅在本地，安全又放心">
-            </section>
-
             <div class="pc-settings-overview">
                 <section class="pc-settings-panel pc-settings-appearance" aria-labelledby="pcAppearanceTitle">
                     <h2 id="pcAppearanceTitle" class="pc-settings-panel-title">外观设置</h2>
@@ -123,14 +123,15 @@ function render(params = {}) {
 
             <section class="pc-settings-panel pc-settings-sync-panel" aria-labelledby="pcSyncTitle">
                 <div class="pc-settings-sync-head">
-                    <h2 id="pcSyncTitle" class="pc-settings-panel-title">局域网同步</h2>
-                    <span class="pc-settings-sync-badge">PC 服务端</span>
+                    <h2 id="pcSyncTitle" class="pc-settings-panel-title">局域网互通</h2>
+                    <span class="pc-settings-sync-badge" id="pcSyncCapabilityBadge">检测中</span>
                 </div>
                 <div class="pc-settings-sync-body">
                     <span class="pc-settings-sync-icon">${iconImg(syncServerIcon)}</span>
                     <div class="pc-settings-sync-copy">
                         <div class="pc-sync-ip-display" id="pcSyncIpDisplay">同步服务：检测中...</div>
-                        <div class="pc-sync-hint">PC 端只作为同步服务端，请在移动端设置页扫描或输入此地址拉取数据。</div>
+                        <div class="pc-sync-hint" id="pcSyncHint">Android 可在设置页搜索此 PC，支持拉取、回传与双向同步。</div>
+                        <div class="pc-sync-capability-line" id="pcSyncCapabilityLine">互通能力：检测中...</div>
                         <div id="pcSyncStatus" aria-live="polite"></div>
                     </div>
                     <div class="pc-sync-ip-input-wrap">
@@ -205,11 +206,16 @@ async function loadStorageEstimate(pageEl) {
 async function loadNetworkInfo(pageEl) {
     const ipEl = pageEl.querySelector('#pcSyncIpDisplay');
     const statusEl = pageEl.querySelector('#pcSyncStatus');
+    const badgeEl = pageEl.querySelector('#pcSyncCapabilityBadge');
+    const capabilityEl = pageEl.querySelector('#pcSyncCapabilityLine');
     try {
         const storage = getStorage();
         const info = storage.getNetworkInfo
             ? await storage.getNetworkInfo()
             : await fetch('/api/network-info').then(res => res.json());
+        const capabilities = storage.getSyncCapabilities
+            ? await storage.getSyncCapabilities()
+            : await fetch('/api/sync/capabilities').then(res => res.ok ? res.json() : null).catch(() => null);
         const ip = info.ip || '无法获取';
         const port = info.port || 8888;
         const address = ip === '无法获取' ? '' : `http://${ip}:${port}`;
@@ -217,8 +223,21 @@ async function loadNetworkInfo(pageEl) {
             ipEl.textContent = address ? `同步服务：${address}` : '同步服务：无法获取本机 IP';
             ipEl.dataset.address = address;
         }
+        if (badgeEl) {
+            badgeEl.textContent = capabilities?.capabilities?.includes('bidirectional') ? '支持双向' : 'PC 服务端';
+        }
+        if (capabilityEl) {
+            const list = Array.isArray(capabilities?.capabilities) ? capabilities.capabilities : ['pull'];
+            const labels = list.map(item => ({
+                pull: 'Android 拉取',
+                push: 'Android 回传',
+                bidirectional: '双向同步',
+                pairing: '配对令牌',
+            }[item] || item));
+            capabilityEl.textContent = `互通能力：${labels.join(' / ')}`;
+        }
         if (statusEl) {
-            statusEl.innerHTML = `<div class="pc-sync-status" role="status">服务端已就绪，等待移动端连接</div>`;
+            statusEl.innerHTML = `<div class="pc-sync-status" role="status">服务端已就绪，Android 回传遇到同 ID 冲突会保留 PC 数据并生成副本</div>`;
         }
     } catch (e) {
         if (ipEl) {
@@ -228,6 +247,8 @@ async function loadNetworkInfo(pageEl) {
         if (statusEl) {
             statusEl.innerHTML = `<div class="pc-sync-status pc-sync-status-error" role="alert">无法读取网络信息：${escapeHtml(e.message || '未知错误')}</div>`;
         }
+        if (badgeEl) badgeEl.textContent = '检测失败';
+        if (capabilityEl) capabilityEl.textContent = '互通能力：无法获取';
     }
 }
 

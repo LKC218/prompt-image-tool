@@ -7,6 +7,8 @@
 - `compress_icon.py`：压缩 `src/assets/icons/图标.svg` 内嵌的 PNG 数据。会直接改写图标文件，运行前应确认当前工作区状态。
 - `patch-java-version.ps1`：将 Capacitor 相关 Gradle 配置中的 Java 版本从 21 修补为 17。该脚本会修改 `android` 和 `node_modules` 下的 Gradle 文件，仅在 Android 构建遇到 Java 版本兼容问题时使用。
 - `build_pc_package.py`：非交互式 PC 独立安装包构建入口，按 `Vite -> PyInstaller -> NSIS -> releases` 顺序执行，并在每一步校验关键产物。
+- `build_android_package.py`：非交互式 Android 安装包构建入口，按 `Vite -> Capacitor sync -> Java 版本修补 -> Gradle assembleRelease -> releases` 顺序执行，并校验版本、签名配置和 APK 产物。
+- `build_release_packages.py`：发布包总构建入口，可构建 PC、Android 或全部安装包。
 
 ## 使用原则
 
@@ -24,4 +26,31 @@ python scripts\build_pc_package.py
 
 ```powershell
 python scripts\build_pc_package.py --skip-nsis
+```
+
+## Android 快速打包
+
+```powershell
+python scripts\build_android_package.py
+```
+
+仅在临时验证时允许导出未签名 APK：
+
+```powershell
+python scripts\build_android_package.py --allow-unsigned
+```
+
+## 发布包总入口
+
+默认构建 PC 与 Android 两类安装包：
+
+```powershell
+python scripts\build_release_packages.py
+```
+
+只构建单端：
+
+```powershell
+python scripts\build_release_packages.py --pc
+python scripts\build_release_packages.py --android
 ```

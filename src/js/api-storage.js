@@ -123,6 +123,10 @@ export class ApiStorage {
         return this.api('GET', '/network-info');
     }
 
+    async getSyncCapabilities() {
+        return this.api('GET', '/sync/capabilities');
+    }
+
     async estimateStorageSize() {
         const data = await this.exportData();
         return new Blob([JSON.stringify(data)]).size;

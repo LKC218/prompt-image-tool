@@ -2,7 +2,8 @@ import { getStorage } from './storage.js';
 import { goBack, showMobileToast, showActionSheet } from './mobile-utils.js';
 import { getCurrentRoute } from './mobile-router.js';
 import { getTagStyleClass, aggregateTags, saveCustomTag } from './tag-utils.js';
-import { readFileAsDataURL, compressImageToJpeg } from './image-utils.js';
+import { readFileAsDataURL, optimizeImageDataUrl } from './image-utils.js';
+import imagePlaceholder from '../assets/mobile/image-placeholder.png';
 
 let editMode = 'create';
 let editId = null;
@@ -15,6 +16,15 @@ let importedImages = [];
 let existingImages = [];
 
 const RATIOS = ['1:1', '3:4', '4:3', '16:9', '9:16'];
+const MAX_IMAGES = 10;
+const MAX_SOURCE_IMAGE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const IMAGE_OPTIMIZE_OPTIONS = {
+    quality: 0.86,
+    maxSide: 2048,
+    maxInputPixels: 24 * 1000 * 1000,
+    outputType: 'image/jpeg'
+};
 
 const FOLDER_ICONS = [
     { keyword: '插画', icon: '🎨', color: 'var(--m-blue-light)' },
@@ -27,6 +37,14 @@ const FOLDER_ICONS = [
 
 function generateId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
+function escapeAttr(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 function getTagStyle(tagName) {
@@ -110,7 +128,7 @@ function render(params = {}) {
                 <label class="m-form-label">参考图片</label>
                 <div class="m-image-import-area" id="mImageImportArea">
                     <div class="m-image-import-placeholder" id="mImagePlaceholder">
-                        <span class="m-image-import-icon">🖼️</span>
+                        <span class="m-image-import-icon"><img src="${imagePlaceholder}" alt="" class="m-image-import-icon-img"></span>
                         <span class="m-image-import-text">点击导入参考图片</span>
                         <span class="m-image-import-hint">支持 JPG/PNG/WebP，自动压缩转 JPG</span>
                     </div>
@@ -267,6 +285,33 @@ function renderTags(pageEl) {
     });
 }
 
+function getLocalPreviewSrc(img) {
+    return img?.compressedUrl || img?.data || img?.dataUrl || '';
+}
+
+async function loadMobileEditorPreviewImages(previewEl) {
+    const imgEls = previewEl.querySelectorAll('img[data-mobile-editor-image-idx]');
+    if (imgEls.length === 0) return;
+
+    const storage = getStorage();
+    const allImages = [...existingImages, ...importedImages];
+
+    imgEls.forEach(async (imgEl) => {
+        if (imgEl.getAttribute('src')) return;
+
+        const idx = Number.parseInt(imgEl.dataset.mobileEditorImageIdx || '-1', 10);
+        const imgData = allImages[idx];
+        if (!imgData) return;
+
+        try {
+            const url = await storage.getImageUrl(imgData);
+            if (url) imgEl.src = url;
+        } catch (e) {
+            console.error('load mobile editor image preview error:', e);
+        }
+    });
+}
+
 function renderImagePreviews(pageEl) {
     const previewEl = pageEl.querySelector('#mImagePreview');
     const placeholderEl = pageEl.querySelector('#mImagePlaceholder');
@@ -283,19 +328,19 @@ function renderImagePreviews(pageEl) {
     previewEl.style.display = 'flex';
 
     previewEl.innerHTML = allImages.map((img, idx) => {
-        const src = img.compressedUrl || img.data || '';
+        const src = getLocalPreviewSrc(img);
         const isExisting = idx < existingImages.length;
         return `
             <div class="m-image-thumb" data-img-idx="${idx}" data-img-existing="${isExisting}">
-                <img src="${src}" alt="预览" loading="lazy">
+                <img ${src ? `src="${escapeAttr(src)}"` : ''} alt="预览" loading="lazy" data-mobile-editor-image-idx="${idx}">
                 <button class="m-image-remove-btn" data-img-idx="${idx}" data-img-existing="${isExisting}">×</button>
             </div>
         `;
-    }).join('') + `
+    }).join('') + (allImages.length < MAX_IMAGES ? `
         <div class="m-image-thumb m-image-add-thumb" id="mImageAddMore">
             <span>+</span>
         </div>
-    `;
+    ` : '');
 
     previewEl.querySelectorAll('.m-image-remove-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -316,6 +361,8 @@ function renderImagePreviews(pageEl) {
     previewEl.querySelector('#mImageAddMore')?.addEventListener('click', () => {
         pageEl.querySelector('#mImageFileInput')?.click();
     });
+
+    loadMobileEditorPreviewImages(previewEl);
 }
 
 function setupEditorEvents(pageEl) {
@@ -418,6 +465,10 @@ function setupEditorEvents(pageEl) {
 
     pageEl.querySelector('#mImageImportArea')?.addEventListener('click', (e) => {
         if (e.target.closest('.m-image-remove-btn') || e.target.closest('#mImageAddMore')) return;
+        if (existingImages.length + importedImages.length >= MAX_IMAGES) {
+            showMobileToast(`最多上传 ${MAX_IMAGES} 张图片`, 'warning');
+            return;
+        }
         pageEl.querySelector('#mImageFileInput')?.click();
     });
 
@@ -470,20 +521,55 @@ function showFullscreenPreview(pageEl, type) {
 }
 
 async function handleImageImport(pageEl, files) {
+    const currentCount = existingImages.length + importedImages.length;
+    const remaining = MAX_IMAGES - currentCount;
+    if (remaining <= 0) {
+        showMobileToast(`最多上传 ${MAX_IMAGES} 张图片`, 'warning');
+        return;
+    }
+
+    const filesToProcess = Array.from(files).slice(0, remaining);
+    if (files.length > remaining) {
+        showMobileToast(`仅添加前 ${remaining} 张图片`, 'warning');
+    }
+
     showMobileToast('正在处理图片...');
-    for (const file of files) {
+    let addedCount = 0;
+    for (const file of filesToProcess) {
+        if (file.size > MAX_SOURCE_IMAGE_BYTES) {
+            showMobileToast(`${file.name} 超过 10MB，已跳过`, 'warning');
+            continue;
+        }
+
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            showMobileToast(`${file.name} 格式不支持，已跳过`, 'warning');
+            continue;
+        }
+
         try {
             const dataUrl = await readFileAsDataURL(file);
-            const compressed = await compressImageToJpeg(dataUrl);
-            importedImages.push({ file, dataUrl, compressedUrl: compressed });
+            const optimized = await optimizeImageDataUrl(dataUrl, IMAGE_OPTIMIZE_OPTIONS);
+            importedImages.push({
+                file,
+                dataUrl,
+                compressedUrl: optimized.dataUrl,
+                optimized
+            });
+            addedCount += 1;
         } catch (e) {
             console.error('image import error:', e);
-            showMobileToast(`图片 ${file.name} 处理失败`, 'error');
+            if (e?.code === 'IMAGE_PIXELS_TOO_LARGE') {
+                showMobileToast(`${file.name} 像素过大，已跳过`, 'warning');
+            } else {
+                showMobileToast(`图片 ${file.name} 处理失败`, 'error');
+            }
         }
     }
     renderImagePreviews(pageEl);
-    hasUnsavedChanges = true;
-    showMobileToast(`已导入 ${files.length} 张图片`);
+    if (addedCount > 0) {
+        hasUnsavedChanges = true;
+        showMobileToast(`已导入 ${addedCount} 张图片`);
+    }
 }
 
 function showConfirmDialog(pageEl) {
@@ -503,6 +589,7 @@ async function showTagPicker(pageEl) {
     const overlay = pageEl.querySelector('#mPickerOverlay');
     const sheet = pageEl.querySelector('#mPickerSheet');
     if (!overlay || !sheet) return;
+    sheet.classList.add('m-picker-sheet-tags');
 
     let availableTags = [];
     try {
@@ -518,36 +605,44 @@ async function showTagPicker(pageEl) {
     function renderPickerContent() {
         sheet.innerHTML = `
             <div class="m-action-sheet-handle"></div>
-            <div class="m-picker-title">选择标签</div>
-            ${availableTags.length > 0 ? `
-                <div class="m-tag-picker-grid">
-                    ${availableTags.map(tag => `
-                        <button class="m-tag-picker-item ${tag.style} ${tempSelected.includes(tag.name) ? 'm-tag-picker-selected' : ''}" data-tag="${tag.name}">
-                            ${tag.name}
-                        </button>
-                    `).join('')}
-                </div>
-            ` : `
-                <div style="text-align:center; padding:var(--m-space-xl); color:var(--m-text2);">
-                    还没有可用标签，请先在提示词中添加标签
-                </div>
-            `}
-            ${tempSelected.length > 0 ? `
-                <div class="m-picker-selected">
-                    <span class="m-picker-selected-label">已选：</span>
-                    ${tempSelected.map(tag => `
-                        <span class="m-tag-pill m-tag-removable ${getTagStyle(tag)}" data-remove-tag="${tag}">
-                            ${tag}
-                            <button class="m-tag-remove" data-remove-tag="${tag}">×</button>
-                        </span>
-                    `).join('')}
-                </div>
-            ` : ''}
-            <div class="m-tag-custom-input-area">
-                <input type="text" class="m-tag-custom-input" id="mCustomTagInput" placeholder="输入自定义标签..." maxlength="10">
-                <button class="m-tag-custom-add-btn" id="mCustomTagAddBtn">添加</button>
+            <div class="m-picker-header">
+                <div class="m-picker-title">选择标签</div>
+                <div class="m-picker-subtitle">${availableTags.length > 0 ? '点按标签可多选' : '也可以直接新建自定义标签'}</div>
             </div>
-            <button class="m-picker-confirm" id="mTagPickerConfirm">确定</button>
+            <div class="m-tag-picker-body">
+                ${availableTags.length > 0 ? `
+                    <div class="m-tag-picker-grid">
+                        ${availableTags.map(tag => `
+                            <button class="m-tag-picker-item ${tag.style} ${tempSelected.includes(tag.name) ? 'm-tag-picker-selected' : ''}" data-tag="${tag.name}">
+                                ${tag.name}
+                            </button>
+                        `).join('')}
+                    </div>
+                ` : `
+                    <div class="m-tag-picker-empty">
+                        <div class="m-tag-picker-empty-title">还没有可用标签</div>
+                        <div class="m-tag-picker-empty-text">先创建一个标签，后续会显示在这里。</div>
+                    </div>
+                `}
+                ${tempSelected.length > 0 ? `
+                    <div class="m-picker-selected">
+                        <span class="m-picker-selected-label">已选</span>
+                        ${tempSelected.map(tag => `
+                            <span class="m-tag-pill m-tag-removable ${getTagStyle(tag)}" data-remove-tag="${tag}">
+                                ${tag}
+                                <button class="m-tag-remove" data-remove-tag="${tag}">×</button>
+                            </span>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+            <div class="m-picker-footer">
+                <div class="m-tag-custom-input-area">
+                    <input type="text" class="m-tag-custom-input" id="mCustomTagInput" placeholder="输入自定义标签..." maxlength="10">
+                    <button class="m-tag-custom-add-btn" id="mCustomTagAddBtn">添加</button>
+                </div>
+                <button class="m-picker-confirm" id="mTagPickerConfirm">确定</button>
+            </div>
         `;
 
         sheet.querySelectorAll('.m-tag-picker-item').forEach(btn => {
@@ -622,6 +717,7 @@ async function showFolderPicker(pageEl) {
     const overlay = pageEl.querySelector('#mPickerOverlay');
     const sheet = pageEl.querySelector('#mPickerSheet');
     if (!overlay || !sheet) return;
+    sheet.classList.remove('m-picker-sheet-tags');
 
     let folders = [];
     try {
@@ -781,12 +877,12 @@ async function handleSave(pageEl) {
 
                     for (const img of importedImages) {
                         const imgId = generateId();
-                        await storage.uploadImage(imgId, img.compressedUrl, img.file.name);
+                        const uploaded = await storage.uploadImage(imgId, img.compressedUrl, img.file.name);
                         versionImages.push({
                             id: imgId,
                             name: img.file.name,
                             path: img.file.name,
-                            file: `${imgId}.jpg`,
+                            file: uploaded?.file || `${imgId}.jpg`,
                             note: '',
                             createdAt: new Date().toISOString()
                         });
@@ -812,12 +908,12 @@ async function handleSave(pageEl) {
 
             for (const img of importedImages) {
                 const imgId = generateId();
-                await storage.uploadImage(imgId, img.compressedUrl, img.file.name);
+                const uploaded = await storage.uploadImage(imgId, img.compressedUrl, img.file.name);
                 versionImages.push({
                     id: imgId,
                     name: img.file.name,
                     path: img.file.name,
-                    file: `${imgId}.jpg`,
+                    file: uploaded?.file || `${imgId}.jpg`,
                     note: '',
                     createdAt: new Date().toISOString()
                 });

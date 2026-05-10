@@ -3,7 +3,7 @@ import { navigate } from './pc-app.js';
 import { showToast, showModal, closeModal, showConfirmModal, showContextMenu, escapeHtml } from './pc-utils.js';
 import { aggregateTags, getCustomTags, removeCustomTag, saveCustomTag } from './tag-utils.js';
 import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
-import categoryFolderIcon from '../assets/icons/category-folder.png';
+import categoryFolderIcon from '../assets/mobile/folder.png';
 import categoryTagIcon from '../assets/icons/category-tag.png';
 import plusIcon from '../assets/icons/plus.svg';
 import moreHorizontalIcon from '../assets/icons/more-horizontal.svg';
