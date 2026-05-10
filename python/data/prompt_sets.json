@@ -1,45 +1,159 @@
 [
   {
-    "id": "5d5baa62",
-    "name": "123",
+    "id": "7c55d8b8",
+    "name": "123123",
     "folderId": null,
     "tags": "[]",
     "isFavorite": false,
-    "createdAt": "2026-05-06T00:56:36.271468",
-    "updatedAt": "2026-05-06T00:56:36.295588",
+    "createdAt": "2026-05-10T00:26:54.842099",
+    "updatedAt": "2026-05-10T00:26:54.928351",
     "versions": [
       {
-        "prompt": "12323",
+        "name": "v1",
+        "prompt": "12312",
         "negativePrompt": "",
         "note": "",
         "aspectRatio": "1:1",
+        "stylePreset": "",
+        "model": "",
+        "sampler": "DPM++ 2M Karras",
+        "steps": 30,
+        "cfgScale": 7,
+        "hrFix": true,
         "images": [
           {
-            "id": "mosverp5xmh5dnipb",
-            "name": "设置页.png",
-            "path": "设置页.png",
-            "file": "mosverp5xmh5dnipb.jpg",
+            "id": "moyk3zt44tsxc",
+            "name": "ChatGPT Image 2026年5月4日 18_57_07.png",
+            "path": "ChatGPT Image 2026年5月4日 18_57_07.png",
+            "file": "moyk3zt44tsxc.jpg",
             "note": "",
-            "createdAt": "2026-05-05T16:56:36.292Z"
+            "createdAt": "2026-05-09T16:26:54.881Z"
+          },
+          {
+            "id": "moyk3zttcyo7j",
+            "name": "ChatGPT Image 2026年5月4日 19_00_49.png",
+            "path": "ChatGPT Image 2026年5月4日 19_00_49.png",
+            "file": "moyk3zttcyo7j.jpg",
+            "note": "",
+            "createdAt": "2026-05-09T16:26:54.906Z"
+          },
+          {
+            "id": "moyk3zuiy8gv3",
+            "name": "ChatGPT Image 2026年5月4日 19_00_46.png",
+            "path": "ChatGPT Image 2026年5月4日 19_00_46.png",
+            "file": "moyk3zuiy8gv3.jpg",
+            "note": "",
+            "createdAt": "2026-05-09T16:26:54.926Z"
           }
         ]
       }
     ]
   },
   {
-    "id": "7e813413",
-    "name": "55",
-    "folderId": null,
+    "id": "bc53d731",
+    "name": "2132",
+    "folderId": "b979c07f",
     "tags": "[]",
     "isFavorite": false,
-    "createdAt": "2026-05-06T01:28:12.810978",
-    "updatedAt": "2026-05-06T01:28:12.822426",
+    "createdAt": "2026-05-10T00:46:09.093868",
+    "updatedAt": "2026-05-10T13:04:50.314889",
     "versions": [
       {
-        "prompt": "22",
+        "name": "v1",
+        "prompt": "12312",
+        "negativePrompt": "312312",
+        "note": "",
+        "aspectRatio": "1:1",
+        "stylePreset": "",
+        "model": "",
+        "sampler": "DPM++ 2M Karras",
+        "steps": 30,
+        "cfgScale": 7,
+        "hrFix": true,
+        "images": [
+          {
+            "id": "moynp9e6rrw9j",
+            "name": "1 - wan-saengkrajui-4171.jpg",
+            "path": "1 - wan-saengkrajui-4171.jpg",
+            "file": "moynp9e6rrw9j.jpg",
+            "note": "",
+            "createdAt": "2026-05-09T18:07:25.921Z"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "d312f614",
+    "name": "12312",
+    "folderId": null,
+    "tags": "[]",
+    "isFavorite": true,
+    "createdAt": "2026-05-10T02:30:15.945024",
+    "updatedAt": "2026-05-10T02:38:10.931999",
+    "versions": [
+      {
+        "name": "v1",
+        "prompt": "3123",
         "negativePrompt": "",
         "note": "",
         "aspectRatio": "1:1",
+        "stylePreset": "",
+        "model": "",
+        "sampler": "DPM++ 2M Karras",
+        "steps": 30,
+        "cfgScale": 7,
+        "hrFix": true,
+        "images": []
+      }
+    ]
+  },
+  {
+    "id": "14bc453d",
+    "name": "56677",
+    "folderId": null,
+    "tags": "[]",
+    "isFavorite": true,
+    "createdAt": "2026-05-10T02:30:19.519762",
+    "updatedAt": "2026-05-10T02:38:10.620114",
+    "versions": [
+      {
+        "name": "v1",
+        "prompt": "7777",
+        "negativePrompt": "",
+        "note": "",
+        "aspectRatio": "1:1",
+        "stylePreset": "",
+        "model": "",
+        "sampler": "DPM++ 2M Karras",
+        "steps": 30,
+        "cfgScale": 7,
+        "hrFix": true,
+        "images": []
+      }
+    ]
+  },
+  {
+    "id": "30b1dde1",
+    "name": "12312312312",
+    "folderId": null,
+    "tags": "[]",
+    "isFavorite": false,
+    "createdAt": "2026-05-10T02:30:25.925056",
+    "updatedAt": "2026-05-10T02:30:25.930169",
+    "versions": [
+      {
+        "name": "v1",
+        "prompt": "3123123124",
+        "negativePrompt": "",
+        "note": "",
+        "aspectRatio": "1:1",
+        "stylePreset": "",
+        "model": "",
+        "sampler": "DPM++ 2M Karras",
+        "steps": 30,
+        "cfgScale": 7,
+        "hrFix": true,
         "images": []
       }
     ]

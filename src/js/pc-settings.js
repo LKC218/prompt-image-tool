@@ -1,0 +1,348 @@
+import { getStorage, isCapacitor } from './storage.js';
+import { setAccent } from './pc-app.js';
+import { showToast, escapeHtml, formatBytes, copyToClipboard } from './pc-utils.js';
+import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
+import settingsBanner from '../assets/pc/settings-banner.png';
+import themeColorIcon from '../assets/icons/settings/theme-color.png';
+import backupIcon from '../assets/icons/settings/backup.svg';
+import importDataIcon from '../assets/icons/settings/import-data.svg';
+import exportJsonIcon from '../assets/icons/settings/export-json.svg';
+import importJsonIcon from '../assets/icons/settings/import-json.svg';
+import syncServerIcon from '../assets/icons/settings/sync-server.svg';
+
+let settingsData = null;
+
+const ACCENT_COLORS = [
+    { name: '粉色', value: 'pink', color: '#FF6B9A' },
+    { name: '蓝色', value: 'blue', color: '#2D8CFF' },
+    { name: '绿色', value: 'green', color: '#29B37A' },
+    { name: '紫色', value: 'purple', color: '#8A6BFF' },
+    { name: '黄色', value: 'yellow', color: '#FFC94A' },
+];
+
+function iconMask(icon) {
+    return `style="-webkit-mask-image:url(${icon});mask-image:url(${icon});"`;
+}
+
+function iconImg(icon, alt = '') {
+    return `<img src="${icon}" alt="${alt}" aria-hidden="${alt ? 'false' : 'true'}">`;
+}
+
+function render(params = {}) {
+    const activeAccent = localStorage.getItem('pc-accent') || 'pink';
+    return `
+        <section class="pc-settings-page">
+            <h1 class="pc-page-title pc-settings-title">设置</h1>
+
+            <section class="pc-settings-hero" aria-label="本地数据安全提示">
+                <img class="pc-settings-hero-image" src="${settingsBanner}" alt="一切数据仅在本地，安全又放心">
+            </section>
+
+            <div class="pc-settings-overview">
+                <section class="pc-settings-panel pc-settings-appearance" aria-labelledby="pcAppearanceTitle">
+                    <h2 id="pcAppearanceTitle" class="pc-settings-panel-title">外观设置</h2>
+                    <div class="pc-settings-list">
+                        <div class="pc-settings-list-row">
+                            <div class="pc-settings-list-left">
+                                <span class="pc-settings-list-image-icon">${iconImg(themeColorIcon)}</span>
+                                <span>应用主题色</span>
+                            </div>
+                            <div class="pc-theme-dots" id="pcAccentPicker" role="radiogroup" aria-label="应用主题色">
+                                ${ACCENT_COLORS.map(c => `
+                                    <button class="pc-theme-dot ${c.value === activeAccent ? 'pc-theme-active' : ''}" type="button" role="radio" aria-checked="${c.value === activeAccent ? 'true' : 'false'}" data-accent="${c.value}" style="--dot-color:${c.color};" title="${c.name}" aria-label="${c.name}"></button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="pc-settings-panel pc-settings-storage-panel" aria-labelledby="pcStorageTitle">
+                    <h2 id="pcStorageTitle" class="pc-settings-panel-title">本地存储</h2>
+                    <div class="pc-settings-storage-grid">
+                        <div class="pc-settings-storage-tile pc-settings-storage-size">
+                            <div class="pc-settings-storage-kicker">
+                                <span class="pc-settings-storage-dot"></span>
+                                本地数据大小
+                            </div>
+                            <div class="pc-settings-storage-number"><span id="pcStorageSizeValue">-</span></div>
+                            <div class="pc-settings-storage-caption">已使用</div>
+                        </div>
+                        <div class="pc-settings-storage-tile pc-settings-space-tile">
+                            <div>
+                                <div class="pc-settings-storage-subtitle">存储空间</div>
+                                <div class="pc-settings-space-line">可用 <span id="pcStorageAvailable">检测中</span></div>
+                                <div class="pc-settings-space-line">共 <span id="pcStorageTotal">-</span></div>
+                            </div>
+                            <div class="pc-storage-ring pc-settings-storage-ring" id="pcStorageRing" style="--ring-percent:0%;">
+                                <span class="pc-storage-ring-value" id="pcStorageRingValue">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pc-settings-meta-row">
+                        <span>提示词 <strong id="pcStoragePromptCount">-</strong> 条</span>
+                        <span id="pcEnvValue">浏览器</span>
+                        <span id="pcStorageType">本地存储</span>
+                        <span>v<span id="pcVersionValue">3.0.0</span></span>
+                    </div>
+                </section>
+            </div>
+
+            <section class="pc-settings-panel pc-settings-backup-panel" aria-labelledby="pcBackupTitle">
+                <h2 id="pcBackupTitle" class="pc-settings-panel-title">数据备份与恢复</h2>
+                <div class="pc-settings-action-grid">
+                    <button class="pc-settings-action-card pc-settings-action-green" type="button" data-settings-action="export">
+                        <span class="pc-settings-action-icon">${iconImg(backupIcon)}</span>
+                        <span class="pc-settings-action-copy">
+                            <strong>本地备份</strong>
+                            <small>导出所有数据文件</small>
+                        </span>
+                    </button>
+                    <button class="pc-settings-action-card pc-settings-action-blue" type="button" data-settings-action="import">
+                        <span class="pc-settings-action-icon">${iconImg(importDataIcon)}</span>
+                        <span class="pc-settings-action-copy">
+                            <strong>导入数据</strong>
+                            <small>从备份文件恢复</small>
+                        </span>
+                    </button>
+                    <button class="pc-settings-action-card pc-settings-action-purple" type="button" data-settings-action="export">
+                        <span class="pc-settings-action-icon">${iconImg(exportJsonIcon)}</span>
+                        <span class="pc-settings-action-copy">
+                            <strong>导出 JSON</strong>
+                            <small>导出为 .json 文件</small>
+                        </span>
+                    </button>
+                    <button class="pc-settings-action-card pc-settings-action-orange" type="button" data-settings-action="import">
+                        <span class="pc-settings-action-icon">${iconImg(importJsonIcon)}</span>
+                        <span class="pc-settings-action-copy">
+                            <strong>从 JSON 导入</strong>
+                            <small>从 .json 文件导入</small>
+                        </span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="pc-settings-panel pc-settings-sync-panel" aria-labelledby="pcSyncTitle">
+                <div class="pc-settings-sync-head">
+                    <h2 id="pcSyncTitle" class="pc-settings-panel-title">局域网同步</h2>
+                    <span class="pc-settings-sync-badge">PC 服务端</span>
+                </div>
+                <div class="pc-settings-sync-body">
+                    <span class="pc-settings-sync-icon">${iconImg(syncServerIcon)}</span>
+                    <div class="pc-settings-sync-copy">
+                        <div class="pc-sync-ip-display" id="pcSyncIpDisplay">同步服务：检测中...</div>
+                        <div class="pc-sync-hint">PC 端只作为同步服务端，请在移动端设置页扫描或输入此地址拉取数据。</div>
+                        <div id="pcSyncStatus" aria-live="polite"></div>
+                    </div>
+                    <div class="pc-sync-ip-input-wrap">
+                        <button class="pc-btn pc-btn-primary pc-btn-sm" id="pcCopySyncAddress">复制地址</button>
+                        <button class="pc-btn pc-btn-secondary pc-btn-sm" id="pcRefreshNetworkInfo">刷新</button>
+                    </div>
+                </div>
+            </section>
+
+        </section>
+    `;
+}
+
+async function mount(pageEl, params = {}) {
+    setupSettingsEvents(pageEl);
+    await loadSettingsData(pageEl);
+    loadDeviceInfo(pageEl);
+}
+
+async function loadSettingsData(pageEl) {
+    try {
+        const storage = getStorage();
+        const promptSets = await storage.getPromptSets();
+
+        const countEl = pageEl.querySelector('#pcStoragePromptCount');
+        if (countEl) countEl.textContent = promptSets.length;
+
+        try {
+            if (storage.estimateStorageSize) {
+                const size = await storage.estimateStorageSize();
+                const sizeEl = pageEl.querySelector('#pcStorageSizeValue');
+                if (sizeEl) sizeEl.textContent = formatBytes(size);
+            }
+        } catch (e) {}
+
+        await loadStorageEstimate(pageEl);
+        await loadNetworkInfo(pageEl);
+    } catch (e) {
+        console.error('loadSettingsData error:', e);
+    }
+}
+
+async function loadStorageEstimate(pageEl) {
+    const availableEl = pageEl.querySelector('#pcStorageAvailable');
+    const totalEl = pageEl.querySelector('#pcStorageTotal');
+    const ringEl = pageEl.querySelector('#pcStorageRing');
+    const ringValueEl = pageEl.querySelector('#pcStorageRingValue');
+
+    try {
+        if (!navigator.storage || !navigator.storage.estimate) {
+            if (availableEl) availableEl.textContent = '浏览器未提供';
+            if (totalEl) totalEl.textContent = '-';
+            return;
+        }
+
+        const estimate = await navigator.storage.estimate();
+        const usage = estimate.usage || 0;
+        const quota = estimate.quota || 0;
+        const available = Math.max(quota - usage, 0);
+        const percent = quota > 0 ? Math.min(Math.round((usage / quota) * 100), 100) : 0;
+
+        if (availableEl) availableEl.textContent = formatBytes(available);
+        if (totalEl) totalEl.textContent = quota ? formatBytes(quota) : '-';
+        if (ringEl) ringEl.style.setProperty('--ring-percent', `${percent}%`);
+        if (ringValueEl) ringValueEl.textContent = `${percent}%`;
+    } catch (e) {
+        if (availableEl) availableEl.textContent = '检测失败';
+        if (totalEl) totalEl.textContent = '-';
+    }
+}
+
+async function loadNetworkInfo(pageEl) {
+    const ipEl = pageEl.querySelector('#pcSyncIpDisplay');
+    const statusEl = pageEl.querySelector('#pcSyncStatus');
+    try {
+        const storage = getStorage();
+        const info = storage.getNetworkInfo
+            ? await storage.getNetworkInfo()
+            : await fetch('/api/network-info').then(res => res.json());
+        const ip = info.ip || '无法获取';
+        const port = info.port || 8888;
+        const address = ip === '无法获取' ? '' : `http://${ip}:${port}`;
+        if (ipEl) {
+            ipEl.textContent = address ? `同步服务：${address}` : '同步服务：无法获取本机 IP';
+            ipEl.dataset.address = address;
+        }
+        if (statusEl) {
+            statusEl.innerHTML = `<div class="pc-sync-status" role="status">服务端已就绪，等待移动端连接</div>`;
+        }
+    } catch (e) {
+        if (ipEl) {
+            ipEl.textContent = '同步服务：无法获取';
+            ipEl.dataset.address = '';
+        }
+        if (statusEl) {
+            statusEl.innerHTML = `<div class="pc-sync-status pc-sync-status-error" role="alert">无法读取网络信息：${escapeHtml(e.message || '未知错误')}</div>`;
+        }
+    }
+}
+
+function loadDeviceInfo(pageEl) {
+    const envEl = pageEl.querySelector('#pcEnvValue');
+    if (envEl) {
+        if (window.__TAURI__) {
+            envEl.textContent = 'Tauri 桌面端';
+        } else if (isCapacitor) {
+            envEl.textContent = 'Capacitor 移动端';
+        } else {
+            envEl.textContent = '浏览器';
+        }
+    }
+
+    const storageTypeEl = pageEl.querySelector('#pcStorageType');
+    if (storageTypeEl) {
+        const storage = getStorage();
+        if (storage && storage.constructor) {
+            const name = storage.constructor.name;
+            if (name.includes('SQLite')) storageTypeEl.textContent = 'SQLite 数据库';
+            else if (name.includes('Api')) storageTypeEl.textContent = 'API 存储';
+            else storageTypeEl.textContent = '本地存储';
+        }
+    }
+
+    try {
+        const version = document.querySelector('meta[name="version"]')?.content || '3.0.0';
+        const versionEl = pageEl.querySelector('#pcVersionValue');
+        if (versionEl) versionEl.textContent = version;
+    } catch (e) {}
+}
+
+function setupSettingsEvents(pageEl) {
+    pageEl.querySelector('#pcAccentPicker')?.addEventListener('click', async (e) => {
+        const dot = e.target.closest('.pc-theme-dot');
+        if (!dot) return;
+        const accent = dot.dataset.accent;
+        setAccent(accent);
+        pageEl.querySelectorAll('.pc-theme-dot').forEach(d => {
+            d.classList.remove('pc-theme-active');
+            d.setAttribute('aria-checked', 'false');
+        });
+        dot.classList.add('pc-theme-active');
+        dot.setAttribute('aria-checked', 'true');
+        showToast('主题色已切换');
+    });
+
+    pageEl.querySelectorAll('[data-settings-action]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const action = btn.dataset.settingsAction;
+            if (action === 'export') {
+                await handleExport();
+                return;
+            }
+            if (action === 'import') {
+                handleImport(pageEl);
+            }
+        });
+    });
+
+    pageEl.querySelector('#pcCopySyncAddress')?.addEventListener('click', async () => {
+        const address = pageEl.querySelector('#pcSyncIpDisplay')?.dataset.address;
+        if (!address) {
+            showToast('暂无可复制的同步地址', 'error');
+            return;
+        }
+        await copyToClipboard(address);
+    });
+
+    pageEl.querySelector('#pcRefreshNetworkInfo')?.addEventListener('click', async () => {
+        await loadNetworkInfo(pageEl);
+        showToast('网络信息已刷新');
+    });
+}
+
+async function handleExport() {
+    try {
+        const storage = getStorage();
+        const result = await exportBackup(storage);
+        if (!result.canceled) {
+            showToast(buildExportSuccessMessage(result));
+        }
+    } catch (e) {
+        console.error('export backup failed:', e);
+        showToast(`导出失败：${getErrorMessage(e)}`, 'error');
+    }
+}
+
+function handleImport(pageEl) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            const storage = getStorage();
+            const result = await storage.importData(data);
+            const updated = result.updated || 0;
+            const added = result.added || 0;
+            const images = result.imagesRestored || 0;
+            showToast(`导入成功：新增 ${added} 条，覆盖 ${updated} 条，恢复 ${images} 张图片`);
+            await loadSettingsData(pageEl);
+        } catch (err) {
+            showToast('导入失败，文件格式不正确', 'error');
+        }
+    };
+    input.click();
+}
+
+function unmount(pageEl) {
+    settingsData = null;
+}
+
+export { render, mount, unmount };

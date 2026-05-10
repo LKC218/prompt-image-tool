@@ -225,11 +225,13 @@ export class LanSync {
     }
 
     async _mergeData(syncData) {
-        const { prompt_sets: remoteSets, versions: remoteVersions, images: remoteImages } = syncData;
+        const { folders = [], prompt_sets: remoteSets, versions: remoteVersions, images: remoteImages } = syncData;
         const localSets = await this.storage.query('SELECT * FROM prompt_sets');
         const localMap = new Map(localSets.map(s => [s.id, s]));
 
         const result = { added: 0, updated: 0, conflicts: [], skipped: 0 };
+
+        await this._mergeFolders(folders);
 
         const versionsBySet = new Map();
         for (const v of remoteVersions) {
@@ -246,49 +248,59 @@ export class LanSync {
         for (const remoteSet of remoteSets) {
             const localSet = localMap.get(remoteSet.id);
 
-            if (!localSet) {
-                await this._insertSetWithVersions(remoteSet, versionsBySet.get(remoteSet.id) || [], imagesByVersion);
-                result.added++;
-                continue;
-            }
-
-            const localUpdated = localSet.updated_at;
-            const remoteUpdated = remoteSet.updated_at;
-
-            if (remoteUpdated > localUpdated) {
-                await this._updateSetWithVersions(remoteSet, versionsBySet.get(remoteSet.id) || [], imagesByVersion);
-                result.updated++;
-            } else if (remoteUpdated === localUpdated) {
-                result.skipped++;
-            } else {
-                const localChanged = localUpdated > remoteUpdated;
-                const remoteChanged = remoteUpdated > localUpdated;
-
-                if (localChanged && remoteChanged) {
-                    await this._createConflictCopy(remoteSet, versionsBySet.get(remoteSet.id) || [], imagesByVersion);
-                    result.conflicts.push(remoteSet.name);
-                } else if (remoteChanged) {
-                    await this._updateSetWithVersions(remoteSet, versionsBySet.get(remoteSet.id) || [], imagesByVersion);
-                    result.updated++;
+            if (localSet) {
+                if (this.storage.deletePromptSet) {
+                    await this.storage.deletePromptSet(remoteSet.id);
                 } else {
-                    result.skipped++;
+                    await this.storage.run('DELETE FROM images WHERE version_id IN (SELECT id FROM versions WHERE prompt_set_id = ?)', [remoteSet.id]);
+                    await this.storage.run('DELETE FROM versions WHERE prompt_set_id = ?', [remoteSet.id]);
+                    await this.storage.run('DELETE FROM prompt_sets WHERE id = ?', [remoteSet.id]);
                 }
+                result.updated++;
+            } else {
+                result.added++;
             }
+
+            await this._insertSetWithVersions(remoteSet, versionsBySet.get(remoteSet.id) || [], imagesByVersion);
         }
 
         return result;
     }
 
+    async _mergeFolders(folders) {
+        if (!Array.isArray(folders) || folders.length === 0) return;
+        for (const folder of folders) {
+            if (!folder.id) continue;
+            const existing = await this.storage.query('SELECT id FROM folders WHERE id = ?', [folder.id]);
+            const now = new Date().toISOString();
+            if (existing.length > 0) {
+                await this.storage.run(
+                    'UPDATE folders SET name = ?, color = ?, sort_order = ?, updated_at = ? WHERE id = ?',
+                    [folder.name || '未命名分类', folder.color || '', folder.sortOrder || folder.sort_order || 0, folder.updatedAt || folder.updated_at || now, folder.id]
+                );
+            } else {
+                await this.storage.run(
+                    'INSERT INTO folders (id, name, color, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+                    [folder.id, folder.name || '未命名分类', folder.color || '', folder.sortOrder || folder.sort_order || 0, folder.createdAt || folder.created_at || now, folder.updatedAt || folder.updated_at || now]
+                );
+            }
+        }
+    }
+
     async _insertSetWithVersions(set, versions, imagesByVersion) {
         const now = new Date().toISOString();
         await this.storage.run(
-            'INSERT OR IGNORE INTO prompt_sets (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
-            [set.id, set.name, set.created_at || now, set.updated_at || now]
+            'INSERT OR REPLACE INTO prompt_sets (id, name, folder_id, tags, is_favorite, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [set.id, set.name, set.folder_id || '', set.tags || '[]', set.is_favorite ? 1 : 0, set.created_at || now, set.updated_at || now]
         );
         for (const v of versions) {
             await this.storage.run(
                 'INSERT OR IGNORE INTO versions (id, prompt_set_id, version, prompt, negative_prompt, note, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
                 [v.id, set.id, v.version, v.prompt || '', v.negative_prompt || '', v.note || '', v.sort_order || 0, v.created_at || now]
+            );
+            await this.storage.run(
+                'UPDATE versions SET aspect_ratio = ?, style_preset = ?, sampler = ?, steps = ?, cfg_scale = ?, hr_fix = ?, model = ? WHERE id = ?',
+                [v.aspect_ratio || '1:1', v.style_preset || '', v.sampler || 'DPM++ 2M Karras', v.steps || 30, v.cfg_scale || 7.0, (v.hr_fix === false || v.hr_fix === 0) ? 0 : 1, v.model || '', v.id]
             );
             const imgs = imagesByVersion.get(v.id) || [];
             for (const img of imgs) {
@@ -300,92 +312,13 @@ export class LanSync {
         }
     }
 
-    async _updateSetWithVersions(set, versions, imagesByVersion) {
-        const now = new Date().toISOString();
-        await this.storage.run(
-            'UPDATE prompt_sets SET name = ?, updated_at = ? WHERE id = ?',
-            [set.name, set.updated_at || now, set.id]
-        );
-
-        const existingVersions = await this.storage.query('SELECT id FROM versions WHERE prompt_set_id = ?', [set.id]);
-        const existingVIds = new Set(existingVersions.map(v => v.id));
-
-        for (const v of versions) {
-            if (existingVIds.has(v.id)) {
-                await this.storage.run(
-                    'UPDATE versions SET version = ?, prompt = ?, negative_prompt = ?, note = ?, sort_order = ? WHERE id = ?',
-                    [v.version, v.prompt || '', v.negative_prompt || '', v.note || '', v.sort_order || 0, v.id]
-                );
-            } else {
-                await this.storage.run(
-                    'INSERT OR IGNORE INTO versions (id, prompt_set_id, version, prompt, negative_prompt, note, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                    [v.id, set.id, v.version, v.prompt || '', v.negative_prompt || '', v.note || '', v.sort_order || 0, v.created_at || now]
-                );
-            }
-
-            const existingImgs = await this.storage.query('SELECT id FROM images WHERE version_id = ?', [v.id]);
-            const existingImgIds = new Set(existingImgs.map(i => i.id));
-            const imgs = imagesByVersion.get(v.id) || [];
-
-            for (const img of imgs) {
-                if (existingImgIds.has(img.id)) {
-                    await this.storage.run(
-                        'UPDATE images SET name = ?, path = ?, file = ?, note = ? WHERE id = ?',
-                        [img.name || '', img.path || '', img.file || '', img.note || '', img.id]
-                    );
-                } else {
-                    await this.storage.run(
-                        'INSERT OR IGNORE INTO images (id, version_id, name, path, file, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                        [img.id, v.id, img.name || '', img.path || '', img.file || '', img.note || '', img.created_at || now]
-                    );
-                }
-            }
-        }
-    }
-
-    async _createConflictCopy(set, versions, imagesByVersion) {
-        const now = new Date().toISOString();
-        const conflictId = this.storage.generateId();
-        const conflictName = `${set.name} (冲突副本 ${now.slice(0, 16).replace('T', ' ')})`;
-
-        await this.storage.run(
-            'INSERT INTO prompt_sets (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
-            [conflictId, conflictName, now, now]
-        );
-
-        for (const v of versions) {
-            const vId = this.storage.generateId();
-            await this.storage.run(
-                'INSERT INTO versions (id, prompt_set_id, version, prompt, negative_prompt, note, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [vId, conflictId, v.version, v.prompt || '', v.negative_prompt || '', v.note || '', v.sort_order || 0, v.created_at || now]
-            );
-
-            const imgs = imagesByVersion.get(v.id) || [];
-            for (const img of imgs) {
-                const imgId = this.storage.generateId();
-                await this.storage.run(
-                    'INSERT INTO images (id, version_id, name, path, file, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    [imgId, vId, img.name || '', img.path || '', img.file || '', img.note || '', img.created_at || now]
-                );
-            }
-        }
-    }
-
     async _downloadImages(baseUrl, images, signal) {
         const result = { downloaded: 0, failed: [], skipped: 0 };
         const imagesWithFile = images.filter(img => img.file);
 
         if (imagesWithFile.length === 0) return result;
 
-        const existingFiles = new Set();
-        try {
-            const localImages = await this.storage.query('SELECT file FROM images WHERE file != ""');
-            for (const row of localImages) {
-                if (row.file) existingFiles.add(row.file);
-            }
-        } catch (e) {}
-
-        const toDownload = imagesWithFile.filter(img => !existingFiles.has(img.file));
+        const toDownload = imagesWithFile;
         const total = toDownload.length;
 
         for (let i = 0; i < toDownload.length; i++) {
@@ -393,7 +326,7 @@ export class LanSync {
             try {
                 if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
-                this._setProgress(i, total, `下载图片 ${i + 1}/${total}`);
+                this._setProgress(i + 1, total, `下载图片 ${i + 1}/${total}`);
 
                 const res = await fetch(`${baseUrl}/api/sync/images/${encodeURIComponent(img.file)}`, { signal });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -416,7 +349,7 @@ export class LanSync {
             }
         }
 
-        result.skipped = imagesWithFile.length - toDownload.length;
+        result.skipped = 0;
         return result;
     }
 

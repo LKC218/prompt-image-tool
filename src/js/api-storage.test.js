@@ -208,8 +208,20 @@ describe('ApiStorage', () => {
             }));
         });
 
+        it('exportFile should call POST /api/export-file with filename', async () => {
+            await storage.exportFile('backup.json');
+            expect(mockFetch).toHaveBeenCalledWith('/api/export-file', expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({ filename: 'backup.json' }),
+            }));
+        });
+
         it('importData should call POST /api/import', async () => {
-            const data = [{ id: '1', versions: [] }];
+            const data = {
+                backup_meta: { format: 'prompt-image-tool-backup' },
+                folders: [],
+                prompt_sets: [{ id: '1', versions: [] }],
+            };
             await storage.importData(data);
             expect(mockFetch).toHaveBeenCalledWith('/api/import', expect.objectContaining({
                 method: 'POST',

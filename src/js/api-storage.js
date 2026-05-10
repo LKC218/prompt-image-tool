@@ -51,6 +51,10 @@ export class ApiStorage {
         return this.api('DELETE', `/folder/${id}`);
     }
 
+    async reorderFolders(folderIds) {
+        return this.api('POST', '/folders/reorder', { order: folderIds });
+    }
+
     async movePromptToFolder(promptSetId, folderId) {
         return this.api('POST', `/prompt-set/${promptSetId}/move`, { folderId });
     }
@@ -107,12 +111,25 @@ export class ApiStorage {
         return this.api('GET', '/export');
     }
 
+    async exportFile(filename = '') {
+        return this.api('POST', '/export-file', { filename });
+    }
+
     async importData(data) {
         return this.api('POST', '/import', data);
     }
 
+    async getNetworkInfo() {
+        return this.api('GET', '/network-info');
+    }
+
+    async estimateStorageSize() {
+        const data = await this.exportData();
+        return new Blob([JSON.stringify(data)]).size;
+    }
+
     async getImageUrl(img) {
-        if (img.file) return `${this.baseUrl}/api/images/${img.file}`;
+        if (img.file) return `${this.baseUrl}/images/${img.file}`;
         return img.data || '';
     }
 

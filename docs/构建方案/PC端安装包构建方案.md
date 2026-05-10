@@ -2,7 +2,7 @@
 
 > 适用版本：v2.3.1+  
 > 构建方案：PyInstaller + NSIS  
-> 最后更新：2026-05-05
+> 最后更新：2026-05-09
 
 ---
 
@@ -144,7 +144,8 @@ dir build\PromptImageManager-Setup-2.3.1.exe
 ### 4.1 NSIS 安装包（推荐分发）
 
 ```
-build/PromptImageManager-Setup-2.3.1.exe    # ~15 MB，带安装向导
+build/PromptImageManager-Setup-2.3.1.exe    # ~18 MB，带安装向导
+releases/PromptImageManager-Setup-2.3.1.exe # 发布目录副本
 ```
 
 安装后包含：桌面快捷方式、开始菜单、卸载程序、注册表条目。
@@ -156,6 +157,12 @@ build/PromptImageManager-Setup-2.3.1.exe    # ~15 MB，带安装向导
 ```
 build/dist/PromptImageManager/
 ├── PromptImageManager.exe      # 主程序（双击运行）
+├── icon.ico                    # 应用图标
+├── app.log                     # 运行日志（启动后自动生成）
+├── data/                       # 用户数据目录（启动后自动生成）
+│   ├── prompt_sets.json        # 提示词集合数据
+│   ├── folders.json            # 文件夹/分类数据
+│   └── images/                 # 图片存储
 ├── _internal/
 │   ├── frontend/               # 前端文件
 │   │   ├── index.html
@@ -185,7 +192,101 @@ build/dist/PromptImageManager/
 
 ---
 
-## 六、版本号管理
+## 六、API 路由清单
+
+`build/app_main.py` 提供的完整 API 列表，必须与 `python/main.py` 保持同步。
+
+### 6.1 GET 路由
+
+| 路由 | 处理函数 | 说明 |
+|------|----------|------|
+| `/api/health` | 内联 | 健康检查，返回 `status`、`dataDir`、`device_name` |
+| `/api/prompt-sets` | `handle_get_prompt_sets` | 提示词集合列表（含 `folderId`、`tags`、`isFavorite`、`firstImage`） |
+| `/api/prompt-set/{id}` | `handle_get_prompt_set` | 单个提示词集合详情（含 `isFavorite` 默认值） |
+| `/api/folders` | `handle_get_folders` | 文件夹/分类列表 |
+| `/api/sync` | `handle_sync` | 同步数据（含 `folder_id`） |
+| `/api/sync/images/{name}` | `handle_sync_image` | 同步图片 |
+| `/api/network-info` | `handle_network_info` | 网络信息 |
+| `/api/images/{name}` | `serve_image` | 通过 `/api/images/` 前缀访问图片 |
+| `/images/{name}` | `serve_image` | 通过 `/images/` 前缀访问图片 |
+
+### 6.2 POST 路由
+
+| 路由 | 处理函数 | 说明 |
+|------|----------|------|
+| `/api/prompt-sets` | `handle_create_prompt_set` | 创建提示词集合（含 `folderId`、`tags`、`isFavorite` + 版本生图参数） |
+| `/api/prompt-set/{id}` | `handle_update_prompt_set` | 更新提示词集合（支持 `folderId`、`tags`、`isFavorite`） |
+| `/api/prompt-set/{id}/version` | `handle_add_version` | 新增版本（含生图参数字段） |
+| `/api/prompt-set/{id}/delete-version` | `handle_delete_version` | 删除版本 |
+| `/api/prompt-set/{id}/rename-version` | `handle_rename_version` | 重命名版本 |
+| `/api/prompt-set/{id}/duplicate-version` | `handle_duplicate_version` | 复制版本 |
+| `/api/prompt-set/{id}/move` | `handle_move_prompt_to_folder` | 移动提示词到文件夹 |
+| `/api/prompt-set/{id}/toggle-favorite` | `handle_toggle_favorite` | 切换收藏状态 |
+| `/api/folders` | `handle_create_folder` | 创建文件夹 |
+| `/api/folders/reorder` | `handle_reorder_folders` | 文件夹排序 |
+| `/api/folder/{id}` | `handle_update_folder` | 更新文件夹 |
+| `/api/prompt-set/{id}/image` | `handle_upload_image` | 上传图片 |
+
+### 6.3 DELETE 路由
+
+| 路由 | 处理函数 | 说明 |
+|------|----------|------|
+| `/api/prompt-set/{id}` | `handle_delete_prompt_set` | 删除提示词集合 |
+| `/api/folder/{id}` | `handle_delete_folder` | 删除文件夹 |
+
+### 6.4 数据字段对照
+
+创建提示词集合时的完整字段：
+
+```
+顶层：id, name, folderId, tags, isFavorite, createdAt, updatedAt
+版本：version, prompt, negativePrompt, images, note,
+      aspectRatio, stylePreset, sampler, steps, cfgScale, hrFix, model, createdAt
+```
+
+> **同步检查**：每次修改 `python/main.py` 的 API 后，必须同步更新 `build/app_main.py`，否则打包版会缺失功能。
+
+---
+
+## 七、运行日志与调试
+
+### 7.1 运行日志
+
+程序启动后会在 exe 同级目录自动生成 `app.log`，记录关键启动信息：
+
+```
+[2026-05-09T20:33:43] App starting, debug=False, frozen=True
+[2026-05-09T20:33:43] FRONTEND_DIR=D:\...\_internal\frontend
+[2026-05-09T20:33:43] DATA_DIR=D:\...\data
+[2026-05-09T20:33:43] HAS_WEBVIEW=True
+[2026-05-09T20:33:43] Server started on http://127.0.0.1:8888
+[2026-05-09T20:33:43] Health check passed
+[2026-05-09T20:33:43] Creating webview window with URL: http://127.0.0.1:8888
+[2026-05-09T20:33:43] Calling webview.start()
+```
+
+### 7.2 调试模式
+
+设置环境变量 `PROMPT_DEBUG=1` 启用调试模式，日志中会标记 `debug=True`。
+
+**创建调试启动脚本**：在安装目录下创建 `start-debug.bat`：
+
+```bat
+@echo off
+chcp 65001 >nul
+title 生图提示词管理器 - 调试模式
+set PROMPT_DEBUG=1
+PromptImageManager.exe
+pause
+```
+
+### 7.3 错误日志
+
+如果 pywebview 启动失败，会在 exe 同级目录生成 `webview_error.log`，包含完整的异常堆栈。
+
+---
+
+## 八、版本号管理
 
 发布新版本时，需同步修改以下文件中的版本号：
 
@@ -200,11 +301,13 @@ build/dist/PromptImageManager/
 
 ---
 
-## 七、常见问题
+## 九、常见问题
 
 ### Q1：打包后运行闪退
 
 检查 `build/dist/PromptImageManager/_internal/frontend/` 目录是否存在且包含 `index.html`。如果不存在，重新执行 `npx vite build` 后再打包。
+
+也可查看 `app.log` 确认启动流程卡在哪一步。
 
 ### Q2：PyInstaller 报错 "output directory is not empty"
 
@@ -224,9 +327,13 @@ window = webview.create_window(...)
 webview.start(icon=icon_path)
 ```
 
-如果 `create_window()` 传入了不支持的参数，会抛出 `TypeError`，被 `except Exception` 捕获后静默降级为浏览器打开。
+如果 `create_window()` 传入了不支持的参数，会抛出 `TypeError`。当前代码已单独捕获 `TypeError`，移除不兼容参数后自动重试。
 
-**排查方法**：检查打包目录下是否存在 `webview_error.log` 文件，如果有则说明 pywebview 启动失败，日志中包含具体错误信息。
+**排查步骤**：
+
+1. 查看安装目录下 `app.log`，确认 `HAS_WEBVIEW` 值和 `webview.start()` 是否报错
+2. 如果存在 `webview_error.log`，查看具体异常信息
+3. 如果 `app.log` 显示 `Fallback: opened browser`，说明 pywebview 启动失败已降级到浏览器
 
 **其他可能原因**：
 - 未安装 pythonnet：`pip install pythonnet`（pywebview 在 Windows 上依赖 pythonnet 调用 .NET WinForms）
@@ -240,13 +347,30 @@ webview.start(icon=icon_path)
 
 NSIS 未安装或未加入 PATH。参考第 2.2 节安装 NSIS。也可跳过 NSIS 步骤，直接使用便携文件夹。
 
+如果 NSIS 已安装但不在 PATH 中，可使用完整路径调用：
+```powershell
+& "C:\Program Files (x86)\NSIS\Bin\makensis.exe" /INPUTCHARSET UTF8 build\installer.nsi
+```
+
 ### Q6：端口 8888 被占用
 
-程序会自动尝试其他端口（最多重试 10 次）。如需手动指定，修改 `build/app_main.py` 中的 `port = 8888`。
+程序固定绑定 `127.0.0.1`，避免 `localhost` 在 IPv4/IPv6 或已有开发服务之间解析不一致。若 `127.0.0.1:8888` 被占用，程序会自动尝试其他端口（最多重试 10 次），并在 `app.log` 中记录实际使用的端口。pywebview 窗口会加载正确的端口地址。
+
+### Q7：安装后无法新建提示词或分类
+
+**根因**：`build/app_main.py` 与 `python/main.py` 的 API 不同步，缺失路由或数据字段。
+
+**排查**：对比两个文件的 API 路由和数据字段，参考第六节「API 路由清单」逐一核对。
+
+**高频缺失项**：
+- 文件夹相关路由（`/api/folders`、`/api/folder/{id}`）
+- 收藏功能（`/api/prompt-set/{id}/toggle-favorite`）
+- 提示词字段（`folderId`、`tags`、`isFavorite`）
+- 版本生图参数（`aspectRatio`、`sampler`、`steps`、`cfgScale`、`hrFix`、`model`、`stylePreset`）
 
 ---
 
-## 八、构建流程速查图
+## 十、构建流程速查图
 
 ```
     ┌──────────────────────────┐
@@ -283,5 +407,6 @@ NSIS 未安装或未加入 PATH。参考第 2.2 节安装 NSIS。也可跳过 NS
     ┌────────────▼─────────────┐
     │  PromptImageManager      │
     │  -Setup-2.3.1.exe        │
+    │  → 复制到 releases/      │
     └──────────────────────────┘
 ```

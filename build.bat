@@ -94,7 +94,7 @@ if %errorlevel% neq 0 (
     goto menu
 )
 pushd build
-makensis installer.nsi
+makensis /INPUTCHARSET UTF8 installer.nsi
 set NSIS_RESULT=%errorlevel%
 popd
 if %NSIS_RESULT% neq 0 (
@@ -103,7 +103,14 @@ if %NSIS_RESULT% neq 0 (
 )
 echo.
 echo ✅ PC 安装包构建完成！
-echo 安装包：build\PromptImageManager-Setup-2.3.0.exe
+echo 安装包：build\PromptImageManager-Setup-2.3.1.exe
+if not exist releases mkdir releases
+copy /Y build\PromptImageManager-Setup-2.3.1.exe releases\PromptImageManager-Setup-2.3.1.exe >nul
+if %errorlevel% neq 0 (
+    echo ⚠️ 安装包复制到 releases 失败，请手动复制
+) else (
+    echo 发布副本：releases\PromptImageManager-Setup-2.3.1.exe
+)
 echo.
 goto menu
 
@@ -156,7 +163,7 @@ if %errorlevel% neq 0 (
 echo ✅ Capacitor 同步完成
 
 echo [3/5] 修补 Java 版本兼容性...
-powershell -ExecutionPolicy Bypass -File patch-java-version.ps1
+powershell -ExecutionPolicy Bypass -File scripts\patch-java-version.ps1
 echo ✅ Java 版本修补完成
 
 echo [4/5] 构建 Release APK...
