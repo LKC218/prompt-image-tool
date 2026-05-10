@@ -6,28 +6,39 @@ __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
+*.log
 
 jdk-*/
 android-sdk/
 
 build/build/
 build/dist/
+build/__pycache__/
 *.exe
 *.apk
 *.zip
+*.aab
+*.msi
 releases/*.exe
 releases/*.apk
 releases/*.zip
 
 android/local.properties
 android/.gradle/
+android/build/
 android/app/build/
+android/app/debug/
+android/app/release/
 
 src-tauri/target/
 src-tauri/gen/
+src-tauri/.tauri/
 
 *.keystore
 android/keystore.properties
+
+python/data/*
+!python/data/.gitkeep
 
 build/debug_output.txt
 build/stderr.log
