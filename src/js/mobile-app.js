@@ -2,6 +2,7 @@ import { registerRoute, navigate, goBack, navigateToTab, getCurrentRoute, setRou
 import { initStorage, getStorage, isCapacitor } from './storage.js';
 import { showToast } from './utils.js';
 import { initMobileUtils } from './mobile-utils.js';
+import '../css/mobile.css';
 import { render as renderHome, mount as mountHome, unmount as unmountHome } from './mobile-home.js';
 import { render as renderLibrary, mount as mountLibrary, unmount as unmountLibrary } from './mobile-library.js';
 import { render as renderDetail, mount as mountDetail, unmount as unmountDetail } from './mobile-detail.js';
@@ -59,6 +60,7 @@ function renderShell() {
 function mount(el) {
     appEl = el;
     document.documentElement.setAttribute('data-theme', 'light');
+    appEl.classList.add('mobile-app');
     appEl.innerHTML = renderShell();
     pageContainer = document.getElementById('mPageContainer');
 

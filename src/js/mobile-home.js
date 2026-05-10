@@ -311,8 +311,8 @@ async function handleImport(e) {
     try {
         const text = await file.text();
         const data = JSON.parse(text);
-        const result = await getStorage().importData(Array.isArray(data) ? data : [data]);
-        showMobileToast(`导入成功，共 ${result.imported} 条`);
+        const result = await getStorage().importData(data);
+        showMobileToast(`导入成功：新增 ${result.added || 0}，覆盖 ${result.updated || 0}`);
     } catch (err) {
         showMobileToast('导入失败，文件格式不正确', 'error');
     }

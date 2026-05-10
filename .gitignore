@@ -13,6 +13,11 @@ android-sdk/
 build/build/
 build/dist/
 *.exe
+*.apk
+*.zip
+releases/*.exe
+releases/*.apk
+releases/*.zip
 
 android/local.properties
 android/.gradle/

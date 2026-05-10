@@ -3,13 +3,43 @@ import os
 import json
 import tempfile
 import base64
+import socketserver
+import threading
+import urllib.request
+import urllib.error
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from main import (
-    load_data, save_data, save_image, delete_image_file,
+    load_data, save_data, save_folders, save_image, delete_image_file,
     ensure_dirs, AppHandler, APP_DIR, DATA_DIR, IMAGES_DIR, DATA_FILE,
+    build_backup_payload, save_backup_file,
 )
+
+
+def start_test_server():
+    socketserver.ThreadingTCPServer.allow_reuse_address = True
+    server = socketserver.ThreadingTCPServer(('127.0.0.1', 0), AppHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server, thread
+
+
+def stop_test_server(server, thread):
+    server.shutdown()
+    server.server_close()
+    thread.join(timeout=5)
+
+
+def request_json(url, data=None, method='GET'):
+    body = None
+    headers = {}
+    if data is not None:
+        body = json.dumps(data, ensure_ascii=False).encode('utf-8')
+        headers['Content-Type'] = 'application/json'
+    request = urllib.request.Request(url, data=body, headers=headers, method=method)
+    with urllib.request.urlopen(request, timeout=5) as response:
+        return response.status, json.loads(response.read().decode('utf-8'))
 
 
 class TestLoadSaveData:
@@ -77,6 +107,163 @@ class TestSaveImage:
         monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path))
         filename = save_image('test', 'invalid-data-url')
         assert filename is None
+
+
+class TestBackupExport:
+    def test_build_backup_payload_contains_meta_folders_and_images(self, tmp_path, monkeypatch):
+        data_file = str(tmp_path / 'prompt_sets.json')
+        folders_file = str(tmp_path / 'folders.json')
+        images_dir = str(tmp_path / 'images')
+        monkeypatch.setattr('main.DATA_FILE', data_file)
+        monkeypatch.setattr('main.FOLDERS_FILE', folders_file)
+        monkeypatch.setattr('main.IMAGES_DIR', images_dir)
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+
+        image_data = 'data:image/png;base64,' + base64.b64encode(b'\x89PNG\r\n').decode()
+        filename = save_image('img1', image_data)
+        save_folders([{'id': 'folder1', 'name': '分类'}])
+        save_data([{
+            'id': 'set1',
+            'name': '测试集合',
+            'versions': [{
+                'version': 'v1',
+                'prompt': 'test',
+                'images': [{'id': 'img1', 'file': filename}],
+            }],
+        }])
+
+        payload = build_backup_payload()
+
+        assert payload['backup_meta']['format'] == 'prompt-image-tool-backup'
+        assert payload['backup_meta']['imageCount'] == 1
+        assert payload['folders'][0]['id'] == 'folder1'
+        image = payload['prompt_sets'][0]['versions'][0]['images'][0]
+        assert image['data'].startswith('data:image/png;base64,')
+        assert image['size'] > 0
+
+    def test_save_backup_file_writes_json_to_backups_dir(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        save_data([{'id': 'set1', 'name': '测试集合', 'versions': []}])
+
+        result = save_backup_file('../unsafe-name')
+
+        assert result['success'] is True
+        assert result['filename'] == 'unsafe-name.json'
+        assert os.path.exists(result['path'])
+        with open(result['path'], 'r', encoding='utf-8') as f:
+            payload = json.load(f)
+        assert payload['prompt_sets'][0]['id'] == 'set1'
+
+    def test_get_api_export_returns_backup_json(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        save_data([{'id': 'set1', 'name': '测试集合', 'versions': []}])
+
+        server, thread = start_test_server()
+        try:
+            url = f'http://127.0.0.1:{server.server_address[1]}/api/export'
+            status, body = request_json(url)
+
+            assert status == 200
+            assert body['backup_meta']['format'] == 'prompt-image-tool-backup'
+            assert body['prompt_sets'][0]['id'] == 'set1'
+        finally:
+            stop_test_server(server, thread)
+
+    def test_export_then_import_roundtrip_restores_images(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+
+        image_data = 'data:image/png;base64,' + base64.b64encode(b'\x89PNG\r\nroundtrip').decode()
+        filename = save_image('img-roundtrip', image_data)
+        save_folders([{'id': 'folder1', 'name': '测试分类'}])
+        save_data([{
+            'id': 'set-roundtrip',
+            'name': '导入导出闭环',
+            'folderId': 'folder1',
+            'tags': '["test"]',
+            'createdAt': '2026-05-09T00:00:00',
+            'updatedAt': '2026-05-09T00:00:00',
+            'versions': [{
+                'id': 'version1',
+                'version': 'v1',
+                'prompt': 'roundtrip prompt',
+                'negativePrompt': '',
+                'images': [{'id': 'img-roundtrip', 'file': filename, 'name': 'roundtrip.png'}],
+                'note': '',
+                'createdAt': '2026-05-09T00:00:00',
+            }],
+        }])
+
+        server, thread = start_test_server()
+        try:
+            base_url = f'http://127.0.0.1:{server.server_address[1]}'
+            export_status, backup = request_json(f'{base_url}/api/export')
+            assert export_status == 200
+            exported_image = backup['prompt_sets'][0]['versions'][0]['images'][0]
+            assert exported_image['data'].startswith('data:image/png;base64,')
+
+            save_data([])
+            save_folders([])
+            os.remove(os.path.join(str(tmp_path / 'images'), filename))
+
+            import_status, import_result = request_json(f'{base_url}/api/import', backup, 'POST')
+            assert import_status == 200
+            assert import_result['imported'] == 1
+            assert import_result['added'] == 1
+            assert import_result['updated'] == 0
+            assert import_result['imagesRestored'] == 1
+
+            restored = load_data()
+            assert restored[0]['id'] == 'set-roundtrip'
+            assert restored[0]['versions'][0]['prompt'] == 'roundtrip prompt'
+            restored_file = restored[0]['versions'][0]['images'][0]['file']
+            assert os.path.exists(os.path.join(str(tmp_path / 'images'), restored_file))
+            assert load_data()[0]['folderId'] == 'folder1'
+
+            repeat_status, repeat_result = request_json(f'{base_url}/api/import', backup, 'POST')
+            assert repeat_status == 200
+            assert repeat_result['imported'] == 1
+            assert repeat_result['added'] == 0
+            assert repeat_result['updated'] == 1
+            assert len(load_data()) == 1
+        finally:
+            stop_test_server(server, thread)
+
+    def test_import_rejects_invalid_payload_without_writing_data(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        save_data([])
+
+        server, thread = start_test_server()
+        try:
+            url = f'http://127.0.0.1:{server.server_address[1]}/api/import'
+            request = urllib.request.Request(
+                url,
+                data=json.dumps('invalid').encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST',
+            )
+            try:
+                urllib.request.urlopen(request, timeout=5)
+                assert False, 'invalid import payload should fail'
+            except urllib.error.HTTPError as error:
+                body = json.loads(error.read().decode('utf-8'))
+                assert error.code == 400
+                assert body['success'] is False
+
+            assert load_data() == []
+        finally:
+            stop_test_server(server, thread)
 
 
 class TestDeleteImage:

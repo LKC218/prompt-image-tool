@@ -49,15 +49,16 @@ const isCapacitor = typeof window !== 'undefined' && window.Capacitor
 
 | 文档 | 说明 |
 |------|------|
-| [PC端技术文档](pc-technical-doc.md) | Tauri + Rust + Python 后端架构、构建部署、功能清单 |
-| [移动端技术文档](mobile-technical-doc.md) | Capacitor + SQLite 架构、数据库设计、Android 配置 |
-| [网页端技术文档](web-technical-doc.md) | Web 端功能模块、数据模型、构建部署 |
-| [API 接口文档](api-reference.md) | Python 后端完整 REST API 参考 |
-| [UI/UX 设计文档](ui-ux-design-doc.md) | 设计系统、组件规范、响应式设计 |
-| [局域网同步设计文档](lan-sync-design-doc.md) | 同步架构、冲突策略、数据校验 |
-| [功能优化计划](optimization-plan.md) | v2.0 功能优化任务清单 |
-| [更新记录](changelog.md) | 版本迭代历史与变更记录 |
-| [工程转移指南](工程转移与依赖安装指南.md) | 工程迁移与依赖还原 |
+| [技术文档](技术文档/README.md) | API、PC、移动端、Web 和局域网同步技术说明 |
+| [设计文档](设计文档/README.md) | UI/UX 设计系统、组件规范和响应式设计 |
+| [构建方案](构建方案/README.md) | PC、Android、独立安装包和平台打包流程 |
+| [计划文档](计划文档/) | 版本计划、功能实施计划和优化计划 |
+| [工程文档](工程文档/README.md) | 工程交接、迁移和目录职责说明 |
+| [UI计划](UI计划/) | PC 与移动端页面级 UI 计划和复刻设计文档 |
+| [项目开发经验](项目开发经验/) | 可复用工程规范、问题经验和跨页面实施约定 |
+| [已修复问题](已修复问题/) | 问题复盘与修复记录 |
+| [版本记录](版本记录/README.md) | 版本迭代历史与变更记录 |
+| [对话历史](对话历史/) | 重要构建与开发对话归档 |
 
 ---
 

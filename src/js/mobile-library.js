@@ -4,6 +4,7 @@ import { navigate, showMobileToast, showActionSheet } from './mobile-utils.js';
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { aggregateTags, getTagStyleClass } from './tag-utils.js';
 import { getCurrentRoute } from './mobile-router.js';
+import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
 
 let libraryData = null;
 let currentFilter = 'all';
@@ -250,17 +251,13 @@ function setupLibraryEvents(pageEl) {
 
 async function handleExport() {
     try {
-        const data = await getStorage().exportData();
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `prompt-sets-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showMobileToast('导出成功');
+        const result = await exportBackup(getStorage(), { prefix: 'prompt-sets' });
+        if (!result.canceled) {
+            showMobileToast(buildExportSuccessMessage(result));
+        }
     } catch (e) {
-        showMobileToast('导出失败', 'error');
+        console.error('export backup failed:', e);
+        showMobileToast(`导出失败：${getErrorMessage(e)}`, 'error');
     }
 }
 

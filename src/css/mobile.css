@@ -1551,6 +1551,139 @@
     color: var(--m-blue);
 }
 
+.mobile-app .m-lan-sync-card {
+    padding: var(--m-space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--m-space-md);
+}
+
+.mobile-app .m-lan-sync-status {
+    font: var(--m-font-caption);
+    color: var(--m-text2);
+    background: var(--m-surface2);
+    border-radius: var(--m-radius-md);
+    padding: var(--m-space-md);
+}
+
+.mobile-app .m-lan-sync-status[data-type="success"] {
+    color: var(--m-green);
+    background: var(--m-green-light);
+}
+
+.mobile-app .m-lan-sync-status[data-type="warning"] {
+    color: #A36A00;
+    background: var(--m-yellow-light);
+}
+
+.mobile-app .m-lan-sync-status[data-type="error"] {
+    color: var(--m-danger);
+    background: var(--m-pink-light);
+}
+
+.mobile-app .m-lan-sync-actions,
+.mobile-app .m-lan-sync-input-row {
+    display: flex;
+    gap: var(--m-space-sm);
+}
+
+.mobile-app .m-lan-sync-input {
+    min-width: 0;
+    flex: 1;
+    height: 44px;
+    border: 1px solid var(--m-border);
+    border-radius: var(--m-radius-md);
+    padding: 0 var(--m-space-md);
+    font: var(--m-font-body);
+    color: var(--m-text);
+    background: var(--m-surface);
+}
+
+.mobile-app .m-lan-sync-btn {
+    min-height: 44px;
+    border-radius: var(--m-radius-md);
+    padding: 0 var(--m-space-md);
+    background: var(--m-surface2);
+    color: var(--m-text);
+    font: 600 14px/1.2 var(--m-font-family);
+    white-space: nowrap;
+    transition: transform var(--m-transition-fast), opacity var(--m-transition-fast);
+}
+
+.mobile-app .m-lan-sync-btn:active {
+    transform: scale(0.96);
+}
+
+.mobile-app .m-lan-sync-btn:disabled {
+    opacity: 0.55;
+}
+
+.mobile-app .m-lan-sync-btn.m-lan-sync-primary {
+    background: var(--m-pink);
+    color: #fff;
+}
+
+.mobile-app .m-lan-device-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--m-space-sm);
+}
+
+.mobile-app .m-lan-device-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--m-space-md);
+    border: 1px solid var(--m-border-light);
+    border-radius: var(--m-radius-md);
+    padding: var(--m-space-md);
+    background: var(--m-surface);
+    text-align: left;
+}
+
+.mobile-app .m-lan-device-name {
+    font: 600 14px/1.3 var(--m-font-family);
+    color: var(--m-text);
+}
+
+.mobile-app .m-lan-device-ip,
+.mobile-app .m-lan-empty,
+.mobile-app .m-lan-progress-text,
+.mobile-app .m-lan-report {
+    font: var(--m-font-caption);
+    color: var(--m-text2);
+}
+
+.mobile-app .m-lan-progress-bar {
+    height: 8px;
+    border-radius: var(--m-radius-full);
+    background: var(--m-surface2);
+    overflow: hidden;
+    margin-bottom: var(--m-space-sm);
+}
+
+.mobile-app .m-lan-progress-fill {
+    height: 100%;
+    border-radius: var(--m-radius-full);
+    background: var(--m-blue);
+    transition: width var(--m-transition-normal);
+}
+
+.mobile-app .m-lan-report {
+    display: flex;
+    flex-direction: column;
+    gap: var(--m-space-xs);
+}
+
+.mobile-app .m-lan-report-title {
+    font: 700 15px/1.3 var(--m-font-family);
+    color: var(--m-text);
+}
+
+.mobile-app .m-lan-report-error {
+    color: var(--m-danger);
+}
+
 .mobile-app .m-backup-card.m-backup-purple {
     background: var(--m-purple-light);
     color: var(--m-purple);

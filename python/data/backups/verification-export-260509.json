@@ -1,0 +1,47 @@
+{
+  "backup_meta": {
+    "app": "prompt-image-tool",
+    "format": "prompt-image-tool-backup",
+    "version": 1,
+    "createdAt": "2026-05-09T22:47:03.252674",
+    "imageCount": 0,
+    "imageBytes": 0
+  },
+  "folders": [
+    {
+      "id": "963356aa",
+      "name": "323",
+      "color": "#2D8CFF",
+      "sortOrder": 0,
+      "createdAt": "2026-05-06T21:59:10.336363",
+      "updatedAt": "2026-05-06T21:59:10.336363"
+    }
+  ],
+  "prompt_sets": [
+    {
+      "id": "281e194c",
+      "name": "123213",
+      "folderId": null,
+      "tags": "[]",
+      "isFavorite": false,
+      "createdAt": "2026-05-09T22:41:20.862496",
+      "updatedAt": "2026-05-09T22:41:20.869251",
+      "versions": [
+        {
+          "name": "v1",
+          "prompt": "123123123",
+          "negativePrompt": "",
+          "note": "",
+          "aspectRatio": "1:1",
+          "stylePreset": "",
+          "model": "",
+          "sampler": "DPM++ 2M Karras",
+          "steps": 30,
+          "cfgScale": 7,
+          "hrFix": true,
+          "images": []
+        }
+      ]
+    }
+  ]
+}

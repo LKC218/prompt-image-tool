@@ -3,238 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f0f0f">
+    <meta name="theme-color" content="#FFFDF8">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>生图提示词管理器</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="version" content="3.0.0">
+    <title>提示词管家</title>
     <link rel="icon" type="image/svg+xml" href="./assets/icons/图标.svg">
-    <script>
-        (function(){
-            var t=localStorage.getItem('theme');
-            if(t==='light')document.documentElement.setAttribute('data-theme','light');
-            else if(t==='dark')document.documentElement.removeAttribute('data-theme');
-            else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:light)').matches)document.documentElement.setAttribute('data-theme','light');
-        })();
-    </script>
-    <link rel="stylesheet" href="./css/main.css">
-    <link rel="stylesheet" href="./css/responsive.css">
-    <link rel="stylesheet" href="./css/mobile.css">
+    <style>
+        .splash-screen {
+            position: fixed;
+            inset: 0;
+            background: #FFFDF8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.4s ease;
+        }
+        .splash-screen.splash-hide {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .splash-content {
+            text-align: center;
+        }
+        .splash-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+        }
+        .splash-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1F1F24;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        #pcApp { display: none; }
+        #mobileApp { display: none; }
+    </style>
 </head>
 <body>
     <div id="splashScreen" class="splash-screen">
         <div class="splash-content">
             <img src="./assets/icons/图标.svg" alt="" class="splash-icon">
-            <div class="splash-title">生图提示词管理器</div>
+            <div class="splash-title">提示词管家</div>
         </div>
     </div>
-    <header class="app-header">
-        <h1><img src="./assets/icons/图标.svg" alt="" class="header-icon"> <span class="header-title-text">生图提示词管理器</span></h1>
-        <div class="header-actions">
-            <button class="btn" id="exportBtn" title="导出数据"><img src="./assets/icons/export.svg" alt="" class="btn-icon"> <span class="btn-text">导出</span></button>
-            <button class="btn" id="importBtn" title="导入数据"><img src="./assets/icons/import.svg" alt="" class="btn-icon"> <span class="btn-text">导入</span></button>
-            <button class="btn" id="syncBtn" title="局域网同步" style="display:none"><img src="./assets/icons/sync.svg" alt="" class="btn-icon"> <span class="btn-text">同步</span></button>
-            <button class="btn" id="themeToggleBtn" title="切换主题"><img src="./assets/icons/sun.svg" alt="" class="btn-icon" id="themeToggleIcon"></button>
-            <button class="btn" id="helpBtn" title="使用帮助"><img src="./assets/icons/help.svg" alt="" class="btn-icon"></button>
-            <input type="file" id="importFile" accept=".json" style="display:none">
-        </div>
-    </header>
-
-    <div class="app-layout">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h2>提示词集合</h2>
-                <div class="sidebar-header-actions">
-                    <button class="btn btn-sm" id="viewToggleBtn" title="切换视图">☰</button>
-                    <button class="btn btn-primary btn-sm" id="createBtn">+ 新建</button>
-                </div>
-            </div>
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="搜索提示词...">
-            </div>
-            <div class="folder-filter" id="folderFilter" style="display:none">
-                <button class="folder-filter-btn active" data-filter="all">全部</button>
-                <button class="folder-filter-btn" data-filter="unclassified">未分类</button>
-            </div>
-            <div class="folder-list" id="folderList" style="display:none"></div>
-            <div class="prompt-list" id="promptList"></div>
-            <div class="sidebar-footer" id="sidebarFooter" style="display:none">
-                <button class="btn btn-sm" id="createFolderBtn">+ 新建文件夹</button>
-            </div>
-        </aside>
-
-        <main class="main-content" id="mainContent">
-            <div class="empty-state" id="emptyState">
-                <img src="./assets/icons/empty-image.svg" alt="" width="64" height="64" class="empty-state-icon">
-                <p>点击左侧「+ 新建」创建第一个提示词集合</p>
-            </div>
-
-            <div id="detailView" style="display:none">
-                <div class="detail-header">
-                    <input type="text" id="promptSetName" placeholder="输入名称...">
-                    <div class="detail-header-actions">
-                        <button class="btn btn-sm" id="compareBtn" title="版本对比"><img src="./assets/icons/sync.svg" alt="" class="btn-icon-sm"> <span class="btn-text">版本对比</span></button>
-                        <button class="btn btn-sm btn-danger" id="deleteBtn" title="删除"><img src="./assets/icons/trash.svg" alt="" class="btn-icon-sm"> <span class="btn-text">删除</span></button>
-                    </div>
-                </div>
-
-                <div class="version-tabs" id="versionTabs"></div>
-                <div id="versionDetail"></div>
-                <div id="compareView" style="display:none"></div>
-            </div>
-        </main>
-    </div>
-
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal" id="modalContent"></div>
-    </div>
-
-    <div class="sync-overlay" id="syncOverlay">
-        <div class="sync-modal" id="syncModal">
-            <div class="sync-modal-header">
-                <h3><img src="./assets/icons/sync.svg" alt="" class="btn-icon"> 局域网同步</h3>
-                <button class="sync-close-btn" id="syncCloseBtn">✕</button>
-            </div>
-            <div class="sync-modal-body" id="syncModalBody">
-                <div class="sync-discovery-section" id="syncDiscoverySection">
-                    <div class="sync-discovery-header">
-                        <span>局域网设备</span>
-                        <button class="btn btn-sm" id="syncRefreshBtn">刷新</button>
-                    </div>
-                    <div class="sync-device-list" id="syncDeviceList"></div>
-                </div>
-                <div class="sync-input-section" id="syncInputSection">
-                    <label>PC 端 IP 地址</label>
-                    <div class="sync-ip-input-wrap">
-                        <input type="text" id="syncIpInput" placeholder="例如: 192.168.1.100" autocomplete="off">
-                        <button class="btn btn-primary" id="syncStartBtn">开始同步</button>
-                    </div>
-                    <p class="sync-hint">请确保 PC 端软件已启动，且两端处于同一局域网</p>
-                </div>
-                <div class="sync-progress-section" id="syncProgressSection" style="display:none">
-                    <div class="sync-status" id="syncStatusText">连接中...</div>
-                    <div class="sync-progress-bar">
-                        <div class="sync-progress-fill" id="syncProgressFill"></div>
-                        <span class="sync-progress-pct" id="syncProgressPct">0%</span>
-                    </div>
-                    <div class="sync-progress-detail" id="syncProgressDetail"></div>
-                    <div class="sync-progress-stats" id="syncProgressStats"></div>
-                    <div class="sync-progress-time" id="syncProgressTime"></div>
-                </div>
-                <div class="sync-report-section" id="syncReportSection" style="display:none"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="image-viewer-overlay" id="imageViewer">
-        <img id="imageViewerImg" src="" alt="">
-    </div>
-
-    <div class="prompt-preview-overlay" id="promptPreview">
-        <div class="prompt-preview-modal">
-            <div class="prompt-preview-header">
-                <h3 id="previewTitle"></h3>
-                <button class="close-preview-btn" id="closePreviewBtn">✕</button>
-            </div>
-            <div class="prompt-preview-body">
-                <div class="preview-section">
-                    <div class="preview-section-header">
-                        <span>正向提示词</span>
-                        <button class="btn btn-sm copy-btn" id="previewCopyPositive"><img src="./assets/icons/copy.svg" alt="" class="btn-icon-sm"> 复制</button>
-                    </div>
-                    <div class="preview-content" id="previewPositive"></div>
-                </div>
-                <div class="preview-section">
-                    <div class="preview-section-header">
-                        <span>反向提示词</span>
-                        <button class="btn btn-sm copy-btn" id="previewCopyNegative"><img src="./assets/icons/copy.svg" alt="" class="btn-icon-sm"> 复制</button>
-                    </div>
-                    <div class="preview-content" id="previewNegative"></div>
-                </div>
-                <div class="preview-section" id="previewNoteSection" style="display:none">
-                    <div class="preview-section-header"><span>版本备注</span></div>
-                    <div class="preview-content" id="previewNote"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="help-overlay" id="helpOverlay">
-        <div class="help-modal">
-            <div class="help-modal-header">
-                <h3><img src="./assets/icons/help.svg" alt="" class="btn-icon"> 使用帮助</h3>
-                <button class="help-close-btn" id="helpCloseBtn">✕</button>
-            </div>
-            <div class="help-modal-body">
-                <div class="help-section">
-                    <div class="help-section-title">
-                        <img src="./assets/icons/edit.svg" alt="" class="help-section-icon">
-                        提示词管理
-                    </div>
-                    <div class="help-section-desc">点击侧边栏「+ 新建」创建提示词集合。选中集合后可编辑正向提示词和反向提示词，内容会自动保存。支持复制、删除集合，也可右键/长按进行更多操作。</div>
-                </div>
-                <div class="help-section">
-                    <div class="help-section-title">
-                        <img src="./assets/icons/sync.svg" alt="" class="help-section-icon">
-                        版本管理
-                    </div>
-                    <div class="help-section-desc">每个集合支持多个版本，方便迭代和对比。点击版本标签切换版本，点击「+ 新版本」添加新版本。支持版本重命名、删除、复制为新版本。点击「版本对比」可并排查看两个版本的提示词和图片差异。</div>
-                </div>
-                <div class="help-section">
-                    <div class="help-section-title">
-                        <img src="./assets/icons/add-image.svg" alt="" class="help-section-icon">
-                        图片管理
-                    </div>
-                    <div class="help-section-desc">在版本详情中，点击图片区域或拖拽图片即可上传参考图。每张图片可添加备注，点击图片可全屏查看。支持删除单张图片。</div>
-                </div>
-                <div class="help-section">
-                    <div class="help-section-title">
-                        <img src="./assets/icons/palette.svg" alt="" class="help-section-icon">
-                        文件夹分类
-                    </div>
-                    <div class="help-section-desc">点击侧边栏底部的「+ 新建文件夹」创建分类文件夹，可为文件夹选择颜色标签。右键/长按集合项可选择移动到指定文件夹。点击文件夹可筛选显示对应集合。</div>
-                </div>
-                <div class="help-section">
-                    <div class="help-section-title">
-                        <img src="./assets/icons/export.svg" alt="" class="help-section-icon">
-                        数据导入/导出
-                    </div>
-                    <div class="help-section-desc">点击顶部「导出」按钮将所有数据导出为 JSON 文件。点击「导入」按钮选择 JSON 文件恢复数据。导入时会与现有数据合并，不会覆盖。</div>
-                </div>
-                <div class="help-section">
-                    <div class="help-section-title">
-                        <img src="./assets/icons/signal.svg" alt="" class="help-section-icon">
-                        局域网同步
-                    </div>
-                    <div class="help-section-desc">在手机端点击顶部「同步」按钮，输入 PC 端显示的 IP 地址，即可将手机端数据同步到电脑。请确保两端处于同一局域网，且 PC 端软件已启动。同步为单向操作（手机→电脑），冲突数据会自动保留副本。</div>
-                </div>
-                <div class="help-section">
-                    <div class="help-section-title">
-                        <img src="./assets/icons/moon.svg" alt="" class="help-section-icon">
-                        主题切换
-                    </div>
-                    <div class="help-section-desc">点击顶部的太阳/月亮图标可在暗色和亮色主题之间切换。应用会自动检测系统主题偏好。</div>
-                </div>
-                <div class="help-section">
-                    <div class="help-section-title">
-                        <img src="./assets/icons/help.svg" alt="" class="help-section-icon">
-                        手势操作
-                    </div>
-                    <div class="help-section-desc">在首页使用返回手势或返回键时，会提示「再按一次退出应用」，2秒内再次操作才会退出，防止误触。在详情页等其他页面，返回操作会回到上一级。</div>
-                </div>
-            </div>
-            <div class="help-modal-footer">
-                <button class="btn btn-sm" id="retutorialBtn" style="margin-bottom:8px">重新查看教程</button>
-                <span class="help-version">生图提示词管理器 v1.0</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="toast-container" id="toastContainer"></div>
-
-    <div class="context-menu" id="contextMenu"></div>
-
+    <div id="pcApp"></div>
     <div id="mobileApp"></div>
-
-    <script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/main.js"></script>
 </body>
 </html>
