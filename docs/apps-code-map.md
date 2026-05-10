@@ -4,6 +4,7 @@
 
 ## 项目入口
 
+- `README.md`：项目级快速开始、目录说明和仓库规范入口。
 - `package.json`：前端、测试、Tauri、Capacitor 脚本入口。
 - `vite.config.js`：Vite 配置，当前前端根目录为 `src`。
 - `capacitor.config.ts`：Capacitor 配置，当前 Web 输出目录为 `dist`。
@@ -26,7 +27,8 @@
 - `src/assets/icons/`：通用本地图标资源，包含分类与标签页使用的 Lucide 本地化 SVG、设计稿分类文件夹与标签 PNG 和 `lucide-license.txt` 授权文本。
 - `src/assets/icons/settings/`：设置页专用本地图标资源，覆盖备份、导入、导出 JSON、JSON 导入和同步服务。
 - `src/js/backup-utils.js`：数据备份文件名、统计、Web 下载、Android 文件写入和桌面端后端兜底保存工具。
-- `python/`：Python 后端、本地数据和 Python 测试。
+- `python/`：Python 后端、Python 测试和本地运行时数据目录。
+- `python/data/.gitkeep`：运行时数据目录占位文件；真实提示词数据、备份和图片由 `.gitignore` 排除，不进入 Git。
 - `src-tauri/`：Tauri 桌面端工程。
 - `android/`：Capacitor Android 原生工程。
 - `scripts/`：不属于运行时源码的专项工具脚本。
@@ -36,7 +38,7 @@
 - `src/assets/`：应用运行时使用的前端资源。
 - `src/assets/pc/home-folder.png`：PC 首页收藏分类卡片使用的本地文件夹插画图标。
 - `UI设计稿/`：原始设计稿和视觉参考。
-- `releases/`：发布产物归档，PC 安装包发布副本固定落点。
+- `releases/`：发布产物落点，仅保留占位文件；安装包通过本地构建或 GitHub Releases 分发，不进入 Git。
 - `dist/`：Vite 构建输出。
 - `build/`：当前 PC 打包配置、PyInstaller 入口和打包中间产物混合目录，后续建议拆分。
 
@@ -63,6 +65,7 @@
 - 修改 Python 后端接口或数据结构：同步检查 `docs/技术文档/api-reference.md` 和相关技术文档。
 - 修改构建、安装包或平台配置：同步检查 `docs/构建方案/`。
 - 调整目录结构：同步检查 `docs/apps-code-map.md` 和 `docs/工程文档/工程目录说明.md`。
+- 调整仓库忽略规则、运行时数据或发布产物策略：同步检查根目录 `README.md`、`.gitignore` 和 `docs/工程文档/工程目录说明.md`。
 - 调整工具脚本：同步检查 `scripts/README.md`。
 ## PC 快速构建入口
 
