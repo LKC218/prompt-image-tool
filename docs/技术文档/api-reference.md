@@ -1,7 +1,7 @@
 # 生图提示词管理器 — API 接口文档
 
 > 版本：2.2.1 | 最后更新：2026-05-04
-> 后端实现：[python/main.py](../../python/main.py)
+> 后端实现：[python/main.py](../../python/main.py)；PC 独立安装包后端入口为 [build/app_main.py](../../build/app_main.py)，同步协议接口需与源码后端保持一致。
 
 ---
 
@@ -10,7 +10,7 @@
 | 项目 | 值 |
 |------|-----|
 | 协议 | HTTP |
-| 端口 | 8888 |
+| 端口 | 默认优先 `8888`；安装包端口占用时会按顺序回退到 `8889-8897` |
 | 监听地址 | `0.0.0.0`（支持局域网访问） |
 | 数据格式 | JSON（`Content-Type: application/json; charset=utf-8`） |
 | CORS | 全部接口支持跨域（`Access-Control-Allow-Origin: *`） |
@@ -34,6 +34,7 @@
   "device_id": "uuid",
   "platform": "pc",
   "sync_version": 2,
+  "port": 8888,
   "pairing_required": true,
   "capabilities": ["pull", "push", "bidirectional", "pairing"]
 }
@@ -645,3 +646,9 @@ Access-Control-Max-Age: 86400
 ```
 
 `OPTIONS` 预检请求返回 `200 OK`，不处理业务逻辑。
+
+---
+
+## 动态端口说明
+
+PC 同步服务默认优先使用 `8888`。PC 独立安装包检测到端口占用时会按顺序回退到 `8889-8897`，并在 `/api/health`、`/api/sync/capabilities` 和 `/api/network-info` 中返回当前实际 `port`。移动端搜索、手动输入和同步请求必须使用 `IP:port` 目标，不能假定端口永远是 `8888`。

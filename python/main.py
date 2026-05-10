@@ -50,6 +50,7 @@ BACKUPS_DIR = os.path.join(DATA_DIR, 'backups')
 DATA_FILE = os.path.join(DATA_DIR, 'prompt_sets.json')
 FOLDERS_FILE = os.path.join(DATA_DIR, 'folders.json')
 SYNC_DEVICE_FILE = os.path.join(DATA_DIR, 'sync-device.json')
+SERVER_PORT = 8888
 
 
 def ensure_dirs():
@@ -138,7 +139,7 @@ def get_sync_capabilities():
         'device_name': platform.node(),
         'platform': 'pc',
         'sync_version': 2,
-        'port': 8888,
+        'port': SERVER_PORT,
         'pairing_required': True,
         'capabilities': ['pull', 'push', 'bidirectional', 'pairing'],
     }
@@ -1050,7 +1051,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
     def handle_network_info(self):
         self.send_json({
             'ip': get_local_ip(),
-            'port': 8888,
+            'port': SERVER_PORT,
         })
 
     def handle_export(self):
@@ -1140,11 +1141,13 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def main():
+    global SERVER_PORT
     app_dir = get_app_dir()
     os.chdir(app_dir)
     ensure_dirs()
 
     port = 8888
+    SERVER_PORT = port
 
     socketserver.ThreadingTCPServer.allow_reuse_address = True
     with socketserver.ThreadingTCPServer(("", port), AppHandler) as httpd:

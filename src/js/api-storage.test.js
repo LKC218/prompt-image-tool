@@ -107,6 +107,17 @@ describe('ApiStorage', () => {
 
             await expect(storage.api('GET', '/prompt-set/missing')).rejects.toThrow('API error 404');
         });
+
+        it('should explain html responses instead of leaking json parse errors', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: true,
+                status: 200,
+                headers: { get: vi.fn().mockReturnValue('text/html; charset=utf-8') },
+                text: vi.fn().mockResolvedValue('<!DOCTYPE html><html></html>'),
+            });
+
+            await expect(storage.api('GET', '/sync/capabilities')).rejects.toThrow('返回了页面内容');
+        });
     });
 
     describe('CRUD methods', () => {

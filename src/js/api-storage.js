@@ -24,14 +24,30 @@ export class ApiStorage {
         if (body !== null) opts.body = JSON.stringify(body);
         try {
             const res = await fetch(`${this.baseUrl}/api${path}`, opts);
+            const data = await this._readJsonResponse(res, path);
             if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                throw new Error(`API error ${res.status}: ${text}`);
+                throw new Error(`API error ${res.status}: ${JSON.stringify(data)}`);
             }
-            return await res.json();
+            return data;
         } catch (e) {
             console.error(`API ${method} ${path} failed:`, e);
             throw e;
+        }
+    }
+
+    async _readJsonResponse(res, path) {
+        const contentType = res.headers?.get?.('content-type') || '';
+        const text = await res.text().catch(() => '');
+        if (!text) return null;
+
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            const looksLikeHtml = text.trim().startsWith('<!DOCTYPE') || contentType.includes('text/html');
+            if (looksLikeHtml) {
+                throw new Error(`API ${path} 返回了页面内容，请确认 PC 后端接口已启动且安装包后端为最新版本`);
+            }
+            throw new Error(`API ${path} 返回了非 JSON 内容`);
         }
     }
 

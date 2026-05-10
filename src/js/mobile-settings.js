@@ -1,6 +1,6 @@
 import { getStorage } from './storage.js';
 import { showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
-import { LanScanner, LanSync } from './lan-sync.js';
+import { DEFAULT_SCAN_PORTS, DEFAULT_SYNC_PORT, formatLanAddress, LanScanner, LanSync, parseLanTarget } from './lan-sync.js';
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
 import corgiSettings from '../assets/mobile/mascots/corgi-settings.png';
 import dataIcon from '../assets/mobile/data.png';
@@ -144,7 +144,7 @@ function render(params = {}) {
                         <button class="m-lan-sync-btn" id="mTestLanBtn">测试连接</button>
                     </div>
                     <div class="m-lan-sync-input-row">
-                        <input class="m-lan-sync-input" id="mLanIpInput" type="text" inputmode="decimal" placeholder="输入 PC IP，如 192.168.1.100">
+                        <input class="m-lan-sync-input" id="mLanIpInput" type="text" inputmode="decimal" placeholder="输入 PC 地址，如 192.168.1.100:8888">
                         <button class="m-lan-sync-btn m-lan-sync-primary" id="mStartLanSyncBtn">${getLanModeActionLabel()}</button>
                     </div>
                     <div class="m-lan-device-list" id="mLanDeviceList"></div>
@@ -172,7 +172,7 @@ async function mount(pageEl, params = {}) {
     loadStorageInfo(pageEl);
     const recentDevices = getRecentDevices();
     if (recentDevices.length) {
-        renderDevices(pageEl, recentDevices.map(device => ({ ...device, port: 8888, source: 'recent' })));
+        renderDevices(pageEl, recentDevices.map(device => ({ ...device, source: 'recent' })));
     }
 }
 
@@ -199,10 +199,10 @@ function setupSettingsEvents(pageEl) {
         const item = e.target.closest('.m-lan-device-item');
         if (!item) return;
         const input = pageEl.querySelector('#mLanIpInput');
-        if (input) input.value = item.dataset.ip || '';
+        if (input) input.value = item.dataset.address || item.dataset.ip || '';
         item.dataset.status = 'testing';
-        setLanStatus(pageEl, `正在验证 ${item.dataset.ip} 是否可同步...`);
-        const device = await testLanConnection(pageEl, item.dataset.ip, { save: true, silent: true });
+        setLanStatus(pageEl, `正在验证 ${item.dataset.address || item.dataset.ip} 是否可同步...`);
+        const device = await testLanConnection(pageEl, item.dataset.address || item.dataset.ip, { save: true, silent: true });
         item.dataset.status = device ? 'ready' : 'error';
         if (device) {
             item.querySelector('.m-lan-device-state')?.replaceChildren(document.createTextNode('可同步'));
@@ -289,10 +289,6 @@ function getLanIp(pageEl) {
     return pageEl.querySelector('#mLanIpInput')?.value.trim() || '';
 }
 
-function isValidIp(ip) {
-    return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip) && ip.split('.').every(part => Number(part) >= 0 && Number(part) <= 255);
-}
-
 function escapeHtml(value = '') {
     return String(value)
         .replace(/&/g, '&amp;')
@@ -305,7 +301,14 @@ function escapeHtml(value = '') {
 function getRecentDevices() {
     try {
         const devices = JSON.parse(localStorage.getItem(RECENT_DEVICES_KEY) || '[]');
-        return Array.isArray(devices) ? devices.filter(device => isValidIp(device.ip)).slice(0, 5) : [];
+        if (!Array.isArray(devices)) return [];
+        return devices
+            .map(device => {
+                const target = parseLanTarget(device);
+                return target ? { ...device, ...target } : null;
+            })
+            .filter(Boolean)
+            .slice(0, 5);
     } catch (e) {
         return [];
     }
@@ -354,23 +357,27 @@ function renderDevices(pageEl, devices) {
     if (!devices.length) {
         list.innerHTML = `
             <div class="m-lan-empty">
-                未发现 PC 端。请确认 PC 软件已打开、手机与 PC 处于同一 Wi-Fi，且防火墙允许 8888 端口；也可以手动输入 PC 设置页显示的 IP。
+                未发现 PC 端。请确认 PC 软件已打开、手机与 PC 处于同一 Wi-Fi，且防火墙允许 PC 设置页显示的同步端口；也可以手动输入完整地址。
             </div>
         `;
         return;
     }
-    list.innerHTML = devices.map(device => `
-        <button class="m-lan-device-item" data-ip="${escapeHtml(device.ip)}" data-status="online">
+    list.innerHTML = devices.map(device => {
+        const target = parseLanTarget(device);
+        const address = target ? target.address : `${device.ip}:${device.port || DEFAULT_SYNC_PORT}`;
+        return `
+        <button class="m-lan-device-item" data-ip="${escapeHtml(device.ip)}" data-port="${escapeHtml(device.port || DEFAULT_SYNC_PORT)}" data-address="${escapeHtml(address)}" data-status="online">
             <span class="m-lan-device-main">
                 <span class="m-lan-device-name">${escapeHtml(device.name || 'PC 端')}</span>
-                <span class="m-lan-device-ip">${escapeHtml(device.ip)}:${device.port || 8888}</span>
+                <span class="m-lan-device-ip">${escapeHtml(address)}</span>
             </span>
             <span class="m-lan-device-meta">
                 <span class="m-lan-device-source">${getDeviceSourceLabel(device.source)}</span>
                 <span class="m-lan-device-state">${getCapabilityLabel(device)}</span>
             </span>
         </button>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function updateLanSearchProgress(pageEl, detail) {
@@ -408,38 +415,42 @@ async function handleLanScan(pageEl) {
         lanScanner = lanScanner || new LanScanner();
         const devices = await lanScanner.scan({
             recentHosts: getRecentDevices(),
+            ports: DEFAULT_SCAN_PORTS,
             timeout: 1200,
             onProgress: detail => updateLanSearchProgress(pageEl, detail),
         });
         renderDevices(pageEl, devices);
         if (devices[0]) {
             const input = pageEl.querySelector('#mLanIpInput');
-            if (input) input.value = devices[0].ip;
+            if (input) input.value = formatLanAddress(devices[0]);
             setLanStatus(pageEl, `发现 ${devices.length} 台可用 PC，已填入第一台，点击结果可再次验证。`, 'success');
         } else {
-            setLanStatus(pageEl, '未发现可用 PC，可手动输入 IP 后测试连接。', 'warning');
+            setLanStatus(pageEl, '未发现可用 PC，可手动输入完整地址后测试连接。', 'warning');
         }
     } catch (e) {
-        setLanStatus(pageEl, '搜索失败，请改用手动输入 IP。', 'error');
+        setLanStatus(pageEl, '搜索失败，请改用手动输入完整地址。', 'error');
     } finally {
         if (scanBtn) scanBtn.textContent = '搜索 PC';
     }
 }
 
-async function testLanConnection(pageEl, ip, options = {}) {
-    if (!isValidIp(ip)) {
-        if (!options.silent) showMobileToast('请输入正确的 IP 地址', 'error');
+async function testLanConnection(pageEl, targetValue, options = {}) {
+    const target = parseLanTarget(targetValue);
+    if (!target) {
+        if (!options.silent) showMobileToast('请输入正确的 PC 地址', 'error');
         return null;
     }
     setLanStatus(pageEl, '正在测试连接...');
     try {
-        const res = await fetch(`http://${ip}:8888/api/health`);
+        const res = await fetch(`${target.baseUrl}/api/health`);
         if (!res.ok) throw new Error('连接失败');
         const data = await res.json();
         if (data.status !== 'ok') throw new Error('服务状态异常');
+        const port = Number(data.port) || target.port;
         const device = {
-            ip,
-            port: 8888,
+            ip: target.ip,
+            port,
+            address: `${target.ip}:${port}`,
             name: data.device_name || 'PC 端',
             source: 'recent',
             deviceId: data.device_id || '',
@@ -450,15 +461,15 @@ async function testLanConnection(pageEl, ip, options = {}) {
         if (device.capabilities.includes('push') || device.capabilities.includes('bidirectional')) {
             try {
                 const sync = new LanSync(getStorage());
-                const pairing = await sync.getPairing(ip);
+                const pairing = await sync.getPairing(device);
                 device.token = pairing.sync_token || '';
             } catch (e) {}
         }
-        setLanStatus(pageEl, `连接成功：${device.name}，${getCapabilityLabel(device)}`, 'success');
-        if (options.save !== false) saveRecentDevice(ip, device.name, device);
+        setLanStatus(pageEl, `连接成功：${device.name}（${device.address}，${getCapabilityLabel(device)}）`, 'success');
+        if (options.save !== false) saveRecentDevice(device, device.name, device);
         return device;
     } catch (e) {
-        setLanStatus(pageEl, '连接失败，请确认 PC 端已打开并允许局域网访问。', 'error');
+        setLanStatus(pageEl, '连接失败，请确认 PC 端已打开，并放行设置页显示的同步端口。', 'error');
         return null;
     }
 }
@@ -513,9 +524,9 @@ function getLanSuccessMessage(report) {
 }
 
 async function handleLanSync(pageEl) {
-    const ip = getLanIp(pageEl);
-    if (!isValidIp(ip)) {
-        showMobileToast('请输入正确的 IP 地址', 'error');
+    const target = parseLanTarget(getLanIp(pageEl));
+    if (!target) {
+        showMobileToast('请输入正确的 PC 地址', 'error');
         return;
     }
 
@@ -529,17 +540,17 @@ async function handleLanSync(pageEl) {
     try {
         lanSync = new LanSync(getStorage());
         lanSync.onProgress = (current, total, phase) => updateLanProgress(pageEl, current, total, phase, startedAt);
-        const recent = findRecentDevice(ip);
+        const recent = findRecentDevice(target);
         let report = null;
         if (selectedLanMode === 'push') {
-            report = await lanSync.push(ip, { token: recent?.token, mode: 'keep_pc' });
+            report = await lanSync.push(target, { token: recent?.token, mode: 'keep_pc' });
         } else if (selectedLanMode === 'bidirectional') {
-            report = await lanSync.bidirectional(ip, { token: recent?.token });
+            report = await lanSync.bidirectional(target, { token: recent?.token });
         } else {
-            report = await lanSync.sync(ip);
+            report = await lanSync.sync(target);
         }
         if (!report) return;
-        saveRecentDevice(ip, recent?.name || 'PC 端', {
+        saveRecentDevice(target, recent?.name || 'PC 端', {
             ...recent,
             token: report.token || recent?.token,
         });
@@ -558,19 +569,25 @@ async function handleLanSync(pageEl) {
 }
 
 function findRecentDevice(ip) {
-    return getRecentDevices().find(device => device.ip === ip) || null;
+    const target = parseLanTarget(ip);
+    if (!target) return null;
+    return getRecentDevices().find(device => device.address === target.address) || null;
 }
 
 function saveRecentDevice(ip, name, extra = {}) {
+    const target = parseLanTarget(ip);
+    if (!target) return;
     const now = new Date().toISOString();
     let devices = [];
     try {
         devices = JSON.parse(localStorage.getItem(RECENT_DEVICES_KEY) || '[]');
     } catch (e) {}
-    devices = devices.filter(device => device.ip !== ip);
+    devices = devices.filter(device => parseLanTarget(device)?.address !== target.address);
     devices.unshift({
         ...extra,
-        ip,
+        ip: target.ip,
+        port: target.port,
+        address: target.address,
         name,
         lastSyncAt: now,
         capabilities: Array.isArray(extra.capabilities) ? extra.capabilities : extra.capabilities || ['pull'],

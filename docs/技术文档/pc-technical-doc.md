@@ -135,9 +135,9 @@ Tauri 启动
 ### 5.1 技术架构
 
 - **HTTP 服务器**：`http.server.HTTPRequestHandler` + `socketserver.ThreadingTCPServer`
-- **监听地址**：`0.0.0.0:8888`（支持局域网访问）
+- **监听地址**：开发后端默认 `0.0.0.0:8888`；PyInstaller 安装包入口优先使用 `8888`，端口占用时按顺序切换到 `8889-8897`（支持局域网访问）
 - **数据存储**：JSON 文件 + 图片文件
-- **并发处理**：多线程，`allow_reuse_address = True`
+- **并发处理**：多线程；安装包入口使用独占端口绑定，避免 Windows 下与已有开发后端共享同一端口后加载到目录列表
 
 ### 5.2 数据目录
 
@@ -192,6 +192,20 @@ PC 编辑器导入图片时先在前端执行统一优化：
 ### 5.7 网络信息
 
 `get_local_ip()` 函数：通过 UDP Socket 获取本机局域网 IP 地址，供局域网同步使用。
+
+### 5.8 安装包后端入口
+
+PC 独立安装包通过 `build/app.spec` 打包 `build/app_main.py`，该入口需要与 `python/main.py` 的局域网同步协议保持对齐。安装包后端优先监听 `0.0.0.0:8888`，如果端口已被开发后端或旧进程占用，则使用独占绑定检测并按顺序切换到 `8889-8897`；本机 WebView 始终加载实际端口的 `http://127.0.0.1:{port}`。
+
+`build/app_main.py` 需要覆盖以下局域网互通接口：
+
+- `GET /api/health`
+- `GET /api/sync/capabilities`
+- `GET /api/sync/pairing`
+- `POST /api/sync/import`
+- `POST /api/sync/bidirectional`
+
+发布前需运行 `python -m pytest python/tests/test_build_app_main.py -q`，避免安装包后端落后于源码后端，导致前端拿到首页 HTML 并触发 JSON 解析失败；同时确认 `/`、`/index.html` 和任意前端路由不会返回 `SimpleHTTPRequestHandler` 目录列表。
 
 ---
 
@@ -269,6 +283,14 @@ async init() {
 | `getNetworkInfo()` | GET | `/api/network-info` | 获取 PC 同步服务 IP 和端口 |
 | `getSyncCapabilities()` | GET | `/api/sync/capabilities` | 获取 PC 局域网互通能力 |
 | `estimateStorageSize()` | GET | `/api/export` | 基于完整备份估算数据大小 |
+
+---
+
+## 局域网同步端口返回
+
+PC 端同步服务默认优先使用 `8888`。独立安装包发现端口被占用时会按顺序回退到 `8889-8897`，本机 WebView 加载 `http://127.0.0.1:{port}`，局域网接口也监听同一个实际端口。`/api/health`、`/api/sync/capabilities` 和 `/api/network-info` 需要返回该实际端口，PC 设置页展示和复制的同步地址必须包含端口。
+
+开发后端仍以 `8888` 作为默认端口，但端口值统一来自 `SERVER_PORT`，避免接口返回值与运行端口漂移。
 | `getImageUrl(img)` | - | `${baseUrl}/images/${img.file}` | 获取图片 URL |
 | `getPlatform()` | - | - | 返回 `'pc'` |
 

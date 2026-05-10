@@ -11,6 +11,7 @@ import base64
 import mimetypes
 import platform
 import time
+import secrets
 from datetime import datetime
 
 try:
@@ -19,13 +20,6 @@ try:
 except ImportError:
     import webbrowser
     HAS_WEBVIEW = False
-
-
-def find_free_port():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('127.0.0.1', 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.getsockname()[1]
 
 
 def get_app_dir():
@@ -66,9 +60,20 @@ IMAGES_DIR = os.path.join(DATA_DIR, 'images')
 BACKUPS_DIR = os.path.join(DATA_DIR, 'backups')
 DATA_FILE = os.path.join(DATA_DIR, 'prompt_sets.json')
 FOLDERS_FILE = os.path.join(DATA_DIR, 'folders.json')
+SYNC_DEVICE_FILE = os.path.join(DATA_DIR, 'sync-device.json')
 FRONTEND_DIR = get_frontend_dir()
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 8888
+
+
+class ExclusiveThreadingTCPServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = False
+    daemon_threads = True
+
+    def server_bind(self):
+        if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
 
 
 def ensure_dirs():
@@ -112,6 +117,55 @@ def save_folders(data):
     ensure_dirs()
     with open(FOLDERS_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_sync_device():
+    ensure_dirs()
+    if os.path.exists(SYNC_DEVICE_FILE):
+        try:
+            with open(SYNC_DEVICE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, IOError):
+            data = {}
+    else:
+        data = {}
+
+    changed = False
+    if not data.get('device_id'):
+        data['device_id'] = str(uuid.uuid4())
+        changed = True
+    if not data.get('sync_token'):
+        data['sync_token'] = secrets.token_urlsafe(18)
+        changed = True
+    if not data.get('created_at'):
+        data['created_at'] = datetime.now().isoformat()
+        changed = True
+    data['device_name'] = platform.node()
+    data['updated_at'] = datetime.now().isoformat()
+
+    if changed or not os.path.exists(SYNC_DEVICE_FILE):
+        save_sync_device(data)
+    return data
+
+
+def save_sync_device(data):
+    ensure_dirs()
+    with open(SYNC_DEVICE_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def get_sync_capabilities():
+    device = load_sync_device()
+    return {
+        'status': 'ok',
+        'device_id': device.get('device_id'),
+        'device_name': platform.node(),
+        'platform': 'pc',
+        'sync_version': 2,
+        'port': SERVER_PORT,
+        'pairing_required': True,
+        'capabilities': ['pull', 'push', 'bidirectional', 'pairing'],
+    }
 
 
 def save_image(image_id, data_url):
@@ -315,12 +369,233 @@ def prepare_import_prompt_set(item):
     return prompt_set, restored_images
 
 
+def normalize_prompt_for_compare(prompt_set):
+    def pick(data, *keys, default=''):
+        for key in keys:
+            if key in data and data.get(key) is not None:
+                return data.get(key)
+        return default
+
+    versions = []
+    for idx, version in enumerate(prompt_set.get('versions', [])):
+        images = []
+        for image in version.get('images', []):
+            images.append({
+                'name': pick(image, 'name'),
+                'file': pick(image, 'file'),
+                'path': pick(image, 'path'),
+                'note': pick(image, 'note'),
+            })
+        versions.append({
+            'version': pick(version, 'version', 'name', default=f'v{idx + 1}'),
+            'prompt': pick(version, 'prompt'),
+            'negativePrompt': pick(version, 'negativePrompt', 'negative_prompt'),
+            'note': pick(version, 'note'),
+            'aspectRatio': pick(version, 'aspectRatio', 'aspect_ratio', default='1:1'),
+            'stylePreset': pick(version, 'stylePreset', 'style_preset'),
+            'sampler': pick(version, 'sampler', default='DPM++ 2M Karras'),
+            'steps': pick(version, 'steps', default=30),
+            'cfgScale': pick(version, 'cfgScale', 'cfg_scale', default=7.0),
+            'hrFix': pick(version, 'hrFix', 'hr_fix', default=True),
+            'model': pick(version, 'model'),
+            'images': images,
+        })
+
+    return {
+        'name': pick(prompt_set, 'name'),
+        'folderId': pick(prompt_set, 'folderId', 'folder_id'),
+        'tags': pick(prompt_set, 'tags', default='[]'),
+        'isFavorite': bool(pick(prompt_set, 'isFavorite', 'is_favorite', default=False)),
+        'versions': versions,
+    }
+
+
+def is_same_prompt_set(left, right):
+    return json.dumps(
+        normalize_prompt_for_compare(left),
+        ensure_ascii=False,
+        sort_keys=True,
+    ) == json.dumps(
+        normalize_prompt_for_compare(right),
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
+def create_conflict_copy(prompt_set, source='Android'):
+    copied = json.loads(json.dumps(prompt_set, ensure_ascii=False))
+    original_id = copied.get('id') or str(uuid.uuid4())[:8]
+    suffix = str(uuid.uuid4())[:8]
+    id_map = {}
+    copied['id'] = f'{original_id}-conflict-{suffix}'
+    copied['name'] = (
+        f"{copied.get('name') or '\\u672a\\u547d\\u540d\\u63d0\\u793a\\u8bcd\\u96c6\\u5408'}"
+        f" ({source} conflict copy)"
+    )
+    copied['updatedAt'] = datetime.now().isoformat()
+    copied['createdAt'] = copied.get('createdAt') or copied.get('created_at') or copied['updatedAt']
+
+    for idx, version in enumerate(copied.get('versions', [])):
+        old_version_id = version.get('id') or f'{original_id}_v{idx}'
+        new_version_id = f'{old_version_id}-conflict-{suffix}'
+        id_map[old_version_id] = new_version_id
+        version['id'] = new_version_id
+
+    for version in copied.get('versions', []):
+        for image in version.get('images', []):
+            old_image_id = image.get('id') or str(uuid.uuid4())[:8]
+            image['id'] = f'{old_image_id}-conflict-{suffix}'
+
+    return copied
+
+
+def merge_import_payload(folders, prompt_sets, mode='replace', source='Android'):
+    if folders is None or not isinstance(prompt_sets, list):
+        return None
+
+    if isinstance(folders, list):
+        current_folders = load_folders()
+        folder_map = {f.get('id'): f for f in current_folders if f.get('id')}
+        for folder in folders:
+            if folder.get('id'):
+                folder_map[folder['id']] = folder
+        save_folders(list(folder_map.values()))
+
+    data = load_data()
+    existing_ids = {s.get('id') for s in data}
+    existing_map = {s.get('id'): s for s in data if s.get('id')}
+    count = 0
+    added = 0
+    updated = 0
+    conflicts = 0
+    skipped = 0
+    restored_images = 0
+    conflict_items = []
+
+    for item in prompt_sets:
+        if not item.get('id') or not item.get('versions'):
+            skipped += 1
+            continue
+
+        target_item = item
+        existing = existing_map.get(item['id'])
+        if existing and mode in ('keep_pc', 'add_only'):
+            if is_same_prompt_set(existing, item):
+                skipped += 1
+                continue
+            if mode == 'add_only':
+                conflicts += 1
+                skipped += 1
+                conflict_items.append({'id': item['id'], 'name': item.get('name', '')})
+                continue
+            target_item = create_conflict_copy(item, source)
+            conflicts += 1
+            conflict_items.append({
+                'id': item['id'],
+                'name': item.get('name', ''),
+                'conflictId': target_item['id'],
+            })
+
+        prepared, image_count = prepare_import_prompt_set(target_item)
+        restored_images += image_count
+
+        if prepared['id'] not in existing_ids:
+            data.append(prepared)
+            existing_ids.add(prepared['id'])
+            existing_map[prepared['id']] = prepared
+            added += 1
+            count += 1
+        else:
+            for version in existing_map.get(prepared['id'], {}).get('versions', []):
+                for image in version.get('images', []):
+                    delete_image_file(image.get('file'))
+            idx = next(i for i, s in enumerate(data) if s.get('id') == prepared['id'])
+            data[idx] = prepared
+            existing_map[prepared['id']] = prepared
+            updated += 1
+            count += 1
+
+    save_data(data)
+    return {
+        'success': True,
+        'imported': count,
+        'added': added,
+        'updated': updated,
+        'conflicts': conflicts,
+        'skipped': skipped,
+        'imagesRestored': restored_images,
+        'conflictItems': conflict_items,
+        'mode': mode,
+    }
+
+
+def build_sync_payload():
+    data = load_data()
+    prompt_sets = []
+    versions = []
+    images = []
+    for s in data:
+        prompt_sets.append({
+            'id': s['id'],
+            'name': s['name'],
+            'folder_id': s.get('folderId', ''),
+            'tags': s.get('tags', '[]'),
+            'is_favorite': s.get('isFavorite', False),
+            'created_at': s.get('createdAt', ''),
+            'updated_at': s.get('updatedAt', ''),
+        })
+        for idx, v in enumerate(s.get('versions', [])):
+            version_id = v.get('id') or f"{s['id']}_v{idx}"
+            versions.append({
+                'id': version_id,
+                'prompt_set_id': s['id'],
+                'version': v.get('version', f'v{idx + 1}'),
+                'prompt': v.get('prompt', ''),
+                'negative_prompt': v.get('negativePrompt', ''),
+                'note': v.get('note', ''),
+                'sort_order': idx,
+                'aspect_ratio': v.get('aspectRatio', '1:1'),
+                'style_preset': v.get('stylePreset', ''),
+                'sampler': v.get('sampler', 'DPM++ 2M Karras'),
+                'steps': v.get('steps', 30),
+                'cfg_scale': v.get('cfgScale', 7.0),
+                'hr_fix': v.get('hrFix', True),
+                'model': v.get('model', ''),
+                'created_at': v.get('createdAt', ''),
+            })
+            for img in v.get('images', []):
+                images.append({
+                    'id': img.get('id') or str(uuid.uuid4())[:8],
+                    'version_id': version_id,
+                    'name': img.get('name', ''),
+                    'path': img.get('path', ''),
+                    'file': img.get('file', ''),
+                    'note': img.get('note', ''),
+                    'created_at': img.get('createdAt', ''),
+                })
+
+    return {
+        'folders': load_folders(),
+        'prompt_sets': prompt_sets,
+        'versions': versions,
+        'images': images,
+        'sync_meta': {
+            'server_time': datetime.now().isoformat(),
+            'total_folders': len(load_folders()),
+            'total_prompt_sets': len(prompt_sets),
+            'total_versions': len(versions),
+            'total_images': len(images),
+            'sync_version': 2,
+        }
+    }
+
+
 class AppHandler(http.server.SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Sync-Token, X-Device-Id, X-Device-Name')
         self.send_header('Access-Control-Max-Age', '86400')
         self.end_headers()
 
@@ -329,12 +604,16 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         path = parsed.path
 
         if path == '/api/health':
-            self.send_json({'status': 'ok', 'dataDir': DATA_DIR, 'device_name': platform.node()})
+            self.handle_health()
         elif path == '/api/sync':
             self.handle_sync()
         elif path.startswith('/api/sync/images/'):
             filename = path.split('/api/sync/images/')[1]
             self.handle_sync_image(filename)
+        elif path == '/api/sync/capabilities':
+            self.handle_sync_capabilities()
+        elif path == '/api/sync/pairing':
+            self.handle_sync_pairing()
         elif path == '/api/network-info':
             self.handle_network_info()
         elif path == '/api/export':
@@ -396,6 +675,10 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_export_file()
         elif path == '/api/import':
             self.handle_import()
+        elif path == '/api/sync/import':
+            self.handle_sync_import()
+        elif path == '/api/sync/bidirectional':
+            self.handle_sync_bidirectional()
         elif path.startswith('/api/image/'):
             image_id = path.split('/api/image/')[1]
             self.handle_upload_image(image_id)
@@ -436,6 +719,32 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
 
     def send_error_json(self, message, status=400):
         self.send_json({'success': False, 'error': message}, status)
+
+    def _sync_token_valid(self):
+        expected = load_sync_device().get('sync_token')
+        provided = self.headers.get('X-Sync-Token', '')
+        return bool(expected and provided and secrets.compare_digest(expected, provided))
+
+    def handle_health(self):
+        payload = get_sync_capabilities()
+        payload['dataDir'] = DATA_DIR
+        self.send_json(payload)
+
+    def handle_sync_capabilities(self):
+        info = get_sync_capabilities()
+        info['ip'] = get_local_ip()
+        self.send_json(info)
+
+    def handle_sync_pairing(self):
+        device = load_sync_device()
+        self.send_json({
+            'success': True,
+            'device_id': device.get('device_id'),
+            'device_name': platform.node(),
+            'sync_token': device.get('sync_token'),
+            'pairing_code': device.get('sync_token', '')[-6:],
+            'expires': None,
+        })
 
     def serve_frontend_file(self, path):
         decoded_path = urllib.parse.unquote(path.lstrip('/'))
@@ -771,62 +1080,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         self.send_ok()
 
     def handle_sync(self):
-        data = load_data()
-        prompt_sets = []
-        versions = []
-        images = []
-        for s in data:
-            prompt_sets.append({
-                'id': s['id'],
-                'name': s['name'],
-                'folder_id': s.get('folderId', ''),
-                'tags': s.get('tags', '[]'),
-                'is_favorite': s.get('isFavorite', False),
-                'created_at': s.get('createdAt', ''),
-                'updated_at': s.get('updatedAt', ''),
-            })
-            for idx, v in enumerate(s.get('versions', [])):
-                version_id = v.get('id') or f"{s['id']}_v{idx}"
-                versions.append({
-                    'id': version_id,
-                    'prompt_set_id': s['id'],
-                    'version': v.get('version', ''),
-                    'prompt': v.get('prompt', ''),
-                    'negative_prompt': v.get('negativePrompt', ''),
-                    'note': v.get('note', ''),
-                    'sort_order': idx,
-                    'aspect_ratio': v.get('aspectRatio', '1:1'),
-                    'style_preset': v.get('stylePreset', ''),
-                    'sampler': v.get('sampler', 'DPM++ 2M Karras'),
-                    'steps': v.get('steps', 30),
-                    'cfg_scale': v.get('cfgScale', 7.0),
-                    'hr_fix': v.get('hrFix', True),
-                    'model': v.get('model', ''),
-                    'created_at': v.get('createdAt', ''),
-                })
-                for img in v.get('images', []):
-                    images.append({
-                        'id': img.get('id', str(uuid.uuid4())[:8]),
-                        'version_id': version_id,
-                        'name': img.get('name', ''),
-                        'path': img.get('path', ''),
-                        'file': img.get('file', ''),
-                        'note': img.get('note', ''),
-                        'created_at': img.get('createdAt', ''),
-                    })
-        self.send_json({
-            'folders': load_folders(),
-            'prompt_sets': prompt_sets,
-            'versions': versions,
-            'images': images,
-            'sync_meta': {
-                'server_time': datetime.now().isoformat(),
-                'total_folders': len(load_folders()),
-                'total_prompt_sets': len(prompt_sets),
-                'total_versions': len(versions),
-                'total_images': len(images),
-            }
-        })
+        self.send_json(build_sync_payload())
 
     def handle_sync_image(self, filename):
         decoded_filename = urllib.parse.unquote(filename)
@@ -915,6 +1169,41 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             'imagesRestored': restored_images,
         })
 
+    def handle_sync_import(self):
+        if not self._sync_token_valid():
+            self.send_error_json('\u540c\u6b65\u4ee4\u724c\u65e0\u6548\uff0c\u8bf7\u91cd\u65b0\u914d\u5bf9', 401)
+            return
+        body = self.read_body()
+        mode = body.get('mode', 'keep_pc') if isinstance(body, dict) else 'keep_pc'
+        if mode not in ('keep_pc', 'add_only', 'android_wins'):
+            mode = 'keep_pc'
+        payload = body.get('payload') if isinstance(body, dict) and 'payload' in body else body
+        folders, prompt_sets = normalize_import_payload(payload)
+        import_mode = 'replace' if mode == 'android_wins' else mode
+        result = merge_import_payload(folders, prompt_sets, mode=import_mode, source='Android')
+        if result is None:
+            self.send_error_json('\u65e0\u6548\u540c\u6b65\u6570\u636e\u683c\u5f0f')
+            return
+        result['deviceName'] = self.headers.get('X-Device-Name', 'Android')
+        self.send_json(result)
+
+    def handle_sync_bidirectional(self):
+        if not self._sync_token_valid():
+            self.send_error_json('\u540c\u6b65\u4ee4\u724c\u65e0\u6548\uff0c\u8bf7\u91cd\u65b0\u914d\u5bf9', 401)
+            return
+        body = self.read_body()
+        payload = body.get('payload') if isinstance(body, dict) and 'payload' in body else body
+        folders, prompt_sets = normalize_import_payload(payload)
+        result = merge_import_payload(folders, prompt_sets, mode='keep_pc', source='Android')
+        if result is None:
+            self.send_error_json('\u65e0\u6548\u540c\u6b65\u6570\u636e\u683c\u5f0f')
+            return
+        self.send_json({
+            'success': True,
+            'pushReport': result,
+            'syncData': build_sync_payload(),
+        })
+
     def serve_image(self, relative_path):
         decoded_path = urllib.parse.unquote(relative_path)
         filename = decoded_path.replace('images/', '', 1)
@@ -958,6 +1247,20 @@ def write_log(msg):
         pass
 
 
+def create_http_server(preferred_port=8888, max_attempts=10):
+    last_error = None
+
+    for offset in range(max_attempts):
+        port = preferred_port + offset
+        try:
+            return ExclusiveThreadingTCPServer(('', port), AppHandler), port
+        except OSError as error:
+            last_error = error
+            write_log(f'0.0.0.0:{port} unavailable: {error}; trying another')
+
+    raise OSError(f'无法绑定 HTTP 服务端口，最后错误：{last_error}')
+
+
 def main():
     global SERVER_PORT
     ensure_dirs()
@@ -968,16 +1271,10 @@ def main():
     write_log(f'DATA_DIR={DATA_DIR}')
     write_log(f'HAS_WEBVIEW={HAS_WEBVIEW}')
 
-    port = 8888
-    for attempt in range(10):
-        try:
-            socketserver.ThreadingTCPServer.allow_reuse_address = True
-            httpd = socketserver.ThreadingTCPServer((SERVER_HOST, port), AppHandler)
-            break
-        except OSError:
-            write_log(f'{SERVER_HOST}:{port} in use, trying another')
-            port = find_free_port()
-    else:
+    try:
+        httpd, port = create_http_server(8888, 10)
+    except OSError as error:
+        write_log(f'HTTP server startup failed: {error}')
         import tkinter as tk
         from tkinter import messagebox
         root = tk.Tk()
@@ -987,7 +1284,7 @@ def main():
 
     url = f"http://{SERVER_HOST}:{port}"
     SERVER_PORT = port
-    write_log(f'Server started on {url}')
+    write_log(f'Server started on 0.0.0.0:{port}, local URL {url}')
 
     server_thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     server_thread.start()

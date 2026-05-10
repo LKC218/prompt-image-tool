@@ -21,7 +21,7 @@
 
 - PC 端软件必须启动（Python HTTP 服务运行中）
 - 两端处于同一局域网
-- PC 端防火墙允许 8888 端口入站
+- PC 端防火墙允许 PC 设置页显示的实际同步端口入站，默认优先端口为 8888
 
 ---
 
@@ -64,6 +64,8 @@ httpd = socketserver.ThreadingTCPServer(("localhost", 8888), RequestHandler)
 # 修改后
 httpd = socketserver.ThreadingTCPServer(("0.0.0.0", 8888), RequestHandler)
 ```
+
+PC 独立安装包使用 `build/app_main.py` 作为 PyInstaller 后端入口，也必须监听 `0.0.0.0` 并补齐 `/api/sync/capabilities`、`/api/sync/pairing`、`/api/sync/import` 和 `/api/sync/bidirectional`。发布前需运行安装包后端回归测试，防止安装版缺少接口时把首页 HTML 返回给前端 JSON 解析流程。
 
 ### 3.2 新增同步接口
 
@@ -178,7 +180,7 @@ Android 上传本机快照，PC 合并后返回最新同步快照。当前实现
 
 - 在设置页添加「局域网同步」区域
 - 支持「搜索 PC」自动发现同一局域网内已打开的 PC 端
-- 支持手动填写 PC 端 IP 地址作为搜索失败时的兜底路径
+- 支持手动填写 PC 端 `IP`、`IP:端口` 或 `http://IP:端口` 作为搜索失败时的兜底路径
 - 支持选择「从 PC 拉取」「回传到 PC」「双向同步」
 - 同步过程中显示进度和状态
 - 同步完成后显示结果报告
@@ -190,23 +192,23 @@ Android 上传本机快照，PC 合并后返回最新同步快照。当前实现
 2. 优先探测最近连接过的 PC 地址
 3. 尝试通过 WebRTC 获取移动端当前局域网 IP，推导当前网段
 4. 扫描当前网段和常见回退网段
-5. 对候选地址请求 GET http://IP:8888/api/health
+5. 对候选地址的默认端口范围请求 GET http://IP:{port}/api/health
 6. 仅 status=ok 的设备进入结果列表
-7. 用户点击结果后自动填入 IP，并再次执行连接测试
-8. 搜索不到时保留手动输入 IP 的路径
+7. 用户点击结果后自动填入完整 IP:port，并再次执行连接测试
+8. 搜索不到时保留手动输入完整地址的路径
 ```
 
 ### 4.3 同步流程
 
 ```
-1. 用户输入 PC 端 IP（如 192.168.1.100）
-2. 连接测试：GET http://192.168.1.100:8888/api/health
+1. 用户输入 PC 端地址（如 192.168.1.100:8890，未填端口时默认 8888）
+2. 连接测试：GET http://192.168.1.100:{port}/api/health
    → 失败：提示"无法连接 PC 端，请检查 IP 和网络"
    → 成功：继续
-3. 拉取数据：GET http://192.168.1.100:8888/api/sync
+3. 拉取数据：GET http://192.168.1.100:{port}/api/sync
 4. PC 优先覆盖合并（见第五章）
 5. 写入本地 SQLite
-6. 逐个下载图片：GET http://192.168.1.100:8888/api/sync/images/{filename}
+6. 逐个下载图片：GET http://192.168.1.100:{port}/api/sync/images/{filename}
    → 写入 Filesystem
 7. 校验数据完整性（见第六章）
 8. 显示同步报告
@@ -394,6 +396,14 @@ GET /api/sync?token=abc123def456
 | P2 | `/api/network-info` 接口 | 便捷获取 IP | ✅ 已实现 |
 | P3 | Token 认证 | 安全加固 | ❌ 未实现 |
 | P3 | PC 端界面显示 IP | 用户体验优化 | ✅ 已实现 |
+
+---
+
+## 动态端口连接
+
+PC 端同步服务默认优先监听 `8888`，但安装包在端口占用时会按顺序回退到 `8889-8897`。`/api/health`、`/api/sync/capabilities` 和 `/api/network-info` 返回的 `port` 均表示当前实际监听端口。
+
+Android 端把同步目标统一解析为 `IP:port`。搜索 PC 时优先探测最近设备；旧最近设备若只有 IP，则按默认端口范围 `8888-8897` 探测。手动输入支持 `IP`、`IP:port` 和 `http://IP:port`。拉取、回传、双向同步和图片下载都从同一个目标对象构造 URL，避免端口回退后仍请求 `8888`。
 
 ---
 

@@ -277,17 +277,17 @@ Android 客户端 (LanSync)  ──HTTP──→  PC 服务端 (Python HTTP)
 - 优先探测 `localStorage` 中的最近设备，降低重复使用时的等待时间。
 - WebRTC 能获取本机 IP 时，优先扫描当前网段。
 - WebRTC 失败时回退扫描常见网段，例如 `192.168.1.x`、`192.168.0.x`、`192.168.31.x`、`192.168.43.x`、`192.168.50.x`、`192.168.100.x`、`10.0.0.x`、`172.16.0.x`。
-- 每个候选地址通过 `GET http://IP:8888/api/health` 验证，只有 `status=ok` 的设备会进入结果列表。
-- 点击搜索结果后会自动填入 IP 并再次测试连接，连接成功后保存为最近设备。
-- 搜索失败时仍可手动输入 PC 设置页显示的 IP 地址。
+- 每个候选地址通过 `GET http://IP:{port}/api/health` 验证，默认扫描端口范围为 `8888-8897`，只有 `status=ok` 的设备会进入结果列表。
+- 点击搜索结果后会自动填入完整 `IP:port` 地址并再次测试连接，连接成功后保存为最近设备。
+- 搜索失败时仍可手动输入 PC 设置页显示的完整地址。
 
 ### 8.3 同步流程
 
 ```
 1. 用户选择同步方向：从 PC 拉取、回传到 PC、双向同步
-2. 连接测试：GET http://IP:8888/api/health
-3. 拉取模式：GET http://IP:8888/api/sync，PC 优先覆盖 Android 同 ID 数据
-4. 回传模式：GET http://IP:8888/api/sync/pairing 后 POST /api/sync/import，默认保护 PC 数据并生成冲突副本
+2. 连接测试：GET http://IP:{port}/api/health
+3. 拉取模式：GET http://IP:{port}/api/sync，PC 优先覆盖 Android 同 ID 数据
+4. 回传模式：GET http://IP:{port}/api/sync/pairing 后 POST /api/sync/import，默认保护 PC 数据并生成冲突副本
 5. 双向模式：先回传 Android 数据，再拉取 PC 最新数据
 6. 显示同步报告
 ```
@@ -311,7 +311,7 @@ IDLE → CONNECTING → SYNCING → VERIFYING → SUCCESS/PARTIAL/ERROR
 
 - PC 端软件必须启动（Python HTTP 服务运行中）
 - 两端处于同一局域网
-- PC 端防火墙允许 8888 端口入站
+- PC 端防火墙允许 PC 设置页显示的实际同步端口入站，默认优先端口为 8888
 
 ---
 
@@ -340,7 +340,7 @@ IDLE → CONNECTING → SYNCING → VERIFYING → SUCCESS/PARTIAL/ERROR
 | 离线使用 | 无需网络和后端服务 | SQLite + Filesystem 本地存储 |
 | 移动端适配 | 列表/详情切换模式，返回按钮导航 | `app.js` + `responsive.css` |
 | 手势返回 | 系统返回键/手势返回上一级 | `app.js` → `popstate` 事件监听 |
-| 局域网 PC 搜索 | 搜索同一局域网内已打开的 PC 端并填入 IP | `lan-sync.js` → `LanScanner.scan()` / `mobile-settings.js` |
+| 局域网 PC 搜索 | 搜索同一局域网内已打开的 PC 端并填入完整地址 | `lan-sync.js` → `LanScanner.scan()` / `mobile-settings.js` |
 | 局域网同步 | 从 PC 端拉取全量数据、回传 Android 数据、发起双向同步 | `lan-sync.js` → `LanSync.sync()` / `LanSync.push()` / `LanSync.bidirectional()` |
 
 ---
@@ -376,6 +376,12 @@ IDLE → CONNECTING → SYNCING → VERIFYING → SUCCESS/PARTIAL/ERROR
 ---
 
 ## 十二、构建与部署
+
+### 局域网同步动态端口
+
+移动端局域网同步目标统一按 `IP:port` 解析。用户可手动输入 `192.168.6.109`、`192.168.6.109:8890` 或 `http://192.168.6.109:8890`；未填写端口时默认使用 `8888`。搜索 PC 时会优先探测最近设备；若旧最近设备没有端口，则按默认端口范围 `8888-8897` 继续探测。搜索结果和最近设备都保存实际端口。
+
+`LanSync.sync()`、`LanSync.push()` 和 `LanSync.bidirectional()` 均使用同一个目标对象构造 `/api/health`、`/api/sync`、`/api/sync/pairing`、`/api/sync/import` 与图片下载地址，避免 PC 安装包回退到非 `8888` 端口后移动端仍请求旧端口。
 
 ### 12.1 环境准备
 

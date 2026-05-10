@@ -10,6 +10,7 @@ import urllib.error
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+import main as main_module
 from main import (
     load_data, save_data, save_folders, save_image, delete_image_file,
     ensure_dirs, AppHandler, APP_DIR, DATA_DIR, IMAGES_DIR, DATA_FILE,
@@ -20,6 +21,7 @@ from main import (
 def start_test_server():
     socketserver.ThreadingTCPServer.allow_reuse_address = True
     server = socketserver.ThreadingTCPServer(('127.0.0.1', 0), AppHandler)
+    main_module.SERVER_PORT = server.server_address[1]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     return server, thread
@@ -183,6 +185,28 @@ class TestBackupExport:
             assert status == 200
             assert body['backup_meta']['format'] == 'prompt-image-tool-backup'
             assert body['prompt_sets'][0]['id'] == 'set1'
+        finally:
+            stop_test_server(server, thread)
+
+    def test_network_and_capability_ports_match_actual_server(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        monkeypatch.setattr('main.SYNC_DEVICE_FILE', str(tmp_path / 'sync-device.json'))
+        save_data([])
+
+        server, thread = start_test_server()
+        try:
+            port = server.server_address[1]
+            base_url = f'http://127.0.0.1:{port}'
+            _, health = request_json(f'{base_url}/api/health')
+            _, capabilities = request_json(f'{base_url}/api/sync/capabilities')
+            _, network = request_json(f'{base_url}/api/network-info')
+
+            assert health['port'] == port
+            assert capabilities['port'] == port
+            assert network['port'] == port
         finally:
             stop_test_server(server, thread)
 

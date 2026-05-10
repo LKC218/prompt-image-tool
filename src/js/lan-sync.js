@@ -8,6 +8,112 @@ export const SyncState = {
     ERROR: 'error',
 };
 
+export const DEFAULT_SYNC_PORT = 8888;
+export const DEFAULT_SCAN_PORTS = Array.from({ length: 10 }, (_, index) => DEFAULT_SYNC_PORT + index);
+
+function isValidIp(ip) {
+    return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip || '') &&
+        ip.split('.').every(part => Number(part) >= 0 && Number(part) <= 255);
+}
+
+function normalizePort(port, defaultPort = DEFAULT_SYNC_PORT) {
+    const source = port === undefined || port === null || String(port).trim() === ''
+        ? defaultPort
+        : port;
+    if (source === undefined || source === null || String(source).trim() === '') return null;
+    const value = Number(source);
+    return Number.isInteger(value) && value >= 1 && value <= 65535 ? value : null;
+}
+
+function normalizePorts(ports, fallbackPorts = DEFAULT_SCAN_PORTS) {
+    const values = Array.isArray(ports) ? ports : [ports];
+    const result = [];
+    for (const item of values) {
+        const port = normalizePort(item, null);
+        if (port && !result.includes(port)) result.push(port);
+    }
+    return result.length ? result : [...fallbackPorts];
+}
+
+function hasExplicitPort(value) {
+    if (value && typeof value === 'object') {
+        if (Object.prototype.hasOwnProperty.call(value, 'port') &&
+            value.port !== undefined &&
+            value.port !== null &&
+            String(value.port).trim() !== '') {
+            return true;
+        }
+        return hasExplicitPort(value.address || '');
+    }
+
+    const raw = String(value || '').trim();
+    if (!raw) return false;
+    try {
+        if (/^https?:\/\//i.test(raw)) {
+            return Boolean(new URL(raw).port);
+        }
+    } catch (e) {
+        return false;
+    }
+    const host = raw.replace(/^\/+/, '').split('/')[0].trim();
+    return /^\d{1,3}(?:\.\d{1,3}){3}:\d{1,5}$/.test(host);
+}
+
+export function parseLanTarget(value, defaultPort = DEFAULT_SYNC_PORT) {
+    if (value && typeof value === 'object') {
+        if (!value.ip && value.address) {
+            return parseLanTarget(value.address, defaultPort);
+        }
+        const ip = value.ip || value.host || '';
+        const port = normalizePort(value.port, defaultPort);
+        if (!isValidIp(ip) || !port) return null;
+        return {
+            ip,
+            port,
+            address: `${ip}:${port}`,
+            baseUrl: `http://${ip}:${port}`,
+        };
+    }
+
+    let raw = String(value || '').trim();
+    if (!raw) return null;
+
+    try {
+        if (/^https?:\/\//i.test(raw)) {
+            const url = new URL(raw);
+            raw = url.host;
+        }
+    } catch (e) {
+        return null;
+    }
+
+    raw = raw.replace(/^\/+/, '').split('/')[0].trim();
+    const match = raw.match(/^(\d{1,3}(?:\.\d{1,3}){3})(?::(\d{1,5}))?$/);
+    if (!match) return null;
+
+    const ip = match[1];
+    const port = normalizePort(match[2], defaultPort);
+    if (!isValidIp(ip) || !port) return null;
+
+    return {
+        ip,
+        port,
+        address: `${ip}:${port}`,
+        baseUrl: `http://${ip}:${port}`,
+    };
+}
+
+export function buildLanBaseUrl(target) {
+    const parsed = parseLanTarget(target);
+    if (!parsed) throw new Error('无效的 PC 地址');
+    return parsed.baseUrl;
+}
+
+export function formatLanAddress(target) {
+    const parsed = parseLanTarget(target);
+    return parsed ? parsed.address : '';
+}
+
 export class LanScanner {
     constructor() {
         this._abortController = null;
@@ -53,10 +159,15 @@ export class LanScanner {
         });
     }
 
-    _normalizeScanOptions(portOrOptions = 8888, timeout = 1500) {
+    _normalizeScanOptions(portOrOptions = DEFAULT_SYNC_PORT, timeout = 1500) {
         if (typeof portOrOptions === 'object' && portOrOptions !== null) {
+            const hasExplicitPort = Object.prototype.hasOwnProperty.call(portOrOptions, 'port');
+            const fallbackPorts = hasExplicitPort
+                ? normalizePorts(portOrOptions.port, [DEFAULT_SYNC_PORT])
+                : DEFAULT_SCAN_PORTS;
             return {
-                port: portOrOptions.port || 8888,
+                port: normalizePort(portOrOptions.port, DEFAULT_SYNC_PORT) || DEFAULT_SYNC_PORT,
+                ports: normalizePorts(portOrOptions.ports || portOrOptions.port, fallbackPorts),
                 timeout: portOrOptions.timeout || 1500,
                 subnets: portOrOptions.subnets || null,
                 recentHosts: portOrOptions.recentHosts || [],
@@ -66,8 +177,10 @@ export class LanScanner {
                 onProgress: portOrOptions.onProgress || null,
             };
         }
+        const port = normalizePort(portOrOptions, DEFAULT_SYNC_PORT) || DEFAULT_SYNC_PORT;
         return {
-            port: portOrOptions || 8888,
+            port,
+            ports: [port],
             timeout,
             subnets: null,
             recentHosts: [],
@@ -85,20 +198,26 @@ export class LanScanner {
     }
 
     _isValidIp(ip) {
-        return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip || '') &&
-            ip.split('.').every(part => Number(part) >= 0 && Number(part) <= 255);
+        return isValidIp(ip);
     }
 
     _normalizeHost(host) {
         if (typeof host === 'string') {
-            return { ip: host, source: 'recent' };
+            const target = parseLanTarget(host);
+            return target ? { ...target, source: 'recent', portExplicit: hasExplicitPort(host) } : null;
         }
         if (host && typeof host === 'object') {
+            const target = parseLanTarget(host);
+            if (!target) return null;
             return {
-                ip: host.ip,
+                ...target,
                 name: host.name,
                 source: host.source || 'recent',
                 lastSyncAt: host.lastSyncAt,
+                deviceId: host.deviceId,
+                token: host.token,
+                capabilities: host.capabilities,
+                portExplicit: hasExplicitPort(host),
             };
         }
         return null;
@@ -109,8 +228,8 @@ export class LanScanner {
         const result = [];
         for (const host of hosts) {
             const item = this._normalizeHost(host);
-            if (!item || !this._isValidIp(item.ip) || seen.has(item.ip)) continue;
-            seen.add(item.ip);
+            if (!item || !this._isValidIp(item.ip) || seen.has(item.address)) continue;
+            seen.add(item.address);
             result.push(item);
         }
         return result;
@@ -144,24 +263,27 @@ export class LanScanner {
             : fallback);
     }
 
-    _buildSubnetHosts(subnet, start, end) {
+    _buildSubnetHosts(subnet, start, end, ports = [DEFAULT_SYNC_PORT]) {
         const hosts = [];
         const from = Math.max(1, Number(start) || 1);
         const to = Math.min(254, Number(end) || 254);
         for (let i = from; i <= to; i++) {
-            hosts.push({ ip: `${subnet}.${i}`, source: 'subnet' });
+            for (const port of ports) {
+                hosts.push({ ip: `${subnet}.${i}`, port, source: 'subnet' });
+            }
         }
         return hosts;
     }
 
     _pushDevice(devices, seen, device) {
-        if (!device || seen.has(device.ip)) return;
-        seen.add(device.ip);
+        const key = device ? `${device.ip}:${device.port}` : '';
+        if (!device || seen.has(key)) return;
+        seen.add(key);
         devices.push(device);
         if (this.onDeviceFound) this.onDeviceFound(device);
     }
 
-    async scan(portOrOptions = 8888, timeout = 1500) {
+    async scan(portOrOptions = DEFAULT_SYNC_PORT, timeout = 1500) {
         if (this._scanning) return [];
         this._scanning = true;
         this._abortController = new AbortController();
@@ -172,17 +294,21 @@ export class LanScanner {
             const devices = [];
             const foundIps = new Set();
             const recentHosts = this._uniqueHosts(options.recentHosts);
+            const recentTargets = recentHosts.flatMap(host => {
+                const ports = host.portExplicit ? [host.port] : options.ports;
+                return ports.map(port => ({ ...host, port, address: `${host.ip}:${port}` }));
+            });
 
-            if (recentHosts.length > 0) {
+            if (recentTargets.length > 0) {
                 this._emitProgress({
                     phase: 'recent',
                     message: '正在检查最近连接过的 PC',
                     current: 0,
-                    total: recentHosts.length,
+                    total: recentTargets.length,
                 }, options.onProgress);
 
                 const recentResults = await Promise.allSettled(
-                    recentHosts.map(host => this._checkHost(host.ip, options.port, options.timeout, signal, host))
+                    recentTargets.map(host => this._checkHost(host.ip, host.port, options.timeout, signal, host))
                 );
                 for (let i = 0; i < recentResults.length; i++) {
                     if (signal.aborted) break;
@@ -194,7 +320,7 @@ export class LanScanner {
                         phase: 'recent',
                         message: '正在检查最近连接过的 PC',
                         current: i + 1,
-                        total: recentHosts.length,
+                        total: recentTargets.length,
                     }, options.onProgress);
                 }
             }
@@ -208,13 +334,15 @@ export class LanScanner {
 
             const localIP = await this.getLocalIP();
             const subnets = this._uniqueSubnets(options.subnets || this._getDefaultSubnets(localIP));
-            const totalHosts = subnets.length * (Math.min(254, options.rangeEnd) - Math.max(1, options.rangeStart) + 1);
+            const totalHosts = subnets.length *
+                (Math.min(254, options.rangeEnd) - Math.max(1, options.rangeStart) + 1) *
+                options.ports.length;
             let checkedHosts = 0;
 
             for (const subnet of subnets) {
                 if (signal.aborted) break;
 
-                const tasks = this._buildSubnetHosts(subnet, options.rangeStart, options.rangeEnd);
+                const tasks = this._buildSubnetHosts(subnet, options.rangeStart, options.rangeEnd, options.ports);
                 this._emitProgress({
                     phase: 'subnet',
                     subnet,
@@ -229,7 +357,7 @@ export class LanScanner {
 
                     const batch = tasks.slice(i, i + options.concurrency);
                     const results = await Promise.allSettled(
-                        batch.map(host => this._checkHost(host.ip, options.port, options.timeout, signal, host))
+                        batch.map(host => this._checkHost(host.ip, host.port, options.timeout, signal, host))
                     );
                     checkedHosts += batch.length;
 
@@ -284,10 +412,12 @@ export class LanScanner {
 
             const data = await res.json();
             if (data.status !== 'ok') return null;
+            const resolvedPort = normalizePort(data.port, port) || port;
 
             return {
                 ip,
-                port,
+                port: resolvedPort,
+                address: `${ip}:${resolvedPort}`,
                 name: data.device_name || meta.name || ip,
                 deviceId: data.device_id || meta.deviceId || '',
                 syncVersion: data.sync_version || 1,
@@ -349,7 +479,9 @@ export class LanSync {
 
         this._abortController = new AbortController();
         const signal = this._abortController.signal;
-        const baseUrl = `http://${serverIp}:8888`;
+        const target = parseLanTarget(serverIp);
+        if (!target) throw new Error('无效的 PC 地址');
+        const baseUrl = target.baseUrl;
 
         try {
             this._setState(SyncState.CONNECTING);
@@ -375,7 +507,12 @@ export class LanSync {
             this._setProgress(3, 3, '校验数据...');
             const verifyResult = await this._verifyData(syncData.sync_meta, downloadResult);
 
-            this.report = this._buildReport(mergeResult, downloadResult, verifyResult);
+            this.report = {
+                ...this._buildReport(mergeResult, downloadResult, verifyResult),
+                ip: target.ip,
+                port: target.port,
+                address: target.address,
+            };
 
             if (verifyResult.pass && downloadResult.failed.length === 0) {
                 this._setState(SyncState.SUCCESS);
@@ -572,13 +709,15 @@ export class LanSync {
     }
 
     async getCapabilities(serverIp) {
-        const res = await fetch(`http://${serverIp}:8888/api/sync/capabilities`);
+        const baseUrl = buildLanBaseUrl(serverIp);
+        const res = await fetch(`${baseUrl}/api/sync/capabilities`);
         if (!res.ok) throw new Error('无法读取 PC 互通能力');
         return res.json();
     }
 
     async getPairing(serverIp) {
-        const res = await fetch(`http://${serverIp}:8888/api/sync/pairing`);
+        const baseUrl = buildLanBaseUrl(serverIp);
+        const res = await fetch(`${baseUrl}/api/sync/pairing`);
         if (!res.ok) throw new Error('无法获取配对令牌');
         return res.json();
     }
@@ -602,7 +741,9 @@ export class LanSync {
 
         this._abortController = new AbortController();
         const signal = this._abortController.signal;
-        const baseUrl = `http://${serverIp}:8888`;
+        const target = parseLanTarget(serverIp);
+        if (!target) throw new Error('无效的 PC 地址');
+        const baseUrl = target.baseUrl;
         const mode = options.mode || 'keep_pc';
 
         try {
@@ -643,6 +784,9 @@ export class LanSync {
                 success: !!report.success,
                 mode,
                 token,
+                ip: target.ip,
+                port: target.port,
+                address: target.address,
                 added: report.added || 0,
                 updated: report.updated || 0,
                 conflicts: report.conflicts || 0,
