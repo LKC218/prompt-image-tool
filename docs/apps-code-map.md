@@ -4,7 +4,7 @@
 
 ## 项目入口
 
-- `README.md`：项目级快速开始、目录说明和仓库规范入口。
+- `README.md`：GitHub 仓库首页介绍、界面预览、下载入口、快速开始、文档入口和仓库规范入口。
 - `package.json`：前端、测试、Tauri、Capacitor 脚本入口。
 - `vite.config.js`：Vite 配置，当前前端根目录为 `src`。
 - `capacitor.config.ts`：Capacitor 配置，当前 Web 输出目录为 `dist`。
@@ -49,6 +49,7 @@
 - `src/assets/`：应用运行时使用的前端资源。
 - `src/assets/pc/home-folder.png`：PC 首页收藏分类卡片使用的本地文件夹插画图标。
 - `src/assets/pc/detail-image-placeholder.png`：PC 提示词详情页无封面状态使用的图片占位插画。
+- `docs/assets/readme/`：README 首页展示素材目录，保存仓库首页图标和 PC/移动端预览截图。
 - `UI设计稿/`：原始设计稿和视觉参考。
 - `releases/`：发布产物落点，仅保留占位文件；安装包通过本地构建或 GitHub Releases 分发，不进入 Git。
 - `dist/`：Vite 构建输出。
