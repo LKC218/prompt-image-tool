@@ -1,0 +1,36 @@
+{
+  "$schema": "../../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "提示词管家安装向导",
+  "version": "2.3.1",
+  "identifier": "com.promptimagemanager.installershell",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "提示词管家安装向导",
+        "label": "main",
+        "width": 1280,
+        "height": 720,
+        "minWidth": 1280,
+        "minHeight": 720,
+        "resizable": false,
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "resources": [
+      "../../build/PromptImageManager-Setup-2.3.1.exe"
+    ]
+  }
+}

@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.vscode/
 .venv/
 venv/
 __pycache__/
@@ -31,6 +32,12 @@ android/app/debug/
 android/app/release/
 
 src-tauri/target/
+installer-shell/src-tauri/target/
+installer-shell/preview/
+installer-shell/preview/chrome-profile*/
+installer-shell/preview/edge-metrics-profile*/
+installer-shell/preview/*.log
+installer-shell/preview/*.err.log
 src-tauri/gen/
 src-tauri/.tauri/
 

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>提示词管家安装向导原型</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main id="installer-app" class="installer-shell" aria-label="提示词管家安装向导">
+      <img class="sky-bg" src="./assets/installer-welcome/welcome-sky.jpg" alt="" aria-hidden="true" />
+
+      <div class="titlebar" data-tauri-drag-region>
+        <button id="minimize" class="window-action" type="button" aria-label="最小化">
+          <span aria-hidden="true"></span>
+        </button>
+        <button id="close" class="window-action close" type="button" aria-label="关闭">
+          <span aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <section class="brand-panel" aria-label="提示词管家">
+        <img class="brand-icon" src="./assets/installer-welcome/app-icon.png" alt="" aria-hidden="true" />
+        <div class="brand-copy">
+          <h1>提示词管家</h1>
+          <p>你的灵感，你的提示词，都在你手中</p>
+        </div>
+        <span class="tiny-heart" aria-hidden="true"></span>
+      </section>
+
+      <div id="installer-page"></div>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

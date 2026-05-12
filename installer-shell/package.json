@@ -1,0 +1,9 @@
+{
+  "name": "prompt-image-manager-installer-shell",
+  "version": "2.3.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri"
+  }
+}

@@ -40,6 +40,7 @@
 - `python/data/.gitkeep`：运行时数据目录占位文件；真实提示词数据、备份和图片由 `.gitignore` 排除，不进入 Git。
 - `src-tauri/`：Tauri 桌面端工程。
 - `src-tauri/tauri.conf.json`：Tauri 桌面端应用配置，包含 PC 默认窗口尺寸、最小窗口尺寸、窗口居中、构建命令和打包配置；PC UI 默认窗口采用 `1366 x 768`，最小窗口采用 `1024 x 576`。
+- `installer-shell/`：Tauri 安装器壳工程，隔离验证参考图风格安装向导 UI、无边框窗口配置和调用 NSIS 静默安装的 Rust 命令；`installer-shell/src-tauri/tauri.conf.json` 需启用 `app.withGlobalTauri`，让静态页面通过 `window.__TAURI__.core.invoke` 调用安装、路径校验、快捷方式和启动命令；`installer-shell/src-tauri/capabilities/default.json` 显式开放窗口关闭、最小化和拖动能力；`installer-shell/src/pages/` 承载安装步骤页面模块，当前已拆分欢迎页、许可协议页、安装位置页、附加任务页、准备安装页、正在安装页和安装完成页；欢迎页使用 `installer-shell/src/assets/installer-welcome/` 的压缩本地图片复刻书本安装器首屏，品牌区固定在窗口左上天空留白区，右页标题、卖点和按钮固定在书页安全区；许可协议页使用 `installer-shell/src/assets/installer-license/` 的压缩本地图片承载双页书本与左页插画；安装位置页使用 `installer-shell/src/assets/installer-location/` 的压缩本地图片承载书本主体、左页场景和右页纸张底纹，默认路径指向当前用户下载目录下的 `PIM-Test`，Rust 调度层负责将 `%USERPROFILE%` 与 `%LOCALAPPDATA%` 前缀展开为真实本地用户目录并校验目录可写性；附加任务页使用 `installer-shell/src/assets/installer-tasks/` 的压缩本地图片承载安装前任务选择书本主体，并用真实 DOM 实现复选框、应用摘要和下一步按钮；准备安装页使用同一书本资产承载最终确认摘要，点击开始安装后才触发安装；正在安装页使用 `installer-shell/src/assets/installer-installing/` 的压缩本地图片承载安装中书本主体，并用真实 DOM 实现阶段式进度、当前动作、阶段列表、失败重试和修改设置；安装完成页使用 `installer-shell/src/assets/installer-complete/` 的压缩本地图片承载完成页书本主体，并用真实 DOM 实现成功状态、完成后选项、桌面和开始菜单快捷方式收尾、完成按钮退出安装窗口，快捷方式失败时只展示收尾警告，不阻断主安装完成；`embedded-installer` feature 用于正式打包时把 `build/PromptImageManager-Setup-2.3.1.exe` 嵌入壳体，输出双击后先显示自定义 UI 的安装器壳 EXE。
 - `android/`：Capacitor Android 原生工程。
 - `scripts/`：不属于运行时源码的专项工具脚本。
 
@@ -62,7 +63,7 @@
 - `docs/设计文档/`：UI/UX 设计系统、组件规范和响应式设计。
 - `docs/工程文档/`：工程交接、迁移和目录职责说明。
 - `docs/工程目录整理/`：目录治理计划、扫描记录和整理方案。
-- `docs/项目开发经验/`：可复用工程规范、问题经验和跨页面实施约定；其中 `项目开发经验.md` 记录局域网双端同步内容比较等通用经验，`安装包中文编码与快捷方式图标规范.md` 记录 Windows 安装包中文编码与快捷方式图标预检规则。
+- `docs/项目开发经验/`：可复用工程规范、问题经验和跨页面实施约定；其中 `项目开发经验.md` 记录局域网双端同步内容比较、Windows 安装包端口独占、安装器壳全局 Tauri API 等通用经验，`安装包中文编码与快捷方式图标规范.md` 记录 Windows 安装包中文编码与快捷方式图标预检规则。
 - `docs/UI计划/`：PC 与移动端 UI 计划和设计文档。
 - `docs/构建方案/`：构建、安装包和平台打包方案。
 - `docs/计划文档/`：版本计划和功能实施计划。
@@ -83,7 +84,15 @@
 ## PC 快速构建入口
 
 - `scripts/build_pc_package.py`：PC 独立安装包非交互式构建脚本，执行 `Vite -> PyInstaller -> NSIS -> releases`。
+- `scripts/build_installer_shell_package.py`：Tauri 安装器壳发布产物构建脚本，执行 `检查现有 NSIS 安装核心 -> JS/Rust 检查 -> Tauri release build embedded-installer -> releases`。
 - `scripts/build_android_package.py`：Android 安装包非交互式构建脚本，执行 `Vite -> Capacitor sync -> Java 版本修补 -> Gradle assembleRelease -> releases`。
 - `scripts/build_release_packages.py`：PC 与 Android 发布包总构建入口，支持单端或全量构建。
 - `docs/构建方案/PC独立安装包快速打包流程.md`：PC 快速打包流程说明与常见问题。
 - `docs/构建方案/Android安装包构建方案.md`：Android 安装包构建、签名与发布产物说明。
+
+## Tauri 安装器壳 UI 规则入口
+
+- `docs/设计文档/Tauri-安装器壳-UI-设计规则-260510.md`：基于参考图片搭建 Tauri 安装器壳界面的视觉、布局、步骤、状态和工程边界规则。
+- `docs/计划文档/Tauri安装器壳-全页面功能完善计划-260511.md`：安装器壳全页面功能完善实施计划，覆盖准备安装页、安装位置、附加任务、安装阶段、完成收尾和真实安装闭环验证。
+- `docs/计划文档/Tauri安装器壳-安装路径窗口控制完成退出计划-260512.md`：安装器壳安装路径默认下载目录、窗口拖动与控制按钮、完成页退出行为的实施计划。
+- `docs/计划文档/项目缓存清理与未引用文件整理计划-260512.md`：项目缓存、构建产物、安装器壳预览缓存和未跟踪设计/文档文件的分类清理计划。
