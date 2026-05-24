@@ -12,6 +12,8 @@ import mimetypes
 import platform
 import time
 import secrets
+import hashlib
+import shutil
 from datetime import datetime
 
 try:
@@ -64,6 +66,12 @@ SYNC_DEVICE_FILE = os.path.join(DATA_DIR, 'sync-device.json')
 FRONTEND_DIR = get_frontend_dir()
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 8888
+EXPORT_SAVE_MODES = {'downloads', 'custom'}
+IMAGE_DOWNLOAD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+
+
+class DataFileError(RuntimeError):
+    pass
 
 
 class ExclusiveThreadingTCPServer(socketserver.ThreadingTCPServer):
@@ -81,42 +89,53 @@ def ensure_dirs():
     os.makedirs(BACKUPS_DIR, exist_ok=True)
 
 
-def load_data():
-    if os.path.exists(DATA_FILE):
+def load_json_list(file_path, label):
+    if os.path.exists(file_path):
         try:
-            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read().strip()
-                if not content:
-                    return []
-                return json.loads(content)
-        except (json.JSONDecodeError, IOError):
-            return []
+            if not content:
+                raise DataFileError(f'{label} 数据文件为空，请先从备份恢复')
+            data = json.loads(content)
+            if not isinstance(data, list):
+                raise DataFileError(f'{label} 数据格式异常，请先从备份恢复')
+            return data
+        except json.JSONDecodeError as exc:
+            raise DataFileError(f'{label} 数据文件损坏，请先从备份恢复') from exc
+        except IOError as exc:
+            raise DataFileError(f'{label} 数据文件读取失败，请检查文件权限') from exc
     return []
+
+
+def save_json_atomic(file_path, data):
+    ensure_dirs()
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    temp_file = f'{file_path}.{os.getpid()}.tmp'
+    try:
+        with open(temp_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+            shutil.copy2(file_path, f'{file_path}.bak')
+        os.replace(temp_file, file_path)
+    finally:
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+
+
+def load_data():
+    return load_json_list(DATA_FILE, '提示词')
 
 
 def save_data(data):
-    ensure_dirs()
-    with open(DATA_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    save_json_atomic(DATA_FILE, data)
 
 
 def load_folders():
-    if os.path.exists(FOLDERS_FILE):
-        try:
-            with open(FOLDERS_FILE, 'r', encoding='utf-8') as f:
-                content = f.read().strip()
-                if not content:
-                    return []
-                return json.loads(content)
-        except (json.JSONDecodeError, IOError):
-            return []
-    return []
+    return load_json_list(FOLDERS_FILE, '分类')
 
 
 def save_folders(data):
-    ensure_dirs()
-    with open(FOLDERS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    save_json_atomic(FOLDERS_FILE, data)
 
 
 def load_sync_device():
@@ -316,15 +335,216 @@ def build_backup_filename(filename=None):
     return raw
 
 
+def get_downloads_dir():
+    if platform.system() == 'Windows':
+        try:
+            import winreg
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r'Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders',
+            ) as key:
+                value, _ = winreg.QueryValueEx(key, '{374DE290-123F-4565-9164-39C4925E467B}')
+                return os.path.abspath(os.path.expandvars(value))
+        except Exception:
+            pass
+    downloads = os.path.join(os.path.expanduser('~'), 'Downloads')
+    return os.path.abspath(downloads)
+
+
+def build_backup_target_path(filename=None, directory=None, target_path=None):
+    if target_path:
+        target_path = os.path.abspath(os.path.expanduser(str(target_path)))
+        directory = os.path.dirname(target_path)
+        safe_name = build_backup_filename(os.path.basename(target_path))
+    else:
+        directory = os.path.abspath(os.path.expanduser(str(directory or get_downloads_dir())))
+        safe_name = build_backup_filename(filename)
+
+    if not directory:
+        raise ValueError('导出目录不能为空')
+
+    os.makedirs(directory, exist_ok=True)
+    return os.path.join(directory, safe_name), safe_name, directory
+
+
+def choose_backup_file_path(filename=None):
+    result = {'path': None, 'error': None}
+
+    def run_dialog():
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+
+            root = tk.Tk()
+            root.withdraw()
+            root.update_idletasks()
+            try:
+                root.attributes('-topmost', True)
+                root.lift()
+                root.focus_force()
+            except tk.TclError:
+                pass
+            result['path'] = filedialog.asksaveasfilename(
+                parent=root,
+                title='选择 JSON 导出位置',
+                initialdir=get_downloads_dir(),
+                initialfile=build_backup_filename(filename),
+                defaultextension='.json',
+                filetypes=[('JSON 文件', '*.json'), ('所有文件', '*.*')],
+            ) or None
+            root.destroy()
+        except Exception as e:
+            result['error'] = e
+
+    thread = threading.Thread(target=run_dialog, daemon=True)
+    thread.start()
+    thread.join()
+
+    if result['error']:
+        raise result['error']
+    return result['path']
+
+
+def build_image_download_filename(filename=None, source_name=None):
+    raw = os.path.basename(str(filename or source_name or '').strip())
+    if not raw:
+        raw = 'preview.png'
+    for char in '<>:"/\\|?*':
+        raw = raw.replace(char, '_')
+    raw = raw.lstrip('.').strip() or 'preview'
+    root, ext = os.path.splitext(raw)
+    source_ext = os.path.splitext(source_name or '')[1].lower()
+    ext = ext.lower()
+    if ext not in IMAGE_DOWNLOAD_EXTENSIONS:
+        ext = source_ext if source_ext in IMAGE_DOWNLOAD_EXTENSIONS else '.png'
+    return f'{root or "preview"}{ext}'
+
+
+def build_image_download_target_path(filename=None, source_name=None, directory=None, target_path=None):
+    if target_path:
+        target_path = os.path.abspath(os.path.expanduser(str(target_path)))
+        directory = os.path.dirname(target_path)
+        safe_name = build_image_download_filename(os.path.basename(target_path), source_name)
+    else:
+        directory = os.path.abspath(os.path.expanduser(str(directory or get_downloads_dir())))
+        safe_name = build_image_download_filename(filename, source_name)
+
+    if not directory:
+        raise ValueError('图片下载目录不能为空')
+
+    os.makedirs(directory, exist_ok=True)
+    return os.path.join(directory, safe_name), safe_name, directory
+
+
+def choose_image_download_path(filename=None, source_name=None):
+    result = {'path': None, 'error': None}
+
+    def run_dialog():
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+
+            safe_name = build_image_download_filename(filename, source_name)
+            ext = os.path.splitext(safe_name)[1].lower() or '.png'
+            root = tk.Tk()
+            root.withdraw()
+            root.update_idletasks()
+            try:
+                root.attributes('-topmost', True)
+                root.lift()
+                root.focus_force()
+            except tk.TclError:
+                pass
+            result['path'] = filedialog.asksaveasfilename(
+                parent=root,
+                title='选择图片下载位置',
+                initialdir=get_downloads_dir(),
+                initialfile=safe_name,
+                defaultextension=ext,
+                filetypes=[
+                    ('图片文件', '*.png *.jpg *.jpeg *.webp *.gif'),
+                    ('所有文件', '*.*'),
+                ],
+            ) or None
+            root.destroy()
+        except Exception as e:
+            result['error'] = e
+
+    thread = threading.Thread(target=run_dialog, daemon=True)
+    thread.start()
+    thread.join()
+
+    if result['error']:
+        raise result['error']
+    return result['path']
+
+
+def save_image_download_file(source_file=None, filename=None, directory=None, target_path=None, save_mode='custom'):
+    source_path, safe_source = get_safe_image_path(source_file)
+    source_ext = os.path.splitext(safe_source)[1].lower()
+    if not source_path or source_ext not in IMAGE_DOWNLOAD_EXTENSIONS:
+        raise ValueError('无效图片文件')
+
+    images_root = os.path.abspath(IMAGES_DIR)
+    source_abs = os.path.abspath(source_path)
+    if not source_abs.startswith(images_root + os.sep) or not os.path.exists(source_abs):
+        raise ValueError('图片文件不存在')
+
+    if save_mode == 'custom' and not target_path and not directory:
+        selected_path = choose_image_download_path(filename, safe_source)
+        if not selected_path:
+            return {
+                'success': False,
+                'canceled': True,
+                'filename': build_image_download_filename(filename, safe_source),
+                'saveMode': save_mode,
+            }
+        target_path = selected_path
+
+    output_path, safe_name, output_dir = build_image_download_target_path(
+        filename=filename,
+        source_name=safe_source,
+        directory=directory,
+        target_path=target_path,
+    )
+
+    with open(source_abs, 'rb') as f:
+        content = f.read()
+    with open(output_path, 'wb') as f:
+        f.write(content)
+
+    return {
+        'success': True,
+        'filename': safe_name,
+        'path': output_path,
+        'directory': output_dir,
+        'saveMode': save_mode,
+        'locationLabel': '自定义位置' if save_mode == 'custom' else '下载目录',
+        'size': len(content),
+        'contentType': get_image_content_type(safe_name),
+    }
+
+
 def count_backup_versions(prompt_sets):
     return sum(len(item.get('versions', [])) for item in prompt_sets)
 
 
-def save_backup_file(filename=None):
+def save_backup_file(filename=None, directory=None, target_path=None, save_mode='downloads'):
     ensure_dirs()
+    save_mode = save_mode if save_mode in EXPORT_SAVE_MODES else 'downloads'
+    if save_mode == 'custom' and not directory and not target_path:
+        target_path = choose_backup_file_path(filename)
+        if not target_path:
+            return {
+                'success': False,
+                'canceled': True,
+                'method': 'backend',
+                'saveMode': save_mode,
+                'filename': build_backup_filename(filename),
+            }
+
     payload = build_backup_payload()
-    safe_name = build_backup_filename(filename)
-    filepath = os.path.join(BACKUPS_DIR, safe_name)
+    filepath, safe_name, target_dir = build_backup_target_path(filename, directory, target_path)
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
@@ -333,7 +553,10 @@ def save_backup_file(filename=None):
         'success': True,
         'filename': safe_name,
         'path': filepath,
-        'directory': BACKUPS_DIR,
+        'directory': target_dir,
+        'method': 'backend',
+        'saveMode': save_mode,
+        'locationLabel': '下载目录' if save_mode == 'downloads' else '自定义位置',
         'size': os.path.getsize(filepath),
         'promptSetCount': len(prompt_sets),
         'versionCount': count_backup_versions(prompt_sets),
@@ -410,30 +633,69 @@ def normalize_prompt_for_compare(prompt_set):
     }
 
 
+def prompt_content_digest(prompt_set):
+    normalized = normalize_prompt_for_compare(prompt_set)
+    text = json.dumps(normalized, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+    return hashlib.sha256(text.encode('utf-8')).hexdigest()
+
+
+def build_field_diffs(left, right):
+    left_normalized = normalize_prompt_for_compare(left)
+    right_normalized = normalize_prompt_for_compare(right)
+    labels = {
+        'name': '\u6807\u9898',
+        'folderId': '\u5206\u7c7b',
+        'tags': '\u6807\u7b7e',
+        'isFavorite': '\u6536\u85cf\u72b6\u6001',
+        'versions': '\u7248\u672c\u5185\u5bb9',
+    }
+    diffs = []
+    for key, label in labels.items():
+        if left_normalized.get(key) != right_normalized.get(key):
+            diffs.append({'field': key, 'label': label})
+    return diffs
+
+
 def is_same_prompt_set(left, right):
-    return json.dumps(
-        normalize_prompt_for_compare(left),
-        ensure_ascii=False,
-        sort_keys=True,
-    ) == json.dumps(
-        normalize_prompt_for_compare(right),
-        ensure_ascii=False,
-        sort_keys=True,
-    )
+    return prompt_content_digest(left) == prompt_content_digest(right)
 
 
-def create_conflict_copy(prompt_set, source='Android'):
+def build_conflict_key(prompt_set, source='Android', direction='push'):
+    original_id = prompt_set.get('id') or ''
+    source_device = prompt_set.get('syncMeta', {}).get('sourceDeviceId') or source
+    digest = prompt_content_digest(prompt_set)
+    raw = f'{source_device}|{original_id}|{digest}|{direction}'
+    return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
+
+def find_conflict_copy(data, conflict_key):
+    if not conflict_key:
+        return None
+    for item in data:
+        sync_meta = item.get('syncMeta') if isinstance(item, dict) else None
+        if isinstance(sync_meta, dict) and sync_meta.get('conflictKey') == conflict_key:
+            return item
+    return None
+
+
+def create_conflict_copy(prompt_set, source='Android', conflict_key=None):
     copied = json.loads(json.dumps(prompt_set, ensure_ascii=False))
     original_id = copied.get('id') or str(uuid.uuid4())[:8]
-    suffix = str(uuid.uuid4())[:8]
+    conflict_key = conflict_key or build_conflict_key(copied, source)
+    suffix = conflict_key[:8]
     id_map = {}
     copied['id'] = f'{original_id}-conflict-{suffix}'
-    copied['name'] = (
-        f"{copied.get('name') or '\\u672a\\u547d\\u540d\\u63d0\\u793a\\u8bcd\\u96c6\\u5408'}"
-        f" ({source} conflict copy)"
-    )
+    default_name = '\u672a\u547d\u540d\u63d0\u793a\u8bcd\u96c6\u5408'
+    copied['name'] = f"{copied.get('name') or default_name}\uff08{source}\u51b2\u7a81\u526f\u672c\uff09"
     copied['updatedAt'] = datetime.now().isoformat()
     copied['createdAt'] = copied.get('createdAt') or copied.get('created_at') or copied['updatedAt']
+    copied['syncMeta'] = {
+        **(copied.get('syncMeta') if isinstance(copied.get('syncMeta'), dict) else {}),
+        'sourceDeviceId': copied.get('syncMeta', {}).get('sourceDeviceId') if isinstance(copied.get('syncMeta'), dict) else source,
+        'conflictKey': conflict_key,
+        'originalId': original_id,
+        'createdBySync': True,
+    }
 
     for idx, version in enumerate(copied.get('versions', [])):
         old_version_id = version.get('id') or f'{original_id}_v{idx}'
@@ -449,9 +711,119 @@ def create_conflict_copy(prompt_set, source='Android'):
     return copied
 
 
+def create_sync_backup(label='sync'):
+    ensure_dirs()
+    os.makedirs(BACKUPS_DIR, exist_ok=True)
+    safe_label = ''.join(c if c.isalnum() or c in ('-', '_') else '-' for c in label) or 'sync'
+    filename = f'{safe_label}-backup-{datetime.now().strftime("%Y%m%d-%H%M%S-%f")}.json'
+    path = os.path.join(BACKUPS_DIR, filename)
+    payload = {
+        'backup_meta': {
+            'format': 'prompt-image-tool-sync-backup',
+            'createdAt': datetime.now().isoformat(),
+            'reason': label,
+        },
+        'folders': load_folders(),
+        'prompt_sets': load_data(),
+    }
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    return path
+
+
+def build_sync_preview(folders, prompt_sets, mode='keep_pc', source='Android'):
+    if folders is None or not isinstance(prompt_sets, list):
+        return None
+
+    data = load_data()
+    existing_map = {s.get('id'): s for s in data if s.get('id')}
+    incoming_ids = {item.get('id') for item in prompt_sets if isinstance(item, dict) and item.get('id')}
+    items = []
+    added = 0
+    updated = 0
+    conflicts = 0
+    skipped = 0
+    invalid = 0
+    same = 0
+
+    for item in prompt_sets:
+        if not isinstance(item, dict) or not item.get('id') or not item.get('versions'):
+            invalid += 1
+            items.append({
+                'id': item.get('id', '') if isinstance(item, dict) else '',
+                'name': item.get('name', '') if isinstance(item, dict) else '',
+                'type': 'invalid',
+                'recommendedAction': 'skip',
+            })
+            continue
+
+        existing = existing_map.get(item['id'])
+        if not existing:
+            added += 1
+            items.append({
+                'id': item['id'],
+                'name': item.get('name', ''),
+                'type': 'only_android',
+                'recommendedAction': 'add',
+            })
+            continue
+
+        if is_same_prompt_set(existing, item):
+            same += 1
+            skipped += 1
+            items.append({
+                'id': item['id'],
+                'name': item.get('name', ''),
+                'type': 'same',
+                'recommendedAction': 'skip',
+            })
+            continue
+
+        conflicts += 1
+        conflict_key = build_conflict_key(item, source)
+        existing_copy = find_conflict_copy(data, conflict_key)
+        recommended = 'skip_existing_conflict_copy' if existing_copy else (
+            'skip' if mode == 'add_only' else 'create_conflict_copy'
+        )
+        items.append({
+            'id': item['id'],
+            'name': item.get('name', ''),
+            'type': 'conflict',
+            'conflictKey': conflict_key,
+            'existingConflictId': existing_copy.get('id') if existing_copy else '',
+            'fieldDiffs': build_field_diffs(existing, item),
+            'recommendedAction': recommended,
+        })
+        if existing_copy or mode == 'add_only':
+            skipped += 1
+        else:
+            added += 1
+
+    only_pc = len([item for item in data if item.get('id') and item.get('id') not in incoming_ids])
+    return {
+        'success': True,
+        'mode': mode,
+        'source': source,
+        'summary': {
+            'added': added,
+            'updated': updated,
+            'conflicts': conflicts,
+            'skipped': skipped,
+            'same': same,
+            'invalid': invalid,
+            'onlyPc': only_pc,
+            'incoming': len(prompt_sets),
+        },
+        'items': items,
+        'requiresConfirmation': conflicts > 0,
+    }
+
+
 def merge_import_payload(folders, prompt_sets, mode='replace', source='Android'):
     if folders is None or not isinstance(prompt_sets, list):
         return None
+
+    backup_path = create_sync_backup(f'{source}-{mode}')
 
     if isinstance(folders, list):
         current_folders = load_folders()
@@ -483,17 +855,32 @@ def merge_import_payload(folders, prompt_sets, mode='replace', source='Android')
             if is_same_prompt_set(existing, item):
                 skipped += 1
                 continue
+            conflict_key = build_conflict_key(item, source)
+            existing_conflict_copy = find_conflict_copy(data, conflict_key)
+            if existing_conflict_copy:
+                conflicts += 1
+                skipped += 1
+                conflict_items.append({
+                    'id': item['id'],
+                    'name': item.get('name', ''),
+                    'conflictId': existing_conflict_copy.get('id'),
+                    'conflictKey': conflict_key,
+                    'duplicate': True,
+                })
+                continue
             if mode == 'add_only':
                 conflicts += 1
                 skipped += 1
-                conflict_items.append({'id': item['id'], 'name': item.get('name', '')})
+                conflict_items.append({'id': item['id'], 'name': item.get('name', ''), 'conflictKey': conflict_key})
                 continue
-            target_item = create_conflict_copy(item, source)
+            target_item = create_conflict_copy(item, source, conflict_key)
             conflicts += 1
             conflict_items.append({
                 'id': item['id'],
                 'name': item.get('name', ''),
                 'conflictId': target_item['id'],
+                'conflictKey': conflict_key,
+                'fieldDiffs': build_field_diffs(existing, item),
             })
 
         prepared, image_count = prepare_import_prompt_set(target_item)
@@ -526,6 +913,7 @@ def merge_import_payload(folders, prompt_sets, mode='replace', source='Android')
         'imagesRestored': restored_images,
         'conflictItems': conflict_items,
         'mode': mode,
+        'backupPath': backup_path,
     }
 
 
@@ -673,10 +1061,14 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_export()
         elif path == '/api/export-file':
             self.handle_export_file()
+        elif path == '/api/image-download-file':
+            self.handle_image_download_file()
         elif path == '/api/import':
             self.handle_import()
         elif path == '/api/sync/import':
             self.handle_sync_import()
+        elif path == '/api/sync/preview':
+            self.handle_sync_preview()
         elif path == '/api/sync/bidirectional':
             self.handle_sync_bidirectional()
         elif path.startswith('/api/image/'):
@@ -923,14 +1315,22 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
                 'createdAt': now
             }]
         }
-        data = load_data()
+        try:
+            data = load_data()
+        except DataFileError as e:
+            self.send_error_json(str(e), 500)
+            return
         data.append(new_set)
         save_data(data)
         self.send_json(new_set)
 
     def handle_update_prompt_set(self, set_id):
         body = self.read_body()
-        data = load_data()
+        try:
+            data = load_data()
+        except DataFileError as e:
+            self.send_error_json(str(e), 500)
+            return
         for s in data:
             if s['id'] == set_id:
                 if 'name' in body:
@@ -1118,8 +1518,36 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
 
     def handle_export_file(self):
         body = self.read_body()
-        filename = body.get('filename') if isinstance(body, dict) else None
-        self.send_json(save_backup_file(filename))
+        if not isinstance(body, dict):
+            body = {}
+        try:
+            self.send_json(save_backup_file(
+                filename=body.get('filename'),
+                directory=body.get('directory'),
+                target_path=body.get('targetPath'),
+                save_mode=body.get('saveMode', 'downloads'),
+            ))
+        except ValueError as e:
+            self.send_error_json(str(e), 400)
+        except Exception as e:
+            self.send_error_json(f'导出失败：{e}', 500)
+
+    def handle_image_download_file(self):
+        body = self.read_body()
+        if not isinstance(body, dict):
+            body = {}
+        try:
+            self.send_json(save_image_download_file(
+                source_file=body.get('sourceFile') or body.get('file'),
+                filename=body.get('filename'),
+                directory=body.get('directory'),
+                target_path=body.get('targetPath'),
+                save_mode=body.get('saveMode', 'custom'),
+            ))
+        except ValueError as e:
+            self.send_error_json(str(e), 400)
+        except Exception as e:
+            self.send_error_json(f'图片下载失败：{e}', 500)
 
     def handle_import(self):
         body = self.read_body()
@@ -1180,21 +1608,47 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         payload = body.get('payload') if isinstance(body, dict) and 'payload' in body else body
         folders, prompt_sets = normalize_import_payload(payload)
         import_mode = 'replace' if mode == 'android_wins' else mode
+        preview = build_sync_preview(folders, prompt_sets, mode=import_mode, source='Android')
         result = merge_import_payload(folders, prompt_sets, mode=import_mode, source='Android')
         if result is None:
             self.send_error_json('\u65e0\u6548\u540c\u6b65\u6570\u636e\u683c\u5f0f')
             return
         result['deviceName'] = self.headers.get('X-Device-Name', 'Android')
+        result['preview'] = preview
         self.send_json(result)
+
+    def handle_sync_preview(self):
+        if not self._sync_token_valid():
+            self.send_error_json('\u540c\u6b65\u4ee4\u724c\u65e0\u6548\uff0c\u8bf7\u91cd\u65b0\u914d\u5bf9', 401)
+            return
+        body = self.read_body()
+        mode = body.get('mode', 'keep_pc') if isinstance(body, dict) else 'keep_pc'
+        if mode not in ('keep_pc', 'add_only', 'android_wins', 'pull', 'bidirectional'):
+            mode = 'keep_pc'
+        payload = body.get('payload') if isinstance(body, dict) and 'payload' in body else body
+        folders, prompt_sets = normalize_import_payload(payload)
+        preview_mode = 'replace' if mode == 'android_wins' else mode
+        if preview_mode in ('pull', 'bidirectional'):
+            preview_mode = 'keep_pc'
+        preview = build_sync_preview(folders, prompt_sets, mode=preview_mode, source='Android')
+        if preview is None:
+            self.send_error_json('\u65e0\u6548\u540c\u6b65\u9884\u89c8\u6570\u636e\u683c\u5f0f')
+            return
+        self.send_json(preview)
 
     def handle_sync_bidirectional(self):
         if not self._sync_token_valid():
             self.send_error_json('\u540c\u6b65\u4ee4\u724c\u65e0\u6548\uff0c\u8bf7\u91cd\u65b0\u914d\u5bf9', 401)
             return
         body = self.read_body()
+        mode = body.get('mode', 'keep_pc') if isinstance(body, dict) else 'keep_pc'
+        if mode not in ('keep_pc', 'add_only', 'android_wins'):
+            mode = 'keep_pc'
         payload = body.get('payload') if isinstance(body, dict) and 'payload' in body else body
         folders, prompt_sets = normalize_import_payload(payload)
-        result = merge_import_payload(folders, prompt_sets, mode='keep_pc', source='Android')
+        import_mode = 'replace' if mode == 'android_wins' else mode
+        preview = build_sync_preview(folders, prompt_sets, mode=import_mode, source='Android')
+        result = merge_import_payload(folders, prompt_sets, mode=import_mode, source='Android')
         if result is None:
             self.send_error_json('\u65e0\u6548\u540c\u6b65\u6570\u636e\u683c\u5f0f')
             return
@@ -1202,6 +1656,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             'success': True,
             'pushReport': result,
             'syncData': build_sync_payload(),
+            'preview': preview,
         })
 
     def serve_image(self, relative_path):

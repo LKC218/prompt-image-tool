@@ -1,12 +1,19 @@
 import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showConfirmModal, copyToClipboard, showImageViewer, showContextMenu, escapeHtml, formatDate } from './pc-utils.js';
+import { formatPromptForDisplay } from './pc-prompt-ui-utils.js';
+import { pcIcon } from './pc-icon-assets.js';
 import safetyMascot from '../assets/mobile/mascots/corgi-settings.png';
 import detailImagePlaceholder from '../assets/pc/detail-image-placeholder.png';
+import deleteIcon from '../assets/pc/action-delete.png';
 
 const TAG_COLORS = ['pc-tag-blue', 'pc-tag-pink', 'pc-tag-green', 'pc-tag-yellow', 'pc-tag-purple'];
 const TAG_BG_COLORS = ['#EAF5FF', '#FFF0F5', '#EFFFF4', '#FFF8E0', '#EFE5FF'];
 const TAG_TEXT_COLORS = ['#2D8CFF', '#FF6B9A', '#29B37A', '#FFC94A', '#8A6BFF'];
+
+function iconImg(src, alt = '') {
+    return `<img src="${src}" alt="${escapeHtml(alt)}" class="pc-icon-img">`;
+}
 
 let promptSet = null;
 let activeVersionIndex = 0;
@@ -22,20 +29,20 @@ function render(params = {}) {
                     <h1 class="pc-detail-page-title">提示词详情</h1>
                     <nav class="pc-detail-breadcrumb" aria-label="当前位置">
                         <button class="pc-detail-breadcrumb-link" id="pcDetailBack" type="button">首页</button>
-                        <span class="pc-detail-breadcrumb-sep">›</span>
+                        <span class="pc-detail-breadcrumb-sep">${pcIcon('chevronRight', 'pc-detail-breadcrumb-icon')}</span>
                         <button class="pc-detail-breadcrumb-link" id="pcDetailLibraryCrumb" type="button">提示词库</button>
-                        <span class="pc-detail-breadcrumb-sep">›</span>
+                        <span class="pc-detail-breadcrumb-sep">${pcIcon('chevronRight', 'pc-detail-breadcrumb-icon')}</span>
                         <span class="pc-detail-breadcrumb-current" id="pcDetailBreadcrumbName">加载中</span>
                     </nav>
                 </div>
                 <div class="pc-detail-top-nav-actions">
-                    <button class="pc-detail-top-nav-btn" id="pcDetailStar" title="收藏" type="button">☆ 收藏</button>
-                    <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-more" id="pcDetailMoreTop" title="更多" type="button">⋯</button>
+                    <button class="pc-detail-top-nav-btn" id="pcDetailStar" title="收藏" type="button">${pcIcon('star', 'pc-detail-button-icon')}<span>收藏</span></button>
+                    <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-more" id="pcDetailMoreTop" title="更多" aria-label="更多" type="button">${pcIcon('moreHorizontal', 'pc-detail-button-icon')}</button>
                 </div>
             </div>
             <div class="pc-detail-page" id="pcDetailContent">
                 <div class="pc-empty-state" style="padding:80px 0;">
-                    <span class="pc-empty-icon">⏳</span>
+                    <span class="pc-empty-icon">${pcIcon('clock', 'pc-empty-icon-img')}</span>
                     <span class="pc-empty-text">加载中...</span>
                 </div>
             </div>
@@ -137,8 +144,8 @@ function renderCoverImage() {
             ${hasImages ? `
                 <div class="pc-detail-cover-img-wrap" id="pcDetailCoverImgWrap"></div>
                 ${hasMultiple ? `
-                    <button class="pc-detail-cover-nav pc-detail-cover-prev" id="pcDetailImgPrev">‹</button>
-                    <button class="pc-detail-cover-nav pc-detail-cover-next" id="pcDetailImgNext">›</button>
+                    <button class="pc-detail-cover-nav pc-detail-cover-prev" id="pcDetailImgPrev" type="button" aria-label="上一张">${pcIcon('chevronLeft', 'pc-detail-cover-nav-icon')}</button>
+                    <button class="pc-detail-cover-nav pc-detail-cover-next" id="pcDetailImgNext" type="button" aria-label="下一张">${pcIcon('chevronRight', 'pc-detail-cover-nav-icon')}</button>
                     <span class="pc-detail-cover-counter" id="pcDetailImgCounter">${currentImageIndex + 1} / ${imageUrls.length}</span>
                     <div class="pc-detail-cover-dots" id="pcDetailImgDots">
                         ${imageUrls.map((_, i) => `
@@ -202,7 +209,7 @@ function renderTitleRow(name, tags) {
                 </div>
             </div>
             <div class="pc-detail-fav">
-                <span class="pc-detail-fav-icon">♥</span>
+                <span class="pc-detail-fav-icon">${pcIcon('heart', 'pc-detail-fav-icon-img')}</span>
                 <span class="pc-detail-fav-count">${promptSet.isFavorite ? '1' : '0'}</span>
             </div>
         </div>
@@ -222,17 +229,17 @@ function renderMetaStrip(tags, set) {
     return `
         <div class="pc-detail-meta-strip pc-detail-fade-in">
             <div class="pc-detail-meta-item">
-                <span class="pc-detail-meta-icon">◎</span>
+                <span class="pc-detail-meta-icon">${pcIcon('calendar', 'pc-detail-meta-icon-img')}</span>
                 <span class="pc-detail-meta-label">创建时间</span>
                 <span class="pc-detail-meta-value">${formatDate(set.createdAt) || '-'}</span>
             </div>
             <div class="pc-detail-meta-item">
-                <span class="pc-detail-meta-icon">◇</span>
+                <span class="pc-detail-meta-icon">${pcIcon('tag', 'pc-detail-meta-icon-img')}</span>
                 <span class="pc-detail-meta-label">标签</span>
                 <span class="pc-detail-meta-tags">${renderTagPills(tags)}</span>
             </div>
             <div class="pc-detail-meta-item">
-                <span class="pc-detail-meta-icon">♙</span>
+                <span class="pc-detail-meta-icon">${pcIcon('user', 'pc-detail-meta-icon-img')}</span>
                 <span class="pc-detail-meta-label">创建者</span>
                 <span class="pc-detail-meta-value">提示词管家</span>
             </div>
@@ -241,18 +248,20 @@ function renderMetaStrip(tags, set) {
 }
 
 function renderPositivePromptCard(text) {
+    const displayText = formatPromptForDisplay(text);
+
     return `
         <div class="pc-detail-prompt-card pc-detail-fade-in">
             <div class="pc-detail-prompt-header">
                 <div class="pc-detail-prompt-header-left">
-                    <span class="pc-detail-prompt-icon">✨</span>
+                    <span class="pc-detail-prompt-icon pc-detail-prompt-icon-positive">${pcIcon('sparkles', 'pc-detail-prompt-icon-img')}</span>
                     <span class="pc-detail-prompt-title">正向提示词 (Positive)</span>
                 </div>
                 <button class="pc-detail-prompt-copy pc-detail-prompt-copy-positive" data-copy="positive">复制</button>
             </div>
             <div class="pc-detail-prompt-content pc-detail-prompt-content-positive">
-                ${text
-                    ? escapeHtml(text)
+                ${displayText
+                    ? escapeHtml(displayText)
                     : '<span class="pc-detail-prompt-empty">暂无正向提示词</span>'
                 }
             </div>
@@ -261,18 +270,20 @@ function renderPositivePromptCard(text) {
 }
 
 function renderNegativePromptCard(text) {
+    const displayText = formatPromptForDisplay(text);
+
     return `
         <div class="pc-detail-prompt-card pc-detail-fade-in">
             <div class="pc-detail-prompt-header">
                 <div class="pc-detail-prompt-header-left">
-                    <span class="pc-detail-prompt-icon">🚫</span>
+                    <span class="pc-detail-prompt-icon pc-detail-prompt-icon-negative">${pcIcon('ban', 'pc-detail-prompt-icon-img')}</span>
                     <span class="pc-detail-prompt-title">负向提示词 (Negative)</span>
                 </div>
                 <button class="pc-detail-prompt-copy pc-detail-prompt-copy-negative" data-copy="negative">复制</button>
             </div>
             <div class="pc-detail-prompt-content pc-detail-prompt-content-negative">
-                ${text
-                    ? escapeHtml(text)
+                ${displayText
+                    ? escapeHtml(displayText)
                     : '<span class="pc-detail-prompt-empty">暂无负向提示词</span>'
                 }
             </div>
@@ -324,7 +335,7 @@ function renderVersionCard(versions) {
         <div class="pc-detail-version-card pc-detail-fade-in">
             <div class="pc-detail-version-header">
                 <h2 class="pc-detail-side-title">版本记录</h2>
-                ${hasMore ? '<button class="pc-detail-version-view-all" id="pcDetailViewAllVersions">查看全部 ></button>' : ''}
+                ${hasMore ? `<button class="pc-detail-version-view-all" id="pcDetailViewAllVersions">查看全部 ${pcIcon('chevronRight', 'pc-detail-version-link-icon')}</button>` : ''}
             </div>
             ${displayVersions.map((v, i) => {
                 const versionIdx = i;
@@ -336,7 +347,7 @@ function renderVersionCard(versions) {
                         <span class="pc-detail-version-badge">${versionName}</span>
                         ${isActive ? '<span class="pc-detail-version-current">当前版本</span>' : ''}
                         <span class="pc-detail-version-time">${versionDate}</span>
-                        <span class="pc-detail-version-arrow">></span>
+                        <span class="pc-detail-version-arrow">${pcIcon('chevronRight', 'pc-detail-version-arrow-icon')}</span>
                     </div>
                 `;
             }).join('')}
@@ -348,7 +359,7 @@ function renderLocalSafetyCard() {
     return `
         <div class="pc-detail-safety-card pc-detail-fade-in">
             <div class="pc-detail-safety-copy">
-                <span class="pc-detail-safety-icon">♢</span>
+                <span class="pc-detail-safety-icon">${pcIcon('shield', 'pc-detail-safety-icon-img')}</span>
                 <div>
                     <strong>开始编写提示词</strong>
                 </div>
@@ -362,15 +373,15 @@ function renderBottomBar() {
     return `
         <div class="pc-detail-bottom-bar pc-detail-fade-in">
             <button class="pc-detail-action-btn pc-detail-action-edit" id="pcDetailEdit">
-                <span class="pc-detail-action-icon">✎</span>
+                <span class="pc-detail-action-icon">${pcIcon('edit', 'pc-detail-action-icon-img')}</span>
                 编辑
             </button>
             <button class="pc-detail-action-btn pc-detail-action-copy" id="pcDetailCopyAll">
-                <span class="pc-detail-action-icon">📋</span>
+                <span class="pc-detail-action-icon">${pcIcon('clipboard', 'pc-detail-action-icon-img')}</span>
                 复制
             </button>
             <button class="pc-detail-action-btn pc-detail-action-more" id="pcDetailMore">
-                <span class="pc-detail-action-icon">⋮</span>
+                <span class="pc-detail-action-icon">${pcIcon('moreVertical', 'pc-detail-action-icon-img')}</span>
                 更多
             </button>
         </div>
@@ -381,10 +392,10 @@ function updateStarButton(pageEl, isFavorite) {
     const btn = pageEl.querySelector('#pcDetailStar');
     if (!btn) return;
     if (isFavorite) {
-        btn.textContent = '★ 收藏';
+        btn.innerHTML = `${pcIcon('starFilled', 'pc-detail-button-icon')}<span>收藏</span>`;
         btn.classList.add('pc-detail-top-nav-btn-starred');
     } else {
-        btn.textContent = '☆ 收藏';
+        btn.innerHTML = `${pcIcon('star', 'pc-detail-button-icon')}<span>收藏</span>`;
         btn.classList.remove('pc-detail-top-nav-btn-starred');
     }
 }
@@ -427,7 +438,12 @@ function setupEvents(pageEl) {
 
     pageEl.querySelector('#pcDetailCoverImgWrap')?.addEventListener('click', () => {
         if (imageUrls.length > 0 && imageUrls[currentImageIndex] && imageUrls[currentImageIndex].url) {
-            showImageViewer(imageUrls[currentImageIndex].url);
+            const image = imageUrls[currentImageIndex];
+            showImageViewer({
+                src: image.url,
+                filename: image.name || promptSet.name || 'preview',
+                image: image.data,
+            });
         }
     });
 
@@ -503,10 +519,10 @@ async function showMoreMenu(e, pageEl) {
     const y = rect.bottom + 4;
 
     const action = await showContextMenu(x, y, [
-        { action: 'addVersion', icon: '➕', label: '新建版本' },
-        { action: 'compare', icon: '⚖️', label: '版本对比' },
+        { action: 'addVersion', icon: pcIcon('plus'), label: '新建版本' },
+        { action: 'compare', icon: pcIcon('balance'), label: '版本对比' },
         { divider: true },
-        { action: 'delete', icon: '🗑️', label: '删除提示词', danger: true }
+        { action: 'delete', icon: iconImg(deleteIcon), tone: 'delete', label: '删除提示词', danger: true }
     ]);
 
     if (!action) return;

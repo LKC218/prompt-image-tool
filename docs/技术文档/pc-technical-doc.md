@@ -167,8 +167,9 @@ Tauri 启动
 `load_data()` / `load_folders()` 函数：
 
 1. 读取文件内容后 `strip()` 去除空白
-2. 空文件返回 `[]`
-3. 捕获 `json.JSONDecodeError` 和 `IOError` 异常，返回空列表
+2. 文件不存在时返回 `[]`
+3. 现有空文件、坏 JSON 或读取失败会直接报错，不再静默返回空列表参与后续写入
+4. `save_data()` / `save_folders()` 采用临时文件写入后原子替换，并在覆盖前保留最近一次 `.bak` 备份
 
 ### 5.5 图片处理
 
@@ -184,16 +185,27 @@ Tauri 启动
 PC 编辑器导入图片时先在前端执行统一优化：
 
 - 支持 JPG、PNG、WebP，单张源文件上限为 15MB，单版本最多 10 张。
+- 新建/编辑页支持从外部复制图片后在页面内 `Ctrl+V` 粘贴，剪贴板图片会转换为 `File` 并复用同一套导入、压缩、数量上限和保存流程。
 - 使用 `src/js/image-utils.js` 解码 Data URL 后通过 Canvas 输出 JPEG，质量参数为 `0.9`。
 - 最大边长限制为 `2560px`，最大输入像素为 `4000 万`，避免超大图拖慢 WebView。
 - 当未缩放且 JPEG 结果不小于原图时保留原始 Data URL，避免 PNG/WebP 反向增大。
 - 图片元数据中的 `file` 字段以 `uploadImage()` 返回值为准，保证回退原图时扩展名与真实落盘文件一致。
+- 新建/编辑页的未保存内容会按 `pc-editor-draft:new` 或 `pc-editor-draft:{promptSetId}` 写入浏览器本地草稿，覆盖标题、提示词、标签、分类、比例和压缩后的新导入图片；正式保存成功后清理对应草稿。
+- PC 新建页顶部提供一键清空当前输入入口，二次确认后重置标题、正向提示词、负向提示词、标签、分类、比例和图片预览，并删除 `pc-editor-draft:new`，避免切页后恢复旧输入；该入口不在编辑模式显示，也不调用后端删除已保存图片。
 
-### 5.7 网络信息
+### 5.7 提示词长度限制
+
+PC 新建/编辑页的提示词长度限制由 `src/js/pc-editor.js` 前端常量维护：
+
+- 正向提示词：`MAX_POSITIVE_PROMPT_LEN = 6666`，用于 `maxlength`、字数统计和超限样式。
+- 负向提示词：`MAX_NEGATIVE_PROMPT_LEN = 2000`，继续保持原有输入上限。
+- 后端数据结构仍使用 `versions.prompt` 和 `versions.negativePrompt` 字段，不新增迁移或存储字段。
+
+### 5.8 网络信息
 
 `get_local_ip()` 函数：通过 UDP Socket 获取本机局域网 IP 地址，供局域网同步使用。
 
-### 5.8 安装包后端入口
+### 5.9 安装包后端入口
 
 PC 独立安装包通过 `build/app.spec` 打包 `build/app_main.py`，该入口需要与 `python/main.py` 的局域网同步协议保持对齐。安装包后端优先监听 `0.0.0.0:8888`，如果端口已被开发后端或旧进程占用，则使用独占绑定检测并按顺序切换到 `8889-8897`；本机 WebView 始终加载实际端口的 `http://127.0.0.1:{port}`。
 
@@ -202,8 +214,20 @@ PC 独立安装包通过 `build/app.spec` 打包 `build/app_main.py`，该入口
 - `GET /api/health`
 - `GET /api/sync/capabilities`
 - `GET /api/sync/pairing`
+- `POST /api/sync/preview`
 - `POST /api/sync/import`
 - `POST /api/sync/bidirectional`
+
+源码后端和安装包后端都必须使用同一套冲突策略：写入前可通过 `/api/sync/preview` 返回字段级差异；`keep_pc` 冲突回传生成带 `conflictKey` 的幂等冲突副本；重复回传同一冲突内容时跳过已有副本；实际写入前在 `backups` 目录生成同步前备份，并在报告中返回 `backupPath`。
+
+### 5.10 prompt-image-tool 专用 JSON 导入联动
+
+PC 设置页导入 JSON 时会先检查 `schema`。若命中 `prompt-image-tool.import.v1`，则不再走完整备份恢复，而是通过 `src/js/prompt-tool-json-import.js` 进行标准化、临时暂存并跳转到新建提示词页。
+
+- 普通备份 JSON 继续走 `storage.importData(data)`。
+- 专用 JSON 会分流到 `navigate('/editor/', { importId })`。
+- 新建/编辑页从暂存 payload 回填标题、正向提示词、负向提示词、标签、比例和参考图片。
+- 图片对象会先复用 `src/js/image-utils.js` 做统一压缩，再交给现有保存链路上传。
 
 发布前需运行 `python -m pytest python/tests/test_build_app_main.py -q`，避免安装包后端落后于源码后端，导致前端拿到首页 HTML 并触发 JSON 解析失败；同时确认 `/`、`/index.html` 和任意前端路由不会返回 `SimpleHTTPRequestHandler` 目录列表。
 
@@ -218,12 +242,14 @@ PC 独立安装包通过 `build/app.spec` 打包 `build/app_main.py`，该入口
 | 提示词集合 CRUD | 创建/删除/重命名/搜索集合 | `app.js` → `ApiStorage` → Python API |
 | 文件夹管理 | 创建/删除/重命名/颜色标签/移动集合 | `app.js` → `ApiStorage` → Python API |
 | 多版本管理 | 添加/删除/重命名/复制版本 | `app.js` → `ApiStorage` → Python API |
-| 提示词编辑 | 正向/反向提示词，500ms 防抖自动保存 | `app.js` → `promptHandler()` |
+| 提示词库筛选 | 全部、收藏、最近使用、未分类和分类夹标签筛选，搜索与分类可叠加 | `pc-library.js` → `pc-prompt-ui-utils.js` |
+| 提示词编辑 | 正向提示词前端上限 6666 字符，反向提示词前端上限 2000 字符 | `pc-editor.js` |
 | 提示词预览 | 二级窗口完整预览 + 一键复制 | `app.js` → `openPromptPreview()` |
 | 图片上传 | 点击/拖拽上传，支持 PNG/JPG/WEBP/GIF | `app.js` → `ApiStorage` → Python API |
-| 图片查看 | 全屏查看，支持滚轮缩放、拖拽平移、双击缩放/复位、复位按钮、ESC/点击遮罩关闭 | `pc-utils.js` → `showImageViewer()` |
+| 图片查看 | 全屏查看，支持滚轮缩放、拖拽平移、双击缩放/复位、下载当前图片、复位按钮、ESC/点击遮罩关闭；下载优先使用文件保存选择器，桌面端可回退后端原生保存窗口，并写入本地下载历史 | `pc-utils.js` → `showImageViewer()` → `image-download-utils.js` / `download-history.js` |
 | 版本对比 | 并排对比两个版本的提示词和图片 | `app.js` → `toggleCompare()` |
-| 数据导入导出 | 完整备份 JSON，包含文件夹、提示词、版本和图片文件内容；Web 优先使用系统文件选择器或下载，桌面 WebView 可由后端兜底保存；相同 ID 默认覆盖 | `pc-settings.js` / `backup-utils.js` → `ApiStorage` → Python API |
+| 数据导入导出 | 完整备份 JSON，包含文件夹、提示词、版本和图片文件内容；设置页常驻入口收敛为“导入 JSON”和“导出 JSON”；PC 默认导出到系统下载目录，自定义位置模式优先使用文件保存选择器，桌面 WebView 可由后端打开原生保存窗口；相同 ID 默认覆盖 | `pc-settings.js` / `backup-utils.js` → `ApiStorage` → Python API |
+| 图片下载历史 | 设置页展示最近图片下载记录，并支持一键清空历史 | `pc-settings.js` → `download-history.js` |
 | 暗色/亮色主题 | 主题切换，localStorage 持久化 | `app.js` → `initTheme()` / `toggleTheme()` |
 | 右键菜单 | 集合项右键弹出操作菜单 | `app.js` → `showContextMenu()` |
 | 新手引导 | 首次使用分步引导教程 | `app.js` → `tutorial.js` → `TutorialGuide` |
@@ -236,10 +262,10 @@ PC 独立安装包通过 `build/app.spec` 打包 `build/app_main.py`，该入口
 | 自动启动后端 | Tauri 启动时自动查找并启动 Python 进程 | `lib.rs` → `start_python_backend()` |
 | 隐藏控制台 | Windows 下 Python 子进程无控制台窗口 | `lib.rs` → `CREATE_NO_WINDOW` |
 | 数据目录回退 | 应用目录无写权限时回退到用户目录 | `main.py` → `get_data_dir()` |
-| 局域网互通服务 | 作为同步服务端，Android 端可拉取、回传和发起双向同步，PC 端不主动连接其他设备 | `main.py` → `/api/sync`、`/api/sync/import` |
-| 桌面端备份兜底 | WebView 下载不可靠时，由 Python 后端写入 `data/backups/` 并返回保存路径 | `backup-utils.js` → `ApiStorage.exportFile()` → `/api/export-file` |
+| 局域网互通服务 | 作为同步服务端，Android 端可拉取、预览冲突、回传和发起双向同步，PC 端不主动连接其他设备 | `main.py` → `/api/sync`、`/api/sync/preview`、`/api/sync/import` |
+| 桌面端备份保存 | PC 默认由 Python 后端写入系统下载目录并返回保存路径；自定义位置模式可由后端打开原生保存窗口，取消选择时返回 `canceled: true` | `backup-utils.js` → `ApiStorage.exportFile()` → `/api/export-file` |
 | 本机 IP 显示 | 显示本机局域网 IP、端口和复制入口，方便移动端连接 | `pc-settings.js` → `getNetworkInfo()` |
-| SVG 图标系统 | 所有 Emoji 替换为语义化 SVG 图标 | `src/assets/icons/*.svg` |
+| SVG 图标系统 | PC 页面运行时不使用 Emoji、星号、勾号、叉号或箭头字符充当图标，通用图标和 iconfont 语义补充图标均本地化为 SVG | `pc-icon-assets.js`、`src/assets/icons/*.svg`、`src/assets/icons/pc/*.svg` |
 
 ---
 
@@ -278,7 +304,8 @@ async init() {
 | `uploadImage(imageId, dataUrl, name)` | POST | `/api/image/{imageId}` | 上传图片 |
 | `deleteImage(filename)` | DELETE | `/api/image/{filename}` | 删除图片 |
 | `exportData()` | GET | `/api/export` | 导出完整备份，图片以 Data URL 嵌入 |
-| `exportFile(filename)` | POST | `/api/export-file` | 后端直接生成备份文件并返回保存路径 |
+| `exportFile(filename, options)` | POST | `/api/export-file` | 后端直接生成备份文件并返回保存路径；`options.saveMode` 支持 `downloads` 和 `custom` |
+| `downloadImageFile(sourceFile, options)` | POST | `/api/image-download-file` | 后端保存 `data/images` 内的指定图片并返回保存路径；用于 PC 图片预览自定义位置下载 |
 | `importData(data)` | POST | `/api/import` | 导入完整备份，相同 ID 覆盖并恢复图片 |
 | `getNetworkInfo()` | GET | `/api/network-info` | 获取 PC 同步服务 IP 和端口 |
 | `getSyncCapabilities()` | GET | `/api/sync/capabilities` | 获取 PC 局域网互通能力 |
@@ -385,7 +412,7 @@ build.bat → 选择 4（开发模式）
 
 | 编号 | 问题描述 | 严重程度 | 建议 |
 |------|---------|---------|------|
-| PC-001 | Python 后端 `load_data()`/`save_data()` 非原子操作，高并发下可能数据丢失 | 中 | 加文件锁（`fcntl` / `msvcrt`）或改用 SQLite |
+| PC-001 | Python 后端曾存在 `load_data()`/`save_data()` 静默空写和非原子覆盖风险 | 中 | 当前已改为坏文件拒绝覆盖 + 原子替换 + `.bak` 备份，后续如需更强并发保障再考虑文件锁或 SQLite |
 | PC-002 | Python 后端日志被静默（`log_message` 为空函数），生产环境无法排查问题 | 中 | 接入日志文件输出 |
 | PC-003 | 自动保存每次完整读取再写入，效率较低 | 低 | 实现增量更新机制 |
 | PC-004 | 普通读取接口仍允许局域网访问 | 低 | 写入类同步接口已增加 `X-Sync-Token`，后续可继续收紧读取权限 |

@@ -1,7 +1,10 @@
 import { getStorage } from './storage.js';
-import { showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
+import { showMobileToast, showActionSheet, iconImg, navigate } from './mobile-utils.js';
 import { DEFAULT_SCAN_PORTS, DEFAULT_SYNC_PORT, formatLanAddress, LanScanner, LanSync, parseLanTarget } from './lan-sync.js';
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
+import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel } from './download-history.js';
+import { MOBILE_ICONS, mobileIcon } from './mobile-icon-assets.js';
+import { isPromptImageToolImportJson, normalizePromptImageToolImport, stagePromptImageToolImport } from './prompt-tool-json-import.js';
 import corgiSettings from '../assets/mobile/mascots/corgi-settings.png';
 import dataIcon from '../assets/mobile/data.png';
 import saveIcon from '../assets/mobile/save.png';
@@ -80,7 +83,7 @@ function render(params = {}) {
                 <div class="m-settings-card">
                     <div class="m-settings-row">
                         <div class="m-settings-row-left">
-                            <span class="m-settings-row-icon">🎨</span>
+                            <span class="m-settings-row-icon">${mobileIcon('palette')}</span>
                             <span>应用主题色</span>
                         </div>
                         <div class="m-theme-dots" id="mThemeDots">
@@ -130,6 +133,19 @@ function render(params = {}) {
 
             <div class="m-section-gap">
                 <div class="m-section-title">
+                    <span class="m-section-title-text">图片下载记录</span>
+                    <div class="m-download-history-title-actions">
+                        <span class="m-section-title-action" id="mDownloadHistoryCount">0</span>
+                        <button class="m-download-history-clear" id="mClearDownloadHistory" type="button">清空历史</button>
+                    </div>
+                </div>
+                <div class="m-settings-card m-download-history-card">
+                    <div class="m-download-history-list" id="mDownloadHistoryList"></div>
+                </div>
+            </div>
+
+            <div class="m-section-gap">
+                <div class="m-section-title">
                     <span class="m-section-title-text">局域网同步</span>
                 </div>
                 <div class="m-settings-card m-lan-sync-card">
@@ -166,14 +182,57 @@ async function mount(pageEl, params = {}) {
     const storedAccent = localStorage.getItem('accent') || 'pink';
     selectedThemeColor = THEME_COLORS.findIndex(c => c.accent === storedAccent);
     if (selectedThemeColor < 0) selectedThemeColor = 0;
-    document.querySelector('.mobile-app')?.setAttribute('data-accent', THEME_COLORS[selectedThemeColor].accent);
+    const app = document.querySelector('.mobile-app');
+    app?.setAttribute('data-accent', THEME_COLORS[selectedThemeColor].accent);
+    app?.style.setProperty('--m-theme-check-icon', `url(${MOBILE_ICONS.check})`);
 
     setupSettingsEvents(pageEl);
     loadStorageInfo(pageEl);
+    renderDownloadHistory(pageEl);
     const recentDevices = getRecentDevices();
     if (recentDevices.length) {
         renderDevices(pageEl, recentDevices.map(device => ({ ...device, source: 'recent' })));
     }
+}
+
+function renderDownloadHistory(pageEl) {
+    const history = getDownloadHistory();
+    const countEl = pageEl.querySelector('#mDownloadHistoryCount');
+    const clearBtn = pageEl.querySelector('#mClearDownloadHistory');
+    const listEl = pageEl.querySelector('#mDownloadHistoryList');
+    if (countEl) countEl.textContent = `${history.length} 条`;
+    if (clearBtn) clearBtn.disabled = !history.length;
+    if (!listEl) return;
+
+    if (!history.length) {
+        listEl.innerHTML = `
+            <div class="m-download-history-empty">
+                <div class="m-download-history-empty-title">还没有图片下载记录</div>
+                <div class="m-download-history-empty-text">最近下载的图片会出现在这里，方便你随时查看和清理。</div>
+            </div>
+        `;
+        return;
+    }
+
+    listEl.innerHTML = history.map(item => {
+        const platformLabel = item.platform === 'mobile' ? '移动端' : item.platform === 'pc' ? 'PC 端' : '本地';
+        const locationLabel = getDownloadHistoryLocationLabel(item);
+        return `
+        <div class="m-download-history-item">
+            <span class="m-download-history-icon">${mobileIcon('download', { className: 'm-icon-sm' })}</span>
+            <div class="m-download-history-body">
+                <div class="m-download-history-main">
+                    <strong title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong>
+                    <small>${escapeHtml(item.source)} · ${escapeHtml(locationLabel)}</small>
+                </div>
+                <div class="m-download-history-meta">
+                    <span class="m-download-history-time">${escapeHtml(formatDownloadHistoryTime(item.createdAt))}</span>
+                    <span class="m-download-history-platform">${escapeHtml(platformLabel)}</span>
+                </div>
+            </div>
+        </div>
+    `;
+    }).join('');
 }
 
 function setupSettingsEvents(pageEl) {
@@ -210,6 +269,32 @@ function setupSettingsEvents(pageEl) {
         } else {
             item.querySelector('.m-lan-device-state')?.replaceChildren(document.createTextNode('连接失败'));
         }
+    });
+
+    pageEl.querySelector('#mClearDownloadHistory')?.addEventListener('click', () => {
+        const history = getDownloadHistory();
+        if (!history.length) {
+            showMobileToast('暂无图片下载记录');
+            return;
+        }
+        showActionSheet([
+            {
+                action: 'confirm',
+                icon: mobileIcon('warning'),
+                label: '确认清空图片下载记录',
+                handler: () => {
+                    clearDownloadHistory();
+                    renderDownloadHistory(pageEl);
+                    showMobileToast('图片下载记录已清空');
+                }
+            },
+            {
+                action: 'cancel',
+                icon: mobileIcon('x'),
+                label: '取消',
+                handler: () => {}
+            }
+        ]);
     });
 }
 
@@ -248,7 +333,7 @@ function handleImport() {
     showActionSheet([
         {
             action: 'confirm',
-            icon: '⚠️',
+            icon: mobileIcon('warning'),
             label: '确认导入（同 ID 将覆盖本机数据）',
             handler: () => {
                 const input = document.createElement('input');
@@ -260,6 +345,16 @@ function handleImport() {
                     try {
                         const text = await file.text();
                         const data = JSON.parse(text);
+                        if (isPromptImageToolImportJson(data)) {
+                            const payload = stagePromptImageToolImport(normalizePromptImageToolImport(data));
+                            if (!payload) {
+                                showMobileToast('导入失败，文件格式不正确', 'error');
+                                return;
+                            }
+                            navigate('/editor/', { importId: payload.id });
+                            showMobileToast('已识别为 prompt-image-tool 导入包');
+                            return;
+                        }
                         const result = await getStorage().importData(data);
                         showMobileToast(`导入成功：新增 ${result.added || 0}，覆盖 ${result.updated || 0}，图片 ${result.imagesRestored || 0}`);
                     } catch (err) {
@@ -271,7 +366,7 @@ function handleImport() {
         },
         {
             action: 'cancel',
-            icon: '❌',
+            icon: mobileIcon('x'),
             label: '取消',
             handler: () => {}
         }
@@ -496,18 +591,24 @@ function renderLanReport(report) {
     if (report.mode === 'bidirectional') {
         const push = report.pushReport || {};
         const pull = report.pullReport || {};
+        const preview = report.preview ? renderLanPreviewSummary(report.preview) : '';
         return `
             <div class="m-lan-report-title">${report.success ? '双向同步完成' : '双向同步部分完成'}</div>
+            ${preview}
             <div>回传到 PC：新增 ${push.added || 0} 条，冲突副本 ${push.conflicts || 0} 条，图片 ${push.imagesRestored || 0} 张</div>
             <div>拉取到 Android：新增 ${pull.added || 0} 条，覆盖 ${pull.updated || 0} 条，图片 ${pull.imagesDownloaded || 0} 张</div>
+            ${push.backupPath ? `<div>同步前备份：${escapeHtml(push.backupPath)}</div>` : ''}
             ${(pull.imagesFailed || []).length ? `<div class="m-lan-report-error">图片失败：${pull.imagesFailed.length} 张</div>` : ''}
         `;
     }
     if (report.mode === 'keep_pc' || report.imagesRestored !== undefined) {
+        const preview = report.preview ? renderLanPreviewSummary(report.preview) : '';
         return `
             <div class="m-lan-report-title">${report.success ? '回传完成' : '回传部分完成'}</div>
+            ${preview}
             <div>PC 新增 ${report.added || 0} 条，冲突副本 ${report.conflicts || 0} 条，跳过 ${report.skipped || 0} 条</div>
             <div>接收图片 ${report.imagesRestored || 0} 张</div>
+            ${report.backupPath ? `<div>同步前备份：${escapeHtml(report.backupPath)}</div>` : ''}
         `;
     }
     return `
@@ -515,6 +616,66 @@ function renderLanReport(report) {
         <div>新增 ${report.added || 0} 条，覆盖 ${report.updated || 0} 条，图片 ${report.imagesDownloaded || 0} 张</div>
         ${(report.imagesFailed || []).length ? `<div class="m-lan-report-error">图片失败：${report.imagesFailed.length} 张</div>` : ''}
     `;
+}
+
+function renderLanPreviewSummary(preview) {
+    const summary = preview?.summary || {};
+    return `
+        <div class="m-lan-preview-summary">
+            预览：新增 ${summary.added || 0}，冲突 ${summary.conflicts || 0}，跳过 ${summary.skipped || 0}，PC 独有 ${summary.onlyPc || 0}
+        </div>
+    `;
+}
+
+function renderLanPreview(preview) {
+    const summary = preview?.summary || {};
+    const conflicts = (preview?.items || []).filter(item => item.type === 'conflict').slice(0, 3);
+    return `
+        <div class="m-lan-report-title">同步前预览</div>
+        <div>将新增 ${summary.added || 0} 条，跳过 ${summary.skipped || 0} 条，发现冲突 ${summary.conflicts || 0} 条。</div>
+        <div>PC 独有 ${summary.onlyPc || 0} 条，同内容 ${summary.same || 0} 条。</div>
+        ${conflicts.length ? `
+            <div class="m-lan-report-error">
+                ${conflicts.map(item => `${escapeHtml(item.name || item.id)}：${(item.fieldDiffs || []).map(diff => diff.label).join('、') || '内容不同'}`).join('<br>')}
+            </div>
+        ` : ''}
+    `;
+}
+
+function getPreviewMode() {
+    if (selectedLanMode === 'pull') return 'pull';
+    if (selectedLanMode === 'bidirectional') return 'bidirectional';
+    return 'keep_pc';
+}
+
+function confirmLanPreview(preview, mode) {
+    const conflicts = preview?.summary?.conflicts || 0;
+    if (!conflicts) return Promise.resolve('keep_pc');
+
+    return new Promise(resolve => {
+        const actions = [];
+        actions.push({
+            action: 'confirm',
+            icon: mobileIcon('check'),
+            label: mode === 'pull' ? '继续拉取（PC 覆盖同 ID）' : '安全同步（冲突生成副本）',
+            handler: () => resolve('keep_pc'),
+        });
+        if (mode !== 'pull') {
+            actions.push({
+                action: 'skip',
+                icon: mobileIcon('warning'),
+                label: '只同步无冲突项',
+                handler: () => resolve('add_only'),
+            });
+        }
+        actions.push({
+            action: 'cancel',
+            icon: mobileIcon('x'),
+            label: '取消同步',
+            handler: () => resolve(null),
+        });
+        showActionSheet(actions);
+    });
 }
 
 function getLanSuccessMessage(report) {
@@ -535,24 +696,36 @@ async function handleLanSync(pageEl) {
     const startedAt = Date.now();
     if (syncBtn) syncBtn.disabled = true;
     if (reportEl) reportEl.innerHTML = '';
-    setLanStatus(pageEl, '正在同步，PC 端同 ID 数据将覆盖本机...');
+    setLanStatus(pageEl, '正在生成同步前冲突预览...');
 
     try {
         lanSync = new LanSync(getStorage());
         lanSync.onProgress = (current, total, phase) => updateLanProgress(pageEl, current, total, phase, startedAt);
         const recent = findRecentDevice(target);
+        const preview = await lanSync.preview(target, {
+            token: recent?.token,
+            mode: getPreviewMode(),
+        });
+        if (reportEl) reportEl.innerHTML = renderLanPreview(preview);
+        const confirmedMode = await confirmLanPreview(preview, selectedLanMode);
+        if (!confirmedMode) {
+            setLanStatus(pageEl, '已取消同步，未写入任何数据。', 'warning');
+            return;
+        }
+        setLanStatus(pageEl, '正在同步，请保持两端网络连接...');
         let report = null;
         if (selectedLanMode === 'push') {
-            report = await lanSync.push(target, { token: recent?.token, mode: 'keep_pc' });
+            report = await lanSync.push(target, { token: preview.token || recent?.token, mode: confirmedMode });
         } else if (selectedLanMode === 'bidirectional') {
-            report = await lanSync.bidirectional(target, { token: recent?.token });
+            report = await lanSync.bidirectional(target, { token: preview.token || recent?.token, mode: confirmedMode });
         } else {
             report = await lanSync.sync(target);
+            report.preview = preview;
         }
         if (!report) return;
         saveRecentDevice(target, recent?.name || 'PC 端', {
             ...recent,
-            token: report.token || recent?.token,
+            token: report.token || preview.token || recent?.token,
         });
         if (reportEl) {
             reportEl.innerHTML = renderLanReport(report);

@@ -127,8 +127,18 @@ export class ApiStorage {
         return this.api('GET', '/export');
     }
 
-    async exportFile(filename = '') {
-        return this.api('POST', '/export-file', { filename });
+    async exportFile(filename = '', options = {}) {
+        const payload = typeof filename === 'object'
+            ? filename
+            : { filename, ...options };
+        return this.api('POST', '/export-file', payload);
+    }
+
+    async downloadImageFile(sourceFile = '', options = {}) {
+        const payload = typeof sourceFile === 'object'
+            ? sourceFile
+            : { sourceFile, ...options };
+        return this.api('POST', '/image-download-file', payload);
     }
 
     async importData(data) {

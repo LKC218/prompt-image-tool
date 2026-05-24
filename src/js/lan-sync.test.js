@@ -275,6 +275,78 @@ describe('LanSync 回传', () => {
             address: '192.168.6.109:8890',
         });
     });
+
+    it('同步预览会提交本机快照并返回冲突摘要', async () => {
+        const storage = {
+            exportData: vi.fn().mockResolvedValue({ folders: [], prompt_sets: [{ id: 'set1' }] }),
+        };
+        global.fetch.mockImplementation((url, options = {}) => {
+            if (url.includes('/api/sync/preview')) {
+                expect(options.method).toBe('POST');
+                expect(options.headers['X-Sync-Token']).toBe('token-123');
+                expect(JSON.parse(options.body)).toMatchObject({ mode: 'keep_pc' });
+                return Promise.resolve(createResponse({
+                    success: true,
+                    summary: { added: 0, conflicts: 1, skipped: 0 },
+                    items: [{ id: 'set1', type: 'conflict' }],
+                    requiresConfirmation: true,
+                }));
+            }
+            return Promise.reject(new Error(`unexpected url: ${url}`));
+        });
+
+        const sync = new LanSync(storage);
+        const preview = await sync.preview('192.168.6.109:8890', { token: 'token-123', mode: 'keep_pc' });
+
+        expect(preview).toMatchObject({
+            success: true,
+            token: 'token-123',
+            port: 8890,
+            address: '192.168.6.109:8890',
+            requiresConfirmation: true,
+        });
+        expect(storage.exportData).toHaveBeenCalled();
+    });
+
+    it('双向同步通过统一后端接口返回后再写入本机', async () => {
+        const storage = {
+            exportData: vi.fn().mockResolvedValue({ folders: [], prompt_sets: [] }),
+            query: vi.fn().mockResolvedValue([{ cnt: 0 }]),
+            run: vi.fn().mockResolvedValue(undefined),
+        };
+        global.fetch.mockImplementation((url, options = {}) => {
+            if (url === 'http://192.168.6.109:8890/api/sync/bidirectional') {
+                expect(options.method).toBe('POST');
+                expect(options.headers['X-Sync-Token']).toBe('token-123');
+                return Promise.resolve(createResponse({
+                    success: true,
+                    pushReport: { success: true, added: 0, conflicts: 0 },
+                    syncData: {
+                        folders: [],
+                        prompt_sets: [],
+                        versions: [],
+                        images: [],
+                        sync_meta: { total_prompt_sets: 0, total_versions: 0, total_images: 0 },
+                    },
+                }));
+            }
+            return Promise.reject(new Error(`unexpected url: ${url}`));
+        });
+
+        const sync = new LanSync(storage);
+        const report = await sync.bidirectional('192.168.6.109:8890', { token: 'token-123' });
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            'http://192.168.6.109:8890/api/sync/bidirectional',
+            expect.objectContaining({ method: 'POST' })
+        );
+        expect(report).toMatchObject({
+            success: true,
+            mode: 'bidirectional',
+            port: 8890,
+            address: '192.168.6.109:8890',
+        });
+    });
 });
 
 describe('LanSync 拉取', () => {

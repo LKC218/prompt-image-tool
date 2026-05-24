@@ -73,14 +73,14 @@ describe('backup-utils', () => {
         expect(stats.sizeLabel).toMatch(/B$/);
     });
 
-    it('支持 showSaveFilePicker 保存', async () => {
+    it('支持自定义位置时使用 showSaveFilePicker 保存', async () => {
         const write = vi.fn();
         const close = vi.fn();
         globalThis.showSaveFilePicker = vi.fn(async () => ({
             createWritable: vi.fn(async () => ({ write, close })),
         }));
 
-        const result = await saveJsonBackup(sampleBackup, 'backup.json');
+        const result = await saveJsonBackup(sampleBackup, 'backup.json', { useFilePicker: true });
 
         expect(result.method).toBe('file-picker');
         expect(globalThis.showSaveFilePicker).toHaveBeenCalledWith(expect.objectContaining({
@@ -91,11 +91,13 @@ describe('backup-utils', () => {
     });
 
     it('普通 Web 环境回退到 a.download', async () => {
+        globalThis.showSaveFilePicker = vi.fn();
         const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
         const result = await saveJsonBackup(sampleBackup, 'backup.json');
 
         expect(result.method).toBe('download');
+        expect(globalThis.showSaveFilePicker).not.toHaveBeenCalled();
         expect(click).toHaveBeenCalled();
         expect(URL.createObjectURL).toHaveBeenCalled();
         expect(URL.revokeObjectURL).not.toHaveBeenCalled();
@@ -136,7 +138,9 @@ describe('backup-utils', () => {
         const result = await exportBackup(storage, { filename: 'backup.json' });
 
         expect(result.method).toBe('backend');
-        expect(storage.exportFile).toHaveBeenCalledWith('backup.json');
+        expect(storage.exportFile).toHaveBeenCalledWith('backup.json', expect.objectContaining({
+            saveMode: 'downloads',
+        }));
         expect(storage.exportData).not.toHaveBeenCalled();
     });
 
@@ -154,11 +158,57 @@ describe('backup-utils', () => {
         const result = await exportBackup(storage, { filename: 'backup.json' });
 
         expect(result.method).toBe('download');
-        expect(storage.exportFile).toHaveBeenCalledWith('backup.json');
+        expect(storage.exportFile).toHaveBeenCalledWith('backup.json', expect.objectContaining({
+            saveMode: 'downloads',
+        }));
         expect(storage.exportData).toHaveBeenCalled();
         expect(click).toHaveBeenCalled();
         vi.advanceTimersByTime(30000);
         expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+    });
+
+    it('自定义位置导出优先使用文件保存选择器', async () => {
+        const write = vi.fn();
+        const close = vi.fn();
+        globalThis.showSaveFilePicker = vi.fn(async () => ({
+            createWritable: vi.fn(async () => ({ write, close })),
+        }));
+        const storage = {
+            exportData: vi.fn(async () => sampleBackup),
+            exportFile: vi.fn(),
+        };
+
+        const result = await exportBackup(storage, { filename: 'backup.json', saveMode: 'custom' });
+
+        expect(result.method).toBe('file-picker');
+        expect(result.saveMode).toBe('custom');
+        expect(storage.exportData).toHaveBeenCalled();
+        expect(storage.exportFile).not.toHaveBeenCalled();
+        expect(write).toHaveBeenCalled();
+    });
+
+    it('自定义位置导出在无文件选择器时回退到后端选择', async () => {
+        const storage = {
+            exportData: vi.fn(async () => sampleBackup),
+            exportFile: vi.fn(async () => ({
+                filename: 'backup.json',
+                path: 'D:\\Backups\\backup.json',
+                directory: 'D:\\Backups',
+                saveMode: 'custom',
+                size: 12,
+                imageCount: 1,
+                promptSetCount: 1,
+                versionCount: 1,
+            })),
+        };
+
+        const result = await exportBackup(storage, { filename: 'backup.json', saveMode: 'custom' });
+
+        expect(result.method).toBe('backend');
+        expect(result.saveMode).toBe('custom');
+        expect(storage.exportFile).toHaveBeenCalledWith('backup.json', expect.objectContaining({
+            saveMode: 'custom',
+        }));
     });
 
     it('导出成功消息包含文件名、大小和图片数量', () => {

@@ -1,6 +1,7 @@
 import { getStorage } from './storage.js';
 import { showMobileToast, showActionSheet, goBack, iconImg } from './mobile-utils.js';
 import { aggregateTags, getTagStyleClass, saveCustomTag, removeCustomTag } from './tag-utils.js';
+import { mobileIcon } from './mobile-icon-assets.js';
 import rabbitTip from '../assets/mobile/mascots/rabbit-tip.png';
 import folderIcon from '../assets/mobile/folder.png';
 import arrowUpDownIcon from '../assets/icons/arrow-up-down.svg';
@@ -45,7 +46,7 @@ function getFolderColor(folder, idx) {
 function render(params = {}) {
     return `
         <div class="m-top-nav">
-            <button class="m-top-nav-back" id="mCategoryBack">←</button>
+            <button class="m-top-nav-back" id="mCategoryBack" aria-label="返回">${mobileIcon('chevron-left')}</button>
             <span class="m-top-nav-title">分类与标签</span>
         </div>
         <div class="m-page-inner">
@@ -57,7 +58,7 @@ function render(params = {}) {
             <div id="mCategoryView">
                 <div class="m-section-title" style="margin-bottom: var(--m-space-md);">
                     <span class="m-section-title-text">分类管理</span>
-                    <button class="m-save-btn" id="mCreateFolderBtn" style="font-size:13px; padding:6px 14px;">+ 新建分类</button>
+                    <button class="m-save-btn" id="mCreateFolderBtn" style="font-size:13px; padding:6px 14px;">${mobileIcon('plus', { className: 'm-icon-sm' })} 新建分类</button>
                 </div>
                 <div class="m-list-gap" id="mCategoryList"></div>
 
@@ -88,7 +89,7 @@ function render(params = {}) {
                 <div style="margin-top: var(--m-space-xl);">
                     <div class="m-tip-banner">
                         <img class="m-tip-banner-icon" src="${rabbitTip}" alt="兔子助手">
-                        <span>长按并拖拽可调整顺序哦~ ❤️</span>
+                        <span>长按并拖拽可调整顺序哦~</span>
                     </div>
                 </div>
             </div>
@@ -97,7 +98,7 @@ function render(params = {}) {
                 <div class="m-section-title" style="margin-bottom: var(--m-space-md);">
                     <span class="m-section-title-text">标签管理</span>
                     <div style="display:flex; gap:var(--m-space-sm);">
-                        <button class="m-save-btn" id="mCreateTagBtn" style="font-size:13px; padding:6px 14px;">+ 新建标签</button>
+                        <button class="m-save-btn" id="mCreateTagBtn" style="font-size:13px; padding:6px 14px;">${mobileIcon('plus', { className: 'm-icon-sm' })} 新建标签</button>
                         <button class="m-text-btn m-text-btn-danger" id="mClearAllTagsBtn">清除全部</button>
                     </div>
                 </div>
@@ -166,8 +167,8 @@ function renderCategoryList(pageEl) {
                     <span class="m-category-item-count">${count} 个提示词</span>
                 </div>
                 <div class="m-category-item-actions">
-                    <button class="m-more-btn" data-folder-id="${folder.id}">⋯</button>
-                    <span class="m-drag-handle">⋮⋮</span>
+                    <button class="m-more-btn" data-folder-id="${folder.id}" aria-label="更多操作">${mobileIcon('more')}</button>
+                    <span class="m-drag-handle" aria-hidden="true">${mobileIcon('grip')}</span>
                 </div>
             </div>
         `;
@@ -263,7 +264,7 @@ function setupCategoryEvents(pageEl) {
             h.classList.add('m-drag-handle-highlight');
             setTimeout(() => h.classList.remove('m-drag-handle-highlight'), 2500);
         });
-        showMobileToast('拖拽分类右侧 ⋮⋮ 手柄即可调整顺序');
+        showMobileToast('拖拽分类右侧手柄即可调整顺序');
     });
 
     pageEl.querySelector('#mBatchEditBtn')?.addEventListener('click', () => {
@@ -593,7 +594,7 @@ function showClearAllTagsConfirm(pageEl) {
         showMobileToast('没有标签可清除');
         return;
     }
-    showCategoryConfirm(pageEl, `⚠️ 确定清除所有标签？\n将从所有提示词中移除全部 ${tags.length} 个标签，此操作不可撤销！`, async () => {
+    showCategoryConfirm(pageEl, `确定清除所有标签？\n将从所有提示词中移除全部 ${tags.length} 个标签，此操作不可撤销！`, async () => {
         try {
             let totalAffected = 0;
             for (const tag of tags) {

@@ -122,8 +122,6 @@ fn start_python_backend(app_handle: tauri::AppHandle) {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_path_conversion() {
         let path = std::path::Path::new("python").join("main.py");

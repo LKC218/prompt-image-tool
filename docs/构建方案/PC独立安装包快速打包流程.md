@@ -23,8 +23,8 @@ python scripts\build_pc_package.py
 ```text
 build\dist\PromptImageManager\PromptImageManager.exe
 build\dist\PromptImageManager\_internal\frontend\index.html
-build\PromptImageManager-Setup-2.3.1.exe
-releases\PromptImageManager-Setup-2.3.1.exe
+build\PromptImageManager-Setup-2.3.2.exe
+releases\PromptImageManager-Setup-2.3.2.exe
 ```
 
 ## 只构建可执行目录
@@ -89,6 +89,7 @@ PC 安装包正式交付前需确认：
 - 桌面快捷方式、开始菜单快捷方式和卸载项均指向 `$INSTDIR\icon.ico`。
 - NSIS 构建命令使用 `makensis /INPUTCHARSET UTF8 installer.nsi`。
 - 安装器界面、快捷方式名称和 Windows 卸载项显示中文无乱码。
+- Tauri 安装器壳完成安装后，需要读取桌面快捷方式、开始菜单启动快捷方式和开始菜单卸载快捷方式的实际存在状态；不能只凭主程序和卸载器存在就判定快捷方式创建成功。
 
 ## 当前构建结果
 
@@ -109,6 +110,36 @@ releases\PromptImageManager-Setup-2.3.1.exe
 ```
 
 安装包大小：`23803459` 字节。
+
+## Tauri 安装器壳交付
+
+PC 端正式交付需要带 Tauri 安装器壳时，先生成核心 NSIS 安装包，再执行：
+
+```powershell
+python scripts\build_installer_shell_package.py --skip-env-check
+```
+
+该脚本会把 `build\PromptImageManager-Setup-{version}.exe` 嵌入安装器壳，并输出：
+
+```text
+build\installer-shell\PromptImageManager-Shell-Setup-2.3.2.exe
+releases\PromptImageManager-Shell-Setup-2.3.2.exe
+```
+
+2026-05-13 v2.3.2 本机构建结果：
+
+```text
+releases\PromptImageManager-Shell-Setup-2.3.2.exe  35276800 字节
+releases\PromptImageManager-Setup-2.3.2.exe        25518130 字节
+```
+
+PC 打包版运行探针通过：`8888` 被占用时回退到 `8889`，`/api/health`、`/index.html`、`/api/sync/capabilities` 均返回 200。2026-05-13 PC UI 变动后已重新打包，并刷新 Tauri 安装器壳发布产物；二次 UI 变动后再次重打包，探针在 `8888` 下通过。
+
+2026-05-15 快捷方式收尾校验加固：
+
+- 已验证 `build\PromptImageManager-Setup-2.3.2.exe /S /D=<临时目录>` 会创建桌面快捷方式、开始菜单启动快捷方式和开始菜单卸载快捷方式，静默卸载后也会清理这些入口。
+- Tauri 安装器壳的 Rust 安装结果新增快捷方式存在状态，前端安装收尾后会再次确认实际落地结果；若快捷方式缺失，完成页展示短警告，避免误报为完整成功。
+- 修复后 `releases\PromptImageManager-Shell-Setup-2.3.2.exe` 已刷新为 `35283968` 字节。
 
 ## 常见问题
 

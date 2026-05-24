@@ -170,14 +170,16 @@ async function saveWithCapacitor(jsonText, filename) {
     throw lastError || new Error('Android 文件写入失败');
 }
 
-async function saveJsonBackup(data, filename = buildBackupFilename()) {
+async function saveJsonBackup(data, filename = buildBackupFilename(), options = {}) {
     const { jsonText, blob, stats } = serializeBackup(data);
     if (isNativeCapacitor()) {
         const result = await saveWithCapacitor(jsonText, filename);
         return { ...result, stats, size: blob.size };
     }
 
-    const pickerResult = await saveWithFilePicker(blob, filename);
+    const pickerResult = options.useFilePicker
+        ? await saveWithFilePicker(blob, filename)
+        : null;
     if (pickerResult) {
         return { ...pickerResult, stats, size: blob.size };
     }
@@ -185,15 +187,38 @@ async function saveJsonBackup(data, filename = buildBackupFilename()) {
     return { ...saveWithAnchor(blob, filename), stats, size: blob.size };
 }
 
-async function saveWithBackend(storage, filename) {
+async function saveWithCustomPicker(data, filename) {
+    const { blob, stats } = serializeBackup(data);
+    const result = await saveWithFilePicker(blob, filename);
+    if (!result) return null;
+    return { ...result, saveMode: 'custom', stats, size: blob.size };
+}
+
+async function saveWithBackend(storage, filename, options = {}) {
     if (!storage || typeof storage.exportFile !== 'function') return null;
-    const result = await storage.exportFile(filename);
+    const saveMode = options.saveMode || 'downloads';
+    const result = await storage.exportFile(filename, {
+        saveMode,
+        directory: options.directory,
+        targetPath: options.targetPath,
+    });
+    if (result?.canceled) {
+        return {
+            success: false,
+            canceled: true,
+            method: 'backend',
+            saveMode,
+            filename: result.filename || filename,
+        };
+    }
     return {
         success: true,
         method: 'backend',
+        saveMode: result.saveMode || saveMode,
         filename: result.filename || filename,
         path: result.path || '',
         directory: result.directory || '',
+        locationLabel: result.locationLabel || '',
         size: result.size || 0,
         stats: {
             promptSetCount: result.promptSetCount || 0,
@@ -207,11 +232,36 @@ async function saveWithBackend(storage, filename) {
 
 async function exportBackup(storage, options = {}) {
     const filename = options.filename || buildBackupFilename(options.prefix || DEFAULT_PREFIX);
+    const saveMode = options.saveMode || 'downloads';
     const shouldPreferBackend = options.preferBackend ?? isDesktopWebView();
+
+    if (saveMode === 'custom') {
+        if (typeof globalThis.showSaveFilePicker === 'function') {
+            try {
+                const data = await storage.exportData();
+                const pickerResult = await saveWithCustomPicker(data, filename);
+                if (pickerResult) {
+                    return pickerResult;
+                }
+            } catch (error) {
+                console.warn('custom picker export failed, fallback to backend export:', error);
+            }
+        }
+
+        try {
+            const backendResult = await saveWithBackend(storage, filename, { ...options, saveMode });
+            if (backendResult) return backendResult;
+        } catch (error) {
+            console.warn('backend custom export failed, fallback to browser export:', error);
+        }
+
+        const data = await storage.exportData();
+        return saveJsonBackup(data, filename);
+    }
 
     if (shouldPreferBackend) {
         try {
-            const backendResult = await saveWithBackend(storage, filename);
+            const backendResult = await saveWithBackend(storage, filename, { ...options, saveMode });
             if (backendResult) return backendResult;
         } catch (error) {
             console.warn('backend export failed, fallback to browser export:', error);
@@ -224,7 +274,7 @@ async function exportBackup(storage, options = {}) {
         if (result.canceled) return result;
         return result;
     } catch (error) {
-        const backendResult = await saveWithBackend(storage, filename);
+        const backendResult = await saveWithBackend(storage, filename, { ...options, saveMode });
         if (backendResult) return backendResult;
         throw new Error(`保存备份失败：${getErrorMessage(error)}`);
     }
@@ -235,7 +285,13 @@ function buildExportSuccessMessage(result, prefix = '导出成功') {
     const imageCount = stats.imageCount ?? 0;
     const sizeLabel = stats.sizeLabel || formatBackupSize(result?.size || 0);
     if (result?.method === 'backend') {
-        return `${prefix}：${result.filename}，${sizeLabel}，已保存到 ${result.path || result.directory || '备份目录'}`;
+        const location = result.saveMode === 'downloads'
+            ? `下载目录 ${result.directory || ''}`.trim()
+            : (result.path || result.directory || result.locationLabel || '自定义位置');
+        return `${prefix}：${result.filename}，${sizeLabel}，已保存到 ${location}`;
+    }
+    if (result?.method === 'file-picker') {
+        return `${prefix}：${result.filename}，${sizeLabel}，已保存到自定义位置`;
     }
     if (result?.method === 'capacitor') {
         return `${prefix}：${imageCount} 张图片，${sizeLabel}，已保存到${result.locationLabel || '应用数据目录'}`;

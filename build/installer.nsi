@@ -1,5 +1,5 @@
 !define APPNAME "PromptImageManager"
-!define APPVERSION "2.3.1"
+!define APPVERSION "2.3.4"
 !define APPEXE "PromptImageManager.exe"
 
 Name "生图提示词管理器 ${APPVERSION}"

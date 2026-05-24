@@ -13,15 +13,20 @@ import navHome from '../assets/mobile/nav-icons/home.png';
 import navLibrary from '../assets/mobile/nav-icons/library.png';
 import navCategory from '../assets/mobile/nav-icons/category.png';
 import navSettings from '../assets/mobile/nav-icons/settings.png';
+import { mobileIcon } from './mobile-icon-assets.js';
 
 let appEl = null;
 let pageContainer = null;
 let activeTab = '/';
 let activePages = {};
 let App = null;
+let backButtonRegistered = false;
 
 if (isCapacitor) {
-    import('@capacitor/app').then(mod => { App = mod.App; });
+    import('@capacitor/app').then(mod => {
+        App = mod.App;
+        setupBackButton();
+    });
 }
 
 const TAB_ROUTES = ['/', '/library', '/category', '/settings'];
@@ -39,7 +44,7 @@ function renderShell() {
                 <span class="m-nav-label">提示词库</span>
             </button>
             <div class="m-nav-center">
-                <button class="m-nav-center-btn" id="mNavAddBtn" aria-label="新建">＋</button>
+                <button class="m-nav-center-btn" id="mNavAddBtn" aria-label="新建">${mobileIcon('plus')}</button>
             </div>
             <button class="m-nav-item" data-tab="/category" aria-label="分类">
                 <div class="m-nav-icon" style="-webkit-mask-image:url(${navCategory});mask-image:url(${navCategory})"></div>
@@ -126,7 +131,8 @@ function setupAddButton() {
 }
 
 function setupBackButton() {
-    if (!App) return;
+    if (!App || backButtonRegistered) return;
+    backButtonRegistered = true;
     App.addListener('backButton', () => {
         const route = getCurrentRoute();
         if (!route) return;

@@ -4,6 +4,104 @@
 
 ---
 
+## v2.3.4 (2026-05-24)
+
+### 版本与打包
+
+- **版本号升级**：主应用、PC Tauri 配置、Android Gradle 配置、NSIS 安装器和 Tauri 安装器壳统一升级到 `2.3.4`。
+- **Android 版本递增**：Android `versionCode` 从 `8` 递增到 `9`，`versionName` 升级为 `2.3.4`。
+- **PC Tauri 安装器壳配置同步**：安装器壳的 bundle resource、内置 NSIS 安装核心和运行时查找路径统一指向 `PromptImageManager-Setup-2.3.4.exe`，避免后续打包时继续嵌入旧版本核心安装包。
+
+### 构建产物
+
+| 产物 | 大小 | SHA256 |
+|------|------|--------|
+| `releases/PromptImageManager-Shell-Setup-2.3.4.exe` | `35320320` 字节 | `F4635D95D90C0AE7B578E6C087EE607789EE64875E10025B219D7E8820849410` |
+| `releases/PromptImageManager-Setup-2.3.4.exe` | `25554359` 字节 | `483B12D839F7C7A69816AD96DF1F7D9C4694CA0D66B4A8D819ACD3D391E43C26` |
+| `releases/PromptImageManager-v2.3.4-Android.apk` | `46754549` 字节 | `1694790637E7AE1E1F8540B8E0BD3AB0700C78DAAB0B88FC8C52CBB1009D7580` |
+
+### 验证
+
+- 版本配置静态检查：确认发布相关源码与配置已切换到 `2.3.4`，第三方依赖自身的 `fsevents 2.3.3` 版本保持不变。
+- `python scripts/build_release_packages.py --all --skip-env-check`：通过，生成 PC 核心 NSIS 安装包和签名 Android Release APK，并复制到 `releases/`。
+- `python scripts/build_installer_shell_package.py --skip-pc-build`：通过，`node --check`、`cargo check` 和 Tauri release 构建均完成。
+- APK 签名校验：`apksigner verify --verbose --print-certs` 通过，APK Signature Scheme v2 为 `true`，签名者数量为 `1`。
+- APK 元信息校验：`aapt dump badging` 返回 `package='com.promptimagemanager.app'`、`versionCode='9'`、`versionName='2.3.4'`、`targetSdkVersion='36'`。
+- PC 安装器壳版本信息校验：`ProductVersion` 与 `FileVersion` 均为 `2.3.4`，文件描述为 `提示词管家安装向导`。
+
+---
+
+## v2.3.3 (2026-05-22)
+
+### 版本与打包
+
+- **版本号升级**：主应用、PC Tauri 配置、Android Gradle 配置、NSIS 安装器和 Tauri 安装器壳统一升级到 `2.3.3`。
+- **Android 版本递增**：Android `versionCode` 从 `7` 递增到 `8`，`versionName` 升级为 `2.3.3`。
+- **PC Tauri 安装器壳交付**：PC 端正式产物为带 Tauri 安装器壳 UI 的 `PromptImageManager-Shell-Setup-2.3.3.exe`，内部嵌入 `PromptImageManager-Setup-2.3.3.exe` 核心安装包。
+
+### 构建产物
+
+| 产物 | 大小 | SHA256 |
+|------|------|--------|
+| `releases/PromptImageManager-Shell-Setup-2.3.3.exe` | `35314176` 字节 | `71685CEDDEF0E90E21A07A9EB8E7422BE044BE6BE5F1DEBCCFAF132490089476` |
+| `releases/PromptImageManager-Setup-2.3.3.exe` | `25547667` 字节 | `6813CC0CFA1013A8D73196A8BD19A9C41CBEF1BA824CCD6F4B6EC9E10950786D` |
+| `releases/PromptImageManager-v2.3.3-Android.apk` | `46748583` 字节 | `9FB48F2E4D0E8A09C974C8E55707296D9F625094374C113D51D71EA60E79CD72` |
+
+### 验证
+
+- `python scripts/build_release_packages.py --all --skip-env-check`：通过，生成 PC 核心 NSIS 安装包和签名 Android Release APK，并复制到 `releases/`。
+- `python scripts/build_installer_shell_package.py --skip-pc-build`：通过，`node --check`、`cargo check` 和 Tauri release 构建均完成。
+- APK 签名校验：`apksigner verify --verbose --print-certs` 通过，APK Signature Scheme v2 为 `true`，签名者数量为 `1`。
+- APK 元信息校验：`aapt dump badging` 返回 `package='com.promptimagemanager.app'`、`versionCode='8'`、`versionName='2.3.3'`、`targetSdkVersion='36'`。
+- PC 安装器壳版本信息校验：`ProductVersion` 与 `FileVersion` 均为 `2.3.3`，文件描述为 `提示词管家安装向导`。
+
+---
+
+## v2.3.2 (2026-05-13)
+
+### 2026-05-21 局域网同步冲突优化补充
+
+- 新增 `/api/sync/preview`，移动端同步写入前可查看新增、跳过、冲突、PC 独有数量和字段级差异。
+- 回传冲突副本新增稳定 `conflictKey` 与 `syncMeta` 来源信息，重复回传同一冲突内容时不再生成重复副本。
+- `LanSync.bidirectional()` 改为统一调用 `/api/sync/bidirectional`，后端返回合并报告和最新快照后再写入 Android 本地。
+- PC 源码后端与安装包后端写入前生成同步前备份，并通过 `backupPath` 返回恢复线索。
+- 补充源码后端、安装包后端和移动端同步测试，覆盖预览接口、字段差异、幂等冲突副本和双向统一接口。
+- 验证通过：`npm.cmd run test`（9 个测试文件、98 个测试用例）、`python -m pytest python/tests -q`（36 个测试用例）、`npm.cmd run build`。
+
+### 版本与打包
+
+- **版本号升级**：主应用、PC Tauri 配置、Android Gradle 配置、NSIS 安装器和 Tauri 安装器壳统一升级到 `2.3.2`。
+- **Android 版本递增**：Android `versionCode` 从 `6` 递增到 `7`，`versionName` 升级为 `2.3.2`。
+- **PC Tauri 安装器壳交付**：PC 端正式产物为带 Tauri 安装器壳的 `PromptImageManager-Shell-Setup-2.3.2.exe`，内部嵌入 `PromptImageManager-Setup-2.3.2.exe` 核心安装包。
+
+### 构建产物
+
+| 产物 | 大小 | SHA256 |
+|------|------|--------|
+| `releases/PromptImageManager-Shell-Setup-2.3.2.exe` | `35276800` 字节 | `25E7CE8EC939F427BFD1DEFAC9CA24E46798FB1283830E9088452F2F21832DBD` |
+| `releases/PromptImageManager-Setup-2.3.2.exe` | `25518130` 字节 | `00A895BF5D9831D586A258CC9109315E6115FE32974BC76862977E5729302FBF` |
+| `releases/PromptImageManager-v2.3.2-Android.apk` | `46744828` 字节 | `51F1FD83C8ADCCE95B0A6145B12BEC54EFDB99CB6D38AC166C032685791F6404` |
+
+### 验证
+
+- `npm.cmd run build`：通过，Vite 生产构建成功。
+- `npm.cmd run test`：通过，8 个测试文件、86 个测试用例全部通过。
+- `python scripts/build_pc_package.py --skip-env-check`：通过，生成 PC 核心 NSIS 安装包并复制到 `releases/`。
+- `python scripts/build_installer_shell_package.py --skip-pc-build --skip-env-check`：通过，`node --check`、`cargo check` 和 Tauri release 构建均完成。
+- `python scripts/build_android_package.py --skip-env-check`：通过，生成签名 Release APK 并复制到 `releases/`。
+- APK 签名校验：`apksigner verify --verbose --print-certs` 通过，APK Signature Scheme v2 为 `true`，签名者数量为 `1`。
+- APK 元信息校验：`aapt dump badging` 返回 `package='com.promptimagemanager.app'`、`versionCode='7'`、`versionName='2.3.2'`、`targetSdkVersion='36'`。
+- PC 打包版运行探针：打包后的 `PromptImageManager.exe` 在 `8888` 被占用时回退到 `8889`，`/api/health`、`/index.html`、`/api/sync/capabilities` 均返回 200。
+- PC UI 变动后重打包：2026-05-13 重新执行 PC 核心安装包和 Tauri 安装器壳构建，发布产物大小与 SHA256 已刷新。
+- PC 二次 UI 变动后重打包：2026-05-13 再次重新执行 PC 核心安装包和 Tauri 安装器壳构建，打包版直接监听 `8888`，`/api/health`、`/index.html`、`/api/sync/capabilities` 均返回 200。
+
+### 已知情况
+
+- 当前执行时 `adb devices -l` 未检测到已连接设备，因此未执行 APK 真机安装；APK 本地构建、签名和元信息校验已完成。
+- Android 构建过程中仍有来自 Capacitor 依赖的 Kotlin/Gradle 警告，不阻断 Release APK 生成。
+
+---
+
 ## v2.3.1 (2026-05-10)
 
 ### 本轮补充

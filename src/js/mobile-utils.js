@@ -27,7 +27,8 @@ function goBack() {
 }
 
 function iconImg(src, alt = '') {
-    return `<img src="${src}" alt="${alt}" class="m-icon-img">`;
+    const hidden = alt ? '' : ' aria-hidden="true"';
+    return `<img src="${src}" alt="${alt}" class="m-icon-img"${hidden}>`;
 }
 
 export { initMobileUtils, showMobileToast, showActionSheet, navigate, goBack, iconImg };

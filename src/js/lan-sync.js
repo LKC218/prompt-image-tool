@@ -736,6 +736,42 @@ export class LanSync {
         }
     }
 
+    async preview(serverIp, options = {}) {
+        const target = parseLanTarget(serverIp);
+        if (!target) throw new Error('无效的 PC 地址');
+        const baseUrl = target.baseUrl;
+        const mode = options.mode || 'keep_pc';
+        const pairing = options.token
+            ? { sync_token: options.token }
+            : await this.getPairing(serverIp);
+        const token = pairing.sync_token;
+        if (!token) throw new Error('缺少同步令牌');
+        const payload = options.payload || await this.storage.exportData();
+
+        const res = await fetch(`${baseUrl}/api/sync/preview`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Sync-Token': token,
+                'X-Device-Id': this._getAndroidDeviceId(),
+                'X-Device-Name': options.deviceName || 'Android',
+            },
+            body: JSON.stringify({ mode, payload }),
+        });
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || '同步预览失败');
+        }
+        const preview = await res.json();
+        return {
+            ...preview,
+            token,
+            ip: target.ip,
+            port: target.port,
+            address: target.address,
+        };
+    }
+
     async push(serverIp, options = {}) {
         if (this.isSyncing()) return null;
 
@@ -793,6 +829,8 @@ export class LanSync {
                 skipped: report.skipped || 0,
                 imagesRestored: report.imagesRestored || 0,
                 conflictItems: report.conflictItems || [],
+                preview: report.preview || null,
+                backupPath: report.backupPath || '',
             };
             this._setProgress(4, 4, '回传完成');
             this._setState(this.report.success ? SyncState.SUCCESS : SyncState.PARTIAL);
@@ -811,15 +849,82 @@ export class LanSync {
     }
 
     async bidirectional(serverIp, options = {}) {
-        const pushReport = await this.push(serverIp, { ...options, mode: 'keep_pc' });
-        if (!pushReport) return null;
-        const pullReport = await this.sync(serverIp);
-        this.report = {
-            success: !!pullReport?.success && !!pushReport.success,
-            mode: 'bidirectional',
-            pushReport,
-            pullReport,
-        };
-        return this.report;
+        if (this.isSyncing()) return null;
+
+        this._abortController = new AbortController();
+        const signal = this._abortController.signal;
+        const target = parseLanTarget(serverIp);
+        if (!target) throw new Error('无效的 PC 地址');
+        const baseUrl = target.baseUrl;
+        const mode = options.mode || 'keep_pc';
+
+        try {
+            this._setState(SyncState.CONNECTING);
+            this._setProgress(0, 5, '读取 PC 互通能力...');
+
+            const pairing = options.token
+                ? { sync_token: options.token }
+                : await this.getPairing(serverIp);
+            const token = pairing.sync_token;
+            if (!token) throw new Error('缺少同步令牌');
+
+            this._setState(SyncState.SYNCING);
+            this._setProgress(1, 5, '整理 Android 本机数据...');
+            const payload = await this.storage.exportData();
+
+            this._setProgress(2, 5, '提交双向同步...');
+            const res = await fetch(`${baseUrl}/api/sync/bidirectional`, {
+                method: 'POST',
+                signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Sync-Token': token,
+                    'X-Device-Id': this._getAndroidDeviceId(),
+                    'X-Device-Name': options.deviceName || 'Android',
+                },
+                body: JSON.stringify({ mode, payload }),
+            });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.error || '双向同步失败');
+            }
+            const body = await res.json();
+            const syncData = body.syncData || { folders: [], prompt_sets: [], versions: [], images: [], sync_meta: {} };
+
+            this._setProgress(3, 5, '写入 PC 最新结果...');
+            const mergeResult = await this._mergeData(syncData);
+
+            this._setProgress(4, 5, '下载图片...');
+            const downloadResult = await this._downloadImages(baseUrl, syncData.images || [], signal);
+
+            this._setState(SyncState.VERIFYING);
+            this._setProgress(5, 5, '校验数据...');
+            const verifyResult = await this._verifyData(syncData.sync_meta, downloadResult);
+            const pullReport = this._buildReport(mergeResult, downloadResult, verifyResult);
+
+            this.report = {
+                success: !!body.success && !!body.pushReport?.success && pullReport.success,
+                mode: 'bidirectional',
+                token,
+                ip: target.ip,
+                port: target.port,
+                address: target.address,
+                pushReport: body.pushReport || {},
+                pullReport,
+                preview: body.preview || null,
+            };
+            this._setState(this.report.success ? SyncState.SUCCESS : SyncState.PARTIAL);
+            return this.report;
+        } catch (e) {
+            if (e.name === 'AbortError') {
+                this._setState(SyncState.IDLE);
+                return null;
+            }
+            this._setState(SyncState.ERROR);
+            this.report = { error: e.message, success: false };
+            throw e;
+        } finally {
+            this._abortController = null;
+        }
     }
 }

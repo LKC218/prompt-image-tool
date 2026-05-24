@@ -3,6 +3,8 @@ import { goBack, showMobileToast, showActionSheet } from './mobile-utils.js';
 import { getCurrentRoute } from './mobile-router.js';
 import { getTagStyleClass, aggregateTags, saveCustomTag } from './tag-utils.js';
 import { readFileAsDataURL, optimizeImageDataUrl } from './image-utils.js';
+import { mobileIcon } from './mobile-icon-assets.js';
+import { consumePromptImageToolImport, dataUrlToImportedImage } from './prompt-tool-json-import.js';
 import imagePlaceholder from '../assets/mobile/image-placeholder.png';
 
 let editMode = 'create';
@@ -17,6 +19,8 @@ let existingImages = [];
 
 const RATIOS = ['1:1', '3:4', '4:3', '16:9', '9:16'];
 const MAX_IMAGES = 10;
+const MAX_POSITIVE_PROMPT_LEN = 6666;
+const MAX_NEGATIVE_PROMPT_LEN = 2000;
 const MAX_SOURCE_IMAGE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const IMAGE_OPTIMIZE_OPTIONS = {
@@ -27,12 +31,12 @@ const IMAGE_OPTIMIZE_OPTIONS = {
 };
 
 const FOLDER_ICONS = [
-    { keyword: '插画', icon: '🎨', color: 'var(--m-blue-light)' },
-    { keyword: '写实', icon: '📷', color: 'var(--m-yellow-light)' },
-    { keyword: '科幻', icon: '🚀', color: 'var(--m-purple-light)' },
-    { keyword: '国风', icon: '🏯', color: 'var(--m-pink-light)' },
-    { keyword: '场景', icon: '🌄', color: 'var(--m-green-light)' },
-    { keyword: '人物', icon: '👤', color: '#FFE8D0' },
+    { keyword: '插画', icon: 'palette', color: 'var(--m-blue-light)' },
+    { keyword: '写实', icon: 'camera', color: 'var(--m-yellow-light)' },
+    { keyword: '科幻', icon: 'rocket', color: 'var(--m-purple-light)' },
+    { keyword: '国风', icon: 'folder-open', color: 'var(--m-pink-light)' },
+    { keyword: '场景', icon: 'image', color: 'var(--m-green-light)' },
+    { keyword: '人物', icon: 'tag', color: '#FFE8D0' },
 ];
 
 function generateId() {
@@ -53,13 +57,13 @@ function getTagStyle(tagName) {
 
 function getFolderIcon(folderName) {
     const found = FOLDER_ICONS.find(f => folderName.includes(f.keyword));
-    return found ? found.icon : '📁';
+    return mobileIcon(found ? found.icon : 'folder');
 }
 
 function render(params = {}) {
     return `
         <div class="m-top-nav">
-            <button class="m-top-nav-back" id="mEditorBack">←</button>
+            <button class="m-top-nav-back" id="mEditorBack" aria-label="返回">${mobileIcon('chevron-left')}</button>
             <span class="m-top-nav-title" id="mEditorTitle">新建提示词</span>
             <button class="m-save-btn" id="mEditorSave">保存</button>
         </div>
@@ -76,10 +80,10 @@ function render(params = {}) {
                 <label class="m-form-label">
                     正向提示词（Positive）<span class="m-form-required">*</span>
                     <button class="m-form-clear" id="mClearPositive">清空</button>
-                    <button class="m-form-preview-btn" id="mPreviewPositive">⛶</button>
+                    <button class="m-form-preview-btn" id="mPreviewPositive" aria-label="预览正向提示词">${mobileIcon('maximize', { className: 'm-icon-sm' })}</button>
                 </label>
-                <textarea class="m-input m-textarea" id="mEditorPositive" placeholder="输入正向提示词..."></textarea>
-                <div class="m-char-count"><span id="mPositiveCount">0</span>/2000</div>
+                <textarea class="m-input m-textarea" id="mEditorPositive" placeholder="输入正向提示词..." maxlength="${MAX_POSITIVE_PROMPT_LEN}"></textarea>
+                <div class="m-char-count"><span id="mPositiveCount">0</span>/${MAX_POSITIVE_PROMPT_LEN}</div>
                 <div class="m-form-error" id="mPositiveError">请输入正向提示词</div>
             </div>
 
@@ -87,10 +91,10 @@ function render(params = {}) {
                 <label class="m-form-label">
                     负向提示词（Negative）
                     <button class="m-form-clear" id="mClearNegative">清空</button>
-                    <button class="m-form-preview-btn" id="mPreviewNegative">⛶</button>
+                    <button class="m-form-preview-btn" id="mPreviewNegative" aria-label="预览负向提示词">${mobileIcon('maximize', { className: 'm-icon-sm' })}</button>
                 </label>
-                <textarea class="m-input m-textarea" id="mEditorNegative" placeholder="输入负向提示词..."></textarea>
-                <div class="m-char-count"><span id="mNegativeCount">0</span>/2000</div>
+                <textarea class="m-input m-textarea" id="mEditorNegative" placeholder="输入负向提示词..." maxlength="${MAX_NEGATIVE_PROMPT_LEN}"></textarea>
+                <div class="m-char-count"><span id="mNegativeCount">0</span>/${MAX_NEGATIVE_PROMPT_LEN}</div>
             </div>
 
             <div class="m-form-group">
@@ -99,19 +103,19 @@ function render(params = {}) {
                     ${selectedTags.map(tag => `
                         <span class="m-tag-pill m-tag-removable ${getTagStyle(tag)}" data-tag="${tag}">
                             ${tag}
-                            <button class="m-tag-remove" data-tag="${tag}">×</button>
+                            <button class="m-tag-remove" data-tag="${tag}" aria-label="移除标签">${mobileIcon('x', { className: 'm-icon-xs' })}</button>
                         </span>
                     `).join('')}
-                    <button class="m-add-tag-btn" id="mAddTagBtn">+ 添加标签</button>
+                    <button class="m-add-tag-btn" id="mAddTagBtn">${mobileIcon('plus', { className: 'm-icon-sm' })} 添加标签</button>
                 </div>
             </div>
 
             <div class="m-form-group">
                 <label class="m-form-label">分类</label>
                 <button class="m-select-card" id="mEditorFolder" style="width:100%">
-                    <span class="m-select-card-icon" id="mFolderIcon">📁</span>
+                    <span class="m-select-card-icon" id="mFolderIcon">${mobileIcon('folder')}</span>
                     <span class="m-select-card-text" id="mFolderText">未分类</span>
-                    <span class="m-select-card-arrow">→</span>
+                    <span class="m-select-card-arrow">${mobileIcon('chevron-right', { className: 'm-icon-sm' })}</span>
                 </button>
             </div>
 
@@ -140,7 +144,7 @@ function render(params = {}) {
             <div class="m-form-group">
                 <button class="m-collapse-header" id="mMoreOptions" style="width:100%">
                     <span>更多选项</span>
-                    <span class="m-collapse-arrow" id="mCollapseArrow">▼</span>
+                    <span class="m-collapse-arrow" id="mCollapseArrow">${mobileIcon('chevron-down', { className: 'm-icon-sm' })}</span>
                 </button>
                 <div class="m-collapse-body" id="mCollapseBody">
                     <div style="padding: var(--m-space-md) 0;">
@@ -167,7 +171,7 @@ function render(params = {}) {
         <div class="m-preview-overlay" id="mPreviewOverlay">
             <div class="m-preview-page">
                 <div class="m-top-nav">
-                    <button class="m-top-nav-back" id="mPreviewBack">←</button>
+                    <button class="m-top-nav-back" id="mPreviewBack" aria-label="返回">${mobileIcon('chevron-left')}</button>
                     <span class="m-top-nav-title" id="mPreviewTitle">提示词预览</span>
                     <button class="m-top-nav-action" id="mPreviewEdit">编辑</button>
                 </div>
@@ -176,6 +180,53 @@ function render(params = {}) {
             </div>
         </div>
     `;
+}
+
+async function applyPromptImageToolImport(importId) {
+    const payload = consumePromptImageToolImport(importId);
+    if (!payload || !payload.prompt) return { applied: false, imageCount: 0 };
+
+    currentSet = null;
+    selectedFolder = null;
+    selectedTags = Array.isArray(payload.prompt.tags) ? payload.prompt.tags.slice() : [];
+    selectedRatio = RATIOS.includes(payload.prompt.aspectRatio) ? payload.prompt.aspectRatio : '1:1';
+    importedImages = await buildPromptToolImportedImages(payload.images || []);
+    existingImages = [];
+    hasUnsavedChanges = true;
+
+    return {
+        applied: true,
+        imageCount: importedImages.length,
+        title: payload.prompt.title || payload.conversationTitle || '新建提示词',
+        positivePrompt: payload.prompt.positivePrompt || '',
+        negativePrompt: payload.prompt.negativePrompt || '',
+        note: payload.prompt.note || '',
+    };
+}
+
+async function buildPromptToolImportedImages(images) {
+    const result = [];
+    const sourceImages = Array.isArray(images) ? images.slice(0, MAX_IMAGES) : [];
+
+    for (let i = 0; i < sourceImages.length; i++) {
+        const imported = dataUrlToImportedImage(sourceImages[i], i);
+        if (!imported) continue;
+        try {
+            const optimized = await optimizeImageDataUrl(imported.dataUrl, IMAGE_OPTIMIZE_OPTIONS);
+            result.push({
+                ...imported,
+                compressedUrl: optimized.dataUrl,
+                optimized,
+                type: optimized.mimeType || imported.type,
+                size: optimized.size || imported.size,
+            });
+        } catch (e) {
+            console.warn('prompt tool import image optimize failed:', e);
+            result.push(imported);
+        }
+    }
+
+    return result;
 }
 
 async function mount(pageEl, params = {}) {
@@ -193,6 +244,31 @@ async function mount(pageEl, params = {}) {
         editId = null;
         const titleEl = pageEl.querySelector('#mEditorTitle');
         if (titleEl) titleEl.textContent = '新建提示词';
+        if (params.importId) {
+            const importResult = await applyPromptImageToolImport(params.importId);
+            if (importResult.applied) {
+                const nameInput = pageEl.querySelector('#mEditorName');
+                const positiveInput = pageEl.querySelector('#mEditorPositive');
+                const negativeInput = pageEl.querySelector('#mEditorNegative');
+                const noteInput = pageEl.querySelector('#mEditorNote');
+                if (nameInput) nameInput.value = importResult.title || '';
+                if (positiveInput) {
+                    positiveInput.value = importResult.positivePrompt || '';
+                    updateCharCount(pageEl, 'mPositiveCount', importResult.positivePrompt || '', MAX_POSITIVE_PROMPT_LEN);
+                }
+                if (negativeInput) {
+                    negativeInput.value = importResult.negativePrompt || '';
+                    updateCharCount(pageEl, 'mNegativeCount', importResult.negativePrompt || '', MAX_NEGATIVE_PROMPT_LEN);
+                }
+                if (noteInput) noteInput.value = importResult.note || '';
+                renderTags(pageEl);
+                renderImagePreviews(pageEl);
+                pageEl.querySelectorAll('.m-ratio-btn').forEach(b => {
+                    b.classList.toggle('m-ratio-active', b.dataset.ratio === selectedRatio);
+                });
+                showMobileToast(`已预填导入内容${importResult.imageCount ? `，图片 ${importResult.imageCount} 张` : ''}`);
+            }
+        }
     }
 
     setupEditorEvents(pageEl);
@@ -223,11 +299,11 @@ async function loadEditData(pageEl, id) {
 
             if (positiveInput) {
                 positiveInput.value = v.prompt || '';
-                updateCharCount(pageEl, 'mPositiveCount', v.prompt || '');
+                updateCharCount(pageEl, 'mPositiveCount', v.prompt || '', MAX_POSITIVE_PROMPT_LEN);
             }
             if (negativeInput) {
                 negativeInput.value = v.negativePrompt || v.negative_prompt || '';
-                updateCharCount(pageEl, 'mNegativeCount', v.negativePrompt || v.negative_prompt || '');
+                updateCharCount(pageEl, 'mNegativeCount', v.negativePrompt || v.negative_prompt || '', MAX_NEGATIVE_PROMPT_LEN);
             }
             if (noteInput) noteInput.value = v.note || '';
 
@@ -258,7 +334,7 @@ async function loadEditData(pageEl, id) {
             const folderText = pageEl.querySelector('#mFolderText');
             const folderIcon = pageEl.querySelector('#mFolderIcon');
             if (folderText && folder) folderText.textContent = folder.name;
-            if (folderIcon && folder) folderIcon.textContent = getFolderIcon(folder.name);
+            if (folderIcon && folder) folderIcon.innerHTML = getFolderIcon(folder.name);
         }
 
         hasUnsavedChanges = false;
@@ -275,10 +351,10 @@ function renderTags(pageEl) {
         ${selectedTags.map(tag => `
             <span class="m-tag-pill m-tag-removable ${getTagStyle(tag)} m-tag-enter" data-tag="${tag}">
                 ${tag}
-                <button class="m-tag-remove" data-tag="${tag}">×</button>
+                <button class="m-tag-remove" data-tag="${tag}" aria-label="移除标签">${mobileIcon('x', { className: 'm-icon-xs' })}</button>
             </span>
         `).join('')}
-        <button class="m-add-tag-btn" id="mAddTagBtn">+ 添加标签</button>
+        <button class="m-add-tag-btn" id="mAddTagBtn">${mobileIcon('plus', { className: 'm-icon-sm' })} 添加标签</button>
     `;
     tagsArea.querySelector('#mAddTagBtn')?.addEventListener('click', () => {
         showTagPicker(pageEl);
@@ -333,12 +409,12 @@ function renderImagePreviews(pageEl) {
         return `
             <div class="m-image-thumb" data-img-idx="${idx}" data-img-existing="${isExisting}">
                 <img ${src ? `src="${escapeAttr(src)}"` : ''} alt="预览" loading="lazy" data-mobile-editor-image-idx="${idx}">
-                <button class="m-image-remove-btn" data-img-idx="${idx}" data-img-existing="${isExisting}">×</button>
+                <button class="m-image-remove-btn" data-img-idx="${idx}" data-img-existing="${isExisting}" aria-label="移除图片">${mobileIcon('x', { className: 'm-icon-xs' })}</button>
             </div>
         `;
     }).join('') + (allImages.length < MAX_IMAGES ? `
         <div class="m-image-thumb m-image-add-thumb" id="mImageAddMore">
-            <span>+</span>
+            <span>${mobileIcon('plus')}</span>
         </div>
     ` : '');
 
@@ -380,13 +456,13 @@ function setupEditorEvents(pageEl) {
 
     pageEl.querySelector('#mClearPositive')?.addEventListener('click', () => {
         const input = pageEl.querySelector('#mEditorPositive');
-        if (input) { input.value = ''; updateCharCount(pageEl, 'mPositiveCount', ''); }
+        if (input) { input.value = ''; updateCharCount(pageEl, 'mPositiveCount', '', MAX_POSITIVE_PROMPT_LEN); }
         hasUnsavedChanges = true;
     });
 
     pageEl.querySelector('#mClearNegative')?.addEventListener('click', () => {
         const input = pageEl.querySelector('#mEditorNegative');
-        if (input) { input.value = ''; updateCharCount(pageEl, 'mNegativeCount', ''); }
+        if (input) { input.value = ''; updateCharCount(pageEl, 'mNegativeCount', '', MAX_NEGATIVE_PROMPT_LEN); }
         hasUnsavedChanges = true;
     });
 
@@ -413,7 +489,7 @@ function setupEditorEvents(pageEl) {
     }
     if (positiveInput) {
         positiveInput.addEventListener('input', (e) => {
-            updateCharCount(pageEl, 'mPositiveCount', e.target.value);
+            updateCharCount(pageEl, 'mPositiveCount', e.target.value, MAX_POSITIVE_PROMPT_LEN);
             hasUnsavedChanges = true;
             positiveInput.classList.remove('m-input-error');
             const err = pageEl.querySelector('#mPositiveError');
@@ -422,7 +498,7 @@ function setupEditorEvents(pageEl) {
     }
     if (negativeInput) {
         negativeInput.addEventListener('input', (e) => {
-            updateCharCount(pageEl, 'mNegativeCount', e.target.value);
+            updateCharCount(pageEl, 'mNegativeCount', e.target.value, MAX_NEGATIVE_PROMPT_LEN);
             hasUnsavedChanges = true;
         });
     }
@@ -511,11 +587,12 @@ function showFullscreenPreview(pageEl, type) {
     const inputId = type === 'positive' ? '#mEditorPositive' : '#mEditorNegative';
     const text = pageEl.querySelector(inputId)?.value || '';
     const label = type === 'positive' ? '正向提示词预览' : '负向提示词预览';
+    const maxLen = type === 'positive' ? MAX_POSITIVE_PROMPT_LEN : MAX_NEGATIVE_PROMPT_LEN;
 
     currentPreviewType = type;
     title.textContent = label;
     content.textContent = text;
-    footer.textContent = `字数：${text.length}/2000`;
+    footer.textContent = `字数：${text.length}/${maxLen}`;
 
     overlay.classList.add('m-preview-show');
 }
@@ -630,7 +707,7 @@ async function showTagPicker(pageEl) {
                         ${tempSelected.map(tag => `
                             <span class="m-tag-pill m-tag-removable ${getTagStyle(tag)}" data-remove-tag="${tag}">
                                 ${tag}
-                                <button class="m-tag-remove" data-remove-tag="${tag}">×</button>
+                                <button class="m-tag-remove" data-remove-tag="${tag}" aria-label="移除标签">${mobileIcon('x', { className: 'm-icon-xs' })}</button>
                             </span>
                         `).join('')}
                     </div>
@@ -733,15 +810,15 @@ async function showFolderPicker(pageEl) {
         <div class="m-picker-title">选择分类</div>
         <div class="m-picker-list">
             <button class="m-picker-list-item ${!selectedFolder ? 'm-picker-list-active' : ''}" data-folder-id="">
-                <span class="m-picker-list-icon">📁</span>
+                <span class="m-picker-list-icon">${mobileIcon('folder')}</span>
                 <span class="m-picker-list-text">未分类</span>
-                ${!selectedFolder ? '<span class="m-picker-list-check">✓</span>' : ''}
+                ${!selectedFolder ? `<span class="m-picker-list-check">${mobileIcon('check', { className: 'm-icon-sm' })}</span>` : ''}
             </button>
             ${folders.map(f => `
                 <button class="m-picker-list-item ${selectedFolder === f.id ? 'm-picker-list-active' : ''}" data-folder-id="${f.id}">
                     <span class="m-picker-list-icon">${getFolderIcon(f.name)}</span>
                     <span class="m-picker-list-text">${f.name}</span>
-                    ${selectedFolder === f.id ? '<span class="m-picker-list-check">✓</span>' : ''}
+                    ${selectedFolder === f.id ? `<span class="m-picker-list-check">${mobileIcon('check', { className: 'm-icon-sm' })}</span>` : ''}
                 </button>
             `).join('')}
         </div>
@@ -756,10 +833,10 @@ async function showFolderPicker(pageEl) {
             if (folderId) {
                 const folder = folders.find(f => f.id === folderId);
                 if (folderText && folder) folderText.textContent = folder.name;
-                if (folderIcon && folder) folderIcon.textContent = getFolderIcon(folder.name);
+                if (folderIcon && folder) folderIcon.innerHTML = getFolderIcon(folder.name);
             } else {
                 if (folderText) folderText.textContent = '未分类';
-                if (folderIcon) folderIcon.textContent = '📁';
+                if (folderIcon) folderIcon.innerHTML = mobileIcon('folder');
             }
             hasUnsavedChanges = true;
             closePicker(pageEl);
@@ -821,14 +898,14 @@ function setupSwipeBack(pageEl) {
     }, { passive: true });
 }
 
-function updateCharCount(pageEl, countId, text) {
+function updateCharCount(pageEl, countId, text, maxLen) {
     const countEl = pageEl.querySelector('#' + countId);
     if (!countEl) return;
     const len = text.length;
     countEl.textContent = len;
     const countContainer = countEl.parentElement;
     if (countContainer) {
-        countContainer.classList.toggle('m-char-over', len > 2000);
+        countContainer.classList.toggle('m-char-over', len > maxLen);
     }
 }
 

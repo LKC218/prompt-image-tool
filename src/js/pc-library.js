@@ -3,6 +3,8 @@ import { navigate } from './pc-app.js';
 import { showToast, showContextMenu, setContextMenuTargetId, copyToClipboard, showImageViewer, escapeHtml, formatRelativeTime, formatDate } from './pc-utils.js';
 import { getPromptSetMenuItems } from './pc-menu-actions.js';
 import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
+import { countPromptSetsByFolder, getPromptFolderId } from './pc-prompt-ui-utils.js';
+import { pcIcon } from './pc-icon-assets.js';
 
 let libraryData = null;
 let currentFilter = 'all';
@@ -23,7 +25,8 @@ const ICONS = {
     more: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>',
     image: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="m21 15-4.5-4.5L8 19"></path></svg>',
     edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z"></path></svg>',
-    copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><rect x="4" y="4" width="11" height="11" rx="2"></rect></svg>'
+    copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><rect x="4" y="4" width="11" height="11" rx="2"></rect></svg>',
+    folder: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"></path></svg>'
 };
 
 function render(params = {}) {
@@ -91,10 +94,20 @@ function renderFilterBar(pageEl) {
 
     const total = libraryData.promptSets.length;
     const favoriteCount = libraryData.promptSets.filter(p => p.isFavorite === true).length;
+    const folderCounts = countPromptSetsByFolder(libraryData.promptSets);
+    const uncategorizedCount = libraryData.promptSets.filter(p => !getPromptFolderId(p)).length;
+    const folderFilters = (libraryData.folders || []).map(folder => ({
+        key: 'folder:' + folder.id,
+        label: folder.name || '未命名分类',
+        count: folderCounts.get(folder.id) || 0,
+        icon: ICONS.folder
+    }));
     const filters = [
         { key: 'all', label: '全部', count: total },
         { key: 'favorites', label: '收藏', count: favoriteCount },
-        { key: 'recent', label: '最近使用' }
+        { key: 'recent', label: '最近使用' },
+        { key: 'uncategorized', label: '未分类', count: uncategorizedCount, icon: ICONS.folder },
+        ...folderFilters
     ];
 
     container.innerHTML = `
@@ -108,7 +121,8 @@ function renderToolbarButton(filter) {
     const isActive = currentFilter === filter.key;
     return `
         <button class="pc-library-filter-btn ${isActive ? 'pc-library-filter-active' : ''}" data-filter="${filter.key}">
-            <span>${filter.label}</span>
+            ${filter.icon ? `<span class="pc-library-filter-icon">${filter.icon}</span>` : ''}
+            <span>${escapeHtml(filter.label)}</span>
             ${filter.count !== undefined ? `<span class="pc-library-filter-count">${filter.count}</span>` : ''}
             ${filter.dropdown ? `<span class="pc-library-filter-chevron">${ICONS.chevronDown}</span>` : ''}
         </button>
@@ -122,10 +136,10 @@ function getFilteredItems() {
     if (currentFilter === 'favorites') {
         items = items.filter(p => p.isFavorite === true);
     } else if (currentFilter === 'uncategorized') {
-        items = items.filter(p => !p.folderId);
+        items = items.filter(p => !getPromptFolderId(p));
     } else if (currentFilter.startsWith('folder:')) {
         const folderId = currentFilter.slice(7);
-        items = items.filter(p => p.folderId === folderId);
+        items = items.filter(p => getPromptFolderId(p) === folderId);
     } else if (currentFilter.startsWith('tag:')) {
         const tagName = currentFilter.slice(4);
         items = items.filter(p => getTags(p).includes(tagName));
@@ -272,12 +286,12 @@ function renderPagination(total, pageCount) {
                 </label>
             </div>
             <div class="pc-library-page-center">
-                <button class="pc-library-page-btn" data-page="${Math.max(1, currentPage - 1)}" ${currentPage === 1 ? 'disabled' : ''}>‹</button>
+                <button class="pc-library-page-btn" data-page="${Math.max(1, currentPage - 1)}" ${currentPage === 1 ? 'disabled' : ''} aria-label="上一页">${pcIcon('chevronLeft', 'pc-library-page-icon')}</button>
                 ${pages.map(page => page === '...'
                     ? '<span class="pc-library-page-ellipsis">...</span>'
                     : `<button class="pc-library-page-btn ${page === currentPage ? 'pc-library-page-active' : ''}" data-page="${page}">${page}</button>`
                 ).join('')}
-                <button class="pc-library-page-btn" data-page="${Math.min(pageCount, currentPage + 1)}" ${currentPage === pageCount ? 'disabled' : ''}>›</button>
+                <button class="pc-library-page-btn" data-page="${Math.min(pageCount, currentPage + 1)}" ${currentPage === pageCount ? 'disabled' : ''} aria-label="下一页">${pcIcon('chevronRight', 'pc-library-page-icon')}</button>
             </div>
             <div class="pc-library-page-right">
                 <span>前往</span>
@@ -424,7 +438,15 @@ function setupLibraryEvents(pageEl) {
     pageEl.querySelector('#pcLibraryContent')?.addEventListener('click', async (e) => {
         const previewImg = e.target.closest('.pc-library-preview-cover img');
         if (previewImg && previewImg.src) {
-            showImageViewer(previewImg.src);
+            let imageData = {};
+            try {
+                imageData = JSON.parse(previewImg.dataset.firstImage || '{}');
+            } catch (error) {}
+            showImageViewer({
+                src: previewImg.src,
+                filename: imageData.name || previewImg.alt || 'preview',
+                image: imageData,
+            });
             return;
         }
 
@@ -558,7 +580,7 @@ function getTags(item) {
 
 function getFolderName(item) {
     if (!item || !libraryData) return '';
-    return libraryData.folders.find(folder => folder.id === item.folderId)?.name || '未分类';
+    return libraryData.folders.find(folder => folder.id === getPromptFolderId(item))?.name || '未分类';
 }
 
 function buildSummaryText(item) {

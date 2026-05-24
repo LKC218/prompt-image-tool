@@ -1,6 +1,6 @@
 import { getStorage } from './storage.js';
-import { navigate, goBack, showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
-import folderIcon from '../assets/mobile/folder.png';
+import { navigate, showMobileToast, showActionSheet } from './mobile-utils.js';
+import { mobileIcon } from './mobile-icon-assets.js';
 
 function showRenameDialog(pageEl, id, currentName, onDone) {
     let overlay = pageEl.querySelector('.m-rename-overlay');
@@ -75,7 +75,7 @@ async function showMoveDialog(pageEl, id, currentFolderId, onDone) {
         return;
     }
 
-    const FOLDER_ICON = iconImg(folderIcon);
+    const FOLDER_ICON = mobileIcon('folder');
 
     showActionSheet([
         {
@@ -91,7 +91,7 @@ async function showMoveDialog(pageEl, id, currentFolderId, onDone) {
         ...folders.map(f => ({
             action: f.id,
             icon: FOLDER_ICON,
-            label: f.name + (f.id === currentFolderId ? ' ✓' : ''),
+            label: f.name + (f.id === currentFolderId ? '（当前）' : ''),
             handler: async () => {
                 await getStorage().updatePromptSet(id, { folderId: f.id });
                 showMobileToast('已移动到 ' + f.name);
@@ -181,7 +181,7 @@ function getPromptSetMenuItems(id, pageEl, options = {}) {
     if (options.showEdit) {
         items.push({
             action: 'edit',
-            icon: '✏️',
+            icon: mobileIcon('edit'),
             label: '编辑',
             handler: () => navigate('/editor/' + id)
         });
@@ -190,7 +190,7 @@ function getPromptSetMenuItems(id, pageEl, options = {}) {
     items.push(
         {
             action: 'rename',
-            icon: '📝',
+            icon: mobileIcon('rename'),
             label: '重命名',
             handler: async () => {
                 const set = await getStorage().getPromptSet(id);
@@ -199,7 +199,7 @@ function getPromptSetMenuItems(id, pageEl, options = {}) {
         },
         {
             action: 'move',
-            icon: '📁',
+            icon: mobileIcon('folder'),
             label: '移动到分类',
             handler: async () => {
                 const set = await getStorage().getPromptSet(id);
@@ -208,13 +208,13 @@ function getPromptSetMenuItems(id, pageEl, options = {}) {
         },
         {
             action: 'copy',
-            icon: '📋',
+            icon: mobileIcon('clipboard'),
             label: '复制',
             handler: () => handleCopy(id, options.onActionDone)
         },
         {
             action: 'delete',
-            icon: '🗑️',
+            icon: mobileIcon('trash'),
             label: '删除',
             danger: true,
             handler: () => showDeleteConfirm(pageEl, id, options.onActionDone)

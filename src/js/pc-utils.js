@@ -1,3 +1,7 @@
+import { pcIcon } from './pc-icon-assets.js';
+import { getStorage } from './storage.js';
+import { downloadImage } from './image-download-utils.js';
+
 let contextMenuTargetId = null;
 let folderContextMenuTargetId = null;
 let contextMenuJustOpened = false;
@@ -18,6 +22,7 @@ const imageViewerState = {
     startTranslateX: 0,
     startTranslateY: 0
 };
+let imageViewerDownloadTarget = { url: '', filename: '', sourceFile: '' };
 
 function getPcApp() {
     return document.getElementById('pcApp');
@@ -125,8 +130,9 @@ function showContextMenu(x, y, items) {
 
     menu.innerHTML = items.map(item => {
         if (item.divider) return '<div class="pc-context-divider"></div>';
-        return `<div class="pc-context-item ${item.danger ? 'pc-context-danger' : ''}" data-action="${item.action}">
-            ${item.icon ? `<span class="pc-context-icon">${item.icon}</span>` : ''}
+        const tone = item.tone ? ` pc-context-tone-${item.tone}` : '';
+        return `<div class="pc-context-item${tone} ${item.danger ? 'pc-context-danger' : ''}" data-action="${item.action}">
+            ${item.icon ? `<span class="pc-context-icon${tone}">${item.icon}</span>` : ''}
             <span>${item.label}</span>
         </div>`;
     }).join('');
@@ -202,8 +208,29 @@ function getImageViewerParts() {
         stage: document.getElementById('pcImageViewerStage'),
         img: document.getElementById('pcImageViewerImg'),
         zoom: document.getElementById('pcImageViewerZoom'),
-        reset: document.getElementById('pcImageViewerReset')
+        reset: document.getElementById('pcImageViewerReset'),
+        download: document.getElementById('pcImageViewerDownload')
     };
+}
+
+function normalizeImageViewerInput(input) {
+    if (typeof input === 'string') {
+        return { url: input, filename: '', sourceFile: '' };
+    }
+    const image = input?.image || input?.data || {};
+    return {
+        url: input?.src || input?.url || '',
+        filename: input?.filename || image.name || image.file || '',
+        sourceFile: input?.sourceFile || image.file || ''
+    };
+}
+
+function getImageViewerStorage() {
+    try {
+        return getStorage();
+    } catch (e) {
+        return null;
+    }
 }
 
 function getImageViewerTranslateLimit() {
@@ -336,6 +363,42 @@ function handleImageViewerDblClick(e) {
     zoomImageViewerAt(e.clientX, e.clientY, IMAGE_VIEWER_DOUBLE_CLICK_SCALE);
 }
 
+async function handleImageViewerDownload(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const { download } = getImageViewerParts();
+    if (!imageViewerDownloadTarget.url || download?.disabled) return;
+
+    if (download) download.disabled = true;
+    try {
+        const result = await downloadImage({
+            url: imageViewerDownloadTarget.url,
+            filename: imageViewerDownloadTarget.filename || 'preview.png',
+            sourceFile: imageViewerDownloadTarget.sourceFile,
+            storage: getImageViewerStorage(),
+            preferFilePicker: true,
+            preferBackend: true,
+            historyContext: {
+                platform: 'pc',
+                source: '图片查看器',
+                title: imageViewerDownloadTarget.filename || '预览图片',
+            },
+        });
+        if (result?.canceled) {
+            showToast('已取消下载', 'warning');
+        } else if (result?.success) {
+            const location = result.locationLabel || result.path || result.directory || '所选位置';
+            showToast(`图片已保存到${location}`, 'success');
+        }
+    } catch (error) {
+        console.error('download image failed:', error);
+        showToast('图片下载失败', 'error');
+    } finally {
+        if (download) download.disabled = false;
+    }
+}
+
 function ensureImageViewer() {
     let viewer = document.getElementById('pcImageViewer');
     if (!viewer) {
@@ -349,8 +412,9 @@ function ensureImageViewer() {
         viewer.innerHTML = `
             <div class="pc-image-viewer-toolbar" aria-label="图片查看工具">
                 <span class="pc-image-viewer-zoom" id="pcImageViewerZoom">100%</span>
-                <button class="pc-image-viewer-tool" id="pcImageViewerReset" type="button" title="复位" aria-label="复位图片">↺</button>
-                <button class="pc-image-viewer-tool" id="pcImageViewerClose" type="button" title="关闭" aria-label="关闭图片查看器">×</button>
+                <button class="pc-image-viewer-tool" id="pcImageViewerReset" type="button" title="复位" aria-label="复位图片">${pcIcon('rotateCcw', 'pc-image-viewer-tool-icon')}</button>
+                <button class="pc-image-viewer-tool" id="pcImageViewerDownload" type="button" title="下载图片" aria-label="下载当前图片">${pcIcon('download', 'pc-image-viewer-tool-icon')}</button>
+                <button class="pc-image-viewer-tool" id="pcImageViewerClose" type="button" title="关闭" aria-label="关闭图片查看器">${pcIcon('x', 'pc-image-viewer-tool-icon')}</button>
             </div>
             <div class="pc-image-viewer-stage" id="pcImageViewerStage">
                 <img class="pc-image-viewer-img" id="pcImageViewerImg" alt="图片预览">
@@ -363,6 +427,7 @@ function ensureImageViewer() {
         const stage = viewer.querySelector('#pcImageViewerStage');
         const img = viewer.querySelector('#pcImageViewerImg');
         const resetBtn = viewer.querySelector('#pcImageViewerReset');
+        const downloadBtn = viewer.querySelector('#pcImageViewerDownload');
         const closeBtn = viewer.querySelector('#pcImageViewerClose');
 
         viewer.addEventListener('click', (e) => {
@@ -380,6 +445,7 @@ function ensureImageViewer() {
             e.stopPropagation();
             resetImageViewerTransform();
         });
+        downloadBtn.addEventListener('click', handleImageViewerDownload);
         closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             closeImageViewer();
@@ -389,12 +455,15 @@ function ensureImageViewer() {
     return viewer;
 }
 
-function showImageViewer(src) {
+function showImageViewer(input) {
+    const target = normalizeImageViewerInput(input);
+    if (!target.url) return;
     const viewer = ensureImageViewer();
     const img = document.getElementById('pcImageViewerImg');
+    imageViewerDownloadTarget = target;
     if (img) {
         resetImageViewerTransform();
-        img.src = src;
+        img.src = target.url;
     }
     viewer.classList.add('pc-image-viewer-active');
     viewer.focus({ preventScroll: true });
@@ -404,6 +473,7 @@ function closeImageViewer() {
     const viewer = document.getElementById('pcImageViewer');
     if (!viewer) return;
     viewer.classList.remove('pc-image-viewer-active');
+    imageViewerDownloadTarget = { url: '', filename: '', sourceFile: '' };
     resetImageViewerTransform();
 }
 

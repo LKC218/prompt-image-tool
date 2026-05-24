@@ -5,6 +5,7 @@ import { aggregateTags } from './tag-utils.js';
 import { getPromptSetMenuItems } from './pc-menu-actions.js';
 import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
 import homeFolderIcon from '../assets/pc/home-folder.png';
+import tagIcon from '../assets/pc/tag-2.png';
 
 let homeData = null;
 let homeSearchKeyword = '';
@@ -20,12 +21,16 @@ const CATEGORY_COLORS = [
 
 const TAG_COLORS = ['pc-tag-blue', 'pc-tag-pink', 'pc-tag-green', 'pc-tag-yellow', 'pc-tag-purple'];
 
+function assetIcon(src, className = 'pc-home-asset-icon') {
+    return `<img src="${src}" alt="" class="${className}" aria-hidden="true">`;
+}
+
 const ICONS = {
     search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg>',
     focus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3"></circle></svg>',
     prompt: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path><path d="M8 10h8"></path><path d="M8 14h5"></path></svg>',
     folder: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path></svg>',
-    tag: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10 12 18l-8-8V4h6l10 10Z"></path><circle cx="7.5" cy="7.5" r="1"></circle></svg>',
+    tag: assetIcon(tagIcon),
     star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path></svg>',
     more: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>',
     plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>',
@@ -44,9 +49,6 @@ function render(params = {}) {
             <div class="pc-home-search-bar" id="pcHomeSearch">
                 <span class="pc-search-icon pc-home-inline-icon">${ICONS.search}</span>
                 <input type="text" class="pc-search-input" placeholder="搜索提示词、标签、分类..." id="pcHomeSearchInput">
-                <button class="pc-home-search-action" type="button" id="pcHomeSearchAction" aria-label="进入搜索">
-                    ${ICONS.focus}
-                </button>
             </div>
 
             <div class="pc-stat-grid pc-home-stat-grid">
@@ -305,14 +307,6 @@ function setupHomeEvents(pageEl) {
 
     pageEl.querySelector('#pcHomeCategoryAll')?.addEventListener('click', () => {
         navigate('/category');
-    });
-
-    pageEl.querySelector('#pcHomeSearchAction')?.addEventListener('click', () => {
-        if (homeSearchKeyword) {
-            navigate('/library', { search: homeSearchKeyword });
-            return;
-        }
-        searchInput?.focus();
     });
 
     pageEl.querySelector('#pcQuickCreate')?.addEventListener('click', () => {

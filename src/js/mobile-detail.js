@@ -4,32 +4,35 @@ import { navigate, goBack, showMobileToast, showActionSheet, iconImg } from './m
 import { getCurrentRoute } from './mobile-router.js';
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { getTagStyleClass } from './tag-utils.js';
+import { mobileIcon } from './mobile-icon-assets.js';
+import { downloadImage } from './image-download-utils.js';
 import imagePlaceholder from '../assets/mobile/image-placeholder.png';
 
 let currentSet = null;
 let imageUrls = [];
 let currentImageIndex = 0;
+let activeImageViewerOverlay = null;
 
 function render(params = {}) {
     return `
         <div class="m-top-nav">
-            <button class="m-top-nav-back" id="mDetailBack">←</button>
+            <button class="m-top-nav-back" id="mDetailBack" aria-label="返回">${mobileIcon('chevron-left')}</button>
             <span class="m-top-nav-title" id="mDetailTitle">提示词详情</span>
             <div class="m-top-nav-actions">
-                <button class="m-top-nav-action" id="mDetailStar">☆</button>
-                <button class="m-top-nav-action" id="mDetailMore">⋯</button>
+                <button class="m-top-nav-action" id="mDetailStar" aria-label="收藏">${mobileIcon('star')}</button>
+                <button class="m-top-nav-action" id="mDetailMore" aria-label="更多操作">${mobileIcon('more')}</button>
             </div>
         </div>
         <div class="m-page-inner" id="mDetailContent">
             <div class="m-empty-state">
-                <span class="m-empty-icon">⏳</span>
+                <span class="m-empty-icon">${mobileIcon('loader', { className: 'm-icon-lg m-icon-spin' })}</span>
                 <span class="m-empty-text">加载中...</span>
             </div>
         </div>
         <div class="m-bottom-actions" id="mDetailActions">
-            <button class="m-action-btn m-btn-yellow" id="mDetailEdit">✏️ 编辑</button>
-            <button class="m-action-btn m-btn-blue" id="mDetailCopy">📋 复制</button>
-            <button class="m-action-btn m-btn-gray" id="mDetailMoreActions">⋯ 更多</button>
+            <button class="m-action-btn m-btn-yellow" id="mDetailEdit">${mobileIcon('edit', { className: 'm-icon-sm' })} 编辑</button>
+            <button class="m-action-btn m-btn-blue" id="mDetailCopy">${mobileIcon('clipboard', { className: 'm-icon-sm' })} 复制</button>
+            <button class="m-action-btn m-btn-gray" id="mDetailMoreActions">${mobileIcon('more', { className: 'm-icon-sm' })} 更多</button>
         </div>
     `;
 }
@@ -56,6 +59,7 @@ async function loadDetail(pageEl, id) {
         currentSet = await storage.getPromptSet(id);
         if (!currentSet) {
             showMobileToast('提示词不存在', 'error');
+            closeActiveImageViewer(true);
             goBack();
             return;
         }
@@ -77,10 +81,12 @@ async function renderDetail(pageEl, set) {
     if (starBtn) {
         if (set.isFavorite) {
             starBtn.classList.add('m-starred');
-            starBtn.textContent = '⭐';
+            starBtn.innerHTML = mobileIcon('star-filled');
+            starBtn.setAttribute('aria-label', '取消收藏');
         } else {
             starBtn.classList.remove('m-starred');
-            starBtn.textContent = '☆';
+            starBtn.innerHTML = mobileIcon('star');
+            starBtn.setAttribute('aria-label', '收藏');
         }
     }
 
@@ -94,7 +100,7 @@ async function renderDetail(pageEl, set) {
     for (const img of allImages) {
         const storage = getStorage();
         const url = await storage.getImageUrl(img);
-        imageUrls.push({ url, name: img.name || '', note: img.note || '' });
+        imageUrls.push({ url, name: img.name || '', note: img.note || '', data: img });
     }
     currentImageIndex = 0;
 
@@ -121,7 +127,7 @@ async function renderDetail(pageEl, set) {
                             <img src="${img.url}" alt="${escapeHtml(img.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='图片加载失败'">
                         </div>
                     `).join('')}
-                    ${moreCount > 0 ? `<div class="m-image-thumb m-image-thumb-more">+${moreCount}</div>` : ''}
+                    ${moreCount > 0 ? `<div class="m-image-thumb m-image-thumb-more">${mobileIcon('plus', { className: 'm-icon-sm' })}${moreCount}</div>` : ''}
                 </div>
             </div>
         `;
@@ -147,22 +153,28 @@ async function renderDetail(pageEl, set) {
 
         <div class="m-prompt-section m-positive m-section-gap m-fade-in">
             <div class="m-prompt-section-header">
-                <span class="m-prompt-section-title">正向提示词（Positive）${positivePrompt ? `<span style="font-size:12px;color:var(--m-text3);font-weight:400;margin-left:4px">${positivePrompt.length}字</span>` : ''}</span>
-                <button class="m-prompt-copy-btn" id="mCopyPositive">复制</button>
+                <div class="m-prompt-title-wrap">
+                    <span class="m-prompt-section-title">正向提示词（Positive）</span>
+                    ${positivePrompt ? `<span class="m-prompt-count">${positivePrompt.length} 字</span>` : ''}
+                </div>
+                <button class="m-prompt-copy-btn" id="mCopyPositive">${mobileIcon('copy', { className: 'm-icon-sm' })} 复制</button>
             </div>
             <div class="m-prompt-text" id="mPositiveText">${positivePrompt || '<span style="color:var(--m-text3)">暂无正向提示词</span>'}</div>
-            ${positivePrompt && positivePrompt.length > 80 ? `<button class="m-prompt-toggle" id="mTogglePositive" data-expanded="false">展开查看 ▾</button>` : ''}
-            ${positivePrompt ? `<button class="m-prompt-toggle" id="mDetailPositive" style="color:var(--m-blue)">查看完整提示词 📋</button>` : ''}
+            ${positivePrompt && positivePrompt.length > 80 ? `<button class="m-prompt-toggle" id="mTogglePositive" data-expanded="false">展开查看 ${mobileIcon('chevron-down', { className: 'm-icon-sm' })}</button>` : ''}
+            ${positivePrompt ? `<button class="m-prompt-toggle" id="mDetailPositive" style="color:var(--m-blue)">查看完整提示词 ${mobileIcon('clipboard', { className: 'm-icon-sm' })}</button>` : ''}
         </div>
 
         <div class="m-prompt-section m-negative m-section-gap m-fade-in">
             <div class="m-prompt-section-header">
-                <span class="m-prompt-section-title">负向提示词（Negative）${negativePrompt ? `<span style="font-size:12px;color:var(--m-text3);font-weight:400;margin-left:4px">${negativePrompt.length}字</span>` : ''}</span>
-                <button class="m-prompt-copy-btn" id="mCopyNegative">复制</button>
+                <div class="m-prompt-title-wrap">
+                    <span class="m-prompt-section-title">负向提示词（Negative）</span>
+                    ${negativePrompt ? `<span class="m-prompt-count">${negativePrompt.length} 字</span>` : ''}
+                </div>
+                <button class="m-prompt-copy-btn" id="mCopyNegative">${mobileIcon('copy', { className: 'm-icon-sm' })} 复制</button>
             </div>
             <div class="m-prompt-text" id="mNegativeText">${negativePrompt || '<span style="color:var(--m-text3)">暂无负向提示词</span>'}</div>
-            ${negativePrompt && negativePrompt.length > 80 ? `<button class="m-prompt-toggle" id="mToggleNegative" data-expanded="false">展开查看 ▾</button>` : ''}
-            ${negativePrompt ? `<button class="m-prompt-toggle" id="mDetailNegative" style="color:var(--m-blue)">查看完整提示词 📋</button>` : ''}
+            ${negativePrompt && negativePrompt.length > 80 ? `<button class="m-prompt-toggle" id="mToggleNegative" data-expanded="false">展开查看 ${mobileIcon('chevron-down', { className: 'm-icon-sm' })}</button>` : ''}
+            ${negativePrompt ? `<button class="m-prompt-toggle" id="mDetailNegative" style="color:var(--m-blue)">查看完整提示词 ${mobileIcon('clipboard', { className: 'm-icon-sm' })}</button>` : ''}
         </div>
 
         <div class="m-info-card m-section-gap m-fade-in">
@@ -196,7 +208,7 @@ async function renderDetail(pageEl, set) {
                                 <span class="m-version-name">${v.version || 'v' + (idx + 1)}${idx === 0 ? ' (当前版本)' : ''}</span>
                                 <span class="m-version-date">${formatDate(v.createdAt || v.created_at)}</span>
                             </div>
-                            <span class="m-version-arrow">→</span>
+                            <span class="m-version-arrow">${mobileIcon('chevron-right', { className: 'm-icon-sm' })}</span>
                         </div>
                     `).join('')}
                 </div>
@@ -255,6 +267,7 @@ function setupContentEvents(pageEl, set, positivePrompt, negativePrompt) {
 
 function setupDetailEvents(pageEl, id) {
     pageEl.querySelector('#mDetailBack')?.addEventListener('click', () => {
+        closeActiveImageViewer(true);
         goBack();
     });
 
@@ -266,10 +279,12 @@ function setupDetailEvents(pageEl, id) {
             const isStarred = result.isFavorite;
             if (isStarred) {
                 btn.classList.add('m-starred');
-                btn.textContent = '⭐';
+                btn.innerHTML = mobileIcon('star-filled');
+                btn.setAttribute('aria-label', '取消收藏');
             } else {
                 btn.classList.remove('m-starred');
-                btn.textContent = '☆';
+                btn.innerHTML = mobileIcon('star');
+                btn.setAttribute('aria-label', '收藏');
             }
             if (currentSet) currentSet.isFavorite = isStarred;
             showMobileToast(isStarred ? '已收藏' : '已取消收藏');
@@ -300,8 +315,8 @@ function setupDetailEvents(pageEl, id) {
 
     pageEl.querySelector('#mDetailMoreActions')?.addEventListener('click', () => {
         showActionSheet([
-            { action: 'addVersion', icon: '➕', label: '添加新版本', handler: () => showMobileToast('添加版本功能开发中') },
-            { action: 'compare', icon: '🔄', label: '版本对比', handler: () => showMobileToast('版本对比功能开发中') },
+            { action: 'addVersion', icon: mobileIcon('plus'), label: '添加新版本', handler: () => showMobileToast('添加版本功能开发中') },
+            { action: 'compare', icon: mobileIcon('refresh'), label: '版本对比', handler: () => showMobileToast('版本对比功能开发中') },
         ]);
     });
 }
@@ -310,7 +325,9 @@ function togglePromptExpand(pageEl, textId, btnEl) {
     const textEl = pageEl.querySelector('#' + textId);
     if (!textEl) return;
     const isExpanded = textEl.classList.toggle('m-prompt-expanded');
-    btnEl.textContent = isExpanded ? '收起 ▴' : '展开查看 ▾';
+    btnEl.innerHTML = isExpanded
+        ? `收起 ${mobileIcon('chevron-up', { className: 'm-icon-sm' })}`
+        : `展开查看 ${mobileIcon('chevron-down', { className: 'm-icon-sm' })}`;
     btnEl.dataset.expanded = isExpanded;
 }
 
@@ -321,7 +338,7 @@ function showPromptDetailPanel(title, text) {
         <div class="m-prompt-detail-panel">
             <div class="m-prompt-detail-header">
                 <span class="m-prompt-detail-title">${title}</span>
-                <button class="m-prompt-detail-close" id="mPromptDetailClose">✕</button>
+                <button class="m-prompt-detail-close" id="mPromptDetailClose" aria-label="关闭">${mobileIcon('x', { className: 'm-icon-sm' })}</button>
             </div>
             <div class="m-prompt-detail-body">
                 <div class="m-prompt-detail-text">${escapeHtml(text)}</div>
@@ -360,14 +377,16 @@ function getMobileContainer() {
 
 function showImageViewer(pageEl, startIndex) {
     if (imageUrls.length === 0) return;
+    closeActiveImageViewer(true);
     let viewerIndex = startIndex;
 
     const overlay = document.createElement('div');
     overlay.className = 'm-image-viewer-overlay';
     overlay.innerHTML = `
         <div class="m-image-viewer-header">
-            <button class="m-image-viewer-close" id="mViewerClose">✕</button>
+            <button class="m-image-viewer-close" id="mViewerClose" aria-label="关闭">${mobileIcon('x')}</button>
             <span class="m-image-viewer-counter" id="mViewerCounter">${viewerIndex + 1} / ${imageUrls.length}</span>
+            <button class="m-image-viewer-download" id="mViewerDownload" aria-label="下载当前图片">${mobileIcon('download')}</button>
         </div>
         <div class="m-image-viewer-body" id="mViewerBody">
             <img class="m-image-viewer-img" id="mViewerImg" src="${imageUrls[viewerIndex].url}" alt="" style="opacity:0;transition:opacity 0.2s" onload="this.style.opacity='1'" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\\'color:white;font-size:16px\\'>图片加载失败</span>';">
@@ -376,12 +395,13 @@ function showImageViewer(pageEl, startIndex) {
             ${imageUrls[viewerIndex].note ? `<span class="m-image-viewer-note">${escapeHtml(imageUrls[viewerIndex].note)}</span>` : ''}
         </div>
         ${imageUrls.length > 1 ? `
-            <button class="m-image-viewer-nav m-image-viewer-prev" id="mViewerPrev">‹</button>
-            <button class="m-image-viewer-nav m-image-viewer-next" id="mViewerNext">›</button>
+            <button class="m-image-viewer-nav m-image-viewer-prev" id="mViewerPrev" aria-label="上一张">${mobileIcon('chevron-left')}</button>
+            <button class="m-image-viewer-nav m-image-viewer-next" id="mViewerNext" aria-label="下一张">${mobileIcon('chevron-right')}</button>
         ` : ''}
     `;
 
     getMobileContainer().appendChild(overlay);
+    activeImageViewerOverlay = overlay;
     setTimeout(() => overlay.classList.add('m-image-viewer-show'), 30);
 
     // 触摸交互状态：缩放 + 拖拽平移
@@ -431,11 +451,43 @@ function showImageViewer(pageEl, startIndex) {
     }
 
     function closeViewer() {
-        overlay.classList.remove('m-image-viewer-show');
-        setTimeout(() => overlay.remove(), 300);
+        closeImageViewerOverlay(overlay);
+    }
+
+    async function handleDownload(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const downloadBtn = overlay.querySelector('#mViewerDownload');
+        const current = imageUrls[viewerIndex];
+        if (!current?.url || downloadBtn?.disabled) return;
+
+        if (downloadBtn) downloadBtn.disabled = true;
+        try {
+            const result = await downloadImage({
+                url: current.url,
+                filename: current.name || `${currentSet?.name || 'preview'}-${viewerIndex + 1}`,
+                sourceFile: current.data?.file || '',
+                historyContext: {
+                    platform: 'mobile',
+                    source: '图片查看器',
+                    title: current.name || currentSet?.name || `预览图片-${viewerIndex + 1}`,
+                },
+            });
+            if (result?.canceled) {
+                showMobileToast('已取消下载');
+            } else {
+                showMobileToast(result?.locationLabel ? `已保存到${result.locationLabel}` : '图片下载已完成');
+            }
+        } catch (error) {
+            console.error('mobile image download failed:', error);
+            showMobileToast('图片下载失败', 'error');
+        } finally {
+            if (downloadBtn) downloadBtn.disabled = false;
+        }
     }
 
     overlay.querySelector('#mViewerClose')?.addEventListener('click', closeViewer);
+    overlay.querySelector('#mViewerDownload')?.addEventListener('click', handleDownload);
     overlay.addEventListener('click', (e) => {
         if (e.target === overlay || e.target.classList.contains('m-image-viewer-body')) {
             closeViewer();
@@ -504,13 +556,33 @@ function showImageViewer(pageEl, startIndex) {
     }
 }
 
+function closeImageViewerOverlay(overlay, immediate = false) {
+    if (!overlay) return;
+    if (activeImageViewerOverlay === overlay) {
+        activeImageViewerOverlay = null;
+    }
+    overlay.classList.remove('m-image-viewer-show');
+    if (immediate) {
+        overlay.remove();
+        return;
+    }
+    setTimeout(() => overlay.remove(), 300);
+}
+
+function closeActiveImageViewer(immediate = false) {
+    const overlays = activeImageViewerOverlay
+        ? [activeImageViewerOverlay]
+        : Array.from(document.querySelectorAll('.m-image-viewer-overlay'));
+    overlays.forEach(overlay => closeImageViewerOverlay(overlay, immediate));
+}
+
 async function copyToClipboard(text, btnEl) {
     try {
         await navigator.clipboard.writeText(text);
         if (btnEl) {
-            const original = btnEl.textContent;
-            btnEl.textContent = '已复制✓';
-            setTimeout(() => { btnEl.textContent = original; }, 1500);
+            const original = btnEl.innerHTML;
+            btnEl.textContent = '已复制';
+            setTimeout(() => { btnEl.innerHTML = original; }, 1500);
         }
         showMobileToast('已复制到剪贴板');
     } catch (e) {
@@ -519,6 +591,7 @@ async function copyToClipboard(text, btnEl) {
 }
 
 function unmount(pageEl) {
+    closeActiveImageViewer(true);
     currentSet = null;
     imageUrls = [];
     currentImageIndex = 0;

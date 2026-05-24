@@ -22,6 +22,7 @@ const state = {
     message: "默认安装到下载目录；也可以点击浏览选择本地位置。",
     availableSpace: "约 256 MB",
   },
+  locationBrowsing: false,
   installTasks: {
     desktopShortcut: true,
     startMenuShortcut: true,
@@ -70,6 +71,7 @@ const steps = [
         validationMessage: state.locationValidation.message,
         validationState: state.locationValidation.state,
         availableSpace: state.locationValidation.availableSpace,
+        browsing: state.locationBrowsing,
       }),
   },
   {
@@ -138,6 +140,7 @@ if (normalizedPreviewStep === "complete") {
 
 const getWindowApi = () => window.__TAURI__?.window?.getCurrentWindow?.();
 const getTauriInvoke = () => window.__TAURI__?.core?.invoke || window.__TAURI__?.invoke;
+const getTauriDialogOpen = () => window.__TAURI__?.dialog?.open;
 
 const closeCurrentWindow = async () => {
   const currentWindow = getWindowApi();
@@ -383,9 +386,14 @@ function updateLocationValidation(nextState) {
 }
 
 async function chooseInstallDirectory() {
-  const invoke = getTauriInvoke();
+  if (state.locationBrowsing) {
+    return;
+  }
 
-  if (!invoke) {
+  const invoke = getTauriInvoke();
+  const openDialog = getTauriDialogOpen();
+
+  if (!openDialog || state.previewMode) {
     updateLocationValidation({
       state: "warning",
       message: "浏览目录需要在 Tauri 窗口中使用；当前可直接编辑路径。",
@@ -393,12 +401,22 @@ async function chooseInstallDirectory() {
     return;
   }
 
+  state.locationBrowsing = true;
+  renderCurrentStep();
+
   try {
-    const selectedPath = await invoke("choose_install_dir", {
-      currentDir: state.installPath,
+    const defaultPath = await getInstallDialogDefaultPath(invoke);
+    const selected = await openDialog({
+      title: "选择提示词管家的安装目录",
+      directory: true,
+      multiple: false,
+      defaultPath,
     });
+    const selectedPath = Array.isArray(selected) ? selected[0] : selected;
 
     if (!selectedPath) {
+      state.locationBrowsing = false;
+      renderCurrentStep();
       updateLocationValidation({
         state: "idle",
         message: "已取消目录选择，继续使用当前安装路径。",
@@ -408,13 +426,29 @@ async function chooseInstallDirectory() {
 
     state.installPath = selectedPath;
     state.resolvedInstallPath = selectedPath;
+    state.locationBrowsing = false;
     renderCurrentStep();
     await validateInstallPath({ renderOnSuccess: false });
   } catch (error) {
+    state.locationBrowsing = false;
+    renderCurrentStep();
     updateLocationValidation({
       state: "error",
       message: String(error || "打开目录选择失败，请直接编辑安装路径。"),
     });
+  }
+}
+
+async function getInstallDialogDefaultPath(invoke = getTauriInvoke()) {
+  if (!invoke) {
+    return state.resolvedInstallPath || state.installPath;
+  }
+
+  try {
+    const result = await invoke("validate_install_path", { targetDir: state.installPath });
+    return result?.target_dir || state.resolvedInstallPath || state.installPath;
+  } catch {
+    return state.resolvedInstallPath || state.installPath;
   }
 }
 
@@ -581,7 +615,8 @@ async function startInstallation() {
       path: "正在根据您的选择处理快捷方式",
     });
 
-    const shortcutWarnings = await applyShortcutOptions();
+    const shortcutResult = await applyShortcutOptions(state.installTasks);
+    const shortcutWarnings = shortcutResult.warnings;
 
     updateInstallingState({
       phase: "complete",
@@ -602,7 +637,7 @@ async function startInstallation() {
       status:
         shortcutWarnings.length > 0
           ? `安装已完成；${shortcutWarnings.join("；")}`
-          : "安装已完成，点击完成即可关闭安装向导。",
+          : "安装已完成，并已创建桌面和开始菜单快捷方式。",
     };
     goToStepById("complete");
   } catch (error) {
@@ -644,16 +679,34 @@ function buildShortcutWarning(error, fallback) {
   return message ? fallback : fallback;
 }
 
+function buildShortcutStatusWarnings(status = {}, tasks = state.installTasks) {
+  const warnings = [];
+  if (tasks.desktopShortcut && status.desktop_shortcut_exists === false) {
+    warnings.push("未检测到桌面快捷方式，可点击完成时再次尝试创建。");
+  }
+
+  if (
+    tasks.startMenuShortcut &&
+    (status.start_menu_shortcut_exists === false ||
+      status.start_menu_uninstaller_shortcut_exists === false)
+  ) {
+    warnings.push("未检测到完整开始菜单入口，可点击完成时再次尝试创建。");
+  }
+
+  return warnings;
+}
+
 async function applyShortcutOptions(tasks = state.installTasks) {
   const invoke = getTauriInvoke();
   if (!invoke || state.previewMode) {
-    return [];
+    return { warnings: [], status: null };
   }
 
   const warnings = [];
+  let status = null;
 
   try {
-    await invoke("apply_desktop_shortcut", {
+    status = await invoke("apply_desktop_shortcut", {
       targetDir: state.installPath,
       enabled: tasks.desktopShortcut,
     });
@@ -662,7 +715,7 @@ async function applyShortcutOptions(tasks = state.installTasks) {
   }
 
   try {
-    await invoke("apply_start_menu_shortcut", {
+    status = await invoke("apply_start_menu_shortcut", {
       targetDir: state.installPath,
       enabled: tasks.startMenuShortcut,
     });
@@ -670,7 +723,17 @@ async function applyShortcutOptions(tasks = state.installTasks) {
     warnings.push(buildShortcutWarning(error, "开始菜单快捷方式处理失败，可安装后手动创建。"));
   }
 
-  return warnings;
+  if (!status) {
+    try {
+      status = await invoke("get_shortcut_status");
+    } catch {
+      status = null;
+    }
+  }
+
+  warnings.push(...buildShortcutStatusWarnings(status || {}, tasks));
+
+  return { warnings: [...new Set(warnings)], status };
 }
 
 async function finishInstallation() {
@@ -693,10 +756,10 @@ async function finishInstallation() {
 
   try {
     if (invoke && !state.previewMode) {
-      const shortcutWarnings = await applyShortcutOptions(state.completeOptions);
-      if (shortcutWarnings.length > 0) {
+      const shortcutResult = await applyShortcutOptions(state.completeOptions);
+      if (shortcutResult.warnings.length > 0) {
         updateCompleteState({
-          status: `安装已完成；${shortcutWarnings.join("；")}`,
+          status: `安装已完成；${shortcutResult.warnings.join("；")}`,
         });
       }
 

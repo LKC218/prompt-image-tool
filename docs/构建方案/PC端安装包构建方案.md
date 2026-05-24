@@ -1,6 +1,6 @@
 # 生图提示词管理器 - PC端安装包构建方案
 
-> 适用版本：v2.3.1+  
+> 适用版本：v2.3.2+  
 > 构建方案：PyInstaller + NSIS  
 > 最后更新：2026-05-09
 
@@ -132,7 +132,7 @@ cd ..
 
 验证：
 ```bash
-dir build\PromptImageManager-Setup-2.3.1.exe
+dir build\PromptImageManager-Setup-2.3.2.exe
 ```
 
 > 如果系统未安装 NSIS，可跳过此步。直接使用第3步产出的 `build\dist\PromptImageManager\` 文件夹即可。
@@ -144,8 +144,9 @@ dir build\PromptImageManager-Setup-2.3.1.exe
 ### 4.1 NSIS 安装包（推荐分发）
 
 ```
-build/PromptImageManager-Setup-2.3.1.exe    # ~18 MB，带安装向导
-releases/PromptImageManager-Setup-2.3.1.exe # 发布目录副本
+build/PromptImageManager-Setup-2.3.2.exe    # 核心 NSIS 安装包
+releases/PromptImageManager-Setup-2.3.2.exe # 发布目录副本
+releases/PromptImageManager-Shell-Setup-2.3.2.exe # 带 Tauri 安装器壳的正式 PC 交付包
 ```
 
 安装后包含：桌面快捷方式、开始菜单、卸载程序、注册表条目。
@@ -292,12 +293,12 @@ pause
 
 | 文件 | 字段/位置 | 示例值 |
 |------|----------|--------|
-| `package.json` | `"version"` | `"2.3.1"` |
-| `build/installer.nsi` | `!define APPVERSION` | `"2.3.1"` |
-| `build.bat` | 标题文本 | `v2.3.1` |
-| `src-tauri/tauri.conf.json` | `"version"` | `"2.3.1"` |
-| `src-tauri/Cargo.toml` | `version` | `"2.3.1"` |
-| `android/app/build.gradle` | `versionCode` / `versionName` | `6` / `"2.3.1"` |
+| `package.json` | `"version"` | `"2.3.2"` |
+| `build/installer.nsi` | `!define APPVERSION` | `"2.3.2"` |
+| `build.bat` | 标题文本 | `v2.3.2` |
+| `src-tauri/tauri.conf.json` | `"version"` | `"2.3.2"` |
+| `src-tauri/Cargo.toml` | `version` | `"2.3.2"` |
+| `android/app/build.gradle` | `versionCode` / `versionName` | `7` / `"2.3.2"` |
 
 ---
 
@@ -406,7 +407,7 @@ NSIS 未安装或未加入 PATH。参考第 2.2 节安装 NSIS。也可跳过 NS
                  │
     ┌────────────▼─────────────┐
     │  PromptImageManager      │
-    │  -Setup-2.3.1.exe        │
+    │  -Setup-2.3.2.exe        │
     │  → 复制到 releases/      │
     └──────────────────────────┘
 ```

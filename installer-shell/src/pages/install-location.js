@@ -12,11 +12,15 @@ export function renderInstallLocationPage({
   validationMessage = "默认安装到下载目录；也可以点击浏览选择本地位置。",
   validationState = "idle",
   availableSpace = "将自动校验",
+  browsing = false,
 } = {}) {
   const escapedInstallPath = escapeAttribute(installPath);
   const escapedMessage = escapeAttribute(validationMessage);
   const escapedResolvedPath = escapeAttribute(resolvedPath || "继续前展开");
   const escapedAvailableSpace = escapeAttribute(availableSpace);
+  const browseDisabled = browsing ? " disabled" : "";
+  const browseLabel = browsing ? "选择中" : "浏览";
+  const nextDisabled = browsing ? " disabled" : "";
 
   return `
     <section class="book-stage" aria-label="选择提示词管家安装位置">
@@ -41,7 +45,7 @@ export function renderInstallLocationPage({
             <span class="location-icon folder" aria-hidden="true"></span>
             <label class="sr-only" for="install-path">安装路径</label>
             <input id="install-path" type="text" value="${escapedInstallPath}" autocomplete="off" spellcheck="false" />
-            <button id="browse-install-path" class="browse-button" type="button">浏览</button>
+            <button id="browse-install-path" class="browse-button" type="button"${browseDisabled}>${browseLabel}</button>
           </div>
 
           <dl class="space-row" aria-label="磁盘空间信息">
@@ -63,7 +67,7 @@ export function renderInstallLocationPage({
 
           <div class="location-actions" aria-label="安装操作">
             <button id="prev-step" class="secondary" type="button">上一步</button>
-            <button id="next-step" class="primary" type="button">
+            <button id="next-step" class="primary" type="button"${nextDisabled}>
               <span>下一步</span>
               <span class="arrow" aria-hidden="true"></span>
             </button>

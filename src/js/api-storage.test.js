@@ -227,6 +227,30 @@ describe('ApiStorage', () => {
             }));
         });
 
+        it('exportFile should pass export save options', async () => {
+            await storage.exportFile('backup.json', { saveMode: 'custom', directory: 'D:\\Backups' });
+            expect(mockFetch).toHaveBeenCalledWith('/api/export-file', expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({
+                    filename: 'backup.json',
+                    saveMode: 'custom',
+                    directory: 'D:\\Backups',
+                }),
+            }));
+        });
+
+        it('downloadImageFile should call POST /api/image-download-file with save options', async () => {
+            await storage.downloadImageFile('preview.png', { filename: 'download.png', saveMode: 'custom' });
+            expect(mockFetch).toHaveBeenCalledWith('/api/image-download-file', expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({
+                    sourceFile: 'preview.png',
+                    filename: 'download.png',
+                    saveMode: 'custom',
+                }),
+            }));
+        });
+
         it('importData should call POST /api/import', async () => {
             const data = {
                 backup_meta: { format: 'prompt-image-tool-backup' },

@@ -30,6 +30,35 @@ def configure_temp_data(module, monkeypatch, tmp_path):
     module.ensure_dirs()
 
 
+def test_build_load_data_rejects_corrupt_file_without_overwriting(tmp_path, monkeypatch):
+    module = load_build_app_main()
+    configure_temp_data(module, monkeypatch, tmp_path)
+    data_file = Path(module.DATA_FILE)
+    data_file.write_text('{bad json', encoding='utf-8')
+
+    try:
+        module.load_data()
+        assert False, "corrupt data file should be rejected"
+    except module.DataFileError as error:
+        assert "数据文件损坏" in str(error)
+
+    assert data_file.read_text(encoding='utf-8') == '{bad json'
+
+
+def test_build_save_data_keeps_last_good_backup(tmp_path, monkeypatch):
+    module = load_build_app_main()
+    configure_temp_data(module, monkeypatch, tmp_path)
+    data_file = Path(module.DATA_FILE)
+
+    first_data = [{"id": "1", "name": "旧数据", "versions": []}]
+    second_data = [{"id": "2", "name": "新数据", "versions": []}]
+    module.save_data(first_data)
+    module.save_data(second_data)
+
+    assert module.load_data() == second_data
+    assert json.loads(Path(f"{data_file}.bak").read_text(encoding="utf-8")) == first_data
+
+
 def start_test_server(module):
     server = module.ExclusiveThreadingTCPServer(("127.0.0.1", 0), module.AppHandler)
     module.SERVER_PORT = server.server_address[1]
@@ -84,6 +113,35 @@ def test_installer_backend_sync_capabilities_returns_json(tmp_path, monkeypatch)
         assert body["platform"] == "pc"
         assert body["port"] == server.server_address[1]
         assert "bidirectional" in body["capabilities"]
+    finally:
+        stop_test_server(server, thread)
+
+
+def test_installer_backend_image_download_file_saves_known_image(tmp_path, monkeypatch):
+    module = load_build_app_main()
+    configure_temp_data(module, monkeypatch, tmp_path)
+    image_path = tmp_path / "images" / "preview.png"
+    image_path.write_bytes(b"\x89PNG\r\ninstaller")
+    server, thread = start_test_server(module)
+    try:
+        base_url = f"http://127.0.0.1:{server.server_address[1]}"
+        target_dir = tmp_path / "exports"
+        status, _, body = request_json(
+            f"{base_url}/api/image-download-file",
+            {
+                "sourceFile": "preview.png",
+                "filename": "../installer-preview",
+                "directory": str(target_dir),
+                "saveMode": "custom",
+            },
+            "POST",
+        )
+
+        assert status == 200
+        assert body["success"] is True
+        assert body["filename"] == "installer-preview.png"
+        assert os.path.exists(body["path"])
+        assert Path(body["path"]).read_bytes() == b"\x89PNG\r\ninstaller"
     finally:
         stop_test_server(server, thread)
 
@@ -189,6 +247,43 @@ def test_installer_backend_sync_import_with_pairing_token_writes_data(tmp_path, 
         assert status == 200
         assert body["success"] is True
         assert body["added"] == 1
+        assert os.path.exists(body["backupPath"])
         assert module.load_data()[0]["id"] == "android-set"
+    finally:
+        stop_test_server(server, thread)
+
+
+def test_installer_backend_sync_preview_reports_conflicts(tmp_path, monkeypatch):
+    module = load_build_app_main()
+    configure_temp_data(module, monkeypatch, tmp_path)
+    module.save_data([{
+        "id": "set1",
+        "name": "PC 版本",
+        "versions": [{"id": "v1", "version": "v1", "prompt": "pc", "images": []}],
+    }])
+    server, thread = start_test_server(module)
+    try:
+        base_url = f"http://127.0.0.1:{server.server_address[1]}"
+        _, _, pairing = request_json(f"{base_url}/api/sync/pairing")
+        status, _, body = request_json(
+            f"{base_url}/api/sync/preview",
+            {
+                "mode": "keep_pc",
+                "payload": {
+                    "prompt_sets": [{
+                        "id": "set1",
+                        "name": "Android 版本",
+                        "versions": [{"id": "v1", "version": "v1", "prompt": "android", "images": []}],
+                    }]
+                },
+            },
+            "POST",
+            {"X-Sync-Token": pairing["sync_token"]},
+        )
+
+        assert status == 200
+        assert body["summary"]["conflicts"] == 1
+        assert body["items"][0]["type"] == "conflict"
+        assert body["items"][0]["conflictKey"]
     finally:
         stop_test_server(server, thread)

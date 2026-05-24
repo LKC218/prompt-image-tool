@@ -5,6 +5,7 @@ import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { aggregateTags, getTagStyleClass } from './tag-utils.js';
 import { getCurrentRoute } from './mobile-router.js';
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
+import { mobileIcon } from './mobile-icon-assets.js';
 import searchIcon from '../assets/mobile/search.png';
 import imagePlaceholder from '../assets/mobile/image-placeholder.png';
 import dataIcon from '../assets/mobile/data.png';
@@ -28,7 +29,7 @@ function render(params = {}) {
             <span class="m-top-nav-title">提示词库</span>
             <div class="m-top-nav-actions">
                 <button class="m-top-nav-action" id="mLibSearchBtn">${iconImg(searchIcon)}</button>
-                <button class="m-top-nav-action" id="mLibMoreBtn">⋯</button>
+                <button class="m-top-nav-action" id="mLibMoreBtn" aria-label="更多操作">${mobileIcon('more')}</button>
             </div>
         </div>
         <div class="m-page-inner">
@@ -58,7 +59,7 @@ async function loadLibraryData(pageEl) {
 
         folderFilters = folders.map(f => ({
             key: 'folder:' + f.id,
-            label: '📁 ' + f.name
+            label: f.name
         }));
 
         const tags = aggregateTags(promptSets);
@@ -144,8 +145,8 @@ function renderList(pageEl) {
                 <div class="m-prompt-list-meta">
                     <span class="m-prompt-list-time">${formatRelativeTime(item.updatedAt)}</span>
                     <div class="m-prompt-list-actions">
-                        <button class="m-star-btn ${item.isFavorite === true ? 'm-starred' : ''}" data-id="${item.id}">${item.isFavorite === true ? '⭐' : '☆'}</button>
-                        <button class="m-more-btn" data-id="${item.id}">⋯</button>
+                        <button class="m-star-btn ${item.isFavorite === true ? 'm-starred' : ''}" data-id="${item.id}" aria-label="${item.isFavorite === true ? '取消收藏' : '收藏'}">${mobileIcon(item.isFavorite === true ? 'star-filled' : 'star')}</button>
+                        <button class="m-more-btn" data-id="${item.id}" aria-label="更多操作">${mobileIcon('more')}</button>
                     </div>
                 </div>
             </div>
@@ -195,10 +196,12 @@ function setupLibraryEvents(pageEl) {
                 const isStarred = result.isFavorite;
                 if (isStarred) {
                     starBtn.classList.add('m-starred');
-                    starBtn.textContent = '⭐';
+                    starBtn.innerHTML = mobileIcon('star-filled');
+                    starBtn.setAttribute('aria-label', '取消收藏');
                 } else {
                     starBtn.classList.remove('m-starred');
-                    starBtn.textContent = '☆';
+                    starBtn.innerHTML = mobileIcon('star');
+                    starBtn.setAttribute('aria-label', '收藏');
                 }
                 showMobileToast(isStarred ? '已收藏' : '已取消收藏');
             } catch (e) {
@@ -247,7 +250,7 @@ function setupLibraryEvents(pageEl) {
 
     pageEl.querySelector('#mLibMoreBtn')?.addEventListener('click', () => {
         showActionSheet([
-            { action: 'sort', icon: '📊', label: '排序方式', handler: () => showMobileToast('排序功能开发中') },
+            { action: 'sort', icon: mobileIcon('sort'), label: '排序方式', handler: () => showMobileToast('排序功能开发中') },
             { action: 'export', icon: `<img src="${dataIcon}" alt="" class="m-icon-img-native">`, label: '导出数据', handler: () => handleExport() },
         ]);
     });

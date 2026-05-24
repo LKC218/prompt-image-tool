@@ -179,6 +179,8 @@
 
 **响应**：返回创建的集合详情。
 
+如果后端数据文件损坏、为空或无法读取，本接口会返回 `500`，且不会用空数据覆盖现有文件。
+
 ### POST /api/prompt-set/{id}
 
 更新提示词集合。
@@ -194,6 +196,8 @@
 ```
 
 **响应**：返回更新后的集合详情。
+
+如果后端数据文件损坏、为空或无法读取，本接口会返回 `500`，且不会用空数据覆盖现有文件。
 
 ### DELETE /api/prompt-set/{id}
 
@@ -379,15 +383,23 @@
 
 ### POST /api/export-file
 
-让 Python 后端直接生成完整备份文件，作为 PC 桌面端 WebView 下载不可靠时的兜底保存方式。
+让 Python 后端直接生成完整备份文件。PC 默认导出保存到系统下载目录；当 `saveMode` 为 `custom` 且未传入目录或目标路径时，后端会打开原生保存窗口让用户选择 JSON 保存位置。
 
 **请求体**：
 
 ```json
 {
-  "filename": "prompt-backup-2026-05-09-210000.json"
+  "filename": "prompt-backup-2026-05-09-210000.json",
+  "saveMode": "downloads",
+  "directory": "D:\\Backups",
+  "targetPath": "D:\\Backups\\prompt-backup-2026-05-09-210000.json"
 }
 ```
+
+- `filename`：可选，后端会清洗非法字符并补齐 `.json`。
+- `saveMode`：可选，`downloads` 表示保存到系统下载目录，`custom` 表示自定义位置。
+- `directory`：可选，自定义保存目录；传入后会和清洗后的 `filename` 组成目标路径。
+- `targetPath`：可选，自定义完整保存路径；优先级高于 `directory`。
 
 **响应**：
 
@@ -395,12 +407,75 @@
 {
   "success": true,
   "filename": "prompt-backup-2026-05-09-210000.json",
-  "path": "D:\\Work\\git\\prompt-image-tool\\python\\data\\backups\\prompt-backup-2026-05-09-210000.json",
-  "directory": "D:\\Work\\git\\prompt-image-tool\\python\\data\\backups",
+  "path": "C:\\Users\\User\\Downloads\\prompt-backup-2026-05-09-210000.json",
+  "directory": "C:\\Users\\User\\Downloads",
+  "method": "backend",
+  "saveMode": "downloads",
+  "locationLabel": "下载目录",
   "size": 123456,
   "promptSetCount": 3,
   "versionCount": 6,
   "imageCount": 2
+}
+```
+
+自定义位置窗口被取消时响应：
+
+```json
+{
+  "success": false,
+  "canceled": true,
+  "method": "backend",
+  "saveMode": "custom",
+  "filename": "prompt-backup-2026-05-09-210000.json"
+}
+```
+
+### POST /api/image-download-file
+
+让 Python 后端把 `data/images` 内的指定图片保存到用户选择的位置。该接口只接受图片目录内的已知文件名，用于 PC 图片预览的自定义位置下载；后端会清洗输出文件名，并拒绝路径穿越或非图片扩展名。
+
+**请求体**：
+
+```json
+{
+  "sourceFile": "preview.png",
+  "filename": "提示词封面.png",
+  "saveMode": "custom",
+  "directory": "D:\\Images",
+  "targetPath": "D:\\Images\\提示词封面.png"
+}
+```
+
+- `sourceFile`：必填，`data/images` 内的图片文件名，支持 `.png`、`.jpg`、`.jpeg`、`.webp`、`.gif`。
+- `filename`：可选，目标文件名；后端会清洗非法字符并按源图片补齐扩展名。
+- `saveMode`：可选，默认 `custom`。未传入 `directory` 或 `targetPath` 时会打开原生保存窗口。
+- `directory`：可选，自定义保存目录；传入后会和清洗后的 `filename` 组成目标路径。
+- `targetPath`：可选，自定义完整保存路径；优先级高于 `directory`。
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "filename": "提示词封面.png",
+  "path": "D:\\Images\\提示词封面.png",
+  "directory": "D:\\Images",
+  "saveMode": "custom",
+  "locationLabel": "自定义位置",
+  "size": 20480,
+  "contentType": "image/png"
+}
+```
+
+自定义位置窗口被取消时响应：
+
+```json
+{
+  "success": false,
+  "canceled": true,
+  "saveMode": "custom",
+  "filename": "提示词封面.png"
 }
 ```
 
@@ -532,6 +607,55 @@
 }
 ```
 
+### POST /api/sync/preview
+
+Android 上传本机完整备份快照，PC 只计算同步差异，不写入数据。该接口必须携带 `X-Sync-Token`。
+
+**请求体**：
+
+```json
+{
+  "mode": "keep_pc",
+  "payload": {
+    "folders": [],
+    "prompt_sets": []
+  }
+}
+```
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "mode": "keep_pc",
+  "summary": {
+    "added": 1,
+    "conflicts": 1,
+    "skipped": 0,
+    "same": 0,
+    "invalid": 0,
+    "onlyPc": 2,
+    "incoming": 2
+  },
+  "items": [
+    {
+      "id": "set1",
+      "name": "Android 版本",
+      "type": "conflict",
+      "conflictKey": "hash",
+      "fieldDiffs": [
+        { "field": "name", "label": "标题" }
+      ],
+      "recommendedAction": "create_conflict_copy"
+    }
+  ],
+  "requiresConfirmation": true
+}
+```
+
+`summary.conflicts > 0` 时，移动端必须先提示用户确认。`add_only` 模式下冲突项只跳过；`keep_pc` 模式下冲突项生成幂等冲突副本。
+
 ### POST /api/sync/import
 
 Android 将本机完整备份回传到 PC。该接口必须携带 `X-Sync-Token`，默认保护 PC 端同 ID 数据。
@@ -575,13 +699,15 @@ X-Device-Name: Android
   "conflicts": 1,
   "skipped": 0,
   "imagesRestored": 2,
-  "conflictItems": []
+  "conflictItems": [],
+  "backupPath": "D:/.../backups/Android-keep_pc-backup-20260521-214500.json",
+  "preview": {}
 }
 ```
 
 ### POST /api/sync/bidirectional
 
-Android 上传本机快照，PC 以 `keep_pc` 策略合并后返回最新 PC 同步快照。移动端随后可用该快照刷新本机数据。
+Android 上传本机快照，PC 按请求 `mode` 生成预览、执行合并并返回最新 PC 同步快照。移动端随后用该快照刷新本机数据。当前移动端会在调用此接口前先调用 `/api/sync/preview` 展示冲突摘要。
 
 写入权限同 `/api/sync/import`，必须携带 `X-Sync-Token`。
 
@@ -591,7 +717,8 @@ Android 上传本机快照，PC 以 `keep_pc` 策略合并后返回最新 PC 同
 {
   "success": true,
   "pushReport": {},
-  "syncData": {}
+  "syncData": {},
+  "preview": {}
 }
 ```
 

@@ -14,7 +14,7 @@ import main as main_module
 from main import (
     load_data, save_data, save_folders, save_image, delete_image_file,
     ensure_dirs, AppHandler, APP_DIR, DATA_DIR, IMAGES_DIR, DATA_FILE,
-    build_backup_payload, save_backup_file,
+    build_backup_payload, save_backup_file, save_image_download_file,
 )
 
 
@@ -89,6 +89,63 @@ class TestLoadSaveData:
         result = load_data()
         assert result == test_data
 
+    def test_load_data_rejects_corrupt_existing_file(self, tmp_path, monkeypatch):
+        data_file = tmp_path / 'prompt_sets.json'
+        data_file.write_text('{bad json', encoding='utf-8')
+        monkeypatch.setattr('main.DATA_FILE', str(data_file))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+
+        try:
+            load_data()
+            assert False, 'corrupt data file should be rejected'
+        except main_module.DataFileError as error:
+            assert '数据文件损坏' in str(error)
+
+        assert data_file.read_text(encoding='utf-8') == '{bad json'
+
+    def test_save_data_keeps_last_good_backup(self, tmp_path, monkeypatch):
+        data_file = tmp_path / 'prompt_sets.json'
+        monkeypatch.setattr('main.DATA_FILE', str(data_file))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+
+        first_data = [{'id': '1', 'name': '旧数据', 'versions': []}]
+        second_data = [{'id': '2', 'name': '新数据', 'versions': []}]
+        save_data(first_data)
+        save_data(second_data)
+
+        assert load_data() == second_data
+        with open(f'{data_file}.bak', 'r', encoding='utf-8') as f:
+            assert json.load(f) == first_data
+
+    def test_create_prompt_set_rejects_corrupt_data_without_overwriting(self, tmp_path, monkeypatch):
+        data_file = tmp_path / 'prompt_sets.json'
+        data_file.write_text('{bad json', encoding='utf-8')
+        monkeypatch.setattr('main.DATA_FILE', str(data_file))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+
+        server, thread = start_test_server()
+        try:
+            url = f'http://127.0.0.1:{server.server_address[1]}/api/prompt-sets'
+            request = urllib.request.Request(
+                url,
+                data=json.dumps({'name': '不能覆盖', 'tags': '[]'}).encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST',
+            )
+            try:
+                urllib.request.urlopen(request, timeout=5)
+                assert False, 'corrupt data file should make create fail'
+            except urllib.error.HTTPError as error:
+                body = json.loads(error.read().decode('utf-8'))
+                assert error.code == 500
+                assert body['success'] is False
+
+            assert data_file.read_text(encoding='utf-8') == '{bad json'
+        finally:
+            stop_test_server(server, thread)
+
 
 class TestSaveImage:
     def test_save_png_image(self, tmp_path, monkeypatch):
@@ -154,21 +211,118 @@ class TestBackupExport:
         assert image['data'].startswith('data:image/png;base64,')
         assert image['size'] > 0
 
-    def test_save_backup_file_writes_json_to_backups_dir(self, tmp_path, monkeypatch):
+    def test_save_backup_file_writes_json_to_downloads_dir_by_default(self, tmp_path, monkeypatch):
         monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
         monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
         monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
         monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        monkeypatch.setattr('main.get_downloads_dir', lambda: str(tmp_path / 'Downloads'))
         save_data([{'id': 'set1', 'name': '测试集合', 'versions': []}])
 
         result = save_backup_file('../unsafe-name')
 
         assert result['success'] is True
         assert result['filename'] == 'unsafe-name.json'
+        assert result['directory'] == str(tmp_path / 'Downloads')
+        assert result['saveMode'] == 'downloads'
         assert os.path.exists(result['path'])
         with open(result['path'], 'r', encoding='utf-8') as f:
             payload = json.load(f)
         assert payload['prompt_sets'][0]['id'] == 'set1'
+
+    def test_save_backup_file_writes_json_to_custom_dir(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        save_data([{'id': 'set1', 'name': '测试集合', 'versions': []}])
+
+        result = save_backup_file('custom-name', directory=str(tmp_path / 'custom'), save_mode='custom')
+
+        assert result['success'] is True
+        assert result['filename'] == 'custom-name.json'
+        assert result['directory'] == str(tmp_path / 'custom')
+        assert result['saveMode'] == 'custom'
+        assert os.path.exists(result['path'])
+
+    def test_post_export_file_accepts_custom_directory(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        save_data([{'id': 'set1', 'name': '测试集合', 'versions': []}])
+
+        server, thread = start_test_server()
+        try:
+            url = f'http://127.0.0.1:{server.server_address[1]}/api/export-file'
+            status, body = request_json(url, {
+                'filename': '../api-export',
+                'directory': str(tmp_path / 'exports'),
+                'saveMode': 'custom',
+            }, 'POST')
+
+            assert status == 200
+            assert body['filename'] == 'api-export.json'
+            assert body['directory'] == str(tmp_path / 'exports')
+            assert body['saveMode'] == 'custom'
+            assert os.path.exists(body['path'])
+        finally:
+            stop_test_server(server, thread)
+
+    def test_save_image_download_file_writes_image_to_custom_dir(self, tmp_path, monkeypatch):
+        images_dir = tmp_path / 'images'
+        images_dir.mkdir()
+        source = images_dir / 'source.png'
+        source.write_bytes(b'\x89PNG\r\nimage')
+        monkeypatch.setattr('main.IMAGES_DIR', str(images_dir))
+
+        result = save_image_download_file(
+            source_file='source.png',
+            filename='../saved',
+            directory=str(tmp_path / 'downloads'),
+            save_mode='custom',
+        )
+
+        assert result['success'] is True
+        assert result['filename'] == 'saved.png'
+        assert result['saveMode'] == 'custom'
+        assert result['contentType'] == 'image/png'
+        assert os.path.exists(result['path'])
+        with open(result['path'], 'rb') as f:
+            assert f.read() == b'\x89PNG\r\nimage'
+
+    def test_save_image_download_file_rejects_path_traversal(self, tmp_path, monkeypatch):
+        images_dir = tmp_path / 'images'
+        images_dir.mkdir()
+        monkeypatch.setattr('main.IMAGES_DIR', str(images_dir))
+
+        try:
+            save_image_download_file(source_file='../secret.txt', directory=str(tmp_path / 'downloads'))
+            assert False, 'path traversal should be rejected'
+        except ValueError as error:
+            assert '无效图片文件' in str(error) or '图片文件不存在' in str(error)
+
+    def test_post_image_download_file_accepts_custom_directory(self, tmp_path, monkeypatch):
+        images_dir = tmp_path / 'images'
+        images_dir.mkdir()
+        (images_dir / 'preview.jpg').write_bytes(b'\xff\xd8\xffimage')
+        monkeypatch.setattr('main.IMAGES_DIR', str(images_dir))
+
+        server, thread = start_test_server()
+        try:
+            url = f'http://127.0.0.1:{server.server_address[1]}/api/image-download-file'
+            status, body = request_json(url, {
+                'sourceFile': 'preview.jpg',
+                'filename': 'downloaded',
+                'directory': str(tmp_path / 'exports'),
+                'saveMode': 'custom',
+            }, 'POST')
+
+            assert status == 200
+            assert body['filename'] == 'downloaded.jpg'
+            assert body['directory'] == str(tmp_path / 'exports')
+            assert body['saveMode'] == 'custom'
+            assert os.path.exists(body['path'])
+        finally:
+            stop_test_server(server, thread)
 
     def test_get_api_export_returns_backup_json(self, tmp_path, monkeypatch):
         monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
@@ -279,9 +433,102 @@ class TestBackupExport:
             assert status == 200
             assert result['conflicts'] == 1
             assert result['added'] == 1
+            assert os.path.exists(result['backupPath'])
             assert len(data) == 2
             assert data[0]['name'] == 'PC 版本'
             assert data[1]['id'].startswith('set1-conflict-')
+            assert data[1]['syncMeta']['conflictKey']
+        finally:
+            stop_test_server(server, thread)
+
+    def test_sync_preview_reports_conflict_field_diffs(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        monkeypatch.setattr('main.SYNC_DEVICE_FILE', str(tmp_path / 'sync-device.json'))
+        save_data([{
+            'id': 'set1',
+            'name': 'PC 版本',
+            'versions': [{'id': 'v1', 'version': 'v1', 'prompt': 'pc', 'images': []}],
+        }])
+
+        server, thread = start_test_server()
+        try:
+            base_url = f'http://127.0.0.1:{server.server_address[1]}'
+            _, pairing = request_json(f'{base_url}/api/sync/pairing')
+            status, preview = request_json_with_headers(
+                f'{base_url}/api/sync/preview',
+                {
+                    'mode': 'keep_pc',
+                    'payload': {
+                        'prompt_sets': [{
+                            'id': 'set1',
+                            'name': 'Android 版本',
+                            'versions': [{'id': 'v1', 'version': 'v1', 'prompt': 'android', 'images': []}],
+                        }]
+                    }
+                },
+                'POST',
+                {'X-Sync-Token': pairing['sync_token']},
+            )
+
+            assert status == 200
+            assert preview['summary']['conflicts'] == 1
+            assert preview['requiresConfirmation'] is True
+            assert preview['items'][0]['type'] == 'conflict'
+            assert preview['items'][0]['conflictKey']
+            assert {'field': 'name', 'label': '标题'} in preview['items'][0]['fieldDiffs']
+        finally:
+            stop_test_server(server, thread)
+
+    def test_sync_import_conflict_copy_is_idempotent(self, tmp_path, monkeypatch):
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        monkeypatch.setattr('main.SYNC_DEVICE_FILE', str(tmp_path / 'sync-device.json'))
+        save_data([{
+            'id': 'set1',
+            'name': 'PC 版本',
+            'versions': [{'id': 'v1', 'version': 'v1', 'prompt': 'pc', 'images': []}],
+        }])
+
+        server, thread = start_test_server()
+        try:
+            base_url = f'http://127.0.0.1:{server.server_address[1]}'
+            _, pairing = request_json(f'{base_url}/api/sync/pairing')
+            payload = {
+                'mode': 'keep_pc',
+                'payload': {
+                    'prompt_sets': [{
+                        'id': 'set1',
+                        'name': 'Android 版本',
+                        'versions': [{'id': 'v1', 'version': 'v1', 'prompt': 'android', 'images': []}],
+                    }]
+                }
+            }
+
+            first_status, first_result = request_json_with_headers(
+                f'{base_url}/api/sync/import',
+                payload,
+                'POST',
+                {'X-Sync-Token': pairing['sync_token']},
+            )
+            second_status, second_result = request_json_with_headers(
+                f'{base_url}/api/sync/import',
+                payload,
+                'POST',
+                {'X-Sync-Token': pairing['sync_token']},
+            )
+
+            assert first_status == 200
+            assert second_status == 200
+            assert first_result['added'] == 1
+            assert second_result['added'] == 0
+            assert second_result['skipped'] == 1
+            assert second_result['conflictItems'][0]['duplicate'] is True
+            assert len(load_data()) == 2
         finally:
             stop_test_server(server, thread)
 

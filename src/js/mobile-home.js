@@ -3,6 +3,7 @@ import { formatDate } from './utils.js';
 import { navigate, showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { aggregateTags } from './tag-utils.js';
+import { mobileIcon } from './mobile-icon-assets.js';
 import corgiHome from '../assets/mobile/mascots/corgi-home.png';
 import searchIcon from '../assets/mobile/search.png';
 import plusIcon from '../assets/icons/plus.svg';
@@ -68,7 +69,7 @@ function render(params = {}) {
             <div class="m-section-gap">
                 <div class="m-section-title">
                     <span class="m-section-title-text">最近使用</span>
-                    <button class="m-section-title-action" id="mViewAllBtn">查看全部 ></button>
+                    <button class="m-section-title-action" id="mViewAllBtn">查看全部 ${mobileIcon('chevron-right', { className: 'm-icon-sm' })}</button>
                 </div>
                 <div class="m-list-gap" id="mRecentList"></div>
             </div>
@@ -159,8 +160,8 @@ async function renderRecentList(pageEl, promptSets) {
                 <div class="m-prompt-time">${formatRelativeTime(item.updatedAt)}</div>
             </div>
             <div class="m-prompt-actions">
-                <button class="m-star-btn ${item.isFavorite === true ? 'm-starred' : ''}" data-id="${item.id}">${item.isFavorite === true ? '⭐' : '☆'}</button>
-                <button class="m-more-btn" data-id="${item.id}">⋯</button>
+                <button class="m-star-btn ${item.isFavorite === true ? 'm-starred' : ''}" data-id="${item.id}" aria-label="${item.isFavorite === true ? '取消收藏' : '收藏'}">${mobileIcon(item.isFavorite === true ? 'star-filled' : 'star')}</button>
+                <button class="m-more-btn" data-id="${item.id}" aria-label="更多操作">${mobileIcon('more')}</button>
             </div>
         </div>
     `).join('');
@@ -242,10 +243,12 @@ function setupHomeEvents(pageEl) {
                 const isStarred = result.isFavorite;
                 if (isStarred) {
                     starBtn.classList.add('m-starred');
-                    starBtn.textContent = '⭐';
+                    starBtn.innerHTML = mobileIcon('star-filled');
+                    starBtn.setAttribute('aria-label', '取消收藏');
                 } else {
                     starBtn.classList.remove('m-starred');
-                    starBtn.textContent = '☆';
+                    starBtn.innerHTML = mobileIcon('star');
+                    starBtn.setAttribute('aria-label', '收藏');
                 }
                 showMobileToast(isStarred ? '已收藏' : '已取消收藏');
             } catch (e) {
@@ -297,7 +300,7 @@ function showFolderPromptSheet(pageEl, folderId) {
         prompts.forEach(p => {
             items.push({
                 action: 'prompt-' + p.id,
-                icon: p.isFavorite ? '⭐' : '📄',
+                icon: mobileIcon(p.isFavorite ? 'star-filled' : 'file'),
                 label: p.name,
                 handler: () => navigate('/detail/' + p.id)
             });
@@ -305,7 +308,7 @@ function showFolderPromptSheet(pageEl, folderId) {
     }
     items.push({
         action: 'view-all',
-        icon: '📋',
+        icon: mobileIcon('clipboard'),
         label: `查看「${folderName}」全部提示词`,
         handler: () => navigate('/library?folder=' + folderId)
     });

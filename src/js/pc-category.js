@@ -3,8 +3,10 @@ import { navigate } from './pc-app.js';
 import { showToast, showModal, closeModal, showConfirmModal, showContextMenu, escapeHtml } from './pc-utils.js';
 import { aggregateTags, getCustomTags, removeCustomTag, saveCustomTag } from './tag-utils.js';
 import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
-import categoryFolderIcon from '../assets/mobile/folder.png';
-import categoryTagIcon from '../assets/icons/category-tag.png';
+import categoryFolderIcon from '../../UI设计稿/图标/插画设计/文件夹.png';
+import categoryTagIcon from '../assets/pc/tag-2.png';
+import actionDeleteIcon from '../assets/pc/action-delete.png';
+import actionRenameIcon from '../assets/pc/action-rename.png';
 import plusIcon from '../assets/icons/plus.svg';
 import moreHorizontalIcon from '../assets/icons/more-horizontal.svg';
 import gripVerticalIcon from '../assets/icons/grip-vertical.svg';
@@ -166,7 +168,7 @@ function renderQuickActions() {
         { key: 'sort', icon: arrowUpDownIcon, label: '排序', desc: '调整分类顺序', tone: 'green' },
         { key: 'batch', icon: editIcon, label: '批量编辑', desc: '批量修改分类信息', tone: 'blue' },
         { key: 'merge', icon: mergeIcon, label: '合并分类', desc: '合并重复分类', tone: 'purple' },
-        { key: 'cleanup', icon: trashIcon, label: '删除', desc: '删除空分类', tone: 'red' },
+        { key: 'cleanup', icon: actionDeleteIcon, label: '删除', desc: '删除空分类', tone: 'red' },
     ];
 
     return `
@@ -287,10 +289,10 @@ function setupCategoryEvents(pageEl) {
             const folderId = moreBtn.dataset.id;
             const items = [
                 { action: 'view', icon: iconImg(eyeIcon), label: '查看提示词' },
-                { action: 'rename', icon: iconImg(editIcon), label: '重命名' },
+                { action: 'rename', icon: iconImg(actionRenameIcon), tone: 'rename', label: '重命名' },
                 { action: 'color', icon: iconImg(paletteIcon), label: '更改颜色' },
                 { divider: true },
-                { action: 'delete', icon: iconImg(trashIcon), label: '删除分类', danger: true }
+                { action: 'delete', icon: iconImg(actionDeleteIcon), tone: 'delete', label: '删除分类', danger: true }
             ];
             const rect = moreBtn.getBoundingClientRect();
             const action = await showContextMenu(rect.right, rect.bottom, items);
@@ -307,9 +309,9 @@ function setupCategoryEvents(pageEl) {
             const tagCount = parseInt(tagPill.dataset.tagCount, 10);
             const items = [
                 { action: 'view-tag', icon: iconImg(searchIcon), label: '查看相关提示词' },
-                { action: 'rename-tag', icon: iconImg(editIcon), label: '重命名标签' },
+                { action: 'rename-tag', icon: iconImg(actionRenameIcon), tone: 'rename', label: '重命名标签' },
                 { divider: true },
-                { action: 'clear-tag', icon: iconImg(trashIcon), label: '清除该标签', danger: true }
+                { action: 'clear-tag', icon: iconImg(actionDeleteIcon), tone: 'delete', label: '清除该标签', danger: true }
             ];
             const rect = tagPill.getBoundingClientRect();
             const action = await showContextMenu(rect.left, rect.bottom + 4, items);
@@ -375,10 +377,10 @@ function setupCategoryEvents(pageEl) {
         const folderId = item.dataset.folderId;
         const items = [
             { action: 'view', icon: iconImg(eyeIcon), label: '查看提示词' },
-            { action: 'rename', icon: iconImg(editIcon), label: '重命名' },
+            { action: 'rename', icon: iconImg(actionRenameIcon), tone: 'rename', label: '重命名' },
             { action: 'color', icon: iconImg(paletteIcon), label: '更改颜色' },
             { divider: true },
-            { action: 'delete', icon: iconImg(trashIcon), label: '删除分类', danger: true }
+            { action: 'delete', icon: iconImg(actionDeleteIcon), tone: 'delete', label: '删除分类', danger: true }
         ];
         const action = await showContextMenu(e.clientX, e.clientY, items);
         if (action === 'view') navigate('/library', { folder: folderId });

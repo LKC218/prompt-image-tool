@@ -1,7 +1,11 @@
 import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showModal, closeModal, showConfirmModal, copyToClipboard, escapeHtml } from './pc-utils.js';
-import folderIcon from '../assets/mobile/folder.png';
+import { pcIcon } from './pc-icon-assets.js';
+import copyIcon from '../assets/pc/action-copy.png';
+import deleteIcon from '../assets/pc/action-delete.png';
+import folderIcon from '../assets/pc/action-folder.png';
+import renameIcon from '../assets/pc/action-rename.png';
 
 function iconImg(src, alt = '') {
     return `<img src="${src}" alt="${alt}" class="pc-icon-img">`;
@@ -64,13 +68,13 @@ async function showMoveDialog(pageEl, id, currentFolderId, onDone) {
             <button class="pc-picker-list-item ${!currentFolderId ? 'pc-picker-list-active' : ''}" data-folder-id="">
                 <span class="pc-picker-list-icon">${FOLDER_ICON}</span>
                 <span>未分类</span>
-                ${!currentFolderId ? '<span class="pc-picker-list-check">✓</span>' : ''}
+                ${!currentFolderId ? `<span class="pc-picker-list-check">${pcIcon('check', 'pc-picker-list-check-icon')}</span>` : ''}
             </button>
             ${folders.map(f => `
                 <button class="pc-picker-list-item ${f.id === currentFolderId ? 'pc-picker-list-active' : ''}" data-folder-id="${f.id}">
                     <span class="pc-picker-list-icon">${FOLDER_ICON}</span>
                     <span>${escapeHtml(f.name)}</span>
-                    ${f.id === currentFolderId ? '<span class="pc-picker-list-check">✓</span>' : ''}
+                    ${f.id === currentFolderId ? `<span class="pc-picker-list-check">${pcIcon('check', 'pc-picker-list-check-icon')}</span>` : ''}
                 </button>
             `).join('')}
         </div>
@@ -143,7 +147,7 @@ function getPromptSetMenuItems(id, pageEl, options = {}) {
     if (options.showEdit) {
         items.push({
             action: 'edit',
-            icon: '✏️',
+            icon: pcIcon('edit'),
             label: '编辑',
             handler: () => navigate('/editor/' + id)
         });
@@ -152,7 +156,8 @@ function getPromptSetMenuItems(id, pageEl, options = {}) {
     items.push(
         {
             action: 'rename',
-            icon: '📝',
+            icon: iconImg(renameIcon),
+            tone: 'rename',
             label: '重命名',
             handler: async () => {
                 const set = await getStorage().getPromptSet(id);
@@ -161,7 +166,8 @@ function getPromptSetMenuItems(id, pageEl, options = {}) {
         },
         {
             action: 'move',
-            icon: '📁',
+            icon: iconImg(folderIcon),
+            tone: 'move',
             label: '移动到分类',
             handler: async () => {
                 const set = await getStorage().getPromptSet(id);
@@ -171,14 +177,16 @@ function getPromptSetMenuItems(id, pageEl, options = {}) {
         { divider: true },
         {
             action: 'copy',
-            icon: '📋',
+            icon: iconImg(copyIcon),
+            tone: 'copy',
             label: '复制',
             handler: () => handleCopy(id, options.onActionDone)
         },
         { divider: true },
         {
             action: 'delete',
-            icon: '🗑️',
+            icon: iconImg(deleteIcon),
+            tone: 'delete',
             label: '删除',
             danger: true,
             handler: () => showDeleteConfirm(pageEl, id, options.onActionDone)

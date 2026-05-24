@@ -49,6 +49,7 @@ python/data/*
 
 build/debug_output.txt
 build/stderr.log
+debug-backups/
 
 .DS_Store
 Thumbs.db

@@ -1,14 +1,15 @@
 import { getStorage, isCapacitor } from './storage.js';
-import { setAccent } from './pc-app.js';
-import { showToast, escapeHtml, formatBytes, copyToClipboard } from './pc-utils.js';
+import { setAccent, navigate } from './pc-app.js';
+import { showToast, showConfirmModal, escapeHtml, formatBytes, copyToClipboard } from './pc-utils.js';
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
+import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel } from './download-history.js';
 import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
+import { isPromptImageToolImportJson, normalizePromptImageToolImport, stagePromptImageToolImport } from './prompt-tool-json-import.js';
 import themeColorIcon from '../assets/icons/settings/theme-color.png';
-import backupIcon from '../assets/icons/settings/backup.svg';
-import importDataIcon from '../assets/icons/settings/import-data.svg';
 import exportJsonIcon from '../assets/icons/settings/export-json.svg';
 import importJsonIcon from '../assets/icons/settings/import-json.svg';
 import syncServerIcon from '../assets/icons/settings/sync-server.svg';
+import downloadHistoryIcon from '../assets/icons/pc/download.svg';
 
 let settingsData = null;
 
@@ -19,10 +20,6 @@ const ACCENT_COLORS = [
     { name: '紫色', value: 'purple', color: '#8A6BFF' },
     { name: '黄色', value: 'yellow', color: '#FFC94A' },
 ];
-
-function iconMask(icon) {
-    return `style="-webkit-mask-image:url(${icon});mask-image:url(${icon});"`;
-}
 
 function iconImg(icon, alt = '') {
     return `<img src="${icon}" alt="${alt}" aria-hidden="${alt ? 'false' : 'true'}">`;
@@ -88,37 +85,47 @@ function render(params = {}) {
             </div>
 
             <section class="pc-settings-panel pc-settings-backup-panel" aria-labelledby="pcBackupTitle">
-                <h2 id="pcBackupTitle" class="pc-settings-panel-title">数据备份与恢复</h2>
-                <div class="pc-settings-action-grid">
-                    <button class="pc-settings-action-card pc-settings-action-green" type="button" data-settings-action="export">
-                        <span class="pc-settings-action-icon">${iconImg(backupIcon)}</span>
-                        <span class="pc-settings-action-copy">
-                            <strong>本地备份</strong>
-                            <small>导出所有数据文件</small>
-                        </span>
-                    </button>
+                <div class="pc-settings-backup-head">
+                    <h2 id="pcBackupTitle" class="pc-settings-panel-title">数据备份与恢复</h2>
+                    <div class="pc-settings-export-mode" role="radiogroup" aria-label="JSON 导出位置">
+                        <label class="pc-settings-export-mode-option">
+                            <input type="radio" name="pcExportMode" value="downloads" checked>
+                            <span>下载目录</span>
+                        </label>
+                        <label class="pc-settings-export-mode-option">
+                            <input type="radio" name="pcExportMode" value="custom">
+                            <span>自定义位置</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="pc-settings-action-grid pc-settings-action-grid-two">
                     <button class="pc-settings-action-card pc-settings-action-blue" type="button" data-settings-action="import">
-                        <span class="pc-settings-action-icon">${iconImg(importDataIcon)}</span>
+                        <span class="pc-settings-action-icon">${iconImg(importJsonIcon)}</span>
                         <span class="pc-settings-action-copy">
-                            <strong>导入数据</strong>
-                            <small>从备份文件恢复</small>
+                            <strong>导入 JSON</strong>
+                            <small>从 .json 文件恢复数据</small>
                         </span>
                     </button>
                     <button class="pc-settings-action-card pc-settings-action-purple" type="button" data-settings-action="export">
                         <span class="pc-settings-action-icon">${iconImg(exportJsonIcon)}</span>
                         <span class="pc-settings-action-copy">
                             <strong>导出 JSON</strong>
-                            <small>导出为 .json 文件</small>
-                        </span>
-                    </button>
-                    <button class="pc-settings-action-card pc-settings-action-orange" type="button" data-settings-action="import">
-                        <span class="pc-settings-action-icon">${iconImg(importJsonIcon)}</span>
-                        <span class="pc-settings-action-copy">
-                            <strong>从 JSON 导入</strong>
-                            <small>从 .json 文件导入</small>
+                            <small>默认保存到下载目录</small>
                         </span>
                     </button>
                 </div>
+                <p class="pc-settings-backup-hint">导出文件包含提示词、分类、版本与图片内容；选择自定义位置时会打开保存位置选择窗口。</p>
+            </section>
+
+            <section class="pc-settings-panel pc-settings-download-history-panel" aria-labelledby="pcDownloadHistoryTitle">
+                <div class="pc-settings-download-history-head">
+                    <h2 id="pcDownloadHistoryTitle" class="pc-settings-panel-title">图片下载记录</h2>
+                    <div class="pc-settings-download-history-actions">
+                        <span class="pc-settings-download-history-count" id="pcDownloadHistoryCount">0</span>
+                        <button class="pc-btn pc-btn-danger-outline pc-btn-sm" type="button" id="pcClearDownloadHistory">清空历史</button>
+                    </div>
+                </div>
+                <div class="pc-settings-download-history-list" id="pcDownloadHistoryList"></div>
             </section>
 
             <section class="pc-settings-panel pc-settings-sync-panel" aria-labelledby="pcSyncTitle">
@@ -171,7 +178,41 @@ async function loadSettingsData(pageEl) {
         await loadNetworkInfo(pageEl);
     } catch (e) {
         console.error('loadSettingsData error:', e);
+    } finally {
+        renderDownloadHistory(pageEl);
     }
+}
+
+function renderDownloadHistory(pageEl) {
+    const history = getDownloadHistory();
+    const countEl = pageEl.querySelector('#pcDownloadHistoryCount');
+    const listEl = pageEl.querySelector('#pcDownloadHistoryList');
+    if (countEl) countEl.textContent = String(history.length);
+    if (!listEl) return;
+
+    if (!history.length) {
+        listEl.innerHTML = `
+            <div class="pc-settings-download-history-empty">
+                <div class="pc-settings-download-history-empty-title">还没有图片下载记录</div>
+                <div class="pc-settings-download-history-empty-text">下载过的图片会显示在这里，方便你快速回看和清理。</div>
+            </div>
+        `;
+        return;
+    }
+
+    listEl.innerHTML = history.map(item => `
+        <div class="pc-settings-download-history-item">
+            <span class="pc-settings-download-history-icon">${iconImg(downloadHistoryIcon)}</span>
+            <div class="pc-settings-download-history-main">
+                <strong title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong>
+                <small>${escapeHtml(item.source)} · ${escapeHtml(getDownloadHistoryLocationLabel(item))}</small>
+            </div>
+            <div class="pc-settings-download-history-meta">
+                <span>${escapeHtml(formatDownloadHistoryTime(item.createdAt))}</span>
+                <span>${escapeHtml(item.platform === 'mobile' ? '移动端' : item.platform === 'pc' ? 'PC 端' : '')}</span>
+            </div>
+        </div>
+    `).join('');
 }
 
 async function loadStorageEstimate(pageEl) {
@@ -301,7 +342,7 @@ function setupSettingsEvents(pageEl) {
         btn.addEventListener('click', async () => {
             const action = btn.dataset.settingsAction;
             if (action === 'export') {
-                await handleExport();
+                await handleExport(pageEl);
                 return;
             }
             if (action === 'import') {
@@ -323,12 +364,26 @@ function setupSettingsEvents(pageEl) {
         await loadNetworkInfo(pageEl);
         showToast('网络信息已刷新');
     });
+
+    pageEl.querySelector('#pcClearDownloadHistory')?.addEventListener('click', () => {
+        const history = getDownloadHistory();
+        if (!history.length) {
+            showToast('暂无图片下载记录');
+            return;
+        }
+        showConfirmModal('确定要清空所有图片下载记录吗？', () => {
+            clearDownloadHistory();
+            renderDownloadHistory(pageEl);
+            showToast('图片下载记录已清空');
+        });
+    });
 }
 
-async function handleExport() {
+async function handleExport(pageEl) {
     try {
         const storage = getStorage();
-        const result = await exportBackup(storage);
+        const saveMode = pageEl.querySelector('input[name="pcExportMode"]:checked')?.value || 'downloads';
+        const result = await exportBackup(storage, { saveMode });
         if (!result.canceled) {
             showToast(buildExportSuccessMessage(result));
         }
@@ -348,6 +403,16 @@ function handleImport(pageEl) {
         try {
             const text = await file.text();
             const data = JSON.parse(text);
+            if (isPromptImageToolImportJson(data)) {
+                const payload = stagePromptImageToolImport(normalizePromptImageToolImport(data));
+                if (!payload) {
+                    showToast('导入失败，文件格式不正确', 'error');
+                    return;
+                }
+                navigate('/editor/', { importId: payload.id });
+                showToast('已识别为 prompt-image-tool 导入包');
+                return;
+            }
             const storage = getStorage();
             const result = await storage.importData(data);
             const updated = result.updated || 0;
