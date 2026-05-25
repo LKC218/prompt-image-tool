@@ -8,4 +8,4 @@
 
 ## 最新版本
 
-- `v2.3.4`：PC 端带 Tauri 安装器壳发布包、PC 核心安装包和 Android Release APK 已完成本地构建与校验。
+- `v2.3.6`：PC 端带 Tauri 安装器壳发布包、PC 核心安装包和 Android Release APK 已完成本地构建、校验和 GitHub Release 发布。

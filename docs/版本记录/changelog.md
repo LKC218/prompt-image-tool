@@ -4,6 +4,90 @@
 
 ---
 
+## v2.3.6 (2026-05-25)
+
+### 版本与打包
+
+- **版本号升级**：主应用、PC 发布配置、Android Gradle 配置、NSIS 安装器和 Tauri 安装器壳发布版本统一升级到 `2.3.6`。
+- **Android 版本递增**：Android `versionCode` 从 `11` 递增到 `12`，`versionName` 升级为 `2.3.6`。
+- **PC 安装器壳配置同步**：安装器壳的 bundle resource、内置 NSIS 安装核心和运行时查找路径统一指向 `PromptImageManager-Setup-2.3.6.exe`。
+- **Tauri semver 收口**：Tauri 配置、Cargo 包版本和 Windows 文件版本统一使用合法 semver `2.3.6`。
+
+### 改进
+
+- **提示词库返回位置保留**：PC 端提示词库从详情页返回后保留上次查看的页码、选中提示词和表格滚动位置，减少重新定位成本。
+
+### 构建产物
+
+| 产物 | 大小 | SHA256 |
+|------|------|--------|
+| `releases/PromptImageManager-Shell-Setup-2.3.6.exe` | `35447808` 字节 | `3576B0177F1841516B97EB10EBD3689EA3C3CDFD755B56883F426B35AE4A3EE6` |
+| `releases/PromptImageManager-Setup-2.3.6.exe` | `25670201` 字节 | `5A4E1633B329FCA8BE4843D47DB59399DB1C514E5F53C761C7810C5FB8640CFA` |
+| `releases/PromptImageManager-v2.3.6-Android.apk` | `46868069` 字节 | `8FC4210FC2301B29E7310A5C782648B3D1590AA0D3E0D8F6C55225DD5E5BDAB7` |
+
+### 验证
+
+- 版本配置静态检查：确认发布相关源码与配置已切换到 `2.3.6`，第三方依赖自身版本保持不变。
+- `python scripts/build_release_packages.py --all --skip-env-check`：通过，生成 PC 核心 NSIS 安装包和签名 Android Release APK，并复制到 `releases/`。
+- `python scripts/build_installer_shell_package.py --skip-pc-build`：通过，`node --check`、`cargo check` 和 Tauri release 构建均完成。
+- APK 签名校验：`apksigner verify --verbose --print-certs` 通过，APK Signature Scheme v2 为 `true`，签名者数量为 `1`。
+- APK 元信息校验：`aapt dump badging` 返回 `package='com.promptimagemanager.app'`、`versionCode='12'`、`versionName='2.3.6'`、`targetSdkVersion='36'`。
+- PC 安装器壳版本信息校验：`ProductVersion` 与 `FileVersion` 均为 `2.3.6`，文件描述为 `提示词管家安装向导`。
+- GitHub Release：已创建 `v2.3.6`，上传 `PromptImageManager-Shell-Setup-2.3.6.exe` 与 `PromptImageManager-v2.3.6-Android.apk`；Release 正文 UTF-8 回读无 ASCII 问号和连续问号替换标记，两份公开下载链接范围请求均返回 `206 Partial Content`。
+- Android 真机状态：`adb devices -l` 未检测到已连接设备，因此本轮未执行 APK 真机安装；APK 构建、签名和元信息校验已完成。
+
+## v2.3.5 (2026-05-25)
+
+### 版本与打包
+
+- **版本号升级**：主应用、PC 发布配置、Android Gradle 配置、NSIS 安装器和 Tauri 安装器壳发布版本统一升级到 `2.3.5`。
+- **Android 版本递增**：Android `versionCode` 从 `10` 递增到 `11`，`versionName` 升级为 `2.3.5`。
+- **PC 安装器壳配置同步**：安装器壳的 bundle resource、内置 NSIS 安装核心和运行时查找路径统一指向 `PromptImageManager-Setup-2.3.5.exe`。
+- **Tauri semver 收口**：Tauri 配置、Cargo 包版本和 Windows 文件版本统一使用合法 semver `2.3.5`，不再使用四段式发布版本。
+
+### 构建产物
+
+| 产物 | 大小 | SHA256 |
+|------|------|--------|
+| `releases/PromptImageManager-Shell-Setup-2.3.5.exe` | `35324416` 字节 | `9357E6C3EE6FD1E083DF7E3FD68639E4334B150F77D10030A78EC3A5904C0E9D` |
+| `releases/PromptImageManager-Setup-2.3.5.exe` | `25558163` 字节 | `A968F9DFA1E285383B781095A43687103FA150BB6993E7BB3B43A0CF1BDB7514` |
+| `releases/PromptImageManager-v2.3.5-Android.apk` | `46758299` 字节 | `0DE9D05C086B5F37F3061EE50F4F3213C20AF6FD44A88FE31559DA94E8E5FF26` |
+
+### 验证
+
+- 版本配置静态检查：确认发布相关源码与配置已切换到 `2.3.5`，第三方依赖自身的 `fsevents 2.3.3` 版本保持不变。
+- `python scripts/build_release_packages.py --all --skip-env-check`：通过，生成 PC 核心 NSIS 安装包和签名 Android Release APK，并复制到 `releases/`。
+- `python scripts/build_installer_shell_package.py --skip-pc-build`：通过，`node --check`、`cargo check` 和 Tauri release 构建均完成。
+- APK 签名校验：`apksigner verify --verbose --print-certs` 通过，APK Signature Scheme v2 为 `true`，签名者数量为 `1`。
+- APK 元信息校验：`aapt dump badging` 返回 `package='com.promptimagemanager.app'`、`versionCode='11'`、`versionName='2.3.5'`、`targetSdkVersion='36'`。
+- PC 安装器壳版本信息校验：`ProductVersion` 与 `FileVersion` 均为 `2.3.5`，文件描述为 `提示词管家安装向导`。
+
+## v2.3.4.1 (2026-05-24)
+
+### 版本与打包
+
+- **版本号升级**：主应用、PC 发布配置、Android Gradle 配置、NSIS 安装器和 Tauri 安装器壳发布版本统一升级到 `2.3.4.1`。
+- **Android 版本递增**：Android `versionCode` 从 `9` 递增到 `10`，`versionName` 升级为 `2.3.4.1`。
+- **PC 安装器壳配置同步**：安装器壳的 bundle resource、内置 NSIS 安装核心和运行时查找路径统一指向 `PromptImageManager-Setup-2.3.4.1.exe`。
+- **Tauri semver 兼容**：Tauri 配置版本采用合法 semver `2.3.4+1`，对外发布文件名和 Android `versionName` 继续使用 `2.3.4.1`。
+
+### 构建产物
+
+| 产物 | 大小 | SHA256 |
+|------|------|--------|
+| `releases/PromptImageManager-Shell-Setup-2.3.4.1.exe` | `35321344` 字节 | `C89FAD75D0F0F8E19F5238146496E9ABD66FF156E62540BF470C2EE8EEB8A364` |
+| `releases/PromptImageManager-Setup-2.3.4.1.exe` | `25555622` 字节 | `829CE5C733D55E2B58D59E12A74CEEF11FB51FF2CDE9DB165E54FA12957CF264` |
+| `releases/PromptImageManager-v2.3.4.1-Android.apk` | `46755417` 字节 | `BBC50C24837EEA655660CDD4B35B7F3635A711C7BE22C098DF9E0084C0B9EF3F` |
+
+### 验证
+
+- 版本配置静态检查：确认发布相关源码与配置已切换到 `2.3.4.1`，第三方依赖自身的 `fsevents 2.3.3` 版本保持不变。
+- `python scripts/build_release_packages.py --all --skip-env-check`：通过，生成 PC 核心 NSIS 安装包和签名 Android Release APK，并复制到 `releases/`。
+- `python scripts/build_installer_shell_package.py --skip-pc-build`：通过，`node --check`、`cargo check` 和 Tauri release 构建均完成。
+- APK 签名校验：`apksigner verify --verbose --print-certs` 通过，APK Signature Scheme v2 为 `true`，签名者数量为 `1`。
+- APK 元信息校验：`aapt dump badging` 返回 `package='com.promptimagemanager.app'`、`versionCode='10'`、`versionName='2.3.4.1'`、`targetSdkVersion='36'`。
+- PC 安装器壳版本信息校验：`ProductVersion` 与 `FileVersion` 均为 `2.3.4+1`，文件描述为 `提示词管家安装向导`。
+
 ## v2.3.4 (2026-05-24)
 
 ### 版本与打包
@@ -16,9 +100,9 @@
 
 | 产物 | 大小 | SHA256 |
 |------|------|--------|
-| `releases/PromptImageManager-Shell-Setup-2.3.4.exe` | `35320320` 字节 | `F4635D95D90C0AE7B578E6C087EE607789EE64875E10025B219D7E8820849410` |
-| `releases/PromptImageManager-Setup-2.3.4.exe` | `25554359` 字节 | `483B12D839F7C7A69816AD96DF1F7D9C4694CA0D66B4A8D819ACD3D391E43C26` |
-| `releases/PromptImageManager-v2.3.4-Android.apk` | `46754549` 字节 | `1694790637E7AE1E1F8540B8E0BD3AB0700C78DAAB0B88FC8C52CBB1009D7580` |
+| `releases/PromptImageManager-Shell-Setup-2.3.4.exe` | `35320832` 字节 | `46781A78725DE3064DC7340FB3EB9198F437C94C2B8522CA1B8E4AB3FDA4C679` |
+| `releases/PromptImageManager-Setup-2.3.4.exe` | `25555099` 字节 | `6B8BB87DA0408949253D229011CBD298738F8F4279147C6462C90601D45724DA` |
+| `releases/PromptImageManager-v2.3.4-Android.apk` | `46754849` 字节 | `3D3B5D41F908ABF8C69ED42DDFC72BD6C758A7F88FE32B777A9201753DE8F0E9` |
 
 ### 验证
 
@@ -28,6 +112,10 @@
 - APK 签名校验：`apksigner verify --verbose --print-certs` 通过，APK Signature Scheme v2 为 `true`，签名者数量为 `1`。
 - APK 元信息校验：`aapt dump badging` 返回 `package='com.promptimagemanager.app'`、`versionCode='9'`、`versionName='2.3.4'`、`targetSdkVersion='36'`。
 - PC 安装器壳版本信息校验：`ProductVersion` 与 `FileVersion` 均为 `2.3.4`，文件描述为 `提示词管家安装向导`。
+- 自动化回归：`npm.cmd run test` 通过，14 个测试文件、127 个测试用例全部通过；`python -m pytest python/tests -q` 通过，45 个测试用例全部通过；`python -m pytest python/tests/test_build_app_main.py -q` 通过，9 个测试用例全部通过。
+- PC 打包版运行探针：开发后端占用 `8888` 时，打包后的 `PromptImageManager.exe` 自动回退到 `8890`，`/api/health`、`/`、`/index.html` 均返回 200。
+- PC 核心安装器静默安装验收：临时目录安装返回退出码 `0`，主程序、卸载器、桌面快捷方式、开始菜单启动项和开始菜单卸载项均真实落地；验收后已卸载临时安装并恢复安装前已有快捷方式。
+- Android 真机状态：`adb devices` 未检测到已连接设备，因此本轮未执行 APK 真机安装；APK 构建、签名和元信息校验已完成。
 
 ---
 
