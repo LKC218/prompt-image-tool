@@ -153,6 +153,8 @@ releases/PromptImageManager-Shell-Setup-2.3.2.exe # 带 Tauri 安装器壳的正
 
 安装位置：`%LOCALAPPDATA%\PromptImageManager\`
 
+用户数据位置：安装版默认使用 `%APPDATA%\PromptImageManager\data\`，不随普通卸载删除。旧版本曾写入安装目录的 `data\` 会在新版本启动时复制迁移；安装器壳开始安装前还会把旧安装目录数据和用户级数据复制到 `%APPDATA%\PromptImageManager\update-backups\`。
+
 ### 4.2 便携文件夹
 
 ```
@@ -160,10 +162,6 @@ build/dist/PromptImageManager/
 ├── PromptImageManager.exe      # 主程序（双击运行）
 ├── icon.ico                    # 应用图标
 ├── app.log                     # 运行日志（启动后自动生成）
-├── data/                       # 用户数据目录（启动后自动生成）
-│   ├── prompt_sets.json        # 提示词集合数据
-│   ├── folders.json            # 文件夹/分类数据
-│   └── images/                 # 图片存储
 ├── _internal/
 │   ├── frontend/               # 前端文件
 │   │   ├── index.html
@@ -173,15 +171,17 @@ build/dist/PromptImageManager/
 
 整个文件夹可复制到任意位置运行，无需安装。
 
+安装版的提示词、分类、图片和备份不再以安装目录为主存储位置；真实目录以 `app.log` 中的 `DATA_DIR=` 和设置页“本地存储”区域展示为准。
+
 ---
 
 ## 五、关键配置文件
 
 | 文件 | 作用 |
 |------|------|
-| `build/app_main.py` | PC 独立版主程序：Python HTTP 服务器 + pywebview 桌面窗口 + 全部 API 逻辑 |
+| `build/app_main.py` | PC 独立版主程序：Python HTTP 服务器 + pywebview 桌面窗口 + 全部 API 逻辑 + 安装版用户级数据目录和旧数据迁移 |
 | `build/app.spec` | PyInstaller 打包配置：入口文件、前端资源打包规则、隐藏导入、图标、是否显示控制台 |
-| `build/installer.nsi` | NSIS 安装包脚本：安装向导页面、快捷方式、注册表、卸载逻辑（必须为无 BOM 的 UTF-8 编码） |
+| `build/installer.nsi` | NSIS 安装包脚本：安装向导页面、快捷方式、注册表、卸载逻辑和旧安装目录数据保护（必须为无 BOM 的 UTF-8 编码） |
 | `build/icon.ico` | 应用图标（同时用于 exe 和安装包） |
 
 > **⚠️ 编码注意**：`installer.nsi` 必须使用无 BOM 的 UTF-8 编码保存。如果文件包含 UTF-8 BOM（`EF BB BF`），NSIS 会报语法错误。可用以下 PowerShell 命令转换：

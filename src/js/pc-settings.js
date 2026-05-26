@@ -3,10 +3,15 @@ import { setAccent, navigate } from './pc-app.js';
 import { showToast, showConfirmModal, escapeHtml, formatBytes, copyToClipboard } from './pc-utils.js';
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
 import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel } from './download-history.js';
-import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
-import { isPromptImageToolImportJson, normalizePromptImageToolImport, stagePromptImageToolImport } from './prompt-tool-json-import.js';
+import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
+import {
+    isPromptImageToolImportStorageError,
+    normalizeChatGptVaultConversationImport,
+    stageChatGptVaultConversationImport,
+} from './prompt-tool-json-import.js';
 import themeColorIcon from '../assets/icons/settings/theme-color.png';
 import exportJsonIcon from '../assets/icons/settings/export-json.svg';
+import importDataIcon from '../assets/icons/settings/import-data.svg';
 import importJsonIcon from '../assets/icons/settings/import-json.svg';
 import syncServerIcon from '../assets/icons/settings/sync-server.svg';
 import downloadHistoryIcon from '../assets/icons/pc/download.svg';
@@ -31,7 +36,8 @@ function render(params = {}) {
         ${renderPcWelcomeBanner({
             title: '设置',
             subtitle: '一切数据仅在本地，安全又放心~',
-            className: 'pc-welcome-banner-settings'
+            className: 'pc-welcome-banner-settings',
+            decorationsHtml: renderPcWelcomeWalkAnimation({ variant: 'settings' })
         })}
 
         <section class="pc-settings-page">
@@ -79,6 +85,7 @@ function render(params = {}) {
                         <span>提示词 <strong id="pcStoragePromptCount">-</strong> 条</span>
                         <span id="pcEnvValue">浏览器</span>
                         <span id="pcStorageType">本地存储</span>
+                        <span class="pc-settings-data-dir" id="pcDataDirValue" title="">数据目录检测中</span>
                         <span>v<span id="pcVersionValue">3.0.0</span></span>
                     </div>
                 </section>
@@ -98,12 +105,19 @@ function render(params = {}) {
                         </label>
                     </div>
                 </div>
-                <div class="pc-settings-action-grid pc-settings-action-grid-two">
+                <div class="pc-settings-action-grid pc-settings-action-grid-three">
                     <button class="pc-settings-action-card pc-settings-action-blue" type="button" data-settings-action="import">
                         <span class="pc-settings-action-icon">${iconImg(importJsonIcon)}</span>
                         <span class="pc-settings-action-copy">
                             <strong>导入 JSON</strong>
-                            <small>从 .json 文件恢复数据</small>
+                            <small>完整备份恢复</small>
+                        </span>
+                    </button>
+                    <button class="pc-settings-action-card pc-settings-action-orange" type="button" data-settings-action="import-chatgpt-vault">
+                        <span class="pc-settings-action-icon">${iconImg(importDataIcon)}</span>
+                        <span class="pc-settings-action-copy">
+                            <strong>导入 ChatGPT 对话</strong>
+                            <small>从单条对话新建</small>
                         </span>
                     </button>
                     <button class="pc-settings-action-card pc-settings-action-purple" type="button" data-settings-action="export">
@@ -175,6 +189,7 @@ async function loadSettingsData(pageEl) {
         } catch (e) {}
 
         await loadStorageEstimate(pageEl);
+        await loadDataDirectory(pageEl);
         await loadNetworkInfo(pageEl);
     } catch (e) {
         console.error('loadSettingsData error:', e);
@@ -213,6 +228,32 @@ function renderDownloadHistory(pageEl) {
             </div>
         </div>
     `).join('');
+}
+
+async function loadDataDirectory(pageEl) {
+    const dataDirEl = pageEl.querySelector('#pcDataDirValue');
+    if (!dataDirEl) return;
+
+    const storage = getStorage();
+    if (!storage || typeof storage.getHealth !== 'function') {
+        dataDirEl.textContent = '浏览器本地数据';
+        dataDirEl.title = '';
+        return;
+    }
+
+    try {
+        const health = await storage.getHealth();
+        if (health?.dataDir) {
+            dataDirEl.textContent = `数据目录：${health.dataDir}`;
+            dataDirEl.title = health.dataDir;
+        } else {
+            dataDirEl.textContent = '数据目录已保护';
+            dataDirEl.title = '';
+        }
+    } catch (e) {
+        dataDirEl.textContent = '数据目录检测失败';
+        dataDirEl.title = '';
+    }
 }
 
 async function loadStorageEstimate(pageEl) {
@@ -346,7 +387,11 @@ function setupSettingsEvents(pageEl) {
                 return;
             }
             if (action === 'import') {
-                handleImport(pageEl);
+                handleBackupImport(pageEl);
+                return;
+            }
+            if (action === 'import-chatgpt-vault') {
+                handleChatGptVaultImport(pageEl);
             }
         });
     });
@@ -393,24 +438,28 @@ async function handleExport(pageEl) {
     }
 }
 
-function handleImport(pageEl) {
+function openJsonImportPicker(onPick) {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
     input.onchange = async (e) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (file) await onPick(file);
+    };
+    input.click();
+}
+
+async function readJsonFile(file) {
+    const text = await file.text();
+    return JSON.parse(text);
+}
+
+function handleBackupImport(pageEl) {
+    openJsonImportPicker(async (file) => {
         try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-            if (isPromptImageToolImportJson(data)) {
-                const payload = stagePromptImageToolImport(normalizePromptImageToolImport(data));
-                if (!payload) {
-                    showToast('导入失败，文件格式不正确', 'error');
-                    return;
-                }
-                navigate('/editor/', { importId: payload.id });
-                showToast('已识别为 prompt-image-tool 导入包');
+            const data = await readJsonFile(file);
+            if (normalizeChatGptVaultConversationImport(data)) {
+                showToast('这是对话归档 JSON，请使用“导入 ChatGPT 对话”', 'error');
                 return;
             }
             const storage = getStorage();
@@ -423,8 +472,31 @@ function handleImport(pageEl) {
         } catch (err) {
             showToast('导入失败，文件格式不正确', 'error');
         }
-    };
-    input.click();
+    });
+}
+
+function handleChatGptVaultImport(pageEl) {
+    openJsonImportPicker(async (file) => {
+        try {
+            const data = await readJsonFile(file);
+            const promptPayload = await stageChatGptVaultConversationImport(data);
+            if (!promptPayload) {
+                showToast('请选择 ChatGPT Vault 单条对话归档 JSON', 'error');
+                return;
+            }
+            navigate('/editor/', { importId: promptPayload.id });
+            showToast('已打开 ChatGPT 对话导入页');
+        } catch (err) {
+            showToast(getJsonImportErrorMessage(err), 'error');
+        }
+    });
+}
+
+function getJsonImportErrorMessage(err) {
+    if (isPromptImageToolImportStorageError(err)) {
+        return '导入文件过大，暂存失败，请减少图片数量或重新导出';
+    }
+    return '导入失败，文件格式不正确';
 }
 
 function unmount(pageEl) {

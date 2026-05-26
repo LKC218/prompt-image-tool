@@ -3,6 +3,7 @@ import { navigate } from './pc-app.js';
 import { showToast, showConfirmModal, copyToClipboard, showImageViewer, showContextMenu, escapeHtml, formatDate } from './pc-utils.js';
 import { formatPromptForDisplay } from './pc-prompt-ui-utils.js';
 import { pcIcon } from './pc-icon-assets.js';
+import { renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import safetyMascot from '../assets/mobile/mascots/corgi-settings.png';
 import detailImagePlaceholder from '../assets/pc/detail-image-placeholder.png';
 import deleteIcon from '../assets/pc/action-delete.png';
@@ -24,6 +25,9 @@ function render(params = {}) {
     return `
         <div class="pc-detail-screen">
             <div class="pc-detail-sky" aria-hidden="true"></div>
+            <div class="pc-detail-walk-decoration" aria-hidden="true">
+                ${renderPcWelcomeWalkAnimation({ variant: 'detail' })}
+            </div>
             <div class="pc-detail-hero">
                 <div class="pc-detail-hero-copy">
                     <h1 class="pc-detail-page-title">提示词详情</h1>

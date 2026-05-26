@@ -2,7 +2,7 @@ import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showModal, closeModal, showConfirmModal, showContextMenu, escapeHtml } from './pc-utils.js';
 import { aggregateTags, getCustomTags, removeCustomTag, saveCustomTag } from './tag-utils.js';
-import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
+import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import categoryFolderIcon from '../../UI设计稿/图标/插画设计/文件夹.png';
 import categoryTagIcon from '../assets/pc/tag-2.png';
 import actionDeleteIcon from '../assets/pc/action-delete.png';
@@ -51,7 +51,8 @@ function render(params = {}) {
         ${renderPcWelcomeBanner({
             title: '分类与标签',
             subtitle: '把提示词收纳好，灵感就不会走丢~',
-            className: 'pc-welcome-banner-category'
+            className: 'pc-welcome-banner-category',
+            decorationsHtml: renderPcWelcomeWalkAnimation({ variant: 'category' })
         })}
 
         <div class="pc-category-page">

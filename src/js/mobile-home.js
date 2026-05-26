@@ -4,6 +4,7 @@ import { navigate, showMobileToast, showActionSheet, iconImg } from './mobile-ut
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { aggregateTags } from './tag-utils.js';
 import { mobileIcon } from './mobile-icon-assets.js';
+import { isPromptImageToolImportStorageError, stagePromptImageToolImport } from './prompt-tool-json-import.js';
 import corgiHome from '../assets/mobile/mascots/corgi-home.png';
 import searchIcon from '../assets/mobile/search.png';
 import plusIcon from '../assets/icons/plus.svg';
@@ -322,11 +323,24 @@ async function handleImport(e) {
     try {
         const text = await file.text();
         const data = JSON.parse(text);
+        const promptPayload = await stagePromptImageToolImport(data);
+        if (promptPayload) {
+            navigate('/editor/', { importId: promptPayload.id });
+            showMobileToast('已识别为 prompt-image-tool 导入包');
+            return;
+        }
         const result = await getStorage().importData(data);
         showMobileToast(`导入成功：新增 ${result.added || 0}，覆盖 ${result.updated || 0}`);
     } catch (err) {
-        showMobileToast('导入失败，文件格式不正确', 'error');
+        showMobileToast(getJsonImportErrorMessage(err), 'error');
     }
+}
+
+function getJsonImportErrorMessage(err) {
+    if (isPromptImageToolImportStorageError(err)) {
+        return '导入文件过大，暂存失败，请减少图片数量或重新导出';
+    }
+    return '导入失败，文件格式不正确';
 }
 
 function unmount(pageEl) {

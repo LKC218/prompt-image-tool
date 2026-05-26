@@ -1,6 +1,6 @@
 [package]
 name = "prompt_image_manager_installer_shell"
-version = "2.3.4"
+version = "2.3.6"
 description = "PromptImageManager installer shell"
 authors = ["PromptImageManager"]
 edition = "2021"

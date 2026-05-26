@@ -83,6 +83,10 @@ PC 与 Android 发布包一键构建：
 python scripts\build_release_packages.py
 ```
 
+Windows 一键启动：
+
+- 双击 [`一键启动-服务器和网页.bat`](./一键启动-%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%92%8C%E7%BD%91%E9%A1%B5.bat)
+
 ## 局域网同步
 
 提示词管家支持同一局域网内的 PC 与 Android 数据互通：

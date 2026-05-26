@@ -30,6 +30,114 @@ def get_app_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 
+DATA_APP_NAME = 'PromptImageManager'
+DATA_DIR_ENV_VAR = 'PROMPT_IMAGE_TOOL_DATA_DIR'
+
+
+def get_user_data_root():
+    override = os.environ.get(DATA_DIR_ENV_VAR, '').strip()
+    if override:
+        return os.path.abspath(os.path.expandvars(os.path.expanduser(override)))
+
+    if platform.system() == 'Windows':
+        base_dir = os.environ.get('APPDATA') or os.environ.get('LOCALAPPDATA')
+        if base_dir:
+            return os.path.join(os.path.abspath(os.path.expandvars(base_dir)), DATA_APP_NAME)
+
+    return os.path.join(os.path.expanduser('~'), '.prompt-image-tool')
+
+
+def should_use_user_data_dir(app_dir):
+    if os.environ.get(DATA_DIR_ENV_VAR, '').strip():
+        return True
+    if getattr(sys, 'frozen', False):
+        return True
+    if os.environ.get('PROMPT_IMAGE_TOOL_FORCE_USER_DATA', '').strip() == '1':
+        return True
+
+    if platform.system() == 'Windows':
+        local_app_data = os.environ.get('LOCALAPPDATA')
+        if local_app_data:
+            try:
+                app_path = os.path.abspath(app_dir).lower()
+                installed_root = os.path.join(
+                    os.path.abspath(os.path.expandvars(local_app_data)),
+                    DATA_APP_NAME,
+                ).lower()
+                return app_path == installed_root or app_path.startswith(installed_root + os.sep)
+            except OSError:
+                return False
+    return False
+
+
+def data_dir_has_user_data(data_dir):
+    if not os.path.isdir(data_dir):
+        return False
+
+    for filename in ('prompt_sets.json', 'folders.json', 'sync-device.json'):
+        path = os.path.join(data_dir, filename)
+        if os.path.exists(path) and os.path.getsize(path) > 0:
+            return True
+
+    for dirname in ('images', 'backups'):
+        root = os.path.join(data_dir, dirname)
+        if os.path.isdir(root):
+            for _, _, files in os.walk(root):
+                if files:
+                    return True
+
+    return any(name.endswith('.bak') for name in os.listdir(data_dir))
+
+
+def copy_data_tree(source_dir, target_dir):
+    copied_files = 0
+    os.makedirs(target_dir, exist_ok=True)
+    for name in os.listdir(source_dir):
+        source_path = os.path.join(source_dir, name)
+        target_path = os.path.join(target_dir, name)
+        if os.path.isdir(source_path):
+            shutil.copytree(source_path, target_path, dirs_exist_ok=True)
+            for _, _, files in os.walk(source_path):
+                copied_files += len(files)
+        elif os.path.isfile(source_path):
+            shutil.copy2(source_path, target_path)
+            copied_files += 1
+    return copied_files
+
+
+def write_data_migration_marker(target_data_dir, source_data_dir, status, copied_files=0):
+    os.makedirs(target_data_dir, exist_ok=True)
+    marker_path = os.path.join(target_data_dir, 'data-migration.json')
+    payload = {
+        'status': status,
+        'source': source_data_dir,
+        'target': target_data_dir,
+        'copiedFiles': copied_files,
+        'updatedAt': datetime.now().isoformat(),
+    }
+    with open(marker_path, 'w', encoding='utf-8') as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
+def migrate_legacy_data_if_needed(target_root, legacy_root):
+    source_data_dir = os.path.join(legacy_root, 'data')
+    target_data_dir = os.path.join(target_root, 'data')
+
+    if os.path.abspath(source_data_dir) == os.path.abspath(target_data_dir):
+        return {'status': 'same-path', 'copiedFiles': 0}
+
+    if not data_dir_has_user_data(source_data_dir):
+        return {'status': 'no-legacy-data', 'copiedFiles': 0}
+
+    if data_dir_has_user_data(target_data_dir):
+        write_data_migration_marker(target_data_dir, source_data_dir, 'skipped-target-has-data', 0)
+        return {'status': 'skipped-target-has-data', 'copiedFiles': 0}
+
+    copied_files = copy_data_tree(source_data_dir, target_data_dir)
+    write_data_migration_marker(target_data_dir, source_data_dir, 'copied', copied_files)
+    return {'status': 'copied', 'copiedFiles': copied_files}
+
+
 def get_frontend_dir():
     if getattr(sys, 'frozen', False):
         base = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
@@ -42,6 +150,13 @@ def get_frontend_dir():
 
 def get_data_dir():
     app_dir = get_app_dir()
+    if should_use_user_data_dir(app_dir):
+        user_root = get_user_data_root()
+        os.makedirs(os.path.join(user_root, 'data', 'images'), exist_ok=True)
+        os.makedirs(os.path.join(user_root, 'data', 'backups'), exist_ok=True)
+        migrate_legacy_data_if_needed(user_root, app_dir)
+        return user_root
+
     test_dir = os.path.join(app_dir, 'data')
     try:
         os.makedirs(test_dir, exist_ok=True)

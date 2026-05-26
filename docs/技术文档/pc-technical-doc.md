@@ -142,25 +142,38 @@ Tauri 启动
 ### 5.2 数据目录
 
 ```
-应用目录（或 ~/.prompt-image-tool/）
+开发模式应用目录，或安装版用户级目录 `%APPDATA%\PromptImageManager`
 ├── data/
 │   ├── prompt_sets.json     # 所有集合数据（JSON）
 │   ├── folders.json         # 文件夹数据（JSON）
-│   └── images/              # 图片文件
+│   ├── images/              # 图片文件
 │       ├── abc123.png
 │       └── def456.jpg
-└── python/
-    └── main.py              # Python 后端脚本
+│   ├── backups/             # 导入同步前备份与用户备份
+│   └── data-migration.json  # 旧安装目录数据迁移记录
 ```
 
 ### 5.3 数据目录回退机制
 
 [main.py](../../python/main.py) `get_data_dir()` 函数：
 
-1. 优先在应用目录（`get_app_dir()`）下创建 `data/` 目录
-2. 尝试写入测试文件验证写权限
-3. 若 `PermissionError` 或 `OSError`，回退到用户目录 `~/.prompt-image-tool`
-4. 支持 PyInstaller 打包后的路径解析
+1. 开发模式默认继续在应用目录下创建 `data/`，便于本地调试。
+2. 安装版、显式开启 `PROMPT_IMAGE_TOOL_FORCE_USER_DATA=1`，或设置 `PROMPT_IMAGE_TOOL_DATA_DIR` 时，优先使用用户级稳定目录。
+3. Windows 安装版默认用户级目录为 `%APPDATA%\PromptImageManager\data`。
+4. 如果旧安装目录 `$INSTDIR\data` 存在且用户级目录为空，启动时会复制迁移旧数据，并写入 `data-migration.json`。
+5. 如果用户级目录已有数据，则不会用旧安装目录覆盖，只记录跳过迁移。
+6. 若普通开发目录无法写入，仍回退到 `~/.prompt-image-tool`。
+
+### 5.3.1 版本更新数据保护
+
+PC 端版本更新安装需要保证提示词 JSON、分类、参考图片和备份不随程序目录清理而丢失。计划与实现入口见 [PC端版本更新安装保留JSON提示词信息计划-260525.md](../计划文档/PC端版本更新安装保留JSON提示词信息计划-260525.md)。
+
+当前约束：
+
+1. `python/main.py` 与 `build/app_main.py` 使用同一套用户级数据目录、旧目录迁移和迁移标记逻辑。
+2. 安装器壳执行 NSIS 安装前会创建升级快照，覆盖旧安装目录 `data/` 与用户级 `data/`。
+3. NSIS 普通卸载默认只删除程序文件、快捷方式和卸载注册表项；若旧 `$INSTDIR\data` 仍存在，会先移到 `%APPDATA%\PromptImageManager\legacy-install-data`。
+4. PC 设置页本地存储区通过 `/api/health` 展示真实数据目录，便于排障。
 
 ### 5.4 数据加载容错
 
@@ -220,14 +233,19 @@ PC 独立安装包通过 `build/app.spec` 打包 `build/app_main.py`，该入口
 
 源码后端和安装包后端都必须使用同一套冲突策略：写入前可通过 `/api/sync/preview` 返回字段级差异；`keep_pc` 冲突回传生成带 `conflictKey` 的幂等冲突副本；重复回传同一冲突内容时跳过已有副本；实际写入前在 `backups` 目录生成同步前备份，并在报告中返回 `backupPath`。
 
-### 5.10 prompt-image-tool 专用 JSON 导入联动
+### 5.10 prompt-image-tool JSON 导入联动
 
-PC 设置页导入 JSON 时会先检查 `schema`。若命中 `prompt-image-tool.import.v1`，则不再走完整备份恢复，而是通过 `src/js/prompt-tool-json-import.js` 进行标准化、临时暂存并跳转到新建提示词页。
+PC 首页导入 JSON 时会先尝试通过 `src/js/prompt-tool-json-import.js` 判断是否能转成新建提示词导入内容。若命中 `prompt-image-tool.import.v1`，或命中单条 ChatGPT Vault 对话归档 JSON（包含 `messages[]`、标题和归档标识），则会标准化、临时暂存并跳转到新建提示词页。
 
-- 普通备份 JSON 继续走 `storage.importData(data)`。
-- 专用 JSON 会分流到 `navigate('/editor/', { importId })`。
+导入暂存优先写入 IndexedDB，失败时回退 Web Storage 和同页内存 Map，避免带参考图片的专用 JSON 因 `sessionStorage` 配额限制被误报为文件格式错误。
+
+PC 设置页的导入入口现在分成两个显式按钮：
+
+- `导入 JSON`：只处理完整备份 JSON，继续走 `storage.importData(data)`。
+- `导入 ChatGPT 对话`：处理单条 ChatGPT Vault 对话归档 JSON，成功后跳转到 `navigate('/editor/', { importId })`。
 - 新建/编辑页从暂存 payload 回填标题、正向提示词、负向提示词、标签、比例和参考图片。
 - 图片对象会先复用 `src/js/image-utils.js` 做统一压缩，再交给现有保存链路上传。
+- 单条 ChatGPT 对话归档 JSON 不包含内嵌图片二进制时，仅预填标题与提示词文本；需要图片同步时应优先使用 ChatGPT Vault 的 `导出提示词JSON` 入口。
 
 发布前需运行 `python -m pytest python/tests/test_build_app_main.py -q`，避免安装包后端落后于源码后端，导致前端拿到首页 HTML 并触发 JSON 解析失败；同时确认 `/`、`/index.html` 和任意前端路由不会返回 `SimpleHTTPRequestHandler` 目录列表。
 
@@ -248,7 +266,7 @@ PC 设置页导入 JSON 时会先检查 `schema`。若命中 `prompt-image-tool.
 | 图片上传 | 点击/拖拽上传，支持 PNG/JPG/WEBP/GIF | `app.js` → `ApiStorage` → Python API |
 | 图片查看 | 全屏查看，支持滚轮缩放、拖拽平移、双击缩放/复位、下载当前图片、复位按钮、ESC/点击遮罩关闭；下载优先使用文件保存选择器，桌面端可回退后端原生保存窗口，并写入本地下载历史 | `pc-utils.js` → `showImageViewer()` → `image-download-utils.js` / `download-history.js` |
 | 版本对比 | 并排对比两个版本的提示词和图片 | `app.js` → `toggleCompare()` |
-| 数据导入导出 | 完整备份 JSON，包含文件夹、提示词、版本和图片文件内容；设置页常驻入口收敛为“导入 JSON”和“导出 JSON”；PC 默认导出到系统下载目录，自定义位置模式优先使用文件保存选择器，桌面 WebView 可由后端打开原生保存窗口；相同 ID 默认覆盖 | `pc-settings.js` / `backup-utils.js` → `ApiStorage` → Python API |
+| 数据导入导出 | 完整备份 JSON，包含文件夹、提示词、版本和图片文件内容；设置页常驻入口收敛为“导入 JSON”“导入 ChatGPT 对话”和“导出 JSON”三个按钮；PC 默认导出到系统下载目录，自定义位置模式优先使用文件保存选择器，桌面 WebView 可由后端打开原生保存窗口；相同 ID 默认覆盖 | `pc-settings.js` / `backup-utils.js` → `ApiStorage` → Python API |
 | 图片下载历史 | 设置页展示最近图片下载记录，并支持一键清空历史 | `pc-settings.js` → `download-history.js` |
 | 暗色/亮色主题 | 主题切换，localStorage 持久化 | `app.js` → `initTheme()` / `toggleTheme()` |
 | 右键菜单 | 集合项右键弹出操作菜单 | `app.js` → `showContextMenu()` |

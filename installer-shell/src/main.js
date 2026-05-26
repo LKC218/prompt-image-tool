@@ -617,6 +617,8 @@ async function startInstallation() {
 
     const shortcutResult = await applyShortcutOptions(state.installTasks);
     const shortcutWarnings = shortcutResult.warnings;
+    const dataSnapshotWarnings = buildDataSnapshotWarnings(result?.data_snapshot);
+    const finishWarnings = [...dataSnapshotWarnings, ...shortcutWarnings];
 
     updateInstallingState({
       phase: "complete",
@@ -635,8 +637,8 @@ async function startInstallation() {
         ...state.installTasks,
       },
       status:
-        shortcutWarnings.length > 0
-          ? `安装已完成；${shortcutWarnings.join("；")}`
+        finishWarnings.length > 0
+          ? `安装已完成；${finishWarnings.join("；")}`
           : "安装已完成，并已创建桌面和开始菜单快捷方式。",
     };
     goToStepById("complete");
@@ -672,6 +674,15 @@ function buildInstallFailureMessage(result) {
   }
 
   return `安装器返回码：${result.exit_code ?? "未知"}，请重新尝试安装。`;
+}
+
+function buildDataSnapshotWarnings(snapshot) {
+  if (!snapshot || snapshot.success || snapshot.skipped) {
+    return [];
+  }
+
+  const reason = snapshot.error_message ? `：${snapshot.error_message}` : "";
+  return [`升级前数据快照未完成${reason}`];
 }
 
 function buildShortcutWarning(error, fallback) {

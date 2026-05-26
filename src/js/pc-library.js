@@ -2,7 +2,7 @@ import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showContextMenu, setContextMenuTargetId, copyToClipboard, showImageViewer, escapeHtml, formatRelativeTime, formatDate } from './pc-utils.js';
 import { getPromptSetMenuItems } from './pc-menu-actions.js';
-import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
+import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { countPromptSetsByFolder, getPromptFolderId } from './pc-prompt-ui-utils.js';
 import { pcIcon } from './pc-icon-assets.js';
 
@@ -12,10 +12,51 @@ let searchKeyword = '';
 let selectedPromptId = '';
 let currentPage = 1;
 let pageSize = 20;
+let libraryScrollState = null;
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 const TAG_COLORS = ['pc-tag-green', 'pc-tag-orange', 'pc-tag-blue', 'pc-tag-purple', 'pc-tag-pink'];
 const promptDetailCache = new Map();
+
+function getLibraryScrollContainer(pageEl) {
+    return pageEl?.querySelector('.pc-library-table-scroll') || null;
+}
+
+function captureLibraryScrollState(pageEl) {
+    const mainScroll = document.getElementById('pcMain');
+    const tableScroll = getLibraryScrollContainer(pageEl);
+    return {
+        pageScrollTop: mainScroll?.scrollTop || 0,
+        tableScrollTop: tableScroll?.scrollTop || 0,
+        tableScrollLeft: tableScroll?.scrollLeft || 0,
+    };
+}
+
+function restoreLibraryScrollState(pageEl) {
+    if (!libraryScrollState) return;
+
+    const state = libraryScrollState;
+    libraryScrollState = null;
+
+    const runRestore = () => {
+        const mainScroll = document.getElementById('pcMain');
+        const tableScroll = getLibraryScrollContainer(pageEl);
+
+        if (mainScroll) {
+            mainScroll.scrollTop = state.pageScrollTop || 0;
+        }
+        if (tableScroll) {
+            tableScroll.scrollTop = state.tableScrollTop || 0;
+            tableScroll.scrollLeft = state.tableScrollLeft || 0;
+        }
+    };
+
+    if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(runRestore);
+    } else {
+        setTimeout(runRestore, 0);
+    }
+}
 
 const ICONS = {
     search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg>',
@@ -34,7 +75,8 @@ function render(params = {}) {
         ${renderPcWelcomeBanner({
             title: '提示词库',
             subtitle: '整理灵感，快速找到下一条好提示词~',
-            className: 'pc-welcome-banner-library'
+            className: 'pc-welcome-banner-library',
+            decorationsHtml: renderPcWelcomeWalkAnimation({ variant: 'library' })
         })}
 
         <section class="pc-library-page">
@@ -61,15 +103,22 @@ function render(params = {}) {
 }
 
 async function mount(pageEl, params = {}) {
+    const hasExplicitQuery = Boolean(params.folder || params.tag || params.search);
     if (params.folder) currentFilter = 'folder:' + params.folder;
     if (params.tag) currentFilter = 'tag:' + params.tag;
     if (params.search) searchKeyword = params.search;
+    if (hasExplicitQuery) {
+        currentPage = 1;
+        selectedPromptId = '';
+        libraryScrollState = null;
+    }
 
     await loadLibraryData(pageEl);
     setupLibraryEvents(pageEl);
 
     const searchInput = pageEl.querySelector('#pcLibrarySearch');
     if (searchInput && searchKeyword) searchInput.value = searchKeyword;
+    restoreLibraryScrollState(pageEl);
 }
 
 async function loadLibraryData(pageEl) {
@@ -602,12 +651,8 @@ function getPageCount(total) {
 }
 
 function unmount(pageEl) {
+    libraryScrollState = captureLibraryScrollState(pageEl);
     libraryData = null;
-    currentFilter = 'all';
-    searchKeyword = '';
-    selectedPromptId = '';
-    currentPage = 1;
-    pageSize = 20;
     promptDetailCache.clear();
 }
 

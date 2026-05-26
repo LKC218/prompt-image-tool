@@ -49,6 +49,7 @@ vi.mock('./pc-welcome-banner.js', () => ({
             ${actionsHtml}
         </div>
     `,
+    renderPcWelcomeWalkAnimation: () => '<div class="pc-welcome-pixel-stage"></div>',
 }));
 
 function createStorage() {

@@ -42,6 +42,7 @@ vi.mock('./backup-utils.js', () => ({
 
 vi.mock('./pc-welcome-banner.js', () => ({
     renderPcWelcomeBanner: ({ title = '' }) => `<div class="pc-welcome-banner">${title}</div>`,
+    renderPcWelcomeWalkAnimation: () => '<div class="pc-welcome-pixel-stage"></div>',
 }));
 
 vi.mock('./pc-icon-assets.js', () => ({
@@ -52,6 +53,7 @@ function createStorage() {
     return {
         getPromptSets: vi.fn(async () => [{ id: 'prompt-1' }]),
         estimateStorageSize: vi.fn(async () => 1024),
+        getHealth: vi.fn(async () => ({ dataDir: 'C:\\Users\\Tester\\AppData\\Roaming\\PromptImageManager\\data' })),
         getNetworkInfo: vi.fn(async () => ({ ip: '127.0.0.1', port: 8888 })),
         getSyncCapabilities: vi.fn(async () => ({ capabilities: ['pull'] })),
     };
@@ -92,6 +94,10 @@ describe('PC 设置页下载历史', () => {
         }]));
 
         const pageEl = await mountPage();
+
+        expect(pageEl.querySelectorAll('[data-settings-action]')).toHaveLength(3);
+        expect(pageEl.querySelector('[data-settings-action="import-chatgpt-vault"]').textContent).toContain('导入 ChatGPT 对话');
+        expect(pageEl.querySelector('#pcDataDirValue').textContent).toContain('PromptImageManager');
 
         expect(pageEl.querySelector('#pcDownloadHistoryCount').textContent).toBe('1');
         expect(pageEl.querySelector('#pcDownloadHistoryList').textContent).toContain('桌面预览图');

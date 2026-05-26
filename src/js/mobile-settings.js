@@ -4,10 +4,15 @@ import { DEFAULT_SCAN_PORTS, DEFAULT_SYNC_PORT, formatLanAddress, LanScanner, La
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
 import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel } from './download-history.js';
 import { MOBILE_ICONS, mobileIcon } from './mobile-icon-assets.js';
-import { isPromptImageToolImportJson, normalizePromptImageToolImport, stagePromptImageToolImport } from './prompt-tool-json-import.js';
+import {
+    isPromptImageToolImportStorageError,
+    normalizeChatGptVaultConversationImport,
+    stageChatGptVaultConversationImport,
+} from './prompt-tool-json-import.js';
 import corgiSettings from '../assets/mobile/mascots/corgi-settings.png';
 import dataIcon from '../assets/mobile/data.png';
 import saveIcon from '../assets/mobile/save.png';
+import fileTextIcon from '../assets/icons/mobile/file-text.svg';
 
 let selectedThemeColor = 0;
 let lanScanner = null;
@@ -125,8 +130,13 @@ function render(params = {}) {
                     </button>
                     <button class="m-backup-card m-backup-blue" id="mImportData">
                         <span class="m-backup-icon">${iconImg(saveIcon)}</span>
-                        <span class="m-backup-label">导入数据</span>
-                        <span class="m-backup-desc">从备份文件恢复</span>
+                        <span class="m-backup-label">导入备份</span>
+                        <span class="m-backup-desc">恢复整套数据</span>
+                    </button>
+                    <button class="m-backup-card m-backup-purple" id="mImportChatGptVault">
+                        <span class="m-backup-icon">${iconImg(fileTextIcon)}</span>
+                        <span class="m-backup-label">导入对话</span>
+                        <span class="m-backup-desc">从单条对话新建</span>
                     </button>
                 </div>
             </div>
@@ -249,7 +259,8 @@ function setupSettingsEvents(pageEl) {
     });
 
     pageEl.querySelector('#mLocalBackup')?.addEventListener('click', handleExport);
-    pageEl.querySelector('#mImportData')?.addEventListener('click', handleImport);
+    pageEl.querySelector('#mImportData')?.addEventListener('click', () => handleBackupImport(pageEl));
+    pageEl.querySelector('#mImportChatGptVault')?.addEventListener('click', handleChatGptVaultImport);
     pageEl.querySelector('#mLanModeGroup')?.addEventListener('click', (e) => handleLanModeChange(pageEl, e));
     pageEl.querySelector('#mScanLanBtn')?.addEventListener('click', () => handleLanScan(pageEl));
     pageEl.querySelector('#mTestLanBtn')?.addEventListener('click', () => handleLanTest(pageEl));
@@ -329,40 +340,29 @@ async function handleExport() {
     }
 }
 
-function handleImport() {
+function openJsonImportPicker(onPick) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+        const file = e.target.files?.[0];
+        if (file) await onPick(file);
+    };
+    input.click();
+}
+
+async function readJsonFile(file) {
+    const text = await file.text();
+    return JSON.parse(text);
+}
+
+function confirmJsonImport(label, onConfirm) {
     showActionSheet([
         {
             action: 'confirm',
             icon: mobileIcon('warning'),
-            label: '确认导入（同 ID 将覆盖本机数据）',
-            handler: () => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = '.json';
-                input.onchange = async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                        const text = await file.text();
-                        const data = JSON.parse(text);
-                        if (isPromptImageToolImportJson(data)) {
-                            const payload = stagePromptImageToolImport(normalizePromptImageToolImport(data));
-                            if (!payload) {
-                                showMobileToast('导入失败，文件格式不正确', 'error');
-                                return;
-                            }
-                            navigate('/editor/', { importId: payload.id });
-                            showMobileToast('已识别为 prompt-image-tool 导入包');
-                            return;
-                        }
-                        const result = await getStorage().importData(data);
-                        showMobileToast(`导入成功：新增 ${result.added || 0}，覆盖 ${result.updated || 0}，图片 ${result.imagesRestored || 0}`);
-                    } catch (err) {
-                        showMobileToast('导入失败，文件格式不正确', 'error');
-                    }
-                };
-                input.click();
-            }
+            label,
+            handler: onConfirm
         },
         {
             action: 'cancel',
@@ -371,6 +371,51 @@ function handleImport() {
             handler: () => {}
         }
     ]);
+}
+
+function handleBackupImport(pageEl) {
+    confirmJsonImport('确认导入备份（同 ID 将覆盖本机数据）', () => {
+        openJsonImportPicker(async (file) => {
+            try {
+                const data = await readJsonFile(file);
+                if (normalizeChatGptVaultConversationImport(data)) {
+                    showMobileToast('这是对话归档 JSON，请使用“导入对话”', 'error');
+                    return;
+                }
+                const result = await getStorage().importData(data);
+                showMobileToast(`导入成功：新增 ${result.added || 0}，覆盖 ${result.updated || 0}，图片 ${result.imagesRestored || 0}`);
+                await loadStorageInfo(pageEl);
+            } catch (err) {
+                showMobileToast('导入失败，文件格式不正确', 'error');
+            }
+        });
+    });
+}
+
+function handleChatGptVaultImport() {
+    confirmJsonImport('确认导入对话（将新建提示词）', () => {
+        openJsonImportPicker(async (file) => {
+            try {
+                const data = await readJsonFile(file);
+                const promptPayload = await stageChatGptVaultConversationImport(data);
+                if (!promptPayload) {
+                    showMobileToast('请选择 ChatGPT Vault 单条对话归档 JSON', 'error');
+                    return;
+                }
+                navigate('/editor/', { importId: promptPayload.id });
+                showMobileToast('已打开 ChatGPT 对话导入页');
+            } catch (err) {
+                showMobileToast(getJsonImportErrorMessage(err), 'error');
+            }
+        });
+    });
+}
+
+function getJsonImportErrorMessage(err) {
+    if (isPromptImageToolImportStorageError(err)) {
+        return '导入文件过大，暂存失败，请减少图片数量或重新导出';
+    }
+    return '导入失败，文件格式不正确';
 }
 
 function setLanStatus(pageEl, message, type = 'info') {

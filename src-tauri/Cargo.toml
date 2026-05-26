@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "2.3.4"
+version = "2.3.6"
 description = "生图提示词管理器"
 authors = ["you"]
 license = ""

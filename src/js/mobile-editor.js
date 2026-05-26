@@ -183,7 +183,7 @@ function render(params = {}) {
 }
 
 async function applyPromptImageToolImport(importId) {
-    const payload = consumePromptImageToolImport(importId);
+    const payload = await consumePromptImageToolImport(importId);
     if (!payload || !payload.prompt) return { applied: false, imageCount: 0 };
 
     currentSet = null;

@@ -15,7 +15,7 @@ use std::os::windows::process::CommandExt;
 #[cfg(feature = "embedded-installer")]
 const EMBEDDED_INSTALLER_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../build/PromptImageManager-Setup-2.3.4.exe"
+    "/../../build/PromptImageManager-Setup-2.3.6.exe"
 ));
 
 #[derive(Serialize)]
@@ -24,6 +24,7 @@ struct InstallResult {
     exit_code: Option<i32>,
     installer_path: String,
     target_dir: String,
+    data_snapshot: DataSnapshotResult,
     exe_exists: bool,
     uninstaller_exists: bool,
     desktop_shortcut_exists: bool,
@@ -40,6 +41,16 @@ struct ShortcutStatus {
 }
 
 #[derive(Serialize)]
+struct DataSnapshotResult {
+    success: bool,
+    skipped: bool,
+    source_dirs: Vec<String>,
+    snapshot_dir: Option<String>,
+    copied_files: usize,
+    error_message: Option<String>,
+}
+
+#[derive(Serialize)]
 struct PathValidationResult {
     ok: bool,
     target_dir: String,
@@ -51,6 +62,7 @@ struct PathValidationResult {
 fn install_with_nsis(app: tauri::AppHandle, target_dir: String) -> Result<InstallResult, String> {
     let installer = find_installer(&app)?;
     let target_path = resolve_target_dir(&target_dir)?;
+    let data_snapshot = create_update_data_snapshot(&target_path);
 
     let target_arg = format!("/D={}", target_path.display());
 
@@ -93,6 +105,7 @@ fn install_with_nsis(app: tauri::AppHandle, target_dir: String) -> Result<Instal
         exit_code: status.code(),
         installer_path: installer.display().to_string(),
         target_dir: target_path.display().to_string(),
+        data_snapshot,
         exe_exists,
         uninstaller_exists,
         desktop_shortcut_exists: shortcut_status.desktop_shortcut_exists,
@@ -446,6 +459,179 @@ fn check_writable(dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn create_update_data_snapshot(target_path: &Path) -> DataSnapshotResult {
+    let mut source_dirs = Vec::new();
+    let mut source_paths = Vec::new();
+
+    let install_data_dir = target_path.join("data");
+    if data_dir_has_files(&install_data_dir) {
+        source_dirs.push(install_data_dir.display().to_string());
+        source_paths.push(("install-data".to_string(), install_data_dir));
+    }
+
+    let user_data_dir = user_data_root().join("data");
+    if data_dir_has_files(&user_data_dir) {
+        let duplicate = source_paths
+            .iter()
+            .any(|(_, path)| paths_look_same(path, &user_data_dir));
+        if !duplicate {
+            source_dirs.push(user_data_dir.display().to_string());
+            source_paths.push(("user-data".to_string(), user_data_dir));
+        }
+    }
+
+    if source_paths.is_empty() {
+        return DataSnapshotResult {
+            success: true,
+            skipped: true,
+            source_dirs,
+            snapshot_dir: None,
+            copied_files: 0,
+            error_message: None,
+        };
+    }
+
+    let snapshot_dir = user_data_root()
+        .join("update-backups")
+        .join(snapshot_stamp());
+
+    let result = (|| -> Result<usize, String> {
+        fs::create_dir_all(&snapshot_dir)
+            .map_err(|error| format!("创建升级快照目录失败：{error}"))?;
+        let mut copied_files = 0;
+        for (label, source) in &source_paths {
+            copy_dir_recursive(source, &snapshot_dir.join(label), &mut copied_files)?;
+        }
+        Ok(copied_files)
+    })();
+
+    match result {
+        Ok(copied_files) => DataSnapshotResult {
+            success: true,
+            skipped: false,
+            source_dirs,
+            snapshot_dir: Some(snapshot_dir.display().to_string()),
+            copied_files,
+            error_message: None,
+        },
+        Err(error) => DataSnapshotResult {
+            success: false,
+            skipped: false,
+            source_dirs,
+            snapshot_dir: Some(snapshot_dir.display().to_string()),
+            copied_files: 0,
+            error_message: Some(error),
+        },
+    }
+}
+
+fn data_dir_has_files(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+
+    for filename in [
+        "prompt_sets.json",
+        "folders.json",
+        "sync-device.json",
+        "data-migration.json",
+    ] {
+        if path.join(filename).is_file() {
+            return true;
+        }
+    }
+
+    contains_any_file(&path.join("images")) || contains_any_file(&path.join("backups"))
+}
+
+fn contains_any_file(path: &Path) -> bool {
+    let entries = match fs::read_dir(path) {
+        Ok(entries) => entries,
+        Err(_) => return false,
+    };
+
+    for entry in entries.flatten() {
+        let entry_path = entry.path();
+        if entry_path.is_file() || contains_any_file(&entry_path) {
+            return true;
+        }
+    }
+    false
+}
+
+fn copy_dir_recursive(source: &Path, target: &Path, copied_files: &mut usize) -> Result<(), String> {
+    fs::create_dir_all(target)
+        .map_err(|error| format!("创建目录失败 {}：{error}", target.display()))?;
+
+    for entry in fs::read_dir(source)
+        .map_err(|error| format!("读取目录失败 {}：{error}", source.display()))?
+    {
+        let entry = entry.map_err(|error| error.to_string())?;
+        let source_path = entry.path();
+        let target_path = target.join(entry.file_name());
+        let file_type = entry
+            .file_type()
+            .map_err(|error| format!("读取文件类型失败 {}：{error}", source_path.display()))?;
+
+        if file_type.is_dir() {
+            copy_dir_recursive(&source_path, &target_path, copied_files)?;
+        } else if file_type.is_file() {
+            if let Some(parent) = target_path.parent() {
+                fs::create_dir_all(parent)
+                    .map_err(|error| format!("创建目录失败 {}：{error}", parent.display()))?;
+            }
+            fs::copy(&source_path, &target_path).map_err(|error| {
+                format!(
+                    "复制文件失败 {} -> {}：{error}",
+                    source_path.display(),
+                    target_path.display()
+                )
+            })?;
+            *copied_files += 1;
+        }
+    }
+
+    Ok(())
+}
+
+fn user_data_root() -> PathBuf {
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(app_data) = env::var_os("APPDATA").map(PathBuf::from) {
+            return app_data.join("PromptImageManager");
+        }
+        if let Some(local_app_data) = env::var_os("LOCALAPPDATA").map(PathBuf::from) {
+            return local_app_data.join("PromptImageManager");
+        }
+        if let Some(user_profile) = env::var_os("USERPROFILE").map(PathBuf::from) {
+            return user_profile.join("AppData").join("Roaming").join("PromptImageManager");
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        if let Some(home) = env::var_os("HOME").map(PathBuf::from) {
+            return home.join(".prompt-image-tool");
+        }
+    }
+
+    env::temp_dir().join("PromptImageManager")
+}
+
+fn snapshot_stamp() -> String {
+    let seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_secs())
+        .unwrap_or(0);
+    format!("update-{seconds}")
+}
+
+fn paths_look_same(left: &Path, right: &Path) -> bool {
+    let left_abs = fs::canonicalize(left).unwrap_or_else(|_| left.to_path_buf());
+    let right_abs = fs::canonicalize(right).unwrap_or_else(|_| right.to_path_buf());
+    left_abs == right_abs
+}
+
 fn read_shortcut_status() -> ShortcutStatus {
     #[cfg(target_os = "windows")]
     {
@@ -506,16 +692,16 @@ fn find_installer(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .map_err(|error| format!("读取资源目录失败：{error}"))?;
 
     let candidates = [
-        resource_dir.join("PromptImageManager-Setup-2.3.4.exe"),
+        resource_dir.join("PromptImageManager-Setup-2.3.6.exe"),
         resource_dir
             .join("_up_")
             .join("build")
-            .join("PromptImageManager-Setup-2.3.4.exe"),
+            .join("PromptImageManager-Setup-2.3.6.exe"),
         Path::new("..")
             .join("..")
             .join("build")
-            .join("PromptImageManager-Setup-2.3.4.exe"),
-        Path::new("build").join("PromptImageManager-Setup-2.3.4.exe"),
+            .join("PromptImageManager-Setup-2.3.6.exe"),
+        Path::new("build").join("PromptImageManager-Setup-2.3.6.exe"),
     ];
 
     candidates
@@ -531,7 +717,7 @@ fn materialize_embedded_installer() -> Result<PathBuf, String> {
     fs::create_dir_all(&installer_dir)
         .map_err(|error| format!("创建临时安装核心目录失败：{error}"))?;
 
-    let installer_path = installer_dir.join("PromptImageManager-Setup-2.3.4.exe");
+    let installer_path = installer_dir.join("PromptImageManager-Setup-2.3.6.exe");
     let should_write = fs::metadata(&installer_path)
         .map(|metadata| metadata.len() != EMBEDDED_INSTALLER_BYTES.len() as u64)
         .unwrap_or(true);

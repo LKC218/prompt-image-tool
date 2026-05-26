@@ -56,6 +56,59 @@ def request_json_with_headers(url, data=None, method='GET', headers=None):
 
 
 class TestLoadSaveData:
+    def test_get_data_dir_uses_env_override(self, tmp_path, monkeypatch):
+        user_root = tmp_path / 'UserData'
+        install_dir = tmp_path / 'Install'
+        monkeypatch.setenv(main_module.DATA_DIR_ENV_VAR, str(user_root))
+        monkeypatch.setattr(main_module.sys, 'frozen', True, raising=False)
+        monkeypatch.setattr(main_module.sys, 'executable', str(install_dir / 'PromptImageManager.exe'))
+
+        assert main_module.get_data_dir() == str(user_root)
+        assert (user_root / 'data' / 'images').exists()
+        assert (user_root / 'data' / 'backups').exists()
+
+    def test_get_data_dir_migrates_legacy_install_data(self, tmp_path, monkeypatch):
+        install_dir = tmp_path / 'Install'
+        legacy_data = install_dir / 'data'
+        legacy_images = legacy_data / 'images'
+        legacy_backups = legacy_data / 'backups'
+        legacy_images.mkdir(parents=True)
+        legacy_backups.mkdir(parents=True)
+        (legacy_data / 'prompt_sets.json').write_text('[{"id":"old"}]', encoding='utf-8')
+        (legacy_data / 'folders.json').write_text('[]', encoding='utf-8')
+        (legacy_images / 'img.png').write_bytes(b'img')
+        (legacy_backups / 'backup.json').write_text('{}', encoding='utf-8')
+
+        user_root = tmp_path / 'UserData'
+        monkeypatch.setenv(main_module.DATA_DIR_ENV_VAR, str(user_root))
+        monkeypatch.setattr(main_module.sys, 'frozen', True, raising=False)
+        monkeypatch.setattr(main_module.sys, 'executable', str(install_dir / 'PromptImageManager.exe'))
+
+        assert main_module.get_data_dir() == str(user_root)
+        assert (user_root / 'data' / 'prompt_sets.json').read_text(encoding='utf-8') == '[{"id":"old"}]'
+        assert (user_root / 'data' / 'images' / 'img.png').read_bytes() == b'img'
+        marker = json.loads((user_root / 'data' / 'data-migration.json').read_text(encoding='utf-8'))
+        assert marker['status'] == 'copied'
+        assert marker['copiedFiles'] >= 4
+
+    def test_migration_does_not_overwrite_existing_user_data(self, tmp_path):
+        install_dir = tmp_path / 'Install'
+        legacy_data = install_dir / 'data'
+        legacy_data.mkdir(parents=True)
+        (legacy_data / 'prompt_sets.json').write_text('[{"id":"old"}]', encoding='utf-8')
+
+        user_root = tmp_path / 'UserData'
+        target_data = user_root / 'data'
+        target_data.mkdir(parents=True)
+        (target_data / 'prompt_sets.json').write_text('[{"id":"current"}]', encoding='utf-8')
+
+        result = main_module.migrate_legacy_data_if_needed(str(user_root), str(install_dir))
+
+        assert result['status'] == 'skipped-target-has-data'
+        assert (target_data / 'prompt_sets.json').read_text(encoding='utf-8') == '[{"id":"current"}]'
+        marker = json.loads((target_data / 'data-migration.json').read_text(encoding='utf-8'))
+        assert marker['status'] == 'skipped-target-has-data'
+
     def test_load_data_no_file(self, tmp_path, monkeypatch):
         monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'nonexistent.json'))
         result = load_data()

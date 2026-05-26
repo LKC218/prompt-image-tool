@@ -19,6 +19,10 @@ export class ApiStorage {
         console.warn('Backend not ready after 10 retries');
     }
 
+    async getHealth() {
+        return this.api('GET', '/health');
+    }
+
     async api(method, path, body = null) {
         const opts = { method, headers: { 'Content-Type': 'application/json' } };
         if (body !== null) opts.body = JSON.stringify(body);

@@ -1,5 +1,11 @@
 const PROMPT_IMAGE_TOOL_IMPORT_SCHEMA = 'prompt-image-tool.import.v1';
 const PROMPT_IMAGE_TOOL_IMPORT_PREFIX = 'prompt-image-tool-import:';
+const PROMPT_IMAGE_TOOL_IMPORT_DB_NAME = 'prompt-image-tool-import-stage';
+const PROMPT_IMAGE_TOOL_IMPORT_STORE_NAME = 'imports';
+const PROMPT_IMAGE_TOOL_IMPORT_DB_VERSION = 1;
+const IMPORT_STAGE_STORAGE_ERROR = 'PROMPT_IMAGE_TOOL_IMPORT_STAGE_STORAGE_ERROR';
+
+const memoryImportStage = new Map();
 
 function isPromptImageToolImportJson(data) {
     return Boolean(
@@ -8,6 +14,24 @@ function isPromptImageToolImportJson(data) {
         (Array.isArray(data.images) || data.images == null) &&
         (data.prompt == null || typeof data.prompt === 'object')
     );
+}
+
+function isChatGptVaultConversationJson(data) {
+    return Boolean(
+        data &&
+        !data.backup_meta &&
+        !data.backupMeta &&
+        Array.isArray(data.messages) &&
+        data.messages.some(message => message && String(message.content || message.text || '').trim()) &&
+        (data.source || data.schemaVersion || data.schema_version || data.title)
+    );
+}
+
+function normalizeAnyPromptImageToolImport(data) {
+    const chatGptVaultImport = normalizeChatGptVaultConversationImport(data);
+    if (chatGptVaultImport) return chatGptVaultImport;
+    if (isPromptImageToolImportJson(data)) return normalizePromptImageToolImport(data);
+    return null;
 }
 
 function normalizePromptImageToolImport(data) {
@@ -46,20 +70,65 @@ function normalizePromptImageToolImport(data) {
     };
 }
 
-function stagePromptImageToolImport(payload) {
-    const normalized = normalizePromptImageToolImport(payload);
+function normalizeChatGptVaultConversationImport(data) {
+    if (isPromptImageToolImportJson(data)) return normalizePromptImageToolImport(data);
+    if (!isChatGptVaultConversationJson(data)) return null;
+    return normalizePromptImageToolImport(convertChatGptVaultConversation(data));
+}
+
+function convertChatGptVaultConversation(data) {
+    const messages = Array.isArray(data.messages) ? data.messages : [];
+    const firstMessage = messages.find(message => {
+        const content = message?.content || message?.text || '';
+        return String(content).trim();
+    });
+    const title = safeText(data.title || data.conversationTitle || '导入对话');
+    const sourceText = firstMessage?.content || firstMessage?.text || '';
+
+    return {
+        schema: PROMPT_IMAGE_TOOL_IMPORT_SCHEMA,
+        sourceTool: safeText(data.source || 'ChatGPT Conversation Vault'),
+        targetTool: 'prompt-image-tool',
+        conversationId: safeText(data.id || data.conversationId || data.conversation_id || ''),
+        conversationTitle: title,
+        exportedFileName: safeText(data.metadata?.filename || ''),
+        exportedAt: safeText(data.savedAt || data.updatedAt || data.updated_at || ''),
+        prompt: {
+            title,
+            positivePrompt: sourceText,
+            negativePrompt: '',
+            note: '从 ChatGPT 对话归档导入',
+            tags: ['ChatGPT导入'],
+            aspectRatio: '1:1',
+        },
+        images: [],
+        skippedImages: [],
+        raw: {
+            messageCount: messages.length,
+            model: safeText(data.model || ''),
+        },
+    };
+}
+
+async function stagePromptImageToolImport(payload) {
+    const normalized = normalizeAnyPromptImageToolImport(payload);
     if (!normalized) return null;
-    const storage = getStageStorage();
-    storage.setItem(buildPromptImageToolImportKey(normalized.id), JSON.stringify(normalized));
+    await storePromptImageToolImport(normalized);
     return normalized;
 }
 
-function consumePromptImageToolImport(importId) {
-    const storage = getStageStorage();
+async function stageChatGptVaultConversationImport(payload) {
+    const normalized = normalizeChatGptVaultConversationImport(payload);
+    if (!normalized) return null;
+    await storePromptImageToolImport(normalized);
+    return normalized;
+}
+
+async function consumePromptImageToolImport(importId) {
     const key = buildPromptImageToolImportKey(importId);
-    const raw = storage.getItem(key);
+    const raw = await readPromptImageToolImport(key);
+    await removePromptImageToolImport(key);
     if (!raw) return null;
-    storage.removeItem(key);
     try {
         return JSON.parse(raw);
     } catch (e) {
@@ -91,11 +160,153 @@ function buildPromptImageToolImportKey(importId) {
     return `${PROMPT_IMAGE_TOOL_IMPORT_PREFIX}${safeText(importId || 'default')}`;
 }
 
-function getStageStorage() {
+function isPromptImageToolImportStorageError(error) {
+    return Boolean(error && error.code === IMPORT_STAGE_STORAGE_ERROR);
+}
+
+async function storePromptImageToolImport(payload) {
+    const key = buildPromptImageToolImportKey(payload.id);
+    const raw = JSON.stringify(payload);
+    const errors = [];
+
+    if (await writeIndexedDbImport(key, raw, errors)) return;
+    if (writeWebStorageImport(key, raw, errors)) return;
+
     try {
-        if (typeof sessionStorage !== 'undefined') return sessionStorage;
+        memoryImportStage.set(key, raw);
+        return;
+    } catch (error) {
+        errors.push(error);
+    }
+
+    throw createImportStageStorageError(errors);
+}
+
+async function readPromptImageToolImport(key) {
+    const indexedDbValue = await readIndexedDbImport(key);
+    if (indexedDbValue != null) return indexedDbValue;
+
+    const storageValue = readWebStorageImport(key);
+    if (storageValue != null) return storageValue;
+
+    return memoryImportStage.get(key) || null;
+}
+
+async function removePromptImageToolImport(key) {
+    await deleteIndexedDbImport(key);
+    removeWebStorageImport(key);
+    memoryImportStage.delete(key);
+}
+
+function getStageStorages() {
+    const storages = [];
+    try {
+        if (typeof sessionStorage !== 'undefined') storages.push(sessionStorage);
     } catch (e) {}
-    return localStorage;
+    try {
+        if (typeof localStorage !== 'undefined') storages.push(localStorage);
+    } catch (e) {}
+    return storages;
+}
+
+function writeWebStorageImport(key, raw, errors = []) {
+    const storages = getStageStorages();
+    for (const storage of storages) {
+        try {
+            storage.setItem(key, raw);
+            return true;
+        } catch (error) {
+            errors.push(error);
+        }
+    }
+    return false;
+}
+
+function readWebStorageImport(key) {
+    const storages = getStageStorages();
+    for (const storage of storages) {
+        try {
+            const raw = storage.getItem(key);
+            if (raw != null) return raw;
+        } catch (e) {}
+    }
+    return null;
+}
+
+function removeWebStorageImport(key) {
+    getStageStorages().forEach(storage => {
+        try {
+            storage.removeItem(key);
+        } catch (e) {}
+    });
+}
+
+async function writeIndexedDbImport(key, raw, errors = []) {
+    try {
+        const db = await openImportStageDb();
+        if (!db) return false;
+        await runImportStageRequest(db, 'readwrite', store => store.put({ key, raw }));
+        db.close();
+        return true;
+    } catch (error) {
+        errors.push(error);
+        return false;
+    }
+}
+
+async function readIndexedDbImport(key) {
+    try {
+        const db = await openImportStageDb();
+        if (!db) return null;
+        const record = await runImportStageRequest(db, 'readonly', store => store.get(key));
+        db.close();
+        return record?.raw || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function deleteIndexedDbImport(key) {
+    try {
+        const db = await openImportStageDb();
+        if (!db) return;
+        await runImportStageRequest(db, 'readwrite', store => store.delete(key));
+        db.close();
+    } catch (e) {}
+}
+
+function openImportStageDb() {
+    if (typeof indexedDB === 'undefined' || !indexedDB.open) return Promise.resolve(null);
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(PROMPT_IMAGE_TOOL_IMPORT_DB_NAME, PROMPT_IMAGE_TOOL_IMPORT_DB_VERSION);
+        request.onupgradeneeded = () => {
+            const db = request.result;
+            if (!db.objectStoreNames.contains(PROMPT_IMAGE_TOOL_IMPORT_STORE_NAME)) {
+                db.createObjectStore(PROMPT_IMAGE_TOOL_IMPORT_STORE_NAME, { keyPath: 'key' });
+            }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error('打开导入暂存数据库失败'));
+        request.onblocked = () => reject(new Error('导入暂存数据库被占用'));
+    });
+}
+
+function runImportStageRequest(db, mode, createRequest) {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(PROMPT_IMAGE_TOOL_IMPORT_STORE_NAME, mode);
+        const store = transaction.objectStore(PROMPT_IMAGE_TOOL_IMPORT_STORE_NAME);
+        const request = createRequest(store);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error || new Error('导入暂存读写失败'));
+        transaction.onerror = () => reject(transaction.error || new Error('导入暂存事务失败'));
+    });
+}
+
+function createImportStageStorageError(errors) {
+    const error = new Error('导入文件过大或浏览器暂存不可用');
+    error.code = IMPORT_STAGE_STORAGE_ERROR;
+    error.causes = errors;
+    return error;
 }
 
 function createFileLike(name, type, size) {
@@ -198,9 +409,14 @@ function getImageExtensionByMime(mimeType = '') {
 export {
     PROMPT_IMAGE_TOOL_IMPORT_SCHEMA,
     isPromptImageToolImportJson,
+    isChatGptVaultConversationJson,
+    normalizeAnyPromptImageToolImport,
     normalizePromptImageToolImport,
+    normalizeChatGptVaultConversationImport,
     stagePromptImageToolImport,
+    stageChatGptVaultConversationImport,
     consumePromptImageToolImport,
     dataUrlToImportedImage,
     extractReadablePromptText,
+    isPromptImageToolImportStorageError,
 };

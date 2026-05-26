@@ -245,6 +245,7 @@
 }
 
 .pc-nav-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--pc-space-md);
@@ -253,22 +254,64 @@
     font: var(--pc-font-body);
     color: var(--pc-text2);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
     border: none;
     background: none;
     width: 100%;
     text-align: left;
     font-size: 15px;
     min-height: 48px;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.pc-nav-item::after {
+    content: "";
+    position: absolute;
+    inset: 5px 8px;
+    border-radius: 14px;
+    pointer-events: none;
+    opacity: 0;
+    background:
+        radial-gradient(circle at 22% 50%, rgba(45, 140, 255, 0.24) 0 18%, transparent 54%),
+        linear-gradient(90deg, rgba(45, 140, 255, 0.14), transparent 62%);
+    transform: translateX(-10px) scaleX(0.82);
+    z-index: 0;
+}
+
+.pc-nav-item::before {
+    content: "";
+    position: absolute;
+    width: 42px;
+    height: 42px;
+    left: 8px;
+    top: 50%;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(circle, rgba(45, 140, 255, 0.18) 0 34%, transparent 70%);
+    transform: translateY(-50%) scale(0.72);
+    transition: opacity 0.18s ease, transform 0.22s cubic-bezier(.2,.8,.2,1);
+    z-index: 0;
 }
 
 .pc-nav-item:hover {
     background: var(--pc-surface2);
     color: var(--pc-text);
+    box-shadow: 0 8px 18px rgba(45, 140, 255, 0.08);
 }
 
-.pc-nav-item:hover .pc-nav-icon {
-    background-color: var(--pc-text);
+.pc-nav-item:hover::before,
+.pc-nav-item:focus-visible::before {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+}
+
+.pc-nav-item:hover .pc-nav-icon,
+.pc-nav-item:focus-visible .pc-nav-icon {
+    background-color: var(--pc-blue);
+    filter: drop-shadow(0 4px 8px rgba(45, 140, 255, 0.20));
+    transform: translateY(-2px) scale(1.08);
 }
 
 .pc-nav-item:active {
@@ -277,6 +320,15 @@
 
 .pc-nav-item:active .pc-nav-icon {
     background-color: var(--pc-accent);
+}
+
+.pc-nav-item.pc-nav-clicking::after {
+    animation: pc-nav-click-glow 0.34s cubic-bezier(.2,.8,.2,1);
+}
+
+.pc-nav-item.pc-nav-clicking .pc-nav-icon {
+    background-color: var(--pc-blue);
+    animation: pc-nav-icon-bounce 0.34s cubic-bezier(.2,.8,.2,1);
 }
 
 .pc-nav-item.pc-nav-active {
@@ -290,6 +342,8 @@
 }
 
 .pc-nav-icon {
+    position: relative;
+    z-index: 1;
     width: 20px;
     height: 20px;
     flex: 0 0 20px;
@@ -300,10 +354,14 @@
     mask-repeat: no-repeat;
     -webkit-mask-position: center;
     mask-position: center;
-    transition: background-color 0.15s ease;
+    transform-origin: 50% 60%;
+    transition: background-color 0.15s ease, transform 0.18s cubic-bezier(.2,.8,.2,1), filter 0.18s ease;
+    will-change: transform;
 }
 
 .pc-nav-label {
+    position: relative;
+    z-index: 1;
     min-width: 0;
     max-width: 160px;
     overflow: hidden;
@@ -468,6 +526,36 @@
     }
 }
 
+@keyframes pc-nav-icon-bounce {
+    0% {
+        transform: translateY(0) scale(1) rotate(0);
+    }
+    36% {
+        transform: translateY(-4px) scale(1.16) rotate(-4deg);
+    }
+    66% {
+        transform: translateY(1px) scale(0.94) rotate(3deg);
+    }
+    100% {
+        transform: translateY(0) scale(1) rotate(0);
+    }
+}
+
+@keyframes pc-nav-click-glow {
+    0% {
+        opacity: 0;
+        transform: translateX(-10px) scaleX(0.82);
+    }
+    42% {
+        opacity: 1;
+        transform: translateX(0) scaleX(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(9px) scaleX(1.04);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .pc-sidebar,
     .pc-sidebar-header,
@@ -477,6 +565,10 @@
     .pc-sidebar-toggle,
     .pc-sidebar-toggle-text,
     .pc-sidebar-nav,
+    .pc-nav-item,
+    .pc-nav-item::before,
+    .pc-nav-item::after,
+    .pc-nav-icon,
     .pc-nav-label,
     .pc-sidebar-footer,
     .pc-sidebar-mascot,
@@ -491,6 +583,17 @@
 
     .pc-sidebar-toggle-icon svg {
         transition: none !important;
+    }
+
+    .pc-nav-item:hover,
+    .pc-nav-item:focus-visible {
+        box-shadow: none !important;
+    }
+
+    .pc-nav-item:hover .pc-nav-icon,
+    .pc-nav-item:focus-visible .pc-nav-icon,
+    .pc-nav-item.pc-nav-clicking .pc-nav-icon {
+        filter: none !important;
     }
 }
 
@@ -564,6 +667,16 @@
     padding: 0;
     margin: 0 auto 8px;
     border-radius: 16px;
+}
+
+.pc-app.pc-sidebar-collapsed .pc-nav-item::before {
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.72);
+}
+
+.pc-app.pc-sidebar-collapsed .pc-nav-item:hover::before,
+.pc-app.pc-sidebar-collapsed .pc-nav-item:focus-visible::before {
+    transform: translate(-50%, -50%) scale(1);
 }
 
 .pc-app.pc-sidebar-collapsed .pc-nav-icon {
@@ -876,7 +989,7 @@
     font: 500 14px/1.4 var(--pc-font-family);
     cursor: pointer;
     border: 1px solid transparent;
-    transition: all 0.15s;
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
     white-space: nowrap;
 }
 
@@ -888,6 +1001,22 @@
 
 .pc-btn-primary:hover {
     opacity: 0.9;
+}
+
+.pc-btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.pc-btn:focus-visible {
+    outline: 3px solid rgba(45, 140, 255, 0.28);
+    outline-offset: 2px;
+}
+
+.pc-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    transform: none;
+    box-shadow: none;
 }
 
 .pc-btn-secondary {
@@ -1730,6 +1859,13 @@
     background: var(--pc-surface2);
 }
 
+.pc-settings-meta-row .pc-settings-data-dir {
+    max-width: min(100%, 460px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .pc-settings-backup-panel {
     margin-bottom: var(--pc-space-lg);
 }
@@ -1803,6 +1939,10 @@
 
 .pc-settings-action-grid-two {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.pc-settings-action-grid-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .pc-settings-action-card {
@@ -3645,12 +3785,16 @@
 
 .pc-welcome-text {
     min-width: 0;
+    position: relative;
+    z-index: 2;
 }
 
 .pc-welcome-leading {
     display: flex;
     align-items: center;
     flex-shrink: 0;
+    position: relative;
+    z-index: 2;
 }
 
 @supports (width: 100cqw) {
@@ -3689,6 +3833,16 @@
     gap: var(--pc-space-lg);
     margin-left: auto;
     flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+}
+
+.pc-welcome-decorations {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
 }
 
 .pc-welcome-actions {
@@ -5759,6 +5913,92 @@
     align-self: flex-start;
 }
 
+.pc-welcome-pixel-stage {
+    --pc-pixel-dog-frame-w: 72px;
+    --pc-pixel-dog-frame-h: 108px;
+    --pc-pixel-dog-frame-count: 8;
+    --pc-pixel-dog-strip-w: calc(var(--pc-pixel-dog-frame-w) * var(--pc-pixel-dog-frame-count));
+    --pc-pixel-dog-frame-duration: 0.84s;
+    --pc-pixel-dog-cross-duration: 6.8s;
+    position: absolute;
+    top: 22px;
+    left: clamp(320px, 36%, 500px);
+    right: clamp(220px, 20%, 300px);
+    height: 116px;
+    overflow: hidden;
+    opacity: 0.86;
+    pointer-events: none;
+}
+
+.pc-welcome-pixel-stage-home {
+    top: 20px;
+    left: clamp(320px, 38%, 500px);
+    right: clamp(220px, 20%, 292px);
+    opacity: 0.92;
+}
+
+.pc-welcome-pixel-stage-library {
+    top: 24px;
+    left: clamp(300px, 35%, 480px);
+    right: clamp(230px, 21%, 320px);
+    opacity: 0.84;
+}
+
+.pc-welcome-pixel-stage-category {
+    top: 26px;
+    left: clamp(320px, 37%, 500px);
+    right: clamp(250px, 23%, 340px);
+    opacity: 0.80;
+}
+
+.pc-welcome-pixel-stage-settings {
+    top: 22px;
+    left: clamp(340px, 39%, 520px);
+    right: clamp(220px, 20%, 300px);
+    opacity: 0.82;
+}
+
+.pc-welcome-pixel-stage-editor {
+    top: 24px;
+    left: clamp(360px, 42%, 560px);
+    right: clamp(330px, 28%, 440px);
+    opacity: 0.74;
+}
+
+.pc-welcome-pixel-stage-detail {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 112px;
+    opacity: 0.82;
+}
+
+.pc-welcome-pixel-runner {
+    position: absolute;
+    left: calc(var(--pc-pixel-dog-frame-w) * -1.15);
+    bottom: 4px;
+    width: var(--pc-pixel-dog-frame-w);
+    height: var(--pc-pixel-dog-frame-h);
+    animation: pc-pixel-dog-cross var(--pc-pixel-dog-cross-duration) linear infinite;
+    animation-delay: calc(var(--pc-pixel-dog-cross-duration) * -0.35);
+    will-change: left;
+}
+
+.pc-welcome-pixel-sprite {
+    display: block;
+    width: var(--pc-pixel-dog-frame-w);
+    height: var(--pc-pixel-dog-frame-h);
+    background-image: var(--pc-pixel-dog-sprite);
+    background-repeat: no-repeat;
+    background-size: var(--pc-pixel-dog-strip-w) var(--pc-pixel-dog-frame-h);
+    background-position: 0 0;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 6px 8px rgba(67, 118, 160, 0.14));
+    animation: pc-pixel-dog-frames var(--pc-pixel-dog-frame-duration) steps(var(--pc-pixel-dog-frame-count), end) infinite;
+    animation-delay: calc(var(--pc-pixel-dog-frame-duration) * -0.17);
+    will-change: background-position;
+}
+
 .pc-home-inline-icon,
 .pc-home-inline-icon svg {
     width: 20px;
@@ -6225,6 +6465,16 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes pc-pixel-dog-frames {
+    from { background-position-x: 0; }
+    to { background-position-x: calc(var(--pc-pixel-dog-strip-w) * -1); }
+}
+
+@keyframes pc-pixel-dog-cross {
+    from { left: calc(var(--pc-pixel-dog-frame-w) * -1.15); }
+    to { left: 100%; }
+}
+
 @media (max-width: 1180px) {
     .pc-welcome-banner .pc-welcome-mascot,
     .pc-welcome-banner-home .pc-welcome-mascot,
@@ -6242,6 +6492,16 @@
 
     .pc-home-bottom-grid {
         grid-template-columns: 1fr;
+    }
+
+    .pc-welcome-pixel-stage {
+        display: none;
+    }
+}
+
+@media (max-width: 1280px) {
+    .pc-welcome-pixel-stage-editor {
+        display: none;
     }
 }
 
@@ -6263,6 +6523,21 @@
         animation-iteration-count: 1 !important;
         scroll-behavior: auto !important;
         transition-duration: 0.01ms !important;
+    }
+
+    .pc-welcome-pixel-runner,
+    .pc-welcome-pixel-sprite {
+        animation: none !important;
+    }
+
+    .pc-welcome-pixel-runner {
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .pc-welcome-pixel-sprite {
+        background-position: 0 0;
+        filter: none;
     }
 }
 
@@ -6882,9 +7157,20 @@
     height: 16px;
 }
 
+.pc-detail-walk-decoration {
+    position: absolute;
+    top: clamp(20px, 2.4vw, 32px);
+    left: clamp(360px, 35vw, 520px);
+    right: clamp(300px, 22vw, 360px);
+    height: 116px;
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .pc-detail-hero {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     max-width: 1360px;
     margin: 0 auto var(--pc-space-xl);
     display: flex;
@@ -7752,6 +8038,10 @@
     .pc-detail-info-item {
         grid-template-columns: 112px minmax(0, 1fr);
     }
+
+    .pc-detail-walk-decoration {
+        display: none;
+    }
 }
 
 @media (max-width: 1023px) {
@@ -8115,5 +8405,322 @@
     .pc-detail-version-item {
         animation: none;
         transition: none;
+    }
+
+    .pc-detail-walk-decoration .pc-welcome-pixel-runner,
+    .pc-detail-walk-decoration .pc-welcome-pixel-sprite {
+        animation: none !important;
+    }
+
+    .pc-detail-walk-decoration .pc-welcome-pixel-runner {
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
+
+/* PC 全局按钮与可点击入口微交互基线。 */
+.pc-app :is(
+    .pc-btn,
+    .pc-section-title-action,
+    .pc-prompt-copy-btn,
+    .pc-version-tab,
+    .pc-version-tab-add,
+    .pc-library-primary-btn,
+    .pc-library-filter-btn,
+    .pc-library-icon-btn,
+    .pc-library-action-btn,
+    .pc-library-page-btn,
+    .pc-detail-breadcrumb-link,
+    .pc-detail-top-nav-btn,
+    .pc-detail-prompt-copy,
+    .pc-detail-version-view-all,
+    .pc-detail-cover-nav,
+    .pc-detail-action-btn,
+    .pc-editor-save-btn,
+    .pc-editor-clear-all-btn,
+    .pc-editor-prompt-clear,
+    .pc-editor-add-tag-btn,
+    .pc-editor-ratio-btn,
+    .pc-add-tag-btn,
+    .pc-tag-custom-add-btn,
+    .pc-select-card,
+    .pc-settings-action-card,
+    .pc-settings-sync-panel .pc-btn,
+    .pc-theme-dot,
+    .pc-image-viewer-tool,
+    .pc-category-create-btn,
+    .pc-category-segment .pc-segment-btn,
+    .pc-icon-btn,
+    .pc-quick-action-btn,
+    .pc-save-btn,
+    .pc-action-btn,
+    .pc-text-btn,
+    .pc-folder-dialog-btn,
+    .pc-quick-create-card,
+    .pc-home-page .pc-quick-create-card,
+    .pc-home-page .pc-star-btn,
+    .pc-home-page .pc-more-btn
+) {
+    touch-action: manipulation;
+    transition-property: background-color, border-color, box-shadow, color, filter, opacity, transform;
+    transition-duration: 0.16s;
+    transition-timing-function: ease;
+}
+
+.pc-app :is(
+    .pc-btn,
+    .pc-section-title-action,
+    .pc-prompt-copy-btn,
+    .pc-library-primary-btn,
+    .pc-library-filter-btn,
+    .pc-library-icon-btn,
+    .pc-library-action-btn,
+    .pc-library-page-btn,
+    .pc-detail-breadcrumb-link,
+    .pc-detail-top-nav-btn,
+    .pc-detail-prompt-copy,
+    .pc-detail-version-view-all,
+    .pc-detail-cover-nav,
+    .pc-detail-action-btn,
+    .pc-editor-save-btn,
+    .pc-editor-clear-all-btn,
+    .pc-editor-prompt-clear,
+    .pc-editor-add-tag-btn,
+    .pc-editor-ratio-btn,
+    .pc-add-tag-btn,
+    .pc-tag-custom-add-btn,
+    .pc-settings-action-card,
+    .pc-settings-sync-panel .pc-btn,
+    .pc-image-viewer-tool,
+    .pc-category-create-btn,
+    .pc-category-segment .pc-segment-btn,
+    .pc-icon-btn,
+    .pc-quick-action-btn,
+    .pc-save-btn,
+    .pc-action-btn,
+    .pc-text-btn,
+    .pc-folder-dialog-btn,
+    .pc-quick-create-card,
+    .pc-home-page .pc-quick-create-card
+):hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.pc-app :is(
+    .pc-btn,
+    .pc-library-primary-btn,
+    .pc-library-action-btn,
+    .pc-detail-action-btn,
+    .pc-editor-save-btn,
+    .pc-settings-action-card,
+    .pc-save-btn,
+    .pc-action-btn,
+    .pc-quick-create-card,
+    .pc-home-page .pc-quick-create-card
+):hover:not(:disabled) {
+    box-shadow: 0 10px 24px rgba(120, 90, 50, 0.12);
+}
+
+.pc-app :is(
+    .pc-library-icon-btn,
+    .pc-detail-cover-nav,
+    .pc-image-viewer-tool,
+    .pc-icon-btn,
+    .pc-home-page .pc-star-btn,
+    .pc-home-page .pc-more-btn
+):hover:not(:disabled) {
+    box-shadow: 0 8px 18px rgba(45, 140, 255, 0.12);
+}
+
+.pc-app :is(
+    .pc-btn,
+    .pc-section-title-action,
+    .pc-prompt-copy-btn,
+    .pc-version-tab,
+    .pc-version-tab-add,
+    .pc-library-primary-btn,
+    .pc-library-filter-btn,
+    .pc-library-icon-btn,
+    .pc-library-action-btn,
+    .pc-library-page-btn,
+    .pc-detail-breadcrumb-link,
+    .pc-detail-top-nav-btn,
+    .pc-detail-prompt-copy,
+    .pc-detail-version-view-all,
+    .pc-detail-cover-nav,
+    .pc-detail-action-btn,
+    .pc-editor-save-btn,
+    .pc-editor-clear-all-btn,
+    .pc-editor-prompt-clear,
+    .pc-editor-add-tag-btn,
+    .pc-editor-ratio-btn,
+    .pc-add-tag-btn,
+    .pc-tag-custom-add-btn,
+    .pc-select-card,
+    .pc-settings-action-card,
+    .pc-settings-sync-panel .pc-btn,
+    .pc-theme-dot,
+    .pc-image-viewer-tool,
+    .pc-category-create-btn,
+    .pc-category-segment .pc-segment-btn,
+    .pc-icon-btn,
+    .pc-quick-action-btn,
+    .pc-save-btn,
+    .pc-action-btn,
+    .pc-text-btn,
+    .pc-folder-dialog-btn,
+    .pc-quick-create-card,
+    .pc-home-page .pc-quick-create-card,
+    .pc-home-page .pc-star-btn,
+    .pc-home-page .pc-more-btn
+):active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+}
+
+.pc-app :is(
+    .pc-card,
+    .pc-image-card,
+    .pc-category-card,
+    .pc-category-list-item,
+    .pc-backup-card,
+    .pc-library-table tbody tr,
+    .pc-library-preview,
+    .pc-detail-prompt-card,
+    .pc-detail-info-card,
+    .pc-detail-version-card,
+    .pc-home-page .pc-recent-item,
+    .pc-home-category-card
+) {
+    transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+    transition-duration: 0.18s;
+    transition-timing-function: ease;
+}
+
+.pc-app :is(
+    .pc-card,
+    .pc-image-card,
+    .pc-category-card,
+    .pc-category-list-item,
+    .pc-backup-card,
+    .pc-library-table tbody tr,
+    .pc-detail-prompt-card,
+    .pc-detail-info-card,
+    .pc-detail-version-card,
+    .pc-home-page .pc-recent-item,
+    .pc-home-category-card
+):hover {
+    transform: translateY(-1px);
+}
+
+.pc-app :is(
+    .pc-card,
+    .pc-image-card,
+    .pc-category-card,
+    .pc-backup-card,
+    .pc-detail-prompt-card,
+    .pc-detail-info-card,
+    .pc-detail-version-card,
+    .pc-home-page .pc-recent-item,
+    .pc-home-category-card
+):hover {
+    box-shadow: 0 10px 24px rgba(120, 90, 50, 0.11);
+}
+
+.pc-app :is(button, [role="button"], a, input, textarea, select):focus-visible {
+    outline: 3px solid rgba(45, 140, 255, 0.30);
+    outline-offset: 2px;
+}
+
+.pc-app :is(button, .pc-btn, .pc-library-page-btn, .pc-editor-save-btn, .pc-settings-action-card):disabled,
+.pc-app :is(.pc-folder-dialog-ok-disabled, .pc-editor-clear-all-btn:disabled, .pc-editor-prompt-clear:disabled) {
+    cursor: not-allowed;
+    opacity: 0.55;
+    transform: none;
+    box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-app :is(
+        .pc-btn,
+        .pc-section-title-action,
+        .pc-prompt-copy-btn,
+        .pc-version-tab,
+        .pc-version-tab-add,
+        .pc-library-primary-btn,
+        .pc-library-filter-btn,
+        .pc-library-icon-btn,
+        .pc-library-action-btn,
+        .pc-library-page-btn,
+        .pc-detail-breadcrumb-link,
+        .pc-detail-top-nav-btn,
+        .pc-detail-prompt-copy,
+        .pc-detail-version-view-all,
+        .pc-detail-cover-nav,
+        .pc-detail-action-btn,
+        .pc-editor-save-btn,
+        .pc-editor-clear-all-btn,
+        .pc-editor-prompt-clear,
+        .pc-editor-add-tag-btn,
+        .pc-editor-ratio-btn,
+        .pc-add-tag-btn,
+        .pc-tag-custom-add-btn,
+        .pc-select-card,
+        .pc-settings-action-card,
+        .pc-settings-sync-panel .pc-btn,
+        .pc-theme-dot,
+        .pc-image-viewer-tool,
+        .pc-category-create-btn,
+        .pc-category-segment .pc-segment-btn,
+        .pc-icon-btn,
+        .pc-quick-action-btn,
+        .pc-save-btn,
+        .pc-action-btn,
+        .pc-text-btn,
+        .pc-folder-dialog-btn,
+        .pc-quick-create-card,
+        .pc-home-page .pc-quick-create-card,
+        .pc-home-page .pc-star-btn,
+        .pc-home-page .pc-more-btn,
+        .pc-card,
+        .pc-image-card,
+        .pc-category-card,
+        .pc-category-list-item,
+        .pc-backup-card,
+        .pc-library-table tbody tr,
+        .pc-library-preview,
+        .pc-detail-prompt-card,
+        .pc-detail-info-card,
+        .pc-detail-version-card,
+        .pc-home-page .pc-recent-item,
+        .pc-home-category-card
+    ) {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+        filter: none !important;
+    }
+
+    .pc-app :is(
+        .pc-btn,
+        .pc-library-primary-btn,
+        .pc-library-action-btn,
+        .pc-detail-action-btn,
+        .pc-editor-save-btn,
+        .pc-settings-action-card,
+        .pc-save-btn,
+        .pc-action-btn,
+        .pc-quick-create-card,
+        .pc-home-page .pc-quick-create-card,
+        .pc-card,
+        .pc-image-card,
+        .pc-category-card,
+        .pc-backup-card,
+        .pc-detail-prompt-card,
+        .pc-detail-info-card,
+        .pc-detail-version-card,
+        .pc-home-page .pc-recent-item,
+        .pc-home-category-card
+    ):hover {
+        box-shadow: var(--pc-shadow-sm);
     }
 }

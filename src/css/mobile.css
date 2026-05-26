@@ -3757,3 +3757,260 @@
     background: var(--m-danger);
     color: #fff;
 }
+
+/* 移动端全局按钮与可触控入口微交互基线。 */
+.mobile-app button {
+    touch-action: manipulation;
+}
+
+.mobile-app :is(
+    .m-top-nav-back,
+    .m-top-nav-action,
+    .m-nav-item,
+    .m-nav-center-btn,
+    .m-section-title-action,
+    .m-filter-tag,
+    .m-star-btn,
+    .m-more-btn,
+    .m-prompt-copy-btn,
+    .m-action-btn,
+    .m-add-tag-btn,
+    .m-ratio-btn,
+    .m-save-btn,
+    .m-segment-btn,
+    .m-quick-action-btn,
+    .m-download-history-clear,
+    .m-theme-dot,
+    .m-backup-card,
+    .m-lan-mode-btn,
+    .m-lan-sync-btn,
+    .m-lan-device-item,
+    .m-action-sheet-item,
+    .m-confirm-btn,
+    .m-picker-confirm,
+    .m-folder-dialog-btn,
+    .m-text-btn-danger,
+    .m-tag-custom-add-btn,
+    .m-form-preview-btn,
+    .m-image-viewer-close,
+    .m-image-viewer-download,
+    .m-image-viewer-nav,
+    .m-image-remove-btn,
+    .m-image-add-thumb,
+    .m-rename-btn,
+    .m-delete-confirm-btn
+) {
+    transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+    transition-duration: var(--m-transition-fast);
+    transition-timing-function: ease;
+}
+
+.mobile-app :is(
+    .m-card,
+    .m-stat-card,
+    .m-prompt-card,
+    .m-category-card,
+    .m-quick-create-card,
+    .m-prompt-list-card,
+    .m-select-card,
+    .m-category-list-item,
+    .m-batch-select-item,
+    .m-merge-select-item,
+    .m-settings-card,
+    .m-download-history-item,
+    .m-storage-card,
+    .m-backup-card,
+    .m-lan-device-item,
+    .m-tag-picker-item,
+    .m-picker-list-item,
+    .m-folder-color-dot,
+    .m-image-import-area,
+    .m-tag-pill.m-tag-manageable
+) {
+    transition-property: background-color, border-color, box-shadow, color, opacity, transform;
+    transition-duration: var(--m-transition-fast);
+    transition-timing-function: ease;
+}
+
+.mobile-app :is(
+    .m-top-nav-back,
+    .m-top-nav-action,
+    .m-section-title-action,
+    .m-filter-tag,
+    .m-more-btn,
+    .m-prompt-copy-btn,
+    .m-add-tag-btn,
+    .m-ratio-btn,
+    .m-segment-btn,
+    .m-lan-mode-btn,
+    .m-action-sheet-item,
+    .m-text-btn-danger,
+    .m-form-preview-btn,
+    .m-image-viewer-close,
+    .m-image-viewer-download,
+    .m-image-viewer-nav
+):active:not(:disabled) {
+    opacity: 0.78;
+    transform: scale(0.98);
+}
+
+.mobile-app :is(
+    .m-action-btn,
+    .m-nav-center-btn,
+    .m-save-btn,
+    .m-quick-action-btn,
+    .m-download-history-clear,
+    .m-backup-card,
+    .m-lan-sync-btn,
+    .m-confirm-btn,
+    .m-picker-confirm,
+    .m-folder-dialog-btn,
+    .m-tag-custom-add-btn,
+    .m-rename-btn,
+    .m-delete-confirm-btn
+):active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.mobile-app :is(
+    .m-card,
+    .m-stat-card,
+    .m-prompt-card,
+    .m-category-card,
+    .m-quick-create-card,
+    .m-prompt-list-card,
+    .m-select-card,
+    .m-category-list-item,
+    .m-batch-select-item,
+    .m-merge-select-item,
+    .m-download-history-item,
+    .m-lan-device-item,
+    .m-tag-picker-item,
+    .m-picker-list-item,
+    .m-image-import-area,
+    .m-tag-pill.m-tag-manageable
+):active {
+    transform: scale(0.98);
+}
+
+.mobile-app :is(button, [role="button"], a, input, textarea, select):focus-visible {
+    outline: 3px solid rgba(45, 156, 255, 0.30);
+    outline-offset: 2px;
+}
+
+.mobile-app :is(button, .m-lan-sync-btn, .m-download-history-clear, .m-image-viewer-download):disabled,
+.mobile-app :is(.m-folder-dialog-ok-disabled, .m-merge-disabled) {
+    cursor: not-allowed;
+    opacity: 0.55;
+    transform: none;
+    box-shadow: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .mobile-app :is(
+        .m-top-nav-back,
+        .m-top-nav-action,
+        .m-section-title-action,
+        .m-filter-tag,
+        .m-star-btn,
+        .m-more-btn,
+        .m-prompt-copy-btn,
+        .m-action-btn,
+        .m-add-tag-btn,
+        .m-ratio-btn,
+        .m-save-btn,
+        .m-segment-btn,
+        .m-quick-action-btn,
+        .m-download-history-clear,
+        .m-backup-card,
+        .m-lan-mode-btn,
+        .m-lan-sync-btn,
+        .m-confirm-btn,
+        .m-folder-dialog-btn,
+        .m-tag-custom-add-btn,
+        .m-form-preview-btn,
+        .m-rename-btn,
+        .m-delete-confirm-btn
+    ):hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+
+    .mobile-app :is(
+        .m-card,
+        .m-prompt-card,
+        .m-category-card,
+        .m-quick-create-card,
+        .m-prompt-list-card,
+        .m-select-card,
+        .m-category-list-item,
+        .m-backup-card,
+        .m-lan-device-item,
+        .m-download-history-item
+    ):hover {
+        box-shadow: var(--m-shadow-md);
+        transform: translateY(-1px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mobile-app :is(
+        .m-top-nav-back,
+        .m-top-nav-action,
+        .m-nav-item,
+        .m-nav-center-btn,
+        .m-section-title-action,
+        .m-filter-tag,
+        .m-star-btn,
+        .m-more-btn,
+        .m-prompt-copy-btn,
+        .m-action-btn,
+        .m-add-tag-btn,
+        .m-ratio-btn,
+        .m-save-btn,
+        .m-segment-btn,
+        .m-quick-action-btn,
+        .m-download-history-clear,
+        .m-theme-dot,
+        .m-card,
+        .m-stat-card,
+        .m-prompt-card,
+        .m-category-card,
+        .m-quick-create-card,
+        .m-prompt-list-card,
+        .m-select-card,
+        .m-category-list-item,
+        .m-batch-select-item,
+        .m-merge-select-item,
+        .m-settings-card,
+        .m-download-history-item,
+        .m-storage-card,
+        .m-backup-card,
+        .m-lan-mode-btn,
+        .m-lan-sync-btn,
+        .m-lan-device-item,
+        .m-action-sheet-item,
+        .m-confirm-btn,
+        .m-picker-confirm,
+        .m-tag-picker-item,
+        .m-picker-list-item,
+        .m-folder-color-dot,
+        .m-folder-dialog-btn,
+        .m-text-btn-danger,
+        .m-tag-custom-add-btn,
+        .m-form-preview-btn,
+        .m-image-viewer-close,
+        .m-image-viewer-download,
+        .m-image-viewer-nav,
+        .m-image-import-area,
+        .m-image-remove-btn,
+        .m-image-add-thumb,
+        .m-rename-btn,
+        .m-delete-confirm-btn,
+        .m-tag-pill.m-tag-manageable
+    ) {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
+        filter: none !important;
+    }
+}

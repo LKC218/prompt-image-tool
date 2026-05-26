@@ -3,7 +3,7 @@ import { navigate, goBack } from './pc-app.js';
 import { showToast, showModal, closeModal, showConfirmModal, escapeHtml } from './pc-utils.js';
 import { aggregateTags } from './tag-utils.js';
 import { readFileAsDataURL, optimizeImageDataUrl } from './image-utils.js';
-import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
+import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { pcIcon } from './pc-icon-assets.js';
 import { consumePromptImageToolImport, dataUrlToImportedImage } from './prompt-tool-json-import.js';
 import editorImagePlaceholderIconUrl from '../../UI设计稿/图标/插画设计/图片.png';
@@ -127,7 +127,7 @@ function deserializeImportedImages(images) {
 }
 
 async function applyPromptImageToolImport(importId) {
-    const payload = consumePromptImageToolImport(importId);
+    const payload = await consumePromptImageToolImport(importId);
     if (!payload || !payload.prompt) return { applied: false, imageCount: 0 };
 
     const nextFormData = createDefaultFormData();
@@ -335,6 +335,7 @@ function render(params = {}) {
                         <span>保存</span>
                     </button>
                 `,
+                decorationsHtml: renderPcWelcomeWalkAnimation({ variant: 'editor' }),
                 actionsPlacement: 'afterMascot'
             })}
             <div id="pcEditorContent"></div>

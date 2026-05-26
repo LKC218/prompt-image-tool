@@ -42,6 +42,9 @@ const SIDEBAR_STORAGE_HOVER_MS = 520;
 const SIDEBAR_STORAGE_HOVER_BOOST = 6;
 const SIDEBAR_STORAGE_TILT_MAX = 4;
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
+const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
+
+const navClickMotionCleanups = new WeakMap();
 
 const SIDEBAR_TOGGLE_ICON = `
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -179,6 +182,7 @@ function setupSidebarNav() {
     nav.addEventListener('click', (e) => {
         const item = e.target.closest('.pc-nav-item');
         if (!item) return;
+        playNavIconClickMotion(item);
         const path = item.dataset.nav;
         if (path === '/editor/') {
             navigate('/editor/');
@@ -187,6 +191,33 @@ function setupSidebarNav() {
             updateNavHighlight(path);
         }
     });
+}
+
+function playNavIconClickMotion(item) {
+    if (!item || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
+
+    const previousCleanup = navClickMotionCleanups.get(item);
+    if (previousCleanup) previousCleanup();
+
+    let cleanup = null;
+    function handleAnimationEnd(event) {
+        const isItemGlow = event.target === item;
+        const isIconBounce = event.target.classList?.contains('pc-nav-icon');
+        if (!isItemGlow && !isIconBounce) return;
+        cleanup();
+    }
+
+    cleanup = () => {
+        item.classList.remove(NAV_CLICK_MOTION_CLASS);
+        item.removeEventListener('animationend', handleAnimationEnd);
+        navClickMotionCleanups.delete(item);
+    };
+
+    item.classList.remove(NAV_CLICK_MOTION_CLASS);
+    void item.offsetWidth;
+    item.classList.add(NAV_CLICK_MOTION_CLASS);
+    item.addEventListener('animationend', handleAnimationEnd);
+    navClickMotionCleanups.set(item, cleanup);
 }
 
 function setupSidebarToggle() {

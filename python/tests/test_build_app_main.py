@@ -59,6 +59,52 @@ def test_build_save_data_keeps_last_good_backup(tmp_path, monkeypatch):
     assert json.loads(Path(f"{data_file}.bak").read_text(encoding="utf-8")) == first_data
 
 
+def test_build_get_data_dir_uses_user_root_and_migrates_legacy_data(tmp_path, monkeypatch):
+    module = load_build_app_main()
+    install_dir = tmp_path / "Install"
+    legacy_data = install_dir / "data"
+    legacy_images = legacy_data / "images"
+    legacy_backups = legacy_data / "backups"
+    legacy_images.mkdir(parents=True)
+    legacy_backups.mkdir(parents=True)
+    (legacy_data / "prompt_sets.json").write_text('[{"id":"old"}]', encoding="utf-8")
+    (legacy_data / "folders.json").write_text("[]", encoding="utf-8")
+    (legacy_images / "img.png").write_bytes(b"img")
+    (legacy_backups / "backup.json").write_text("{}", encoding="utf-8")
+
+    user_root = tmp_path / "UserData"
+    monkeypatch.setenv(module.DATA_DIR_ENV_VAR, str(user_root))
+    monkeypatch.setattr(module.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(module.sys, "executable", str(install_dir / "PromptImageManager.exe"))
+
+    assert module.get_data_dir() == str(user_root)
+    assert (user_root / "data" / "prompt_sets.json").read_text(encoding="utf-8") == '[{"id":"old"}]'
+    assert (user_root / "data" / "images" / "img.png").read_bytes() == b"img"
+    marker = json.loads((user_root / "data" / "data-migration.json").read_text(encoding="utf-8"))
+    assert marker["status"] == "copied"
+    assert marker["copiedFiles"] >= 4
+
+
+def test_build_migration_does_not_overwrite_existing_user_data(tmp_path):
+    module = load_build_app_main()
+    install_dir = tmp_path / "Install"
+    legacy_data = install_dir / "data"
+    legacy_data.mkdir(parents=True)
+    (legacy_data / "prompt_sets.json").write_text('[{"id":"old"}]', encoding="utf-8")
+
+    user_root = tmp_path / "UserData"
+    target_data = user_root / "data"
+    target_data.mkdir(parents=True)
+    (target_data / "prompt_sets.json").write_text('[{"id":"current"}]', encoding="utf-8")
+
+    result = module.migrate_legacy_data_if_needed(str(user_root), str(install_dir))
+
+    assert result["status"] == "skipped-target-has-data"
+    assert (target_data / "prompt_sets.json").read_text(encoding="utf-8") == '[{"id":"current"}]'
+    marker = json.loads((target_data / "data-migration.json").read_text(encoding="utf-8"))
+    assert marker["status"] == "skipped-target-has-data"
+
+
 def start_test_server(module):
     server = module.ExclusiveThreadingTCPServer(("127.0.0.1", 0), module.AppHandler)
     module.SERVER_PORT = server.server_address[1]

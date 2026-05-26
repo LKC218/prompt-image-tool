@@ -232,14 +232,19 @@ async getImageUrl(img) {
 }
 ```
 
-### 6.6 prompt-image-tool 专用 JSON 导入联动
+### 6.6 prompt-image-tool JSON 导入联动
 
-移动端设置页同样会先检查导入 JSON 的 `schema`。若命中 `prompt-image-tool.import.v1`，则不走完整备份恢复，而是复用 `src/js/prompt-tool-json-import.js` 临时暂存 payload 后跳转到 `/editor/`。
+移动端首页导入 JSON 时同样会先尝试通过 `src/js/prompt-tool-json-import.js` 判断是否能转成新建提示词导入内容。若命中 `prompt-image-tool.import.v1`，或命中单条 ChatGPT Vault 对话归档 JSON（包含 `messages[]`、标题和归档标识），则会临时暂存 payload 后跳转到 `/editor/`。
 
-- 普通备份 JSON 继续走 `getStorage().importData(data)`。
-- 专用 JSON 会分流到 `navigate('/editor/', { importId })`。
+导入暂存优先写入 IndexedDB，失败时回退 Web Storage 和同页内存 Map，减少带参考图片的专用 JSON 因浏览器暂存配额不足导致的导入失败。
+
+移动端设置页的导入入口现在分成两个显式按钮：
+
+- `导入备份`：只处理完整备份 JSON，继续走 `getStorage().importData(data)`。
+- `导入对话`：处理单条 ChatGPT Vault 对话归档 JSON，成功后跳转到 `/editor/`。
 - 移动端编辑页会在创建模式下回填标题、正向提示词、负向提示词、标签、比例和参考图片。
 - 图片仍会复用现有导入压缩流程，最终保存到 SQLite 与 Filesystem。
+- 单条 ChatGPT 对话归档 JSON 不包含内嵌图片二进制时，仅预填标题与提示词文本；需要图片同步时应优先使用 ChatGPT Vault 的 `导出提示词JSON` 入口。
 
 ---
 
@@ -360,7 +365,7 @@ IDLE → CONNECTING → SYNCING → VERIFYING → SUCCESS/PARTIAL/ERROR
 | 图片上传 | 点击/拖拽上传，存储到本地文件系统 | `app.js` → `SqliteStorage` → Filesystem |
 | 图片查看 | 详情页全屏查看、点击关闭、缩放和平移、下载当前图片并写入手机相册；图片预览遮罩由详情页维护活动引用，返回或卸载时会立即清理 | `mobile-detail.js` → `showImageViewer()` → `image-download-utils.js` / `mobile-gallery.js` |
 | 版本对比 | 并排对比两个版本的提示词和图片 | `app.js` → `toggleCompare()` |
-| 数据导入导出 | 完整备份 JSON，包含图片内容；Android 原生端通过 Capacitor Filesystem 写入 `backups/`；相同 ID 默认覆盖 | `mobile-settings.js` / `mobile-library.js` / `backup-utils.js` → `SqliteStorage` → SQLite + Filesystem |
+| 数据导入导出 | 完整备份 JSON，包含图片内容；设置页常驻入口收敛为“本地备份”“导入备份”和“导入对话”三个按钮；Android 原生端通过 Capacitor Filesystem 写入 `backups/`；相同 ID 默认覆盖 | `mobile-settings.js` / `mobile-library.js` / `backup-utils.js` → `SqliteStorage` → SQLite + Filesystem |
 | 暗色/亮色主题 | 主题切换，localStorage 持久化 | `app.js` → `initTheme()` / `toggleTheme()` |
 | 长按菜单 | 长按集合项弹出操作菜单 | `app.js` → `setupLongPress()` |
 

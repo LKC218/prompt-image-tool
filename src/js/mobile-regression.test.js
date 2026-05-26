@@ -413,6 +413,15 @@ describe('移动端页面全功能回归冒烟', () => {
             expect.arrayContaining([expect.objectContaining({ action: 'confirm' })])
         );
 
+        expect(pageEl.querySelector('#mImportChatGptVault').textContent).toContain('导入对话');
+        click('#mImportChatGptVault', pageEl);
+        expect(mobileUtilsMocks.showActionSheet).toHaveBeenLastCalledWith(
+            expect.arrayContaining([expect.objectContaining({
+                action: 'confirm',
+                label: '确认导入对话（将新建提示词）',
+            })])
+        );
+
         click('[data-lan-mode="bidirectional"]', pageEl);
         expect(localStorage.getItem('lan-sync-mode')).toBe('bidirectional');
         expect(pageEl.querySelector('#mStartLanSyncBtn').textContent).toBe('双向');

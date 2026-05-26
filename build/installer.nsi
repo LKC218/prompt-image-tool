@@ -1,5 +1,5 @@
 !define APPNAME "PromptImageManager"
-!define APPVERSION "2.3.4"
+!define APPVERSION "2.3.6"
 !define APPEXE "PromptImageManager.exe"
 
 Name "生图提示词管理器 ${APPVERSION}"
@@ -47,6 +47,12 @@ Section "Install"
 SectionEnd
 
 Section "Uninstall"
+    SetOutPath "$TEMP"
+    IfFileExists "$INSTDIR\data\*.*" 0 +4
+        CreateDirectory "$APPDATA\${APPNAME}"
+        RMDir /r "$APPDATA\${APPNAME}\legacy-install-data"
+        Rename "$INSTDIR\data" "$APPDATA\${APPNAME}\legacy-install-data"
+
     RMDir /r "$INSTDIR"
 
     Delete "$SMPROGRAMS\生图提示词管理器\生图提示词管理器.lnk"
