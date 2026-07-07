@@ -53,3 +53,16 @@ debug-backups/
 
 .DS_Store
 Thumbs.db
+
+# === 敏感 / 私密配置（避免泄露私人配置与凭据） ===
+.env
+.env.*
+*.local
+*.pem
+*.p12
+*.pfx
+*.key
+id_rsa*
+credentials*
+*.token
+*.codebuddy/
