@@ -263,12 +263,7 @@ function renderPositivePromptCard(text) {
                 </div>
                 <button class="pc-detail-prompt-copy pc-detail-prompt-copy-positive" data-copy="positive">复制</button>
             </div>
-            <div class="pc-detail-prompt-content pc-detail-prompt-content-positive">
-                ${displayText
-                    ? escapeHtml(displayText)
-                    : '<span class="pc-detail-prompt-empty">暂无正向提示词</span>'
-                }
-            </div>
+            <div class="pc-detail-prompt-content pc-detail-prompt-content-positive">${displayText ? escapeHtml(displayText) : '<span class="pc-detail-prompt-empty">暂无正向提示词</span>'}</div>
         </div>
     `;
 }
@@ -285,12 +280,7 @@ function renderNegativePromptCard(text) {
                 </div>
                 <button class="pc-detail-prompt-copy pc-detail-prompt-copy-negative" data-copy="negative">复制</button>
             </div>
-            <div class="pc-detail-prompt-content pc-detail-prompt-content-negative">
-                ${displayText
-                    ? escapeHtml(displayText)
-                    : '<span class="pc-detail-prompt-empty">暂无负向提示词</span>'
-                }
-            </div>
+            <div class="pc-detail-prompt-content pc-detail-prompt-content-negative">${displayText ? escapeHtml(displayText) : '<span class="pc-detail-prompt-empty">暂无负向提示词</span>'}</div>
         </div>
     `;
 }
@@ -481,6 +471,8 @@ function setupEvents(pageEl) {
                 ? (v.prompt || '')
                 : (v.negativePrompt || v.negative_prompt || '');
             copyToClipboard(text);
+            btn.classList.add('td-copy-success');
+            setTimeout(() => btn.classList.remove('td-copy-success'), 500);
         });
     });
 
@@ -510,6 +502,11 @@ function setupEvents(pageEl) {
         const negative = v.negativePrompt || v.negative_prompt || '';
         const full = positive + (negative ? '\n\nNegative:\n' + negative : '');
         copyToClipboard(full);
+        const copyAllBtn = pageEl.querySelector('#pcDetailCopyAll');
+        if (copyAllBtn) {
+            copyAllBtn.classList.add('td-copy-success');
+            setTimeout(() => copyAllBtn.classList.remove('td-copy-success'), 500);
+        }
     });
 
     pageEl.querySelector('#pcDetailMore')?.addEventListener('click', (e) => {

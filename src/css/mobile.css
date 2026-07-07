@@ -63,6 +63,9 @@
     --m-accent: var(--m-pink);
     --m-accent-light: var(--m-pink-light);
     --m-accent-bg: var(--m-pink-bg);
+    --m-accent-strong: color-mix(in srgb, var(--m-accent) 82%, #000);
+    --m-focus-ring: color-mix(in srgb, var(--m-accent) 30%, transparent);
+    --m-shadow-accent: 0 4px 16px color-mix(in srgb, var(--m-accent) 25%, transparent);
 
     position: fixed;
     inset: 0;
@@ -429,13 +432,13 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--m-accent), #FF8FB1);
+    background: linear-gradient(135deg, var(--m-accent), var(--m-accent-strong));
     color: #fff;
     font-size: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--m-shadow-pink);
+    box-shadow: var(--m-shadow-accent);
     position: absolute;
     top: -20px;
     transition: transform var(--m-transition-fast);
@@ -465,7 +468,7 @@
 }
 
 .mobile-app .m-search-bar.m-search-focused {
-    border-color: var(--m-blue);
+    border-color: var(--m-accent);
 }
 
 .mobile-app .m-search-icon {
@@ -588,9 +591,9 @@
 }
 
 .mobile-app .m-filter-tag.m-filter-active {
-    border-color: var(--m-blue);
-    background: var(--m-blue-light);
-    color: var(--m-blue);
+    border-color: var(--m-accent);
+    background: var(--m-accent-light);
+    color: var(--m-accent);
 }
 
 .mobile-app .m-card {
@@ -1392,10 +1395,10 @@
 
 .mobile-app .m-add-tag-btn {
     font: var(--m-font-caption);
-    color: var(--m-blue);
+    color: var(--m-accent);
     padding: 4px 12px;
     border-radius: var(--m-radius-full);
-    border: 1px dashed var(--m-blue);
+    border: 1px dashed var(--m-accent);
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -1776,7 +1779,7 @@
 .mobile-app .m-mascot-banner {
     border-radius: var(--m-radius-lg);
     padding: var(--m-space-xl);
-    background: linear-gradient(135deg, #E8F4FF, #D0E8FF);
+    background: linear-gradient(135deg, var(--m-accent-light), color-mix(in srgb, var(--m-accent) 20%, #fff));
     display: flex;
     align-items: center;
     gap: var(--m-space-lg);
@@ -2172,7 +2175,7 @@
 }
 
 .mobile-app .m-lan-mode-btn:focus-visible {
-    outline: 3px solid rgba(45, 156, 255, 0.28);
+    outline: 3px solid color-mix(in srgb, var(--m-accent) 28%, transparent);
     outline-offset: 2px;
 }
 
@@ -2215,7 +2218,7 @@
 
 .mobile-app .m-lan-sync-btn:focus-visible,
 .mobile-app .m-lan-device-item:focus-visible {
-    outline: 3px solid rgba(45, 156, 255, 0.28);
+    outline: 3px solid color-mix(in srgb, var(--m-accent) 28%, transparent);
     outline-offset: 2px;
 }
 
@@ -2342,7 +2345,7 @@
 .mobile-app .m-lan-progress-fill {
     height: 100%;
     border-radius: var(--m-radius-full);
-    background: var(--m-blue);
+    background: var(--m-accent);
     transition: width var(--m-transition-normal);
 }
 
@@ -3894,7 +3897,7 @@
 }
 
 .mobile-app :is(button, [role="button"], a, input, textarea, select):focus-visible {
-    outline: 3px solid rgba(45, 156, 255, 0.30);
+    outline: 3px solid color-mix(in srgb, var(--m-accent) 30%, transparent);
     outline-offset: 2px;
 }
 

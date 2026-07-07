@@ -17,6 +17,7 @@ import { render as renderDetail, mount as mountDetail, unmount as unmountDetail 
 import { render as renderEditor, mount as mountEditor, unmount as unmountEditor } from './pc-editor.js';
 import { render as renderCategory, mount as mountCategory, unmount as unmountCategory } from './pc-category.js';
 import { render as renderSettings, mount as mountSettings, unmount as unmountSettings } from './pc-settings.js';
+import { initRipple } from './ripple.js';
 
 let appEl = null;
 let pageContainer = null;
@@ -133,6 +134,7 @@ async function mount(el) {
     setupSidebarToggle();
     setupKeyboardShortcuts();
     setupSidebarStorageMotion();
+    initRipple(appEl);
 
     setRouteChangeCallback(handleRouteChange);
     initRouter();
