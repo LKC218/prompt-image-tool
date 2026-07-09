@@ -66,3 +66,8 @@ id_rsa*
 credentials*
 *.token
 *.codebuddy/
+
+# 临时 / 备份 / 生成检查文件
+build/_*.txt
+build/_*.py
+docs/*.bak
