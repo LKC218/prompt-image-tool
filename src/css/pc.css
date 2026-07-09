@@ -1745,6 +1745,14 @@
     padding: var(--pc-space-xl);
 }
 
+.pc-settings-space-tile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--pc-space-lg);
+    background: rgba(255,255,255,0.96);
+}
+
 .pc-settings-storage-kicker {
     display: flex;
     align-items: center;
@@ -1785,14 +1793,6 @@
 .pc-settings-space-line {
     font: 400 13px/1.55 var(--pc-font-family);
     color: var(--pc-text2);
-}
-
-.pc-settings-space-tile {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--pc-space-lg);
-    background: rgba(255,255,255,0.96);
 }
 
 .pc-settings-storage-subtitle {
@@ -3318,7 +3318,7 @@
 .pc-quick-action-green .pc-quick-action-icon { background: rgba(41, 179, 122, 0.14); }
 .pc-quick-action-blue .pc-quick-action-icon { background: rgba(45, 140, 255, 0.14); }
 .pc-quick-action-purple .pc-quick-action-icon { background: rgba(138, 107, 255, 0.14); }
-.pc-quick-action-red .pc-quick-action-icon { background: rgba(255, 90, 90, 0.14); }
+.pc-quick-action-red .pc-quick-action-icon { background: rgba(255, 90, 255, 0.14); }
 
 .pc-quick-action-label {
     color: var(--pc-text);
@@ -4063,22 +4063,38 @@
 }
 
 .pc-library-search {
-    height: 64px;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background: var(--pc-surface);
+    border-radius: 32px;
+    box-shadow:
+        9px 9px 18px rgba(120, 90, 50, 0.14),
+        -9px -9px 18px rgba(255, 255, 255, 0.95);
+    transition: box-shadow 0.25s ease;
+}
+
+.pc-library-search__outer {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    padding: 14px 20px;
+    border-radius: 24px;
+    background: var(--pc-surface);
+    box-shadow:
+        inset 8px 8px 16px -6px rgba(120, 90, 50, 0.16),
+        inset -8px -8px 16px -6px rgba(255, 255, 255, 0.95);
+}
+
+.pc-library-search__inner {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 0 22px;
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(233, 226, 218, 0.92);
-    border-radius: 32px;
-    box-shadow: 0 10px 28px rgba(86, 74, 58, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
-    transition: border-color 0.18s ease-out, box-shadow 0.18s ease-out;
+    flex: 1;
+    min-width: 0;
 }
 
-.pc-library-search:focus-within {
-    border-color: color-mix(in srgb, var(--pc-accent) 55%, transparent);
-    box-shadow: 0 12px 30px color-mix(in srgb, var(--pc-accent) 12%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
 
 .pc-library-search-icon,
 .pc-library-btn-icon,
@@ -4115,19 +4131,29 @@
     stroke-linejoin: round;
 }
 
-.pc-library-search-icon {
-    color: #293142;
+.pc-library-search .pc-library-search-icon {
+    color: #5E6675;
+    transition: transform 0.45s cubic-bezier(0.68, -0.55, 0.265, 1.55), color 0.2s ease;
 }
 
-.pc-library-search-input {
+.pc-library-search:focus-within .pc-library-search-icon {
+    color: var(--pc-accent);
+    transform: translateY(-4px) scale(1.05);
+}
+
+
+.pc-library-search-input,
+.pc-library-search-input:focus,
+.pc-library-search-input:focus-visible {
     flex: 1;
     min-width: 0;
-    border: 0;
-    outline: 0;
+    border: none;
+    outline: none;
     background: transparent;
     color: var(--pc-text);
     font: 500 16px/1.5 var(--pc-font-family);
 }
+
 
 .pc-library-search-input::placeholder {
     color: #A2A6AE;
@@ -4814,6 +4840,11 @@
     .pc-library-action-btn {
         transition: none;
     }
+    .pc-home-search-bar .pc-search-icon,
+    .pc-home-search-bar .pc-search-icon svg {
+        transition: none;
+        animation: none;
+    }
 }
 
 @media (max-width: 1200px) {
@@ -4826,21 +4857,7 @@
     }
 }
 
-.pc-home-search-bar {
-    display: flex;
-    align-items: center;
-    gap: var(--pc-space-md);
-    background: var(--pc-surface);
-    border: 1px solid var(--pc-border);
-    border-radius: var(--pc-radius-md);
-    padding: var(--pc-space-md) var(--pc-space-lg);
-    margin-bottom: var(--pc-space-3xl);
-    transition: border-color 0.15s;
-}
 
-.pc-home-search-bar:focus-within {
-    border-color: var(--pc-accent);
-}
 
 .pc-mascot-banner {
     display: flex;
@@ -6009,25 +6026,54 @@
     min-height: 62px;
     display: flex;
     align-items: center;
-    gap: 16px;
     margin: -18px 0 2px;
-    padding: 0 20px 0 24px;
+    padding: 8px;
     position: relative;
     z-index: 2;
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid rgba(233, 226, 218, 0.88);
-    border-radius: 18px;
-    box-shadow: 0 12px 30px rgba(86, 74, 58, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    transition: border-color 0.18s ease-out, box-shadow 0.18s ease-out, transform 0.18s ease-out;
+    background: var(--pc-surface);
+    border-radius: 22px;
+    box-shadow:
+        9px 9px 18px rgba(120, 90, 50, 0.14),
+        -9px -9px 18px rgba(255, 255, 255, 0.95);
+    transition: box-shadow 0.25s ease;
 }
 
-.pc-home-search-bar:focus-within {
-    border-color: color-mix(in srgb, var(--pc-accent) 52%, transparent);
-    box-shadow: 0 14px 34px color-mix(in srgb, var(--pc-accent) 13%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+.pc-home-search-bar__outer {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    padding: 14px 20px;
+    border-radius: 16px;
+    background: var(--pc-surface);
+    box-shadow:
+        inset 8px 8px 16px -6px rgba(120, 90, 50, 0.16),
+        inset -8px -8px 16px -6px rgba(255, 255, 255, 0.95);
+}
+
+.pc-home-search-bar__inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    min-width: 0;
 }
 
 .pc-home-search-bar .pc-search-icon {
     color: #5E6675;
+    transition: transform 0.45s cubic-bezier(0.68, -0.55, 0.265, 1.55), color 0.2s ease;
+}
+
+.pc-home-search-bar:focus-within .pc-search-icon {
+    color: var(--pc-accent);
+    transform: translateY(-4px) scale(1.05);
+}
+
+.pc-home-search-bar.is-searching .pc-search-icon svg {
+    animation: pc-home-search-spin 0.45s linear infinite;
+}
+
+@keyframes pc-home-search-spin {
+    to { transform: rotate(360deg); }
 }
 
 .pc-home-search-bar .pc-search-input {
@@ -6035,6 +6081,14 @@
     height: 100%;
     font: 600 16px/1.45 var(--pc-font-family);
 }
+
+.pc-home-search-bar .pc-search-input:focus,
+.pc-home-search-bar .pc-search-input:focus-visible {
+    border: none;
+    outline: none;
+    box-shadow: none;
+}
+
 
 .pc-home-title-action:focus-visible,
 .pc-home-page .pc-star-btn:focus-visible,

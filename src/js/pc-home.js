@@ -49,8 +49,12 @@ function render(params = {}) {
             })}
 
             <div class="pc-home-search-bar" id="pcHomeSearch">
-                <span class="pc-search-icon pc-home-inline-icon">${ICONS.search}</span>
-                <input type="text" class="pc-search-input" placeholder="搜索提示词、标签、分类..." id="pcHomeSearchInput">
+                <div class="pc-home-search-bar__outer">
+                    <div class="pc-home-search-bar__inner">
+                        <span class="pc-search-icon pc-home-inline-icon">${ICONS.search}</span>
+                        <input type="text" class="pc-search-input" placeholder="搜索提示词、标签、分类..." id="pcHomeSearchInput">
+                    </div>
+                </div>
             </div>
 
             <div class="pc-stat-grid pc-home-stat-grid">
@@ -298,7 +302,9 @@ function setupHomeEvents(pageEl) {
         });
         searchInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && homeSearchKeyword) {
-                navigate('/library', { search: homeSearchKeyword });
+                const bar = pageEl.querySelector('#pcHomeSearch');
+                if (bar) bar.classList.add('is-searching');
+                setTimeout(() => navigate('/library', { search: homeSearchKeyword }), 320);
             }
         });
     }

@@ -82,10 +82,14 @@ function render(params = {}) {
         <section class="pc-library-page">
             <div class="pc-library-search-row">
                 <div class="pc-library-search-wrap">
-                    <label class="pc-library-search" for="pcLibrarySearch">
-                        <span class="pc-library-search-icon">${ICONS.search}</span>
-                        <input type="text" class="pc-library-search-input" placeholder="搜索提示词、标签、分类..." id="pcLibrarySearch">
-                    </label>
+                    <div class="pc-library-search" id="pcLibrarySearch">
+                        <label class="pc-library-search__outer" for="pcLibrarySearchInput">
+                            <div class="pc-library-search__inner">
+                                <span class="pc-library-search-icon">${ICONS.search}</span>
+                                <input type="text" class="pc-library-search-input" placeholder="搜索提示词、标签、分类..." id="pcLibrarySearchInput">
+                            </div>
+                        </label>
+                    </div>
                 </div>
                 <button class="pc-library-primary-btn" id="pcLibraryCreateBtn">
                     <span class="pc-library-btn-icon">${ICONS.plus}</span>
@@ -116,7 +120,7 @@ async function mount(pageEl, params = {}) {
     await loadLibraryData(pageEl);
     setupLibraryEvents(pageEl);
 
-    const searchInput = pageEl.querySelector('#pcLibrarySearch');
+    const searchInput = pageEl.querySelector('#pcLibrarySearchInput');
     if (searchInput && searchKeyword) searchInput.value = searchKeyword;
     restoreLibraryScrollState(pageEl);
 }
@@ -469,7 +473,7 @@ function setupLibraryEvents(pageEl) {
         navigate('/editor/');
     });
 
-    pageEl.querySelector('#pcLibrarySearch')?.addEventListener('input', (e) => {
+    pageEl.querySelector('#pcLibrarySearchInput')?.addEventListener('input', (e) => {
         searchKeyword = e.target.value.trim();
         currentPage = 1;
         renderLibraryContent(pageEl);
