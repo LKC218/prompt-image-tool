@@ -23,6 +23,9 @@
 - `pc-settings.js`：PC 设置页外观取色器，`ACCENT_COLORS` 预设与点击切换逻辑。
 - `mobile-app.js` / `mobile-settings.js`：移动端入口与取色器（`THEME_COLORS`，`localStorage` 键 `accent`）。
 - `pc-detail.js` / `pc-library.js` / `pc-home.js` / `pc-category.js` / `pc-editor.js`：PC 各业务模块。
+  - `pc-home.js` 首页含新拟态搜索栏（`.pc-home-search-bar` 双层结构 `__outer`/`__inner`，输入框无聚焦环，图标支持 `is-searching` 旋转反馈），样式见 `src/css/pc.css`。
+- `pc-library.js` 提示词库页搜索栏已同步为同款新拟态双层结构（`.pc-library-search > __outer`/`__inner`），保留实时过滤行为，样式见 `src/css/pc.css`。
+
 - `mobile-home.js` / `mobile-library.js` / `mobile-detail.js` / `mobile-category.js` / `mobile-editor.js`：移动端各业务模块。
 - `*.test.js`：与源码同名的 vitest 回归用例（运行 `npm run test`）。
 
