@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新拟态按钮演示 | 提示词管家</title>
+    <link rel="stylesheet" href="./css/pc.css">
+    <link rel="stylesheet" href="./css/mobile.css">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+        }
+        .demo-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1f1f24;
+        }
+        .demo-desc {
+            font-size: 14px;
+            color: #6f7480;
+            margin-bottom: 20px;
+        }
+        .demo-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .demo-controls button {
+            padding: 8px 16px;
+            border: 1px solid #e9e2da;
+            border-radius: 12px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .demo-controls button.active {
+            background: var(--pc-accent, #ff6b9a);
+            color: #fff;
+            border-color: var(--pc-accent, #ff6b9a);
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 24px;
+        }
+        .demo-panel {
+            border: 1px solid #e9e2da;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .demo-panel h2 {
+            margin: 0;
+            padding: 16px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            background: #fff8ee;
+            border-bottom: 1px solid #e9e2da;
+        }
+        .demo-stage {
+            height: 320px;
+            position: relative;
+        }
+        /* 覆盖全屏 fixed，让演示容器内正常展示 */
+        .demo-stage .pc-app,
+        .demo-stage .mobile-app {
+            position: relative;
+            inset: auto;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            padding: 24px;
+        }
+        .demo-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+        .demo-label {
+            font-size: 12px;
+            color: var(--pc-text2, #6f7480);
+        }
+    </style>
+</head>
+<body>
+    <h1 class="demo-title">新拟态按钮（Neumorphism）演示</h1>
+    <p class="demo-desc">
+        基于 <a href="https://uiverse.io/elements?tags=neumorphism" target="_blank">Uiverse Neumorphism</a> 案例提炼，
+        使用项目 CSS 变量驱动，点击切换主题色观察暗部跟随 --pc-accent / --m-accent 微调。
+    </p>
+
+    <div class="demo-controls" id="themeControls">
+        <button data-accent="pink" class="active">粉</button>
+        <button data-accent="blue">蓝</button>
+        <button data-accent="green">绿</button>
+        <button data-accent="purple">紫</button>
+        <button data-accent="yellow">黄</button>
+    </div>
+
+    <div class="demo-grid">
+        <div class="demo-panel">
+            <h2>PC 端 .pc-neu-btn</h2>
+            <div class="demo-stage">
+                <div class="pc-app" id="pcAppDemo">
+                    <div class="demo-group">
+                        <span class="demo-label">默认</span>
+                        <button class="pc-neu-btn">主要操作</button>
+                    </div>
+                    <div class="demo-group">
+                        <span class="demo-label">图标</span>
+                        <button class="pc-neu-btn pc-neu-btn--icon" aria-label="搜索">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.3-4.3"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="demo-group">
+                        <span class="demo-label">按下态</span>
+                        <button class="pc-neu-btn pc-neu-btn--pressed">已激活</button>
+                    </div>
+                    <div class="demo-group">
+                        <span class="demo-label">主题强调</span>
+                        <button class="pc-neu-btn pc-neu-btn--accent">Accent</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-panel">
+            <h2>移动端 .m-neu-btn</h2>
+            <div class="demo-stage">
+                <div class="mobile-app" id="mobileAppDemo">
+                    <div class="demo-group">
+                        <span class="demo-label">默认</span>
+                        <button class="m-neu-btn">主要操作</button>
+                    </div>
+                    <div class="demo-group">
+                        <span class="demo-label">图标</span>
+                        <button class="m-neu-btn m-neu-btn--icon" aria-label="搜索">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.3-4.3"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="demo-group">
+                        <span class="demo-label">按下态</span>
+                        <button class="m-neu-btn m-neu-btn--pressed">已激活</button>
+                    </div>
+                    <div class="demo-group">
+                        <span class="demo-label">主题强调</span>
+                        <button class="m-neu-btn m-neu-btn--accent">Accent</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const controls = document.querySelectorAll('#themeControls button');
+        const pcApp = document.getElementById('pcAppDemo');
+        const mobileApp = document.getElementById('mobileAppDemo');
+
+        controls.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const accent = btn.dataset.accent;
+                controls.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                pcApp.setAttribute('data-accent', accent);
+                mobileApp.setAttribute('data-accent', accent);
+                document.documentElement.style.setProperty('--pc-accent', `var(--pc-${accent})`);
+            });
+        });
+    </script>
+</body>
+</html>

@@ -330,9 +330,31 @@ function render(params = {}) {
                 `,
                 actionsHtml: `
                     ${clearActionHtml}
-                    <button class="pc-editor-save-btn" id="pcEditorSave">
-                        ${pcIcon('save', 'pc-editor-save-icon')}
-                        <span>保存</span>
+                    <button class="pc-editor-save-btn pc-create-btn" id="pcEditorSave" type="button" aria-label="保存">
+                        <span class="pc-create-btn-bg" aria-hidden="true"></span>
+                        <span class="pc-create-btn-spin" aria-hidden="true"></span>
+                        <span class="pc-create-btn-glow" aria-hidden="true"></span>
+
+                        <span class="pc-create-btn-state pc-create-btn-state--default">
+                            <span class="pc-create-btn-icon">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5z"></path><path d="M8 3v6h8V3"></path><path d="M8 21v-7h8v7"></path></svg>
+                            </span>
+                            <span class="pc-create-btn-text" aria-hidden="true">
+                                <span style="--i:0">保</span>
+                                <span style="--i:1">存</span>
+                            </span>
+                        </span>
+
+                        <span class="pc-create-btn-state pc-create-btn-state--acting" aria-hidden="true">
+                            <span class="pc-create-btn-icon">
+                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                            </span>
+                            <span class="pc-create-btn-text">
+                                <span style="--i:0">保</span>
+                                <span style="--i:1">存</span>
+                                <span style="--i:2">中</span>
+                            </span>
+                        </span>
                     </button>
                 `,
                 decorationsHtml: renderPcWelcomeWalkAnimation({ variant: 'editor' }),
@@ -1079,8 +1101,7 @@ function setEditorSavingState(pageEl, saving) {
     if (saveBtn) {
         saveBtn.disabled = saving;
         saveBtn.classList.toggle('pc-editor-save-busy', saving);
-        const label = saveBtn.querySelector('span');
-        if (label) label.textContent = saving ? '保存中' : '保存';
+        saveBtn.classList.toggle('is-acting', saving);
     }
     updateClearAllButtonState();
 }

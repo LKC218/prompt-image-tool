@@ -91,11 +91,32 @@ function render(params = {}) {
                         </label>
                     </div>
                 </div>
-                <button class="pc-library-primary-btn" id="pcLibraryCreateBtn">
-                    <span class="pc-library-btn-icon">${ICONS.plus}</span>
-                    <span>新建提示词</span>
-                    <span class="pc-library-btn-divider"></span>
-                    <span class="pc-library-btn-icon">${ICONS.chevronDown}</span>
+                <button class="pc-library-primary-btn pc-create-btn" id="pcLibraryCreateBtn" type="button" aria-label="新建提示词">
+                    <span class="pc-create-btn-bg" aria-hidden="true"></span>
+                    <span class="pc-create-btn-spin" aria-hidden="true"></span>
+                    <span class="pc-create-btn-glow" aria-hidden="true"></span>
+
+                    <span class="pc-create-btn-state pc-create-btn-state--default">
+                        <span class="pc-create-btn-icon">${ICONS.plus}</span>
+                        <span class="pc-create-btn-text" aria-hidden="true">
+                            <span style="--i:0">新</span>
+                            <span style="--i:1">建</span>
+                            <span style="--i:2">提</span>
+                            <span style="--i:3">示</span>
+                            <span style="--i:4">词</span>
+                        </span>
+                    </span>
+
+                    <span class="pc-create-btn-state pc-create-btn-state--acting" aria-hidden="true">
+                        <span class="pc-create-btn-icon">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                        </span>
+                        <span class="pc-create-btn-text">
+                            <span style="--i:0">创</span>
+                            <span style="--i:1">建</span>
+                            <span style="--i:2">中</span>
+                        </span>
+                    </span>
                 </button>
             </div>
 
@@ -468,9 +489,23 @@ async function loadLibraryImages(container) {
     });
 }
 
+const CREATE_BTN_ACTING_DURATION = 350;
+
 function setupLibraryEvents(pageEl) {
-    pageEl.querySelector('#pcLibraryCreateBtn')?.addEventListener('click', () => {
-        navigate('/editor/');
+    pageEl.querySelector('#pcLibraryCreateBtn')?.addEventListener('click', (e) => {
+        const btn = e.currentTarget;
+        if (btn.classList.contains('is-acting')) return;
+
+        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (prefersReduced) {
+            navigate('/editor/');
+            return;
+        }
+
+        btn.classList.add('is-acting');
+        setTimeout(() => {
+            navigate('/editor/');
+        }, CREATE_BTN_ACTING_DURATION);
     });
 
     pageEl.querySelector('#pcLibrarySearchInput')?.addEventListener('input', (e) => {

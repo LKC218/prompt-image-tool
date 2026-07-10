@@ -1,16 +1,13 @@
 import { registerRoute, navigate, goBack, navigateToTab, getCurrentRoute, setRouteChangeCallback, initRouter, getRouteHandler, resolveRouteKey } from './pc-router.js';
-import { initStorage, getStorage } from './storage.js';
-import { showToast, closeModal, closeImageViewer, copyToClipboard, escapeHtml, formatBytes } from './pc-utils.js';
+import { showToast, closeModal, closeImageViewer, copyToClipboard, escapeHtml } from './pc-utils.js';
 import '../css/pc.css';
 import corgiHome from '../assets/mobile/mascots/corgi-home.png';
-import tipMascot from '../assets/mobile/mascots/tip-mascot.png';
 import appIcon from '../assets/pc/app-icon.png';
 import navHome from '../assets/pc/nav-icons/home.png';
 import navLibrary from '../assets/pc/nav-icons/library.png';
 import navEditor from '../assets/pc/nav-icons/editor.png';
 import navCategory from '../assets/pc/nav-icons/category.png';
 import navSettings from '../assets/pc/nav-icons/settings.png';
-import sidebarStorageIcon from '../../UI设计稿/图标/插画设计/保存.png';
 import { render as renderHome, mount as mountHome, unmount as unmountHome } from './pc-home.js';
 import { render as renderLibrary, mount as mountLibrary, unmount as unmountLibrary } from './pc-library.js';
 import { render as renderDetail, mount as mountDetail, unmount as unmountDetail } from './pc-detail.js';
@@ -24,8 +21,6 @@ let pageContainer = null;
 let activeNav = '/';
 let activePage = null;
 let currentAccent = 'pink';
-let sidebarStoragePercent = 0;
-let sidebarStorageFrame = 0;
 let isSidebarCollapsed = false;
 
 const NAV_ITEMS = [
@@ -37,11 +32,6 @@ const NAV_ITEMS = [
 ];
 
 const TAB_ROUTES = ['/', '/library', '/category', '/settings'];
-const SIDEBAR_STORAGE_MAX_BYTES = 50 * 1024 * 1024;
-const SIDEBAR_STORAGE_ANIMATION_MS = 700;
-const SIDEBAR_STORAGE_HOVER_MS = 520;
-const SIDEBAR_STORAGE_HOVER_BOOST = 6;
-const SIDEBAR_STORAGE_TILT_MAX = 4;
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
 
@@ -53,6 +43,25 @@ const SIDEBAR_TOGGLE_ICON = `
         <path d="M20 6 14 12l6 6"></path>
     </svg>
 `;
+
+const SIDEBAR_TOGGLE_FLY_AWAY_MS = 800;
+
+const CLOCK_MARKERS = Array.from({ length: 12 }, (_, i) => {
+    const isMajor = i % 3 === 0;
+    return `<div class="pc-clock-marker ${isMajor ? 'is-major' : ''}" style="--i:${i}"><div class="pc-clock-marker-dot"></div></div>`;
+}).join('');
+
+const CLOCK_NUMBERS = Array.from({ length: 12 }, (_, i) => {
+    const num = i === 0 ? 12 : i;
+    return `<div class="pc-clock-number" style="--i:${i}"><span>${num}</span></div>`;
+}).join('');
+
+function splitTextToSpans(text) {
+    return text.split('').map((char, i) => {
+        const displayChar = char === ' ' ? '&nbsp;' : escapeHtml(char);
+        return `<span class="pc-sidebar-toggle-letter" style="--i:${i}">${displayChar}</span>`;
+    }).join('');
+}
 
 function renderShell() {
     return `
@@ -77,8 +86,9 @@ function renderShell() {
                         aria-label="${isSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}"
                         title="${isSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}"
                     >
+                        <span class="pc-sidebar-toggle-outline" aria-hidden="true"></span>
                         <span class="pc-sidebar-toggle-icon">${SIDEBAR_TOGGLE_ICON}</span>
-                        <span class="pc-sidebar-toggle-text">${isSidebarCollapsed ? '展开侧栏' : '收起侧栏'}</span>
+                        <span class="pc-sidebar-toggle-text" aria-hidden="true">${splitTextToSpans(isSidebarCollapsed ? '展开侧栏' : '收起侧栏')}</span>
                     </button>
                 </div>
             </div>
@@ -91,19 +101,14 @@ function renderShell() {
                 `).join('')}
             </nav>
             <div class="pc-sidebar-footer">
-                <div class="pc-sidebar-mascot" id="pcSidebarMascot">
-                    <img class="pc-sidebar-mascot-img" src="${tipMascot}" alt="提示" style="width:100%;border-radius:var(--pc-radius-md);">
-                </div>
-                <div class="pc-sidebar-storage" id="pcSidebarStorage">
-                    <div class="pc-sidebar-storage-copy">
-                        <div class="pc-sidebar-storage-label">
-                            <img class="pc-sidebar-storage-icon" src="${sidebarStorageIcon}" alt="" aria-hidden="true">
-                            <span>本地数据</span>
-                        </div>
-                        <div class="pc-sidebar-storage-value" id="pcStorageValue">计算中...</div>
-                    </div>
-                    <div class="pc-sidebar-storage-ring" id="pcSidebarStorageRing" role="img" aria-label="本地数据占用 0%">
-                        <span class="pc-sidebar-storage-ring-value" id="pcSidebarStorageRingValue">0%</span>
+                <div class="pc-sidebar-clock" id="pcSidebarClock" aria-label="当前时间">
+                    <div class="pc-sidebar-clock-face" aria-hidden="true">
+                        <div class="pc-clock-markers">${CLOCK_MARKERS}</div>
+                        <div class="pc-clock-numbers">${CLOCK_NUMBERS}</div>
+                        <div class="pc-clock-hand pc-clock-hour-hand" id="pcClockHour"></div>
+                        <div class="pc-clock-hand pc-clock-minute-hand" id="pcClockMinute"></div>
+                        <div class="pc-clock-hand pc-clock-second-hand" id="pcClockSecond"></div>
+                        <div class="pc-clock-center-pin"></div>
                     </div>
                 </div>
             </div>
@@ -133,14 +138,13 @@ async function mount(el) {
     setupSidebarNav();
     setupSidebarToggle();
     setupKeyboardShortcuts();
-    setupSidebarStorageMotion();
+    setupSidebarClock();
     initRipple(appEl);
 
     setRouteChangeCallback(handleRouteChange);
     initRouter();
 
     createPage('/', {}, 'tab');
-    updateStorageInfo();
 }
 
 function readSidebarCollapsedState() {
@@ -167,7 +171,7 @@ function applySidebarState(collapsed, options = {}) {
         toggle.setAttribute('title', label);
 
         const toggleText = toggle.querySelector('.pc-sidebar-toggle-text');
-        if (toggleText) toggleText.textContent = isSidebarCollapsed ? '展开侧栏' : '收起侧栏';
+        if (toggleText) toggleText.innerHTML = splitTextToSpans(isSidebarCollapsed ? '展开侧栏' : '收起侧栏');
     }
 
     if (options.persist) {
@@ -227,7 +231,19 @@ function setupSidebarToggle() {
     if (!toggle) return;
 
     toggle.addEventListener('click', () => {
-        applySidebarState(!isSidebarCollapsed, { persist: true });
+        if (toggle.classList.contains('is-flying')) return;
+
+        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+        if (reducedMotion) {
+            applySidebarState(!isSidebarCollapsed, { persist: true });
+            return;
+        }
+
+        toggle.classList.add('is-flying');
+        window.setTimeout(() => {
+            toggle.classList.remove('is-flying');
+            applySidebarState(!isSidebarCollapsed, { persist: true });
+        }, SIDEBAR_TOGGLE_FLY_AWAY_MS);
     });
 }
 
@@ -315,160 +331,41 @@ function createPage(routeKey, params = {}, direction = 'tab') {
     pageContainer.scrollTop = 0;
 }
 
-function getSidebarStoragePercent(sizeBytes) {
-    if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) return 0;
-    return Math.min(Math.round((sizeBytes / SIDEBAR_STORAGE_MAX_BYTES) * 100), 100);
-}
-
-function getSidebarStorageTone(percent) {
-    if (percent >= 86) return '#FF6B9A';
-    if (percent >= 61) return '#FFC94A';
-    return '#2D8CFF';
-}
-
-function setSidebarStorageRing(percent, options = {}) {
-    const ring = document.getElementById('pcSidebarStorageRing');
-    const value = document.getElementById('pcSidebarStorageRingValue');
-    if (!ring || !value) return;
-
-    const normalized = Math.max(0, Math.min(Math.round(percent), 100));
-    const tone = getSidebarStorageTone(normalized);
-    ring.style.setProperty('--storage-ring-percent', `${normalized}%`);
-    ring.style.setProperty('--storage-ring-color', tone);
-    ring.setAttribute('aria-label', `本地数据占用 ${normalized}%`);
-    value.textContent = `${normalized}%`;
-
-    if (!options.preview) sidebarStoragePercent = normalized;
-}
-
-function animateSidebarStorageRing(targetPercent, duration = SIDEBAR_STORAGE_ANIMATION_MS, options = {}) {
-    const ring = document.getElementById('pcSidebarStorageRing');
-    if (!ring) return;
-
-    if (sidebarStorageFrame) {
-        cancelAnimationFrame(sidebarStorageFrame);
-        sidebarStorageFrame = 0;
-    }
+function setupSidebarClock() {
+    const hourHand = document.getElementById('pcClockHour');
+    const minuteHand = document.getElementById('pcClockMinute');
+    const secondHand = document.getElementById('pcClockSecond');
+    if (!hourHand || !minuteHand || !secondHand) return;
 
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    const from = options.from ?? sidebarStoragePercent;
-    const target = Math.max(0, Math.min(Math.round(targetPercent), 100));
 
-    if (reducedMotion || duration <= 0) {
-        setSidebarStorageRing(target, options);
-        return;
+    function updateHands() {
+        const now = new Date();
+        const hours = now.getHours() % 12;
+        const minutes = now.getMinutes();
+        const seconds = now.getSeconds();
+
+        const hourDeg = hours * 30 + minutes * 0.5 + seconds * (0.5 / 60);
+        const minuteDeg = minutes * 6 + seconds * 0.1;
+        const secondDeg = seconds * 6;
+
+        hourHand.style.transform = `translateX(-50%) rotate(${hourDeg}deg)`;
+        minuteHand.style.transform = `translateX(-50%) rotate(${minuteDeg}deg)`;
+        secondHand.style.transform = `translateX(-50%) rotate(${secondDeg}deg)`;
     }
 
-    const startedAt = performance.now();
-    const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+    updateHands();
 
-    const tick = (now) => {
-        const progress = Math.min((now - startedAt) / duration, 1);
-        const eased = easeOut(progress);
-        const current = from + (target - from) * eased;
-        setSidebarStorageRing(current, options);
+    if (reducedMotion) return;
 
-        if (progress < 1) {
-            sidebarStorageFrame = requestAnimationFrame(tick);
-            return;
-        }
-
-        sidebarStorageFrame = 0;
-        setSidebarStorageRing(target, options);
-    };
-
-    sidebarStorageFrame = requestAnimationFrame(tick);
-}
-
-function pulseSidebarStorageRing() {
-    if (sidebarStorageFrame) {
-        cancelAnimationFrame(sidebarStorageFrame);
-        sidebarStorageFrame = 0;
+    function scheduleNextTick() {
+        updateHands();
+        const now = Date.now();
+        const delay = 1000 - (now % 1000);
+        setTimeout(scheduleNextTick, delay);
     }
 
-    const peak = Math.min(sidebarStoragePercent + SIDEBAR_STORAGE_HOVER_BOOST, 100);
-    const base = sidebarStoragePercent;
-    const startedAt = performance.now();
-    const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-    const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-    const tick = (now) => {
-        const progress = Math.min((now - startedAt) / SIDEBAR_STORAGE_HOVER_MS, 1);
-        let current;
-
-        if (progress < 0.46) {
-            const local = easeOut(progress / 0.46);
-            current = base + (peak - base) * local;
-        } else {
-            const local = easeInOut((progress - 0.46) / 0.54);
-            current = peak + (base - peak) * local;
-        }
-
-        setSidebarStorageRing(current, { preview: true });
-
-        if (progress < 1) {
-            sidebarStorageFrame = requestAnimationFrame(tick);
-            return;
-        }
-
-        sidebarStorageFrame = 0;
-        setSidebarStorageRing(base, { preview: true });
-    };
-
-    sidebarStorageFrame = requestAnimationFrame(tick);
-}
-
-function setupSidebarStorageMotion() {
-    const card = document.getElementById('pcSidebarStorage');
-    if (!card) return;
-
-    card.addEventListener('mouseenter', () => {
-        card.classList.add('pc-sidebar-storage-hover');
-        pulseSidebarStorageRing();
-    });
-
-    card.addEventListener('mousemove', (e) => {
-        const rect = card.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width;
-        const y = (e.clientY - rect.top) / rect.height;
-        const rotateY = (x - 0.5) * SIDEBAR_STORAGE_TILT_MAX * 2;
-        const rotateX = (0.5 - y) * SIDEBAR_STORAGE_TILT_MAX * 2;
-
-        card.style.setProperty('--storage-glow-x', `${Math.round(x * 100)}%`);
-        card.style.setProperty('--storage-glow-y', `${Math.round(y * 100)}%`);
-        card.style.setProperty('--storage-tilt-x', `${rotateX.toFixed(2)}deg`);
-        card.style.setProperty('--storage-tilt-y', `${rotateY.toFixed(2)}deg`);
-    });
-
-    card.addEventListener('mouseleave', () => {
-        card.classList.remove('pc-sidebar-storage-hover');
-        card.style.setProperty('--storage-tilt-x', '0deg');
-        card.style.setProperty('--storage-tilt-y', '0deg');
-        animateSidebarStorageRing(sidebarStoragePercent, 220, { preview: true });
-    });
-}
-
-async function updateStorageInfo() {
-    try {
-        const storage = getStorage();
-        if (storage && storage.estimateStorageSize) {
-            const size = await storage.estimateStorageSize();
-            const el = document.getElementById('pcStorageValue');
-            if (el) el.textContent = formatBytes(size);
-            animateSidebarStorageRing(getSidebarStoragePercent(size));
-        } else {
-            const el = document.getElementById('pcStorageValue');
-            if (el) {
-                const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
-                el.textContent = `${prompts.length} 条记录`;
-            }
-            animateSidebarStorageRing(0);
-        }
-    } catch (e) {
-        const el = document.getElementById('pcStorageValue');
-        if (el) el.textContent = '本地存储';
-        animateSidebarStorageRing(0);
-    }
+    scheduleNextTick();
 }
 
 function setAccent(color) {
@@ -495,6 +392,5 @@ export {
     navigateToTab,
     refreshCurrentPage,
     setAccent,
-    getAccent,
-    updateStorageInfo
+    getAccent
 };

@@ -67,6 +67,17 @@
     --m-focus-ring: color-mix(in srgb, var(--m-accent) 30%, transparent);
     --m-shadow-accent: 0 4px 16px color-mix(in srgb, var(--m-accent) 25%, transparent);
 
+    /* 新拟态按钮 Token（Neumorphism） */
+    --m-neu-bg: var(--m-surface);
+    --m-neu-light: rgba(255, 255, 255, 0.92);
+    --m-neu-dark: rgba(120, 90, 50, 0.14);
+    --m-neu-dark-accent: color-mix(in srgb, var(--m-accent) 22%, rgba(120, 90, 50, 0.12));
+    --m-neu-offset: 6px;
+    --m-neu-blur: 12px;
+    --m-neu-radius: var(--m-radius-md);
+    --m-neu-radius-full: var(--m-radius-full);
+    --m-neu-transition: 0.2s ease;
+
     position: fixed;
     inset: 0;
     z-index: 1000;
@@ -576,24 +587,42 @@
 .mobile-app .m-filter-tag {
     display: inline-flex;
     align-items: center;
+    min-height: 36px;
     padding: 6px 16px;
     border-radius: var(--m-radius-full);
     font: var(--m-font-tag);
     white-space: nowrap;
-    border: 1px solid var(--m-border);
-    background: transparent;
+    border: none;
+    background: var(--m-neu-bg);
     color: var(--m-text2);
-    transition: all var(--m-transition-fast);
+    cursor: pointer;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.04);
+    box-shadow:
+        -4px -4px 12px rgba(255, 255, 255, 0.85),
+        -1px -1px 4px rgba(255, 255, 255, 0.9),
+        4px 4px 12px rgba(120, 90, 50, 0.1),
+        1px 1px 4px rgba(120, 90, 50, 0.12),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.7),
+        inset -1px -1px 2px rgba(120, 90, 50, 0.05);
+    transition: box-shadow 0.3s ease-out, transform 0.3s ease-out, color 0.3s ease-out, background 0.3s ease-out, text-shadow 0.3s ease-out;
 }
 
-.mobile-app .m-filter-tag:active {
-    opacity: 0.7;
-}
-
+.mobile-app .m-filter-tag:active,
 .mobile-app .m-filter-tag.m-filter-active {
-    border-color: var(--m-accent);
     background: var(--m-accent-light);
     color: var(--m-accent);
+    text-shadow: -1px -1px 1px rgba(0, 0, 0, 0.04), 1px 1px 2px rgba(255, 255, 255, 0.5);
+    box-shadow:
+        inset 3px 3px 9px rgba(120, 90, 50, 0.14),
+        inset 1px 1px 4px rgba(120, 90, 50, 0.12),
+        inset -2px -2px 8px rgba(255, 255, 255, 0.85),
+        inset -1px -1px 3px rgba(255, 255, 255, 0.9);
+    transform: translateY(2px);
+}
+
+.mobile-app .m-filter-tag:focus-visible {
+    outline: 2px solid var(--m-accent);
+    outline-offset: 2px;
 }
 
 .mobile-app .m-card {
@@ -619,6 +648,7 @@
 }
 
 .mobile-app .m-stat-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -626,36 +656,56 @@
     padding: var(--m-space-md) var(--m-space-sm);
     border-radius: var(--m-radius-md);
     gap: 4px;
-    transition: transform var(--m-transition-fast);
+    background: var(--m-neu-bg);
+    border: none;
+    box-shadow:
+        var(--m-neu-offset) var(--m-neu-offset) var(--m-neu-blur) var(--m-neu-dark),
+        calc(-1 * var(--m-neu-offset)) calc(-1 * var(--m-neu-offset)) var(--m-neu-blur) var(--m-neu-light);
+    transition: box-shadow var(--m-neu-transition), transform var(--m-neu-transition);
 }
 
 .mobile-app .m-stat-card:active {
+    box-shadow:
+        inset calc(var(--m-neu-offset) - 1px) calc(var(--m-neu-offset) - 1px) calc(var(--m-neu-blur) - 3px) var(--m-neu-dark),
+        inset calc(-1 * var(--m-neu-offset) + 1px) calc(-1 * var(--m-neu-offset) + 1px) calc(var(--m-neu-blur) - 3px) var(--m-neu-light);
     transform: scale(0.97);
 }
 
-.mobile-app .m-stat-card.m-stat-blue {
-    background: var(--m-blue-light);
-    color: var(--m-blue);
+.mobile-app .m-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    border-radius: var(--m-radius-md) var(--m-radius-md) 0 0;
 }
 
-.mobile-app .m-stat-card.m-stat-yellow {
-    background: var(--m-yellow-light);
-    color: #C4A030;
+.mobile-app .m-stat-card.m-stat-blue { color: var(--m-blue); }
+.mobile-app .m-stat-card.m-stat-blue::before {
+    background: linear-gradient(90deg, transparent, var(--m-blue), transparent);
+    box-shadow: 0 2px 5px color-mix(in srgb, var(--m-blue) 25%, transparent);
 }
-
-.mobile-app .m-stat-card.m-stat-purple {
-    background: var(--m-purple-light);
-    color: #8B6FCC;
+.mobile-app .m-stat-card.m-stat-yellow { color: #C4A030; }
+.mobile-app .m-stat-card.m-stat-yellow::before {
+    background: linear-gradient(90deg, transparent, #C4A030, transparent);
+    box-shadow: 0 2px 5px color-mix(in srgb, #C4A030 25%, transparent);
 }
-
-.mobile-app .m-stat-card.m-stat-pink {
-    background: var(--m-pink-light);
-    color: #D4567F;
+.mobile-app .m-stat-card.m-stat-purple { color: #8B6FCC; }
+.mobile-app .m-stat-card.m-stat-purple::before {
+    background: linear-gradient(90deg, transparent, #8B6FCC, transparent);
+    box-shadow: 0 2px 5px color-mix(in srgb, #8B6FCC 25%, transparent);
+}
+.mobile-app .m-stat-card.m-stat-pink { color: #D4567F; }
+.mobile-app .m-stat-card.m-stat-pink::before {
+    background: linear-gradient(90deg, transparent, #D4567F, transparent);
+    box-shadow: 0 2px 5px color-mix(in srgb, #D4567F 25%, transparent);
 }
 
 .mobile-app .m-stat-number {
     font: var(--m-font-h2);
     line-height: 1;
+    font-variant-numeric: tabular-nums;
 }
 
 .mobile-app .m-stat-label {
@@ -1319,6 +1369,67 @@
 .mobile-app .m-save-btn .m-svg-icon {
     filter: brightness(0) invert(1);
     opacity: 1;
+}
+
+/* =========================
+   新拟态按钮（Neumorphism）
+   参考：docs/设计文档/新拟态按钮设计规范.md
+   ========================= */
+.mobile-app .m-neu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--m-space-sm);
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--m-neu-radius);
+    background: var(--m-neu-bg);
+    color: var(--m-text);
+    font: 600 15px/1.4 var(--m-font-family);
+    cursor: pointer;
+    box-shadow:
+        var(--m-neu-offset) var(--m-neu-offset) var(--m-neu-blur) var(--m-neu-dark),
+        calc(-1 * var(--m-neu-offset)) calc(-1 * var(--m-neu-offset)) var(--m-neu-blur) var(--m-neu-light);
+    transition: box-shadow var(--m-neu-transition), transform var(--m-neu-transition);
+}
+
+.mobile-app .m-neu-btn:active,
+.mobile-app .m-neu-btn--pressed {
+    box-shadow:
+        inset calc(var(--m-neu-offset) - 1px) calc(var(--m-neu-offset) - 1px) calc(var(--m-neu-blur) - 3px) var(--m-neu-dark),
+        inset calc(-1 * var(--m-neu-offset) + 1px) calc(-1 * var(--m-neu-offset) + 1px) calc(var(--m-neu-blur) - 3px) var(--m-neu-light);
+    transform: translateY(1px);
+}
+
+.mobile-app .m-neu-btn:focus-visible {
+    outline: 2px solid var(--m-accent);
+    outline-offset: 2px;
+}
+
+.mobile-app .m-neu-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+    box-shadow: none;
+}
+
+.mobile-app .m-neu-btn--icon {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: var(--m-neu-radius-full);
+}
+
+.mobile-app .m-neu-btn--accent {
+    box-shadow:
+        var(--m-neu-offset) var(--m-neu-offset) var(--m-neu-blur) var(--m-neu-dark-accent),
+        calc(-1 * var(--m-neu-offset)) calc(-1 * var(--m-neu-offset)) var(--m-neu-blur) var(--m-neu-light);
+}
+
+.mobile-app .m-neu-btn--accent:active,
+.mobile-app .m-neu-btn--accent.m-neu-btn--pressed {
+    box-shadow:
+        inset calc(var(--m-neu-offset) - 1px) calc(var(--m-neu-offset) - 1px) calc(var(--m-neu-blur) - 3px) var(--m-neu-dark-accent),
+        inset calc(-1 * var(--m-neu-offset) + 1px) calc(-1 * var(--m-neu-offset) + 1px) calc(var(--m-neu-blur) - 3px) var(--m-neu-light);
 }
 
 .mobile-app .m-form-group {
