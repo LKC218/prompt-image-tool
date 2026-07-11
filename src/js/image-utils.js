@@ -37,6 +37,75 @@ function readBlobAsDataURL(blob) {
     });
 }
 
+function normalizeImageOutputType(outputType = 'image/jpeg') {
+    const normalized = String(outputType || '').toLowerCase();
+    if (normalized === 'image/jpg') return 'image/jpeg';
+    if (['image/jpeg', 'image/png', 'image/webp'].includes(normalized)) return normalized;
+    return 'image/jpeg';
+}
+
+function convertImageBlob(blob, options = {}) {
+    return new Promise((resolve, reject) => {
+        if (!blob) {
+            reject(new Error('缺少图片数据'));
+            return;
+        }
+
+        const outputType = normalizeImageOutputType(options.outputType || 'image/jpeg');
+        const quality = options.quality ?? 0.92;
+        const background = options.background || '#FFFFFF';
+        const objectUrl = URL.createObjectURL(blob);
+        const img = new Image();
+
+        const cleanup = () => URL.revokeObjectURL(objectUrl);
+
+        img.onload = () => {
+            try {
+                const width = img.naturalWidth || img.width || 0;
+                const height = img.naturalHeight || img.height || 0;
+                if (!width || !height) {
+                    cleanup();
+                    reject(new Error('图片尺寸无效'));
+                    return;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    cleanup();
+                    reject(new Error('无法创建图片画布'));
+                    return;
+                }
+
+                if (outputType === 'image/jpeg') {
+                    ctx.fillStyle = background;
+                    ctx.fillRect(0, 0, width, height);
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                canvas.toBlob((convertedBlob) => {
+                    cleanup();
+                    if (!convertedBlob) {
+                        reject(new Error('图片转码失败'));
+                        return;
+                    }
+                    resolve(convertedBlob);
+                }, outputType, quality);
+            } catch (error) {
+                cleanup();
+                reject(error);
+            }
+        };
+
+        img.onerror = () => {
+            cleanup();
+            reject(new Error('图片解码失败'));
+        };
+        img.src = objectUrl;
+    });
+}
+
 function createImageTooLargeError(width, height, maxInputPixels) {
     const error = new Error(`Image pixels exceed limit: ${width}x${height}`);
     error.code = 'IMAGE_PIXELS_TOO_LARGE';
@@ -106,10 +175,10 @@ function optimizeImageDataUrl(dataUrl, options = {}) {
                     return;
                 }
 
-                const outputType = options.outputType || 'image/jpeg';
+                const outputType = normalizeImageOutputType(options.outputType || 'image/jpeg');
                 const quality = options.quality ?? 0.92;
                 if (outputType === 'image/jpeg') {
-                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillStyle = options.background || '#FFFFFF';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 ctx.drawImage(img, 0, 0, target.width, target.height);
@@ -168,8 +237,10 @@ async function compressImageToJpeg(dataUrl, quality = 0.92) {
 export {
     readFileAsDataURL,
     compressImageToJpeg,
+    convertImageBlob,
     optimizeImageDataUrl,
     estimateDataUrlSize,
     getDataUrlMimeType,
-    getImageExtensionByMime
+    getImageExtensionByMime,
+    normalizeImageOutputType
 };

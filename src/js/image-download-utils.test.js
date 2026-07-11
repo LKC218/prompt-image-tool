@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+const imageUtilsMocks = vi.hoisted(() => ({
+    convertImageBlob: vi.fn(),
+}));
+
+vi.mock('./image-utils.js', () => ({
+    convertImageBlob: imageUtilsMocks.convertImageBlob,
+}));
+
 import {
     buildImageFilename,
     downloadImage,
     inferSourceFileFromUrl,
+    replaceImageFilenameExtension,
     sanitizeImageFilename,
 } from './image-download-utils.js';
 import { clearDownloadHistory, getDownloadHistory } from './download-history.js';
@@ -22,6 +32,7 @@ describe('image-download-utils', () => {
         global.fetch = vi.fn();
         global.URL.createObjectURL = vi.fn(() => 'blob:download');
         global.URL.revokeObjectURL = vi.fn();
+        imageUtilsMocks.convertImageBlob.mockResolvedValue(new Blob(['jpg'], { type: 'image/jpeg' }));
         clearDownloadHistory();
     });
 
@@ -39,6 +50,12 @@ describe('image-download-utils', () => {
         expect(buildImageFilename({ filename: 'preview', contentType: 'image/webp' })).toBe('preview.webp');
         expect(buildImageFilename({ filename: 'preview', url: '/images/a.jpg?x=1' })).toBe('preview.jpg');
         expect(buildImageFilename({ filename: 'preview' })).toBe('preview.png');
+    });
+
+    it('导出 JPG 时统一替换文件扩展名', () => {
+        expect(replaceImageFilenameExtension('preview.png', '.jpg')).toBe('preview.jpg');
+        expect(replaceImageFilenameExtension('preview.webp', 'jpg')).toBe('preview.jpg');
+        expect(replaceImageFilenameExtension('preview', '.jpg')).toBe('preview.jpg');
     });
 
     it('从图片地址推断后端源文件名', () => {
@@ -98,6 +115,30 @@ describe('image-download-utils', () => {
         expect(link.href).toBe('blob:download');
     });
 
+    it('JPG 导出会先转码并使用 .jpg 文件名', async () => {
+        const sourceBlob = new Blob(['png'], { type: 'image/png' });
+        const convertedBlob = new Blob(['jpg'], { type: 'image/jpeg' });
+        imageUtilsMocks.convertImageBlob.mockResolvedValue(convertedBlob);
+        global.fetch = vi.fn().mockResolvedValue(mockImageResponse(sourceBlob));
+
+        const result = await downloadImage({
+            url: '/images/preview.png',
+            filename: 'preview.png',
+            format: 'jpg',
+            jpgQuality: 0.88,
+        });
+        const link = document.querySelector('a[download="preview.jpg"]');
+
+        expect(result.filename).toBe('preview.jpg');
+        expect(imageUtilsMocks.convertImageBlob).toHaveBeenCalledWith(sourceBlob, expect.objectContaining({
+            outputType: 'image/jpeg',
+            quality: 0.88,
+            background: '#FFFFFF',
+        }));
+        expect(global.URL.createObjectURL).toHaveBeenCalledWith(convertedBlob);
+        expect(link).toBeTruthy();
+    });
+
     it('下载成功后写入历史记录', async () => {
         global.fetch = vi.fn().mockResolvedValue(mockImageResponse(new Blob(['image'], { type: 'image/png' })));
 
@@ -143,5 +184,24 @@ describe('image-download-utils', () => {
             filename: 'preview.png',
             saveMode: 'custom',
         }));
+    });
+
+    it('JPG 导出不走后端原文件保存接口', async () => {
+        const storage = {
+            downloadImageFile: vi.fn(async () => ({ success: true })),
+        };
+        global.fetch = vi.fn().mockResolvedValue(mockImageResponse(new Blob(['image'], { type: 'image/png' })));
+
+        const result = await downloadImage({
+            url: '/images/preview.png',
+            filename: 'preview.png',
+            storage,
+            preferBackend: true,
+            format: 'jpg',
+        });
+
+        expect(result.method).toBe('download');
+        expect(result.filename).toBe('preview.jpg');
+        expect(storage.downloadImageFile).not.toHaveBeenCalled();
     });
 });

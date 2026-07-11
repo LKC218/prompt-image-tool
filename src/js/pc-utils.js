@@ -363,15 +363,13 @@ function handleImageViewerDblClick(e) {
     zoomImageViewerAt(e.clientX, e.clientY, IMAGE_VIEWER_DOUBLE_CLICK_SCALE);
 }
 
-async function handleImageViewerDownload(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
+async function performImageViewerDownload(format = 'original') {
     const { download } = getImageViewerParts();
     if (!imageViewerDownloadTarget.url || download?.disabled) return;
 
     if (download) download.disabled = true;
     try {
+        const isJpgExport = format === 'jpg';
         const result = await downloadImage({
             url: imageViewerDownloadTarget.url,
             filename: imageViewerDownloadTarget.filename || 'preview.png',
@@ -379,24 +377,40 @@ async function handleImageViewerDownload(e) {
             storage: getImageViewerStorage(),
             preferFilePicker: true,
             preferBackend: true,
+            format,
             historyContext: {
                 platform: 'pc',
-                source: '图片查看器',
-                title: imageViewerDownloadTarget.filename || '预览图片',
+                source: isJpgExport ? '图片查看器-JPG导出' : '图片查看器',
+                title: imageViewerDownloadTarget.filename || (isJpgExport ? '预览图片.jpg' : '预览图片'),
             },
         });
         if (result?.canceled) {
             showToast('已取消下载', 'warning');
         } else if (result?.success) {
             const location = result.locationLabel || result.path || result.directory || '所选位置';
-            showToast(`图片已保存到${location}`, 'success');
+            showToast(isJpgExport ? `JPG 已导出到${location}` : `图片已保存到${location}`, 'success');
         }
     } catch (error) {
         console.error('download image failed:', error);
-        showToast('图片下载失败', 'error');
+        showToast(format === 'jpg' ? 'JPG 导出失败' : '图片下载失败', 'error');
     } finally {
         if (download) download.disabled = false;
     }
+}
+
+async function handleImageViewerDownload(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const { download } = getImageViewerParts();
+    if (!imageViewerDownloadTarget.url || download?.disabled) return;
+
+    const action = await showContextMenu(e.clientX, e.clientY, [
+        { action: 'original', icon: pcIcon('download'), label: '下载原格式' },
+        { action: 'jpg', icon: pcIcon('download'), label: '导出 JPG' },
+    ]);
+    if (!action) return;
+    await performImageViewerDownload(action);
 }
 
 function ensureImageViewer() {

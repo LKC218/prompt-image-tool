@@ -454,36 +454,57 @@ function showImageViewer(pageEl, startIndex) {
         closeImageViewerOverlay(overlay);
     }
 
-    async function handleDownload(e) {
-        e.preventDefault();
-        e.stopPropagation();
+    async function performDownload(format = 'original') {
         const downloadBtn = overlay.querySelector('#mViewerDownload');
         const current = imageUrls[viewerIndex];
         if (!current?.url || downloadBtn?.disabled) return;
 
         if (downloadBtn) downloadBtn.disabled = true;
         try {
+            const isJpgExport = format === 'jpg';
             const result = await downloadImage({
                 url: current.url,
                 filename: current.name || `${currentSet?.name || 'preview'}-${viewerIndex + 1}`,
                 sourceFile: current.data?.file || '',
+                format,
                 historyContext: {
                     platform: 'mobile',
-                    source: '图片查看器',
-                    title: current.name || currentSet?.name || `预览图片-${viewerIndex + 1}`,
+                    source: isJpgExport ? '图片查看器-JPG导出' : '图片查看器',
+                    title: current.name || currentSet?.name || (isJpgExport ? `预览图片-${viewerIndex + 1}.jpg` : `预览图片-${viewerIndex + 1}`),
                 },
             });
             if (result?.canceled) {
                 showMobileToast('已取消下载');
             } else {
-                showMobileToast(result?.locationLabel ? `已保存到${result.locationLabel}` : '图片下载已完成');
+                showMobileToast(result?.locationLabel
+                    ? `${isJpgExport ? 'JPG 已导出到' : '已保存到'}${result.locationLabel}`
+                    : (isJpgExport ? 'JPG 导出已完成' : '图片下载已完成'));
             }
         } catch (error) {
             console.error('mobile image download failed:', error);
-            showMobileToast('图片下载失败', 'error');
+            showMobileToast(format === 'jpg' ? 'JPG 导出失败' : '图片下载失败', 'error');
         } finally {
             if (downloadBtn) downloadBtn.disabled = false;
         }
+    }
+
+    function handleDownload(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        showActionSheet([
+            {
+                action: 'original',
+                icon: mobileIcon('download'),
+                label: '保存原格式',
+                handler: () => performDownload('original'),
+            },
+            {
+                action: 'jpg',
+                icon: mobileIcon('download'),
+                label: '导出 JPG',
+                handler: () => performDownload('jpg'),
+            },
+        ]);
     }
 
     overlay.querySelector('#mViewerClose')?.addEventListener('click', closeViewer);

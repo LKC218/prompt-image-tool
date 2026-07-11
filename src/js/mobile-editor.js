@@ -27,7 +27,7 @@ const IMAGE_OPTIMIZE_OPTIONS = {
     quality: 0.86,
     maxSide: 2048,
     maxInputPixels: 24 * 1000 * 1000,
-    outputType: 'image/jpeg'
+    outputType: 'image/webp'
 };
 
 const FOLDER_ICONS = [

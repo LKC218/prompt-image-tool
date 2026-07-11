@@ -1,6 +1,7 @@
 import { isCapacitor } from './storage.js';
 import { recordDownloadHistory } from './download-history.js';
 import { saveImageToGallery } from './mobile-gallery.js';
+import { convertImageBlob } from './image-utils.js';
 
 const DOWNLOAD_CLEANUP_DELAY_MS = 1000;
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
@@ -48,6 +49,20 @@ function buildImageFilename(options = {}) {
     return `${preferred}${ext}`;
 }
 
+function replaceImageFilenameExtension(filename = '', extension = '.jpg') {
+    const normalizedExt = extension.startsWith('.') ? extension : `.${extension}`;
+    const cleanFilename = sanitizeImageFilename(filename, 'image');
+    const currentExt = getExtensionFromName(cleanFilename);
+    if (currentExt) {
+        return `${cleanFilename.slice(0, -currentExt.length)}${normalizedExt}`;
+    }
+    return `${cleanFilename}${normalizedExt}`;
+}
+
+function normalizeDownloadFormat(format = 'original') {
+    return format === 'jpg' ? 'jpg' : 'original';
+}
+
 function inferSourceFileFromUrl(url = '') {
     const value = String(url || '');
     const match = value.match(/\/(?:api\/)?images\/([^?#]+)/);
@@ -67,6 +82,29 @@ async function fetchImageBlob(url) {
     return {
         blob,
         contentType: blob.type || response.headers?.get?.('Content-Type') || '',
+    };
+}
+
+async function prepareDownloadAsset(options = {}, sourceFile = '') {
+    const { blob, contentType } = await fetchImageBlob(options.url);
+    const baseFilename = buildImageFilename({ ...options, sourceFile, contentType });
+    const format = normalizeDownloadFormat(options.format);
+
+    if (format !== 'jpg') {
+        return { blob, contentType, filename: baseFilename, format };
+    }
+
+    const convertedBlob = await convertImageBlob(blob, {
+        outputType: 'image/jpeg',
+        quality: options.jpgQuality ?? 0.92,
+        background: options.jpgBackground || '#FFFFFF',
+    });
+
+    return {
+        blob: convertedBlob,
+        contentType: 'image/jpeg',
+        filename: replaceImageFilenameExtension(baseFilename, '.jpg'),
+        format,
     };
 }
 
@@ -184,14 +222,19 @@ async function downloadImage(options = {}) {
     }
 
     const sourceFile = options.sourceFile || inferSourceFileFromUrl(options.url);
-    const baseFilename = buildImageFilename({ ...options, sourceFile });
+    const format = normalizeDownloadFormat(options.format);
+    const baseFilename = format === 'jpg'
+        ? replaceImageFilenameExtension(buildImageFilename({ ...options, sourceFile }), '.jpg')
+        : buildImageFilename({ ...options, sourceFile });
     const preferFilePicker = Boolean(options.preferFilePicker);
-    const preferBackend = Boolean(options.preferBackend);
+    const preferBackend = Boolean(options.preferBackend) && format === 'original';
     const historyContext = options.historyContext || {};
 
     if (preferFilePicker && typeof globalThis.showSaveFilePicker === 'function') {
-        const { blob, contentType } = await fetchImageBlob(options.url);
-        const filename = buildImageFilename({ ...options, sourceFile, contentType, filename: baseFilename });
+        const { blob, contentType, filename } = await prepareDownloadAsset(
+            { ...options, filename: baseFilename },
+            sourceFile
+        );
         const result = await saveBlobWithFilePicker(blob, filename, contentType);
         if (result?.success) {
             recordDownloadHistory({
@@ -210,8 +253,10 @@ async function downloadImage(options = {}) {
     }
 
     if (isCapacitor) {
-        const { blob, contentType } = await fetchImageBlob(options.url);
-        const filename = buildImageFilename({ ...options, sourceFile, contentType, filename: baseFilename });
+        const { blob, contentType, filename } = await prepareDownloadAsset(
+            { ...options, filename: baseFilename },
+            sourceFile
+        );
         try {
             const result = await saveBlobToNativeGallery(blob, filename, contentType);
             if (result?.success) {
@@ -259,8 +304,10 @@ async function downloadImage(options = {}) {
     }
 
     try {
-        const { blob, contentType } = await fetchImageBlob(options.url);
-        const filename = buildImageFilename({ ...options, sourceFile, contentType, filename: baseFilename });
+        const { blob, filename } = await prepareDownloadAsset(
+            { ...options, filename: baseFilename },
+            sourceFile
+        );
         const result = await saveBlobWithAnchor(blob, filename);
         if (result?.success) {
             recordDownloadHistory({
@@ -275,6 +322,7 @@ async function downloadImage(options = {}) {
         }
         return result;
     } catch (error) {
+        if (format === 'jpg') throw error;
         if (options.allowUrlFallback === false) throw error;
         const result = saveUrlWithAnchor(options.url, baseFilename);
         if (result?.success) {
@@ -296,5 +344,6 @@ export {
     buildImageFilename,
     downloadImage,
     inferSourceFileFromUrl,
+    replaceImageFilenameExtension,
     sanitizeImageFilename,
 };

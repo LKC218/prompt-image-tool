@@ -303,12 +303,18 @@ describe('移动端页面全功能回归冒烟', () => {
         expect(downloadBtn).toBeTruthy();
 
         downloadBtn.click();
+        expect(mobileUtilsMocks.showActionSheet).toHaveBeenCalledWith(expect.arrayContaining([
+            expect.objectContaining({ action: 'original', label: '保存原格式' }),
+            expect.objectContaining({ action: 'jpg', label: '导出 JPG' }),
+        ]));
+        mobileUtilsMocks.showActionSheet.mock.calls.at(-1)[0][0].handler();
         await flush();
 
         expect(imageDownloadMocks.downloadImage).toHaveBeenCalledWith(expect.objectContaining({
             url: 'data:image/png;base64,ZmFrZQ==',
             filename: 'preview.png',
             sourceFile: 'preview.png',
+            format: 'original',
         }));
         expect(mobileUtilsMocks.showMobileToast).toHaveBeenCalledWith('图片下载已完成');
     });

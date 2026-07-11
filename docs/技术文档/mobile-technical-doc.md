@@ -200,10 +200,19 @@ prompt_sets ←──(prompt_set_id)── versions ←──(version_id)── 
 移动端编辑器导入图片时复用 `src/js/image-utils.js`，但参数更保守：
 
 - 支持 JPG、PNG、WebP，单张源文件上限为 10MB，单版本最多 10 张。
-- 使用 Canvas 输出 JPEG，质量参数为 `0.86`。
+- 使用 Canvas 默认输出 WebP，质量参数为 `0.86`。
 - 最大边长限制为 `2048px`，最大输入像素为 `2400 万`，降低 Android WebView 解码和绘制压力。
-- 当未缩放且 JPEG 结果不小于原图时保留原始 Data URL，避免 PNG/WebP 反向增大。
+- 当未缩放且 WebP 结果不小于原图时保留原始 Data URL，避免 PNG/WebP 反向增大。
 - 图片元数据中的 `file` 字段以 `uploadImage()` 返回值为准，保证 SQLite 记录与 `Directory.Data/images/` 实际文件一致。
+
+### 6.3.1 图片下载与 JPG 导出
+
+移动端图片查看器下载按钮会先弹出操作菜单：
+
+- `保存原格式`：保持当前存储格式，写入 Android 相册或浏览器下载。
+- `导出 JPG`：通过 `src/js/image-download-utils.js` fetch 当前图片并用 Canvas 输出 `image/jpeg`，文件名统一改为 `.jpg`。
+- JPG 导出前填充白色背景，避免透明 PNG/WebP 转 JPEG 后出现黑底。
+- 历史图片不会自动转换，完整备份与局域网同步继续保留真实存储格式。
 
 ### 6.4 提示词长度限制
 
@@ -363,7 +372,7 @@ IDLE → CONNECTING → SYNCING → VERIFYING → SUCCESS/PARTIAL/ERROR
 | 提示词编辑 | 正向提示词前端上限 6666 字符，反向提示词前端上限 2000 字符 | `mobile-editor.js` |
 | 提示词预览 | 二级窗口完整预览 + 一键复制 | `app.js` → `openPromptPreview()` |
 | 图片上传 | 点击/拖拽上传，存储到本地文件系统 | `app.js` → `SqliteStorage` → Filesystem |
-| 图片查看 | 详情页全屏查看、点击关闭、缩放和平移、下载当前图片并写入手机相册；图片预览遮罩由详情页维护活动引用，返回或卸载时会立即清理 | `mobile-detail.js` → `showImageViewer()` → `image-download-utils.js` / `mobile-gallery.js` |
+| 图片查看 | 详情页全屏查看、点击关闭、缩放和平移；下载按钮提供保存原格式和导出 JPG，移动端优先写入手机相册；图片预览遮罩由详情页维护活动引用，返回或卸载时会立即清理 | `mobile-detail.js` → `showImageViewer()` → `image-download-utils.js` / `mobile-gallery.js` |
 | 版本对比 | 并排对比两个版本的提示词和图片 | `app.js` → `toggleCompare()` |
 | 数据导入导出 | 完整备份 JSON，包含图片内容；设置页常驻入口收敛为“本地备份”“导入备份”和“导入对话”三个按钮；Android 原生端通过 Capacitor Filesystem 写入 `backups/`；相同 ID 默认覆盖 | `mobile-settings.js` / `mobile-library.js` / `backup-utils.js` → `SqliteStorage` → SQLite + Filesystem |
 | 暗色/亮色主题 | 主题切换，localStorage 持久化 | `app.js` → `initTheme()` / `toggleTheme()` |

@@ -50,7 +50,7 @@ const IMAGE_OPTIMIZE_OPTIONS = {
     quality: 0.9,
     maxSide: 2560,
     maxInputPixels: 40 * 1000 * 1000,
-    outputType: 'image/jpeg'
+    outputType: 'image/webp'
 };
 
 const beforeUnloadHandler = (e) => {

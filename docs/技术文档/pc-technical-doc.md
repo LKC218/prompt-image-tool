@@ -148,7 +148,8 @@ Tauri 启动
 │   ├── folders.json         # 文件夹数据（JSON）
 │   ├── images/              # 图片文件
 │       ├── abc123.png
-│       └── def456.jpg
+│       ├── def456.jpg
+│       └── ghi789.webp
 │   ├── backups/             # 导入同步前备份与用户备份
 │   └── data-migration.json  # 旧安装目录数据迁移记录
 ```
@@ -199,12 +200,22 @@ PC 编辑器导入图片时先在前端执行统一优化：
 
 - 支持 JPG、PNG、WebP，单张源文件上限为 15MB，单版本最多 10 张。
 - 新建/编辑页支持从外部复制图片后在页面内 `Ctrl+V` 粘贴，剪贴板图片会转换为 `File` 并复用同一套导入、压缩、数量上限和保存流程。
-- 使用 `src/js/image-utils.js` 解码 Data URL 后通过 Canvas 输出 JPEG，质量参数为 `0.9`。
+- 使用 `src/js/image-utils.js` 解码 Data URL 后通过 Canvas 默认输出 WebP，质量参数为 `0.9`。
 - 最大边长限制为 `2560px`，最大输入像素为 `4000 万`，避免超大图拖慢 WebView。
-- 当未缩放且 JPEG 结果不小于原图时保留原始 Data URL，避免 PNG/WebP 反向增大。
+- 当未缩放且 WebP 结果不小于原图时保留原始 Data URL，避免 PNG/WebP 反向增大。
 - 图片元数据中的 `file` 字段以 `uploadImage()` 返回值为准，保证回退原图时扩展名与真实落盘文件一致。
 - 新建/编辑页的未保存内容会按 `pc-editor-draft:new` 或 `pc-editor-draft:{promptSetId}` 写入浏览器本地草稿，覆盖标题、提示词、标签、分类、比例和压缩后的新导入图片；正式保存成功后清理对应草稿。
 - PC 新建页顶部提供一键清空当前输入入口，二次确认后重置标题、正向提示词、负向提示词、标签、分类、比例和图片预览，并删除 `pc-editor-draft:new`，避免切页后恢复旧输入；该入口不在编辑模式显示，也不调用后端删除已保存图片。
+
+### 5.6.1 图片下载与 JPG 导出
+
+图片查看器下载入口由 `src/js/image-download-utils.js` 统一处理：
+
+- `format: 'original'` 直接保存当前存储格式，PC 桌面端可优先使用文件保存选择器，并在原格式场景回退后端原生保存窗口。
+- `format: 'jpg'` 会先 fetch 当前图片，再通过 Canvas 输出 `image/jpeg`，文件名统一改为 `.jpg`。
+- JPG 导出前会填充白色背景，避免 PNG/WebP 透明区域在 JPEG 中变黑。
+- JPG 导出必须走前端转码后的 Blob 保存，不调用后端 `downloadImageFile()` 原文件直存接口，避免扩展名和真实内容不一致。
+- 历史图片不自动迁移；旧 JPG、PNG、WebP 仍按原文件显示、备份和同步。
 
 ### 5.7 提示词长度限制
 
@@ -264,7 +275,7 @@ PC 设置页的导入入口现在分成两个显式按钮：
 | 提示词编辑 | 正向提示词前端上限 6666 字符，反向提示词前端上限 2000 字符 | `pc-editor.js` |
 | 提示词预览 | 二级窗口完整预览 + 一键复制 | `app.js` → `openPromptPreview()` |
 | 图片上传 | 点击/拖拽上传，支持 PNG/JPG/WEBP/GIF | `app.js` → `ApiStorage` → Python API |
-| 图片查看 | 全屏查看，支持滚轮缩放、拖拽平移、双击缩放/复位、下载当前图片、复位按钮、ESC/点击遮罩关闭；下载优先使用文件保存选择器，桌面端可回退后端原生保存窗口，并写入本地下载历史 | `pc-utils.js` → `showImageViewer()` → `image-download-utils.js` / `download-history.js` |
+| 图片查看 | 全屏查看，支持滚轮缩放、拖拽平移、双击缩放/复位、复位按钮、ESC/点击遮罩关闭；下载菜单提供“下载原格式”和“导出 JPG”，原格式下载可回退后端原生保存窗口，JPG 导出由前端 Canvas 转码并写入本地下载历史 | `pc-utils.js` → `showImageViewer()` → `image-download-utils.js` / `download-history.js` |
 | 版本对比 | 并排对比两个版本的提示词和图片 | `app.js` → `toggleCompare()` |
 | 数据导入导出 | 完整备份 JSON，包含文件夹、提示词、版本和图片文件内容；设置页常驻入口收敛为“导入 JSON”“导入 ChatGPT 对话”和“导出 JSON”三个按钮；PC 默认导出到系统下载目录，自定义位置模式优先使用文件保存选择器，桌面 WebView 可由后端打开原生保存窗口；相同 ID 默认覆盖 | `pc-settings.js` / `backup-utils.js` → `ApiStorage` → Python API |
 | 图片下载历史 | 设置页展示最近图片下载记录，并支持一键清空历史 | `pc-settings.js` → `download-history.js` |
