@@ -5,6 +5,8 @@
 > 落点文件：`src/js/pc-app.js`、`src/css/pc.css`  
 > 相关规范：`docs/设计文档/新拟态按钮设计规范.md`
 
+> 当前钟面已于 2026-07-11 纳入侧栏暖色轻拟态规范：表盘使用 `--pc-sidebar-clock-*` 令牌，降低阴影和数字对比度，以避免与导航激活态竞争。完整侧栏规范见 `docs/设计文档/PC左侧导航栏轻拟态设计.md`。
+
 ---
 
 ## 一、效果分析
@@ -129,3 +131,4 @@
 - 2026-07-10：按工程师要求彻底移除 `.pc-sidebar-mascot` 吉祥物：删除 `src/js/pc-app.js` 中的 import 与 DOM、`src/css/pc.css` 中的相关样式、`src/assets/mobile/mascots/tip-mascot.png` 图片文件；同步更新 `docs/apps-code-map.md` 与本文档。
 - 2026-07-10：按工程师截图中的红框位置，将 `.pc-sidebar-mascot` 吉祥物重新放回侧边栏，位于 `.pc-sidebar-nav` 与 `.pc-sidebar-footer` 之间；通过 `git checkout` 恢复 `tip-mascot.png`；同步更新 `docs/apps-code-map.md` 与本文档。
 - 2026-07-10：修复吉祥物与时钟 UI 重叠问题：将 `.pc-sidebar-mascot` 的 `margin-bottom` 从 `var(--pc-space-lg)` 加大到 `28px`；将 `.pc-sidebar-clock` 的 `padding-top` 从 `var(--pc-space-lg)` 加大到 `var(--pc-space-xl)`；为 `.pc-sidebar-mascot-img` 增加 `height: 100%` 与 `object-fit: contain`，避免图片撑开父元素；同步更新本文档。
+- 2026-07-11：侧栏统一为暖色轻拟态。时钟保留系统时间驱动、180px 表盘和折叠态隐藏行为，表盘、刻度、数字与中心点改由 `--pc-sidebar-clock-bg`、`--pc-sidebar-clock-dark`、`--pc-sidebar-clock-light` 控制，降低阴影与数字对比度。

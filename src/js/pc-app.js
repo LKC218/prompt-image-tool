@@ -27,9 +27,10 @@ const NAV_ITEMS = [
     { path: '/', icon: navHome, label: '首页' },
     { path: '/library', icon: navLibrary, label: '提示词库' },
     { path: '/editor/', icon: navEditor, label: '新建/编辑' },
-    { path: '/category', icon: navCategory, label: '分类与标签' },
-    { path: '/settings', icon: navSettings, label: '设置' }
+    { path: '/category', icon: navCategory, label: '分类与标签' }
 ];
+
+const SETTINGS_NAV_ITEM = { path: '/settings', icon: navSettings, label: '设置' };
 
 const TAB_ROUTES = ['/', '/library', '/category', '/settings'];
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
@@ -44,7 +45,12 @@ const SIDEBAR_TOGGLE_ICON = `
     </svg>
 `;
 
-const SIDEBAR_TOGGLE_FLY_AWAY_MS = 800;
+function splitTextToSpans(text) {
+    return text.split('').map((char, i) => {
+        const displayChar = char === ' ' ? '&nbsp;' : escapeHtml(char);
+        return `<span class="pc-sidebar-toggle-letter" style="--i:${i}">${displayChar}</span>`;
+    }).join('');
+}
 
 const CLOCK_MARKERS = Array.from({ length: 12 }, (_, i) => {
     const isMajor = i % 3 === 0;
@@ -55,13 +61,6 @@ const CLOCK_NUMBERS = Array.from({ length: 12 }, (_, i) => {
     const num = i === 0 ? 12 : i;
     return `<div class="pc-clock-number" style="--i:${i}"><span>${num}</span></div>`;
 }).join('');
-
-function splitTextToSpans(text) {
-    return text.split('').map((char, i) => {
-        const displayChar = char === ' ' ? '&nbsp;' : escapeHtml(char);
-        return `<span class="pc-sidebar-toggle-letter" style="--i:${i}">${displayChar}</span>`;
-    }).join('');
-}
 
 function renderShell() {
     return `
@@ -94,13 +93,19 @@ function renderShell() {
             </div>
             <nav class="pc-sidebar-nav" id="pcSidebarNav">
                 ${NAV_ITEMS.map(item => `
-                    <button class="pc-nav-item ${item.path === '/' ? 'pc-nav-active' : ''}" data-nav="${item.path}" aria-label="${item.label}" title="${item.label}">
+                    <button class="pc-nav-item ${item.path === '/' ? 'pc-nav-active' : ''}" data-nav="${item.path}" aria-label="${item.label}" title="${item.label}"${item.path === '/' ? ' aria-current="page"' : ''}>
                         <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${item.icon});mask-image:url(${item.icon})"></div>
                         <span class="pc-nav-label">${item.label}</span>
                     </button>
                 `).join('')}
             </nav>
             <div class="pc-sidebar-footer">
+                <div class="pc-sidebar-utility-nav" aria-label="应用设置">
+                    <button class="pc-nav-item pc-sidebar-settings-item" data-nav="${SETTINGS_NAV_ITEM.path}" aria-label="${SETTINGS_NAV_ITEM.label}" title="${SETTINGS_NAV_ITEM.label}">
+                        <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${SETTINGS_NAV_ITEM.icon});mask-image:url(${SETTINGS_NAV_ITEM.icon})"></div>
+                        <span class="pc-nav-label">${SETTINGS_NAV_ITEM.label}</span>
+                    </button>
+                </div>
                 <div class="pc-sidebar-clock" id="pcSidebarClock" aria-label="当前时间">
                     <div class="pc-sidebar-clock-face" aria-hidden="true">
                         <div class="pc-clock-markers">${CLOCK_MARKERS}</div>
@@ -185,7 +190,8 @@ function applySidebarState(collapsed, options = {}) {
 
 function setupSidebarNav() {
     const nav = document.getElementById('pcSidebarNav');
-    nav.addEventListener('click', (e) => {
+    const settingsNav = appEl.querySelector('.pc-sidebar-utility-nav');
+    const handleNavigation = (e) => {
         const item = e.target.closest('.pc-nav-item');
         if (!item) return;
         playNavIconClickMotion(item);
@@ -196,7 +202,10 @@ function setupSidebarNav() {
             navigateToTab(path);
             updateNavHighlight(path);
         }
-    });
+    };
+
+    nav.addEventListener('click', handleNavigation);
+    settingsNav?.addEventListener('click', handleNavigation);
 }
 
 function playNavIconClickMotion(item) {
@@ -233,17 +242,28 @@ function setupSidebarToggle() {
     toggle.addEventListener('click', () => {
         if (toggle.classList.contains('is-flying')) return;
 
-        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-        if (reducedMotion) {
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
             applySidebarState(!isSidebarCollapsed, { persist: true });
             return;
         }
 
-        toggle.classList.add('is-flying');
-        window.setTimeout(() => {
+        const nextCollapsed = !isSidebarCollapsed;
+        const icon = toggle.querySelector('.pc-sidebar-toggle-icon svg');
+        if (!icon) {
+            applySidebarState(nextCollapsed, { persist: true });
+            return;
+        }
+        const complete = (event) => {
+            if (event.target !== icon) return;
             toggle.classList.remove('is-flying');
-            applySidebarState(!isSidebarCollapsed, { persist: true });
-        }, SIDEBAR_TOGGLE_FLY_AWAY_MS);
+            toggle.removeAttribute('aria-busy');
+            icon.removeEventListener('animationend', complete);
+            applySidebarState(nextCollapsed, { persist: true });
+        };
+
+        toggle.classList.add('is-flying');
+        toggle.setAttribute('aria-busy', 'true');
+        icon.addEventListener('animationend', complete);
     });
 }
 
@@ -271,14 +291,16 @@ function updateNavHighlight(path) {
     activeNav = path;
     const navItems = document.querySelectorAll('.pc-nav-item');
     navItems.forEach(item => {
-        item.classList.remove('pc-nav-active');
         const navPath = item.dataset.nav;
-        if (navPath === path) {
-            item.classList.add('pc-nav-active');
-        } else if (path.startsWith('/detail') && navPath === '/library') {
-            item.classList.add('pc-nav-active');
-        } else if (path.startsWith('/editor') && navPath === '/editor/') {
-            item.classList.add('pc-nav-active');
+        const isActive = navPath === path
+            || (path.startsWith('/detail') && navPath === '/library')
+            || (path.startsWith('/editor') && navPath === '/editor/');
+
+        item.classList.toggle('pc-nav-active', isActive);
+        if (isActive) {
+            item.setAttribute('aria-current', 'page');
+        } else {
+            item.removeAttribute('aria-current');
         }
     });
 }

@@ -121,4 +121,80 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(routerMocks.navigateToTab).toHaveBeenCalledWith('/settings');
         expect(settingsItem.classList.contains('pc-nav-clicking')).toBe(false);
     });
+
+    it('当前导航项同步 aria-current 语义状态', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const homeItem = app.querySelector('[data-nav="/"]');
+        const libraryItem = app.querySelector('[data-nav="/library"]');
+
+        expect(homeItem.getAttribute('aria-current')).toBe('page');
+        expect(libraryItem.hasAttribute('aria-current')).toBe(false);
+
+        libraryItem.click();
+
+        expect(homeItem.hasAttribute('aria-current')).toBe(false);
+        expect(libraryItem.getAttribute('aria-current')).toBe('page');
+    });
+
+    it('设置从主导航分离到时钟上方的功能区，并能正常切换路由', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const primaryNav = app.querySelector('#pcSidebarNav');
+        const utilityNav = app.querySelector('.pc-sidebar-utility-nav');
+        const settingsItem = utilityNav.querySelector('[data-nav="/settings"]');
+
+        expect(primaryNav.querySelector('[data-nav="/settings"]')).toBeNull();
+        expect(utilityNav.nextElementSibling.id).toBe('pcSidebarClock');
+
+        settingsItem.click();
+
+        expect(routerMocks.navigateToTab).toHaveBeenCalledWith('/settings');
+        expect(settingsItem.getAttribute('aria-current')).toBe('page');
+        expect(settingsItem.classList.contains('pc-nav-active')).toBe(true);
+    });
+
+    it('折叠按钮在图标动效结束后更新侧栏状态并持久化', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const toggle = app.querySelector('#pcSidebarToggle');
+        const icon = toggle.querySelector('.pc-sidebar-toggle-icon svg');
+        toggle.click();
+
+        expect(toggle.classList.contains('is-flying')).toBe(true);
+        expect(toggle.getAttribute('aria-busy')).toBe('true');
+        expect(app.classList.contains('pc-sidebar-collapsed')).toBe(false);
+
+        icon.dispatchEvent(new Event('animationend'));
+
+        expect(app.classList.contains('pc-sidebar-collapsed')).toBe(true);
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(toggle.hasAttribute('aria-busy')).toBe(false);
+        expect(localStorage.getItem('pc-sidebar-collapsed')).toBe('true');
+    });
+
+    it('减弱动效模式下折叠按钮立即更新侧栏状态', async () => {
+        window.matchMedia = vi.fn(() => ({
+            matches: true,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        }));
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const toggle = app.querySelector('#pcSidebarToggle');
+        toggle.click();
+
+        expect(toggle.classList.contains('is-flying')).toBe(false);
+        expect(app.classList.contains('pc-sidebar-collapsed')).toBe(true);
+        expect(localStorage.getItem('pc-sidebar-collapsed')).toBe('true');
+    });
+
 });
