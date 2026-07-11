@@ -11,13 +11,29 @@ import tagIcon from '../assets/pc/tag-2.png';
 let homeData = null;
 let homeSearchKeyword = '';
 
+function setFavoriteButtonState(button, isFavorite) {
+    button.classList.toggle('pc-starred', isFavorite);
+    button.setAttribute('aria-pressed', String(isFavorite));
+    button.setAttribute('aria-label', isFavorite ? '取消收藏' : '收藏');
+    button.title = isFavorite ? '取消收藏' : '收藏';
+}
+
+function playFavoriteFeedback(button, isFavorite) {
+    button.classList.remove('pc-star-btn--favorited', 'pc-star-btn--unfavorited');
+    void button.offsetWidth;
+    button.classList.add(isFavorite ? 'pc-star-btn--favorited' : 'pc-star-btn--unfavorited');
+    button.addEventListener('animationend', () => {
+        button.classList.remove('pc-star-btn--favorited', 'pc-star-btn--unfavorited');
+    }, { once: true });
+}
+
 const CATEGORY_COLORS = [
-    { bg: '#E8F4FF', text: '#2580D6' },
-    { bg: '#FFE8A3', text: '#C4A030' },
-    { bg: '#EFE5FF', text: '#8B6FCC' },
-    { bg: '#FFF0F5', text: '#D4567F' },
-    { bg: '#CFF7D7', text: '#3D9942' },
-    { bg: '#FFE0CC', text: '#E07020' },
+    '#2580D6',
+    '#C4A030',
+    '#8B6FCC',
+    '#D4567F',
+    '#3D9942',
+    '#E07020',
 ];
 
 const TAG_COLORS = ['pc-tag-blue', 'pc-tag-pink', 'pc-tag-green', 'pc-tag-yellow', 'pc-tag-purple'];
@@ -92,14 +108,22 @@ function render(params = {}) {
                         <span class="pc-section-title-text">快速创建</span>
                     </div>
                     <div class="pc-quick-create-grid pc-home-quick-grid">
-                        <button class="pc-quick-create-card pc-home-quick-card-pink" id="pcQuickCreate">
-                            <span class="pc-quick-create-icon pc-home-inline-icon">${ICONS.plus}</span>
-                            <span class="pc-quick-create-copy">
-                                <span class="pc-quick-create-label">新建提示词</span>
-                                <span class="pc-quick-create-desc">从零开始写</span>
+                        <button class="pc-quick-create-card pc-home-quick-card pc-home-quick-card-create pc-create-btn" id="pcQuickCreate" type="button" aria-label="新建提示词">
+                            <span class="pc-create-btn-bg" aria-hidden="true"></span>
+                            <span class="pc-create-btn-spin" aria-hidden="true"></span>
+                            <span class="pc-create-btn-glow" aria-hidden="true"></span>
+                            <span class="pc-create-btn-state pc-create-btn-state--default">
+                                <span class="pc-create-btn-icon">${ICONS.plus}</span>
+                                <span class="pc-create-btn-text" aria-hidden="true">
+                                    <span style="--i:0">新</span>
+                                    <span style="--i:1">建</span>
+                                    <span style="--i:2">提</span>
+                                    <span style="--i:3">示</span>
+                                    <span style="--i:4">词</span>
+                                </span>
                             </span>
                         </button>
-                        <button class="pc-quick-create-card pc-home-quick-card-blue" id="pcQuickImport">
+                        <button class="pc-quick-create-card pc-home-quick-card pc-home-quick-card-import" id="pcQuickImport" type="button">
                             <span class="pc-quick-create-icon pc-home-inline-icon">${ICONS.import}</span>
                             <span class="pc-quick-create-copy">
                                 <span class="pc-quick-create-label">导入提示词</span>
@@ -203,6 +227,7 @@ function renderRecentList(pageEl, promptSets) {
 
     container.innerHTML = recent.map(item => {
         const tags = getTags(item).slice(0, 3);
+        const isFavorite = item.isFavorite === true;
         return `
             <div class="pc-recent-item" data-id="${item.id}">
                 ${renderRecentThumb(item)}
@@ -215,7 +240,7 @@ function renderRecentList(pageEl, promptSets) {
                     <div class="pc-recent-time">${formatRelativeTime(item.updatedAt)}</div>
                 </div>
                 <div class="pc-recent-actions">
-                    <button class="pc-star-btn ${item.isFavorite === true ? 'pc-starred' : ''}" data-id="${item.id}" aria-label="收藏" title="收藏">${ICONS.star}</button>
+                    <button type="button" class="pc-star-btn ${isFavorite ? 'pc-starred' : ''}" data-id="${item.id}" aria-pressed="${isFavorite}" aria-label="${isFavorite ? '取消收藏' : '收藏'}" title="${isFavorite ? '取消收藏' : '收藏'}">${ICONS.star}</button>
                     <button class="pc-more-btn" data-id="${item.id}" aria-label="更多操作" title="更多操作">${ICONS.more}</button>
                 </div>
             </div>
@@ -277,7 +302,7 @@ function renderCategoryGrid(pageEl, folders, promptSets) {
         const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
         const count = promptSets.filter(p => p.folderId === folder.id).length;
         return `
-            <div class="pc-category-card pc-home-category-card" data-folder-id="${folder.id}" style="background: ${color.bg}; color: ${color.text}">
+            <button type="button" class="pc-category-card pc-home-category-card" data-folder-id="${folder.id}" style="--pc-home-category-color: ${color}">
                 <span class="pc-home-category-icon">
                     <img src="${homeFolderIcon}" alt="" aria-hidden="true">
                 </span>
@@ -285,7 +310,7 @@ function renderCategoryGrid(pageEl, folders, promptSets) {
                     <span class="pc-category-name">${escapeHtml(folder.name)}</span>
                     <span class="pc-category-count">${count}</span>
                 </span>
-            </div>
+            </button>
         `;
     }).join('');
 }
@@ -337,25 +362,36 @@ function setupHomeEvents(pageEl) {
 
         const starBtn = e.target.closest('.pc-star-btn');
         if (starBtn) {
+            if (starBtn.dataset.favoritePending === 'true') return;
+
             const promptId = starBtn.dataset.id;
+            const previousState = starBtn.classList.contains('pc-starred');
+            const nextState = !previousState;
+            starBtn.dataset.favoritePending = 'true';
+            starBtn.disabled = true;
+            starBtn.setAttribute('aria-busy', 'true');
+            setFavoriteButtonState(starBtn, nextState);
+            playFavoriteFeedback(starBtn, nextState);
+
             try {
                 const storage = getStorage();
                 const result = await storage.toggleFavorite(promptId);
-                const isStarred = result.isFavorite;
+                const isStarred = result.isFavorite === true;
                 const target = homeData?.promptSets?.find(p => p.id === promptId);
                 if (target) target.isFavorite = isStarred;
                 const favEl = pageEl.querySelector('#pcStatFavorites');
                 if (favEl && homeData) {
                     favEl.textContent = homeData.promptSets.filter(p => p.isFavorite === true).length;
                 }
-                if (isStarred) {
-                    starBtn.classList.add('pc-starred');
-                } else {
-                    starBtn.classList.remove('pc-starred');
-                }
+                setFavoriteButtonState(starBtn, isStarred);
                 showToast(isStarred ? '已收藏' : '已取消收藏');
             } catch (e) {
+                setFavoriteButtonState(starBtn, previousState);
                 showToast('操作失败', 'error');
+            } finally {
+                delete starBtn.dataset.favoritePending;
+                starBtn.disabled = false;
+                starBtn.removeAttribute('aria-busy');
             }
         }
 
