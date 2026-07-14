@@ -1,4 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const pcCss = readFileSync(resolve(process.cwd(), 'src/css/pc.css'), 'utf8');
+const appHtml = readFileSync(resolve(process.cwd(), 'src/index.html'), 'utf8');
+const packageManifest = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'));
+const appVersion = appHtml.match(/<meta name="version" content="([^"]+)">/)?.[1];
 
 const routerMocks = vi.hoisted(() => {
     const routes = new Map();
@@ -71,6 +78,19 @@ describe('PC 侧边栏导航点击动效', () => {
     afterEach(() => {
         document.body.innerHTML = '';
         vi.restoreAllMocks();
+    });
+
+    it('设置入口固定为圆角方形尺寸，且不渲染圆形光环', () => {
+        const settingsRule = pcCss.match(/\.pc-sidebar-settings-item\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+
+        expect(settingsRule).toContain('box-sizing: border-box');
+        expect(settingsRule).toContain('flex: 0 0 48px');
+        expect(settingsRule).toContain('width: 48px');
+        expect(settingsRule).toContain('height: 48px');
+        expect(settingsRule).toContain('border-radius: var(--pc-sidebar-item-radius)');
+        expect(settingsRule).not.toContain('50%');
+        expect(pcCss).not.toContain('.pc-sidebar-settings-item::before');
+        expect(pcCss).not.toContain('pc-sidebar-settings-ring-pulse');
     });
 
     it('点击当前激活导航项时播放一次性动效并在动画结束后清理', async () => {
@@ -156,6 +176,31 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(routerMocks.navigateToTab).toHaveBeenCalledWith('/settings');
         expect(settingsItem.getAttribute('aria-current')).toBe('page');
         expect(settingsItem.classList.contains('pc-nav-active')).toBe(true);
+    });
+
+    it('设置入口移除可见文本，但保留无障碍名称和一次性齿轮转动反馈', async () => {
+        expect(appVersion).toBe(packageManifest.version);
+        document.head.insertAdjacentHTML('beforeend', `<meta name="version" content="${appVersion}">`);
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const settingsItem = app.querySelector('[data-nav="/settings"]');
+        const settingsIcon = settingsItem.querySelector('.pc-nav-icon');
+
+        expect(settingsItem.getAttribute('type')).toBe('button');
+        expect(settingsItem.getAttribute('aria-label')).toBe('设置');
+        expect(settingsItem.getAttribute('title')).toBe('设置');
+        expect(settingsItem.dataset.ripple).toBe('false');
+        expect(settingsItem.querySelector('.pc-nav-label')).toBeNull();
+        expect(settingsItem.classList.contains('pc-sidebar-settings-item')).toBe(true);
+        expect(app.dataset.appVersion).toBe(packageManifest.version);
+
+        settingsItem.click();
+
+        expect(settingsItem.classList.contains('pc-nav-clicking')).toBe(true);
+        settingsIcon.dispatchEvent(new Event('animationend', { bubbles: true }));
+        expect(settingsItem.classList.contains('pc-nav-clicking')).toBe(false);
     });
 
     it('折叠按钮在图标动效结束后更新侧栏状态并持久化', async () => {

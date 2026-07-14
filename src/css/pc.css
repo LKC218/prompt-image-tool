@@ -666,12 +666,40 @@
 }
 
 .pc-sidebar-utility-nav {
+    display: flex;
+    justify-content: center;
     padding: 0 var(--pc-space-md);
     margin-bottom: var(--pc-space-lg);
 }
 
 .pc-sidebar-settings-item {
-    min-width: 0;
+    box-sizing: border-box;
+    flex: 0 0 48px;
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    border-radius: var(--pc-sidebar-item-radius);
+}
+
+.pc-sidebar-settings-item .pc-nav-icon {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+    transform-origin: 50% 50%;
+}
+
+.pc-sidebar-settings-item.pc-nav-clicking .pc-nav-icon {
+    animation: pc-sidebar-settings-gear-turn 0.34s cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes pc-sidebar-settings-gear-turn {
+    0% { transform: rotate(0deg) scale(1); }
+    45% { transform: rotate(28deg) scale(1.08); }
+    100% { transform: rotate(0deg) scale(1); }
 }
 
 .pc-sidebar-clock {
@@ -901,6 +929,7 @@
     .pc-nav-item.pc-nav-clicking .pc-nav-icon {
         filter: none !important;
     }
+
 }
 
 .pc-app.pc-sidebar-collapsed {

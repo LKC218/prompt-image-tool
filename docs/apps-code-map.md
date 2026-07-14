@@ -16,14 +16,14 @@
   `--pc-accent-strong` / `--td-brand-color` / `--td-ripple-color` / `--td-focus-outline`，
   驱动主按钮、激活态、聚焦环、水波纹、欢迎装饰等品牌主色控件。
   新增 `--pc-neu-*` 新拟态按钮 Token 与 `.pc-neu-btn` 系列类，详见 `docs/设计文档/新拟态按钮设计规范.md`。
-  PC 左侧导航栏采用暖色轻拟态：业务导航项默认凸起，悬停时切换为内凹按压反馈；设置位于时钟上方的独立功能区，当前页保留主题色位置标记与键盘焦点。折叠按钮保留即时按压反馈，时钟统一为低对比暖色表盘，详见 `docs/设计文档/PC左侧导航栏轻拟态设计.md`。
+  PC 左侧导航栏采用暖色轻拟态：业务导航项默认凸起，悬停时切换为内凹按压反馈；设置位于时钟上方的独立无文字圆角方形工具入口，排除全局实心水波纹和圆环动效，仅保留短暂齿轮转动与键盘焦点表达状态。折叠按钮保留即时按压反馈，时钟统一为低对比暖色表盘，详见 `docs/设计文档/PC左侧导航栏轻拟态设计.md`。
 - `mobile.css`：移动端全部样式。对称派生 `--m-accent-strong` / `--m-focus-ring` / `--m-shadow-accent`，
   主按钮渐变尾色由写死粉 `#FF8FB1` 改为 `var(--m-accent-strong)`。
   新增 `--m-neu-*` 新拟态按钮 Token 与 `.m-neu-btn` 系列类，详见 `docs/设计文档/新拟态按钮设计规范.md`。
 
 ### 逻辑层 `src/js/`（节选关键模块）
-- `pc-app.js`：应用入口；`setAccent(accent)` 写入根节点 `data-accent` 与 `localStorage`（键 `pc-accent`）。
-  `setupSidebarToggle()` 管理侧栏的折叠按钮动效与持久化：悬停显示旋转主题色描边和文字波动，点击后图标起飞并在动画结束时切换侧栏状态；`updateNavHighlight()` 同步视觉激活态与 `aria-current="page"`。底部时钟仍由 `setupSidebarClock()` 基于系统时间驱动指针，秒针跳秒。
+- `pc-app.js`：应用入口；`setAccent(accent)` 写入根节点 `data-accent` 与 `localStorage`（键 `pc-accent`），并将 `meta[name="version"]` 写入根节点 `data-app-version`，用于核验实际运行包是否为当前构建。
+  `setupSidebarToggle()` 管理侧栏的折叠按钮动效与持久化：悬停显示旋转主题色描边和文字波动，点击后图标起飞并在动画结束时切换侧栏状态；`updateNavHighlight()` 同步包括无文字设置入口在内的导航视觉激活态与 `aria-current="page"`。底部时钟仍由 `setupSidebarClock()` 基于系统时间驱动指针，秒针跳秒。
 - `pc-settings.js`：PC 设置页外观取色器，`ACCENT_COLORS` 预设与点击切换逻辑。
 - `mobile-app.js` / `mobile-settings.js`：移动端入口与取色器（`THEME_COLORS`，`localStorage` 键 `accent`）。
 - `pc-detail.js` / `pc-library.js` / `pc-home.js` / `pc-category.js` / `pc-editor.js`：PC 各业务模块。

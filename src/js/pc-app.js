@@ -101,9 +101,8 @@ function renderShell() {
             </nav>
             <div class="pc-sidebar-footer">
                 <div class="pc-sidebar-utility-nav" aria-label="应用设置">
-                    <button class="pc-nav-item pc-sidebar-settings-item" data-nav="${SETTINGS_NAV_ITEM.path}" aria-label="${SETTINGS_NAV_ITEM.label}" title="${SETTINGS_NAV_ITEM.label}">
+                    <button class="pc-nav-item pc-sidebar-settings-item" type="button" data-nav="${SETTINGS_NAV_ITEM.path}" data-ripple="false" aria-label="${SETTINGS_NAV_ITEM.label}" title="${SETTINGS_NAV_ITEM.label}">
                         <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${SETTINGS_NAV_ITEM.icon});mask-image:url(${SETTINGS_NAV_ITEM.icon})"></div>
-                        <span class="pc-nav-label">${SETTINGS_NAV_ITEM.label}</span>
                     </button>
                 </div>
                 <div class="pc-sidebar-clock" id="pcSidebarClock" aria-label="当前时间">
@@ -126,6 +125,7 @@ async function mount(el) {
     appEl = el;
     isSidebarCollapsed = readSidebarCollapsedState();
     appEl.classList.add('pc-app');
+    appEl.dataset.appVersion = document.querySelector('meta[name="version"]')?.content || 'unknown';
     applySidebarState(isSidebarCollapsed);
     appEl.innerHTML = renderShell();
     pageContainer = document.getElementById('pcMain');
