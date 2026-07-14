@@ -1,6 +1,6 @@
 {
   "name": "prompt-image-manager",
-  "version": "2.3.6",
+  "version": "2.3.7",
   "description": "生图提示词管理器",
   "type": "module",
   "scripts": {
