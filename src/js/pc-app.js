@@ -1,5 +1,5 @@
 import { registerRoute, navigate, goBack, navigateToTab, getCurrentRoute, setRouteChangeCallback, initRouter, getRouteHandler, resolveRouteKey } from './pc-router.js';
-import { showToast, closeModal, closeImageViewer, copyToClipboard, escapeHtml } from './pc-utils.js';
+import { showToast, closeModal, closeImageViewer, copyToClipboard, escapeHtml, hideContextMenu } from './pc-utils.js';
 import '../css/pc.css';
 import corgiHome from '../assets/mobile/mascots/corgi-home.png';
 import appIcon from '../assets/pc/app-icon.png';
@@ -16,6 +16,7 @@ import { render as renderEditor, mount as mountEditor, unmount as unmountEditor 
 import { render as renderCategory, mount as mountCategory, unmount as unmountCategory } from './pc-category.js';
 import { render as renderSettings, mount as mountSettings, unmount as unmountSettings } from './pc-settings.js';
 import { initRipple } from './ripple.js';
+import { initPcCursor } from './pc-cursor.js';
 
 let appEl = null;
 let pageContainer = null;
@@ -34,10 +35,10 @@ const NAV_ITEMS = [
 const SETTINGS_NAV_ITEM = { path: '/settings', icon: navSettings, label: '设置' };
 
 const RELEASE_NOTES_ICON = `
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 4v5h5"></path>
-        <path d="M4.6 13a8 8 0 1 0 2-5.4L4 9"></path>
-        <path d="M12 8v4l2.8 1.8"></path>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M6.5 18.5H6a4 4 0 0 1-.6-7.96A6.75 6.75 0 0 1 18.3 9a4.75 4.75 0 0 1-.8 9.5H17"></path>
+        <path d="m8.5 12 3.5-3.5 3.5 3.5"></path>
+        <path d="M12 8.5v7"></path>
     </svg>
 `;
 
@@ -158,6 +159,7 @@ async function mount(el) {
     setupKeyboardShortcuts();
     setupSidebarClock();
     initRipple(appEl);
+    initPcCursor(appEl);
     syncReleaseNotesUnreadBadge(appEl);
 
     setRouteChangeCallback(handleRouteChange);
@@ -290,8 +292,7 @@ function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeModal();
-            const contextMenu = document.getElementById('pcContextMenu');
-            if (contextMenu) contextMenu.classList.remove('pc-context-active');
+            hideContextMenu();
             closeImageViewer();
         }
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {

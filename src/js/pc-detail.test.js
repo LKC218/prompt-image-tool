@@ -124,4 +124,23 @@ describe('pc-detail image preview', () => {
             image: expect.objectContaining({ id: 'image-3' }),
         }));
     });
+
+    it('详情页两个更多入口均使用共享操作组和三点触发来源', async () => {
+        utilsMocks.showContextMenu.mockResolvedValue(null);
+        const { pageEl } = await mountDetailPage();
+
+        const topMore = pageEl.querySelector('#pcDetailMoreTop');
+        const bottomMore = pageEl.querySelector('#pcDetailMore');
+        expect(topMore.querySelectorAll('.pc-more-dots span')).toHaveLength(3);
+        expect(bottomMore.querySelectorAll('.pc-more-dots span')).toHaveLength(3);
+
+        topMore.click();
+        await Promise.resolve();
+        expect(utilsMocks.showContextMenu).toHaveBeenLastCalledWith(
+            expect.any(Number),
+            expect.any(Number),
+            expect.any(Array),
+            { anchor: topMore, source: 'more' }
+        );
+    });
 });

@@ -3,14 +3,12 @@ import { navigate } from './pc-app.js';
 import { showToast, showConfirmModal, copyToClipboard, showImageViewer, showContextMenu, escapeHtml, formatDate } from './pc-utils.js';
 import { formatPromptForDisplay } from './pc-prompt-ui-utils.js';
 import { pcIcon } from './pc-icon-assets.js';
+import { playPcFavoriteFeedback } from './pc-favorite-feedback.js';
 import { renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
+import { getPcTagStyleClass } from './tag-utils.js';
 import safetyMascot from '../assets/mobile/mascots/corgi-settings.png';
 import detailImagePlaceholder from '../assets/pc/detail-image-placeholder.png';
 import deleteIcon from '../assets/pc/action-delete.png';
-
-const TAG_COLORS = ['pc-tag-blue', 'pc-tag-pink', 'pc-tag-green', 'pc-tag-yellow', 'pc-tag-purple'];
-const TAG_BG_COLORS = ['#EAF5FF', '#FFF0F5', '#EFFFF4', '#FFF8E0', '#EFE5FF'];
-const TAG_TEXT_COLORS = ['#2D8CFF', '#FF6B9A', '#29B37A', '#FFC94A', '#8A6BFF'];
 
 function iconImg(src, alt = '') {
     return `<img src="${src}" alt="${escapeHtml(alt)}" class="pc-icon-img">`;
@@ -40,8 +38,8 @@ function render(params = {}) {
                     </nav>
                 </div>
                 <div class="pc-detail-top-nav-actions">
-                    <button class="pc-detail-top-nav-btn" id="pcDetailStar" title="收藏" type="button">${pcIcon('star', 'pc-detail-button-icon')}<span>收藏</span></button>
-                    <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-more" id="pcDetailMoreTop" title="更多" aria-label="更多" type="button">${pcIcon('moreHorizontal', 'pc-detail-button-icon')}</button>
+                    <button class="pc-detail-top-nav-btn" id="pcDetailStar" title="收藏" aria-pressed="false" aria-label="收藏" type="button">${pcIcon('star', 'pc-detail-button-icon')}<span>收藏</span></button>
+                    <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-more" id="pcDetailMoreTop" title="更多" aria-label="更多" aria-haspopup="menu" aria-expanded="false" type="button"><span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span></button>
                 </div>
             </div>
             <div class="pc-detail-page" id="pcDetailContent">
@@ -147,7 +145,7 @@ function renderCoverImage() {
     return `
         <div class="pc-detail-cover pc-detail-fade-in" id="pcDetailCover">
             ${hasImages ? `
-                <div class="pc-detail-cover-img-wrap" id="pcDetailCoverImgWrap"></div>
+                <div class="pc-detail-cover-img-wrap" id="pcDetailCoverImgWrap" data-cursor="native"></div>
                 ${hasMultiple ? `
                     <button class="pc-detail-cover-nav pc-detail-cover-prev" id="pcDetailImgPrev" type="button" aria-label="上一张">${pcIcon('chevronLeft', 'pc-detail-cover-nav-icon')}</button>
                     <button class="pc-detail-cover-nav pc-detail-cover-next" id="pcDetailImgNext" type="button" aria-label="下一张">${pcIcon('chevronRight', 'pc-detail-cover-nav-icon')}</button>
@@ -261,9 +259,8 @@ function renderTitleRow(name, tags) {
 
 function renderTagPills(tags) {
     return tags.length > 0
-        ? tags.map((t, i) => {
-            const colorIdx = i % TAG_COLORS.length;
-            return `<span class="pc-tag-pill ${TAG_COLORS[colorIdx]}">${escapeHtml(t)}</span>`;
+        ? tags.map(t => {
+            return `<span class="pc-tag-pill ${getPcTagStyleClass(t)}">${escapeHtml(t)}</span>`;
         }).join('')
         : '<span class="pc-tag-pill pc-tag-default">提示词</span>';
 }
@@ -329,10 +326,7 @@ function renderInfoCard(currentVersion, tags, set) {
     const createdAt = formatDate(set.createdAt);
 
     const tagsHtml = tags.length > 0
-        ? tags.map((t, i) => {
-            const colorIdx = i % TAG_BG_COLORS.length;
-            return `<span class="pc-detail-info-tag" style="background:${TAG_BG_COLORS[colorIdx]};color:${TAG_TEXT_COLORS[colorIdx]}">${escapeHtml(t)}</span>`;
-        }).join('')
+        ? tags.map(t => `<span class="pc-detail-info-tag ${getPcTagStyleClass(t)}">${escapeHtml(t)}</span>`).join('')
         : '<span style="color:var(--pc-text3)">-</span>';
 
     return `
@@ -376,7 +370,7 @@ function renderVersionCard(versions) {
                 const versionName = v.name || ('V' + (versionIdx + 1));
                 const versionDate = formatDate(v.createdAt || promptSet.updatedAt);
                 return `
-                    <div class="pc-detail-version-item" data-version-index="${versionIdx}">
+                    <div class="pc-detail-version-item" data-version-index="${versionIdx}" data-cursor="action">
                         <span class="pc-detail-version-badge">${versionName}</span>
                         ${isActive ? '<span class="pc-detail-version-current">当前版本</span>' : ''}
                         <span class="pc-detail-version-time">${versionDate}</span>
@@ -413,8 +407,8 @@ function renderBottomBar() {
                 <span class="pc-detail-action-icon">${pcIcon('clipboard', 'pc-detail-action-icon-img')}</span>
                 复制
             </button>
-            <button class="pc-detail-action-btn pc-detail-action-more" id="pcDetailMore">
-                <span class="pc-detail-action-icon">${pcIcon('moreVertical', 'pc-detail-action-icon-img')}</span>
+            <button class="pc-detail-action-btn pc-detail-action-more" id="pcDetailMore" aria-haspopup="menu" aria-expanded="false">
+                <span class="pc-detail-action-icon"><span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span></span>
                 更多
             </button>
         </div>
@@ -431,6 +425,9 @@ function updateStarButton(pageEl, isFavorite) {
         btn.innerHTML = `${pcIcon('star', 'pc-detail-button-icon')}<span>收藏</span>`;
         btn.classList.remove('pc-detail-top-nav-btn-starred');
     }
+    btn.setAttribute('aria-pressed', String(isFavorite));
+    btn.setAttribute('aria-label', isFavorite ? '取消收藏' : '收藏');
+    btn.title = isFavorite ? '取消收藏' : '收藏';
 }
 
 async function loadCoverImage() {
@@ -450,18 +447,31 @@ function setupEvents(pageEl) {
     pageEl.querySelector('#pcDetailBack')?.addEventListener('click', () => navigate('/'));
     pageEl.querySelector('#pcDetailLibraryCrumb')?.addEventListener('click', () => navigate('/library'));
 
-    pageEl.querySelector('#pcDetailStar')?.addEventListener('click', async () => {
+    pageEl.querySelector('#pcDetailStar')?.addEventListener('click', async (event) => {
         if (!promptSet) return;
+        const button = event.currentTarget;
+        if (button.dataset.favoritePending === 'true') return;
+        const previousState = promptSet.isFavorite === true;
+        button.dataset.favoritePending = 'true';
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
         try {
             const storage = getStorage();
             const result = await storage.toggleFavorite(promptSet.id);
             promptSet.isFavorite = result.isFavorite;
             updateStarButton(pageEl, result.isFavorite);
+            playPcFavoriteFeedback(button, result.isFavorite === true);
             const favCount = pageEl.querySelector('.pc-detail-fav-count');
             if (favCount) favCount.textContent = result.isFavorite ? '1' : '0';
             showToast(result.isFavorite ? '已收藏' : '已取消收藏');
         } catch (e) {
+            promptSet.isFavorite = previousState;
+            updateStarButton(pageEl, previousState);
             showToast('操作失败', 'error');
+        } finally {
+            delete button.dataset.favoritePending;
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
         }
     });
 
@@ -562,16 +572,17 @@ function setupEvents(pageEl) {
 }
 
 async function showMoreMenu(e, pageEl) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = rect.left;
-    const y = rect.bottom + 4;
+    const anchor = e.currentTarget;
+    const rect = anchor.getBoundingClientRect();
+    const x = rect.right + 8;
+    const y = rect.bottom + 8;
 
     const action = await showContextMenu(x, y, [
         { action: 'addVersion', icon: pcIcon('plus'), label: '新建版本' },
         { action: 'compare', icon: pcIcon('balance'), label: '版本对比' },
         { divider: true },
         { action: 'delete', icon: iconImg(deleteIcon), tone: 'delete', label: '删除提示词', danger: true }
-    ]);
+    ], { anchor, source: 'more' });
 
     if (!action) return;
 

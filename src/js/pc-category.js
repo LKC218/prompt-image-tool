@@ -1,7 +1,7 @@
 import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showModal, closeModal, showConfirmModal, showContextMenu, escapeHtml } from './pc-utils.js';
-import { aggregateTags, getCustomTags, removeCustomTag, saveCustomTag } from './tag-utils.js';
+import { aggregateTags, getCustomTags, getPcTagStyleClass, removeCustomTag, saveCustomTag } from './tag-utils.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import categoryFolderIcon from '../../UI设计稿/图标/插画设计/文件夹.png';
 import categoryTagIcon from '../assets/pc/tag-2.png';
@@ -35,8 +35,6 @@ const FOLDER_COLORS = [
     { name: '红色', value: '#FF5A5A', bg: '#FFE8E8' },
     { name: '青色', value: '#00BCD4', bg: '#E0F7FA' },
 ];
-
-const TAG_COLORS = ['pc-tag-blue', 'pc-tag-pink', 'pc-tag-green', 'pc-tag-yellow', 'pc-tag-purple', 'pc-tag-orange'];
 
 function iconImg(icon, alt = '') {
     return `<img src="${icon}" alt="${escapeHtml(alt)}" aria-hidden="${alt ? 'false' : 'true'}">`;
@@ -150,8 +148,8 @@ function renderCategoriesList(container) {
                             </div>
                             <div class="pc-category-item-count">${count} 个提示词</div>
                             <div class="pc-category-item-actions">
-                                <button class="pc-icon-btn pc-more-btn" type="button" aria-label="更多操作" title="更多操作" data-id="${folder.id}">
-                                    ${iconImg(moreHorizontalIcon)}
+                                <button class="pc-icon-btn pc-more-btn" type="button" aria-label="更多操作" aria-haspopup="menu" aria-expanded="false" title="更多操作" data-id="${folder.id}">
+                                    <span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span>
                                 </button>
                                 <div class="pc-drag-handle" title="拖拽排序" aria-label="拖拽排序">${iconImg(gripVerticalIcon)}</div>
                             </div>
@@ -239,10 +237,10 @@ function renderTagsList(container) {
                         <span class="pc-empty-icon">${iconImg(searchIcon, '搜索')}</span>
                         <span class="pc-empty-text">没有匹配的标签</span>
                     </div>
-                ` : filteredTags.map((tag, i) => `
+                ` : filteredTags.map(tag => `
                     <button class="pc-tag-row pc-tag-clickable" data-tag-name="${escapeHtml(tag.name)}" data-tag-count="${tag.count}">
                         <span class="pc-tag-row-name">
-                            <span class="pc-tag-row-icon ${TAG_COLORS[i % TAG_COLORS.length]}">${iconImg(categoryTagIcon)}</span>
+                            <span class="pc-tag-row-icon ${getPcTagStyleClass(tag.name)}">${iconImg(categoryTagIcon)}</span>
                             <span>${escapeHtml(tag.name)}</span>
                         </span>
                         <span class="pc-tag-row-count">${tag.count} 个提示词</span>
@@ -296,7 +294,7 @@ function setupCategoryEvents(pageEl) {
                 { action: 'delete', icon: iconImg(actionDeleteIcon), tone: 'delete', label: '删除分类', danger: true }
             ];
             const rect = moreBtn.getBoundingClientRect();
-            const action = await showContextMenu(rect.right, rect.bottom, items);
+            const action = await showContextMenu(rect.right + 8, rect.bottom + 8, items, { anchor: moreBtn, source: 'more' });
             if (action === 'view') navigate('/library', { folder: folderId });
             else if (action === 'rename') showRenameFolderDialog(pageEl, folderId);
             else if (action === 'color') showChangeColorDialog(pageEl, folderId);
@@ -593,7 +591,7 @@ function showChangeColorDialog(pageEl, folderId) {
             <label class="pc-form-label">选择颜色</label>
             <div class="pc-color-picker" id="pcChangeColorPicker">
                 ${FOLDER_COLORS.map(c => `
-                    <div class="pc-color-picker-item ${c.value === selectedColor ? 'selected' : ''}" data-color="${c.value}" style="background:${c.value};"></div>
+                    <div class="pc-color-picker-item ${c.value === selectedColor ? 'selected' : ''}" data-color="${c.value}" data-cursor="action" style="background:${c.value};"></div>
                 `).join('')}
             </div>
         </div>

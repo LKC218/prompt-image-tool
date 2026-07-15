@@ -49,7 +49,7 @@ function render(params = {}) {
             <button class="m-top-nav-back" id="mCategoryBack" aria-label="返回">${mobileIcon('chevron-left')}</button>
             <span class="m-top-nav-title">分类与标签</span>
         </div>
-        <div class="m-page-inner">
+        <div class="m-page-inner m-category-page">
             <div class="m-segment-control" id="mSegmentControl">
                 <button class="m-segment-btn m-segment-active" data-segment="category">分类管理</button>
                 <button class="m-segment-btn" data-segment="tag">标签管理</button>
@@ -193,8 +193,8 @@ function renderTagList(pageEl) {
     if (tagEmptyEl) tagEmptyEl.style.display = 'none';
 
     tagListEl.innerHTML = tags.map(tag => `
-        <div class="m-tag-pill ${tag.style} m-tag-manageable" data-tag-name="${escapeHtml(tag.name)}" style="padding:8px 16px; font-size:14px; cursor:pointer;">
-            ${escapeHtml(tag.name)} <span style="opacity:0.7; margin-left:4px;">${tag.count}</span>
+        <div class="m-tag-pill ${tag.style} m-tag-manageable" data-tag-name="${escapeHtml(tag.name)}">
+            ${escapeHtml(tag.name)} <span class="m-tag-manageable-count">${tag.count}</span>
         </div>
     `).join('');
 }

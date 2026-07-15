@@ -5,6 +5,7 @@ import { getCurrentRoute } from './mobile-router.js';
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { getTagStyleClass } from './tag-utils.js';
 import { mobileIcon } from './mobile-icon-assets.js';
+import { setFavoriteButtonState, toggleFavoriteWithFeedback } from './favorite-feedback.js';
 import { downloadImage } from './image-download-utils.js';
 import imagePlaceholder from '../assets/mobile/image-placeholder.png';
 
@@ -19,7 +20,7 @@ function render(params = {}) {
             <button class="m-top-nav-back" id="mDetailBack" aria-label="返回">${mobileIcon('chevron-left')}</button>
             <span class="m-top-nav-title" id="mDetailTitle">提示词详情</span>
             <div class="m-top-nav-actions">
-                <button class="m-top-nav-action" id="mDetailStar" aria-label="收藏">${mobileIcon('star')}</button>
+                <button class="m-top-nav-action m-star-btn" id="mDetailStar" aria-pressed="false" aria-label="收藏">${mobileIcon('star')}</button>
                 <button class="m-top-nav-action" id="mDetailMore" aria-label="更多操作">${mobileIcon('more')}</button>
             </div>
         </div>
@@ -77,18 +78,7 @@ async function renderDetail(pageEl, set) {
     const titleEl = pageEl.querySelector('#mDetailTitle');
     if (titleEl) titleEl.textContent = set.name;
 
-    const starBtn = pageEl.querySelector('#mDetailStar');
-    if (starBtn) {
-        if (set.isFavorite) {
-            starBtn.classList.add('m-starred');
-            starBtn.innerHTML = mobileIcon('star-filled');
-            starBtn.setAttribute('aria-label', '取消收藏');
-        } else {
-            starBtn.classList.remove('m-starred');
-            starBtn.innerHTML = mobileIcon('star');
-            starBtn.setAttribute('aria-label', '收藏');
-        }
-    }
+    setFavoriteButtonState(pageEl.querySelector('#mDetailStar'), set.isFavorite === true);
 
     const currentVersion = set.versions && set.versions.length > 0 ? set.versions[0] : null;
     const positivePrompt = currentVersion ? (currentVersion.prompt || '') : '';
@@ -273,24 +263,14 @@ function setupDetailEvents(pageEl, id) {
 
     pageEl.querySelector('#mDetailStar')?.addEventListener('click', async () => {
         const btn = pageEl.querySelector('#mDetailStar');
-        try {
-            const storage = getStorage();
-            const result = await storage.toggleFavorite(id);
-            const isStarred = result.isFavorite;
-            if (isStarred) {
-                btn.classList.add('m-starred');
-                btn.innerHTML = mobileIcon('star-filled');
-                btn.setAttribute('aria-label', '取消收藏');
-            } else {
-                btn.classList.remove('m-starred');
-                btn.innerHTML = mobileIcon('star');
-                btn.setAttribute('aria-label', '收藏');
+        await toggleFavoriteWithFeedback({
+            id,
+            button: btn,
+            isFavorite: currentSet?.isFavorite,
+            onStateChange: (isFavorite) => {
+                if (currentSet) currentSet.isFavorite = isFavorite;
             }
-            if (currentSet) currentSet.isFavorite = isStarred;
-            showMobileToast(isStarred ? '已收藏' : '已取消收藏');
-        } catch (e) {
-            showMobileToast('操作失败', 'error');
-        }
+        });
     });
 
     pageEl.querySelector('#mDetailMore')?.addEventListener('click', () => {

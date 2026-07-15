@@ -2,10 +2,11 @@ import { getStorage } from './storage.js';
 import { formatDate } from './utils.js';
 import { navigate, showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
-import { aggregateTags, getTagStyleClass } from './tag-utils.js';
+import { aggregateTags } from './tag-utils.js';
 import { getCurrentRoute } from './mobile-router.js';
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
 import { mobileIcon } from './mobile-icon-assets.js';
+import { toggleFavoriteWithFeedback } from './favorite-feedback.js';
 import searchIcon from '../assets/mobile/search.png';
 import imagePlaceholder from '../assets/mobile/image-placeholder.png';
 import dataIcon from '../assets/mobile/data.png';
@@ -145,7 +146,7 @@ function renderList(pageEl) {
                 <div class="m-prompt-list-meta">
                     <span class="m-prompt-list-time">${formatRelativeTime(item.updatedAt)}</span>
                     <div class="m-prompt-list-actions">
-                        <button class="m-star-btn ${item.isFavorite === true ? 'm-starred' : ''}" data-id="${item.id}" aria-label="${item.isFavorite === true ? '取消收藏' : '收藏'}">${mobileIcon(item.isFavorite === true ? 'star-filled' : 'star')}</button>
+                        <button class="m-star-btn ${item.isFavorite === true ? 'm-starred' : ''}" data-id="${item.id}" aria-pressed="${item.isFavorite === true}" aria-label="${item.isFavorite === true ? '取消收藏' : '收藏'}">${mobileIcon(item.isFavorite === true ? 'star-filled' : 'star')}</button>
                         <button class="m-more-btn" data-id="${item.id}" aria-label="更多操作">${mobileIcon('more')}</button>
                     </div>
                 </div>
@@ -190,23 +191,16 @@ function setupLibraryEvents(pageEl) {
         const starBtn = e.target.closest('.m-star-btn');
         if (starBtn) {
             const promptId = starBtn.dataset.id;
-            try {
-                const storage = getStorage();
-                const result = await storage.toggleFavorite(promptId);
-                const isStarred = result.isFavorite;
-                if (isStarred) {
-                    starBtn.classList.add('m-starred');
-                    starBtn.innerHTML = mobileIcon('star-filled');
-                    starBtn.setAttribute('aria-label', '取消收藏');
-                } else {
-                    starBtn.classList.remove('m-starred');
-                    starBtn.innerHTML = mobileIcon('star');
-                    starBtn.setAttribute('aria-label', '收藏');
+            const item = libraryData?.promptSets.find(prompt => prompt.id === promptId);
+            await toggleFavoriteWithFeedback({
+                id: promptId,
+                button: starBtn,
+                isFavorite: item?.isFavorite,
+                onStateChange: (isFavorite) => {
+                    if (item) item.isFavorite = isFavorite;
+                    if (currentFilter === 'favorite') renderList(pageEl);
                 }
-                showMobileToast(isStarred ? '已收藏' : '已取消收藏');
-            } catch (e) {
-                showMobileToast('操作失败', 'error');
-            }
+            });
         }
 
         const moreBtn = e.target.closest('.m-more-btn');

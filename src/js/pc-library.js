@@ -5,6 +5,8 @@ import { getPromptSetMenuItems } from './pc-menu-actions.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { countPromptSetsByFolder, getPromptFolderId } from './pc-prompt-ui-utils.js';
 import { pcIcon } from './pc-icon-assets.js';
+import { playPcFavoriteFeedback } from './pc-favorite-feedback.js';
+import { aggregateTags, getLibraryTagStyleClass, getPcTagStyleClass } from './tag-utils.js';
 
 let libraryData = null;
 let currentFilter = 'all';
@@ -13,9 +15,9 @@ let selectedPromptId = '';
 let currentPage = 1;
 let pageSize = 20;
 let libraryScrollState = null;
+let nameMarqueeResizeHandler = null;
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
-const TAG_COLORS = ['pc-tag-green', 'pc-tag-orange', 'pc-tag-blue', 'pc-tag-purple', 'pc-tag-pink'];
 const promptDetailCache = new Map();
 
 function getLibraryScrollContainer(pageEl) {
@@ -140,6 +142,9 @@ async function mount(pageEl, params = {}) {
 
     await loadLibraryData(pageEl);
     setupLibraryEvents(pageEl);
+    if (nameMarqueeResizeHandler) window.removeEventListener('resize', nameMarqueeResizeHandler);
+    nameMarqueeResizeHandler = () => setupNameMarquee(pageEl.querySelector('#pcLibraryContent'));
+    window.addEventListener('resize', nameMarqueeResizeHandler);
 
     const searchInput = pageEl.querySelector('#pcLibrarySearchInput');
     if (searchInput && searchKeyword) searchInput.value = searchKeyword;
@@ -176,12 +181,17 @@ function renderFilterBar(pageEl) {
         count: folderCounts.get(folder.id) || 0,
         icon: ICONS.folder
     }));
+    const tagFilters = aggregateTags(libraryData.promptSets).slice(0, 10).map(tag => ({
+        key: 'tag:' + tag.name,
+        label: tag.name
+    }));
     const filters = [
         { key: 'all', label: '全部', count: total },
         { key: 'favorites', label: '收藏', count: favoriteCount },
         { key: 'recent', label: '最近使用' },
         { key: 'uncategorized', label: '未分类', count: uncategorizedCount, icon: ICONS.folder },
-        ...folderFilters
+        ...folderFilters,
+        ...tagFilters
     ];
 
     container.innerHTML = `
@@ -194,7 +204,7 @@ function renderFilterBar(pageEl) {
 function renderToolbarButton(filter) {
     const isActive = currentFilter === filter.key;
     return `
-        <button class="pc-library-filter-btn ${isActive ? 'pc-library-filter-active' : ''}" data-filter="${filter.key}">
+        <button class="pc-library-filter-btn ${filter.className || ''} ${isActive ? 'pc-library-filter-active' : ''}" data-filter="${filter.key}">
             ${filter.icon ? `<span class="pc-library-filter-icon">${filter.icon}</span>` : ''}
             <span>${escapeHtml(filter.label)}</span>
             ${filter.count !== undefined ? `<span class="pc-library-filter-count">${filter.count}</span>` : ''}
@@ -266,8 +276,7 @@ function renderLibraryContent(pageEl) {
                         <thead>
                             <tr>
                                 <th class="pc-library-col-prompt">提示词</th>
-                                <th>标签</th>
-                                <th>创建时间</th>
+                                <th class="pc-library-col-name">名称</th>
                                 <th>最近使用</th>
                                 <th>收藏</th>
                                 <th>操作</th>
@@ -287,7 +296,28 @@ function renderLibraryContent(pageEl) {
     `;
 
     loadLibraryImages(container);
+    window.requestAnimationFrame(() => setupNameMarquee(container));
     ensureSelectedDetail(pageEl, selectedItem.id);
+}
+
+function setupNameMarquee(container) {
+    if (!container || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
+
+    container.querySelectorAll('.pc-library-name-scroll').forEach((name, index) => {
+        name.classList.remove('pc-library-name-scroll--overflow');
+        name.style.removeProperty('--pc-library-name-shift');
+        name.style.removeProperty('--pc-library-name-duration');
+        name.style.removeProperty('--pc-library-name-delay');
+
+        const distance = name.scrollWidth - name.clientWidth;
+        if (distance <= 1) return;
+
+        const duration = Math.min(14, Math.max(8, 7 + distance / 35));
+        name.style.setProperty('--pc-library-name-shift', `-${distance}px`);
+        name.style.setProperty('--pc-library-name-duration', `${duration.toFixed(2)}s`);
+        name.style.setProperty('--pc-library-name-delay', `${(0.8 + (index % 5) * 0.14).toFixed(2)}s`);
+        name.classList.add('pc-library-name-scroll--overflow');
+    });
 }
 
 function renderEmptyState() {
@@ -302,34 +332,33 @@ function renderEmptyState() {
 
 function renderTableRow(item) {
     const tags = getTags(item);
-    const displayTags = tags.slice(0, 3);
+    const displayTags = tags.slice(0, 2);
     const activeClass = item.id === selectedPromptId ? 'pc-library-row-active' : '';
 
     return `
-        <tr class="${activeClass}" data-id="${item.id}">
+        <tr class="${activeClass}" data-id="${item.id}" data-cursor="action">
             <td class="pc-library-prompt-cell">
                 ${renderThumb(item, 'pc-library-thumb')}
                 <div class="pc-library-prompt-copy">
-                    <strong>${escapeHtml(item.name || '未命名提示词')}</strong>
-                    <span>${escapeHtml(buildSummaryText(item))}</span>
+                    ${displayTags.map(tag => `<span class="pc-tag-pill pc-library-tag-pill ${getLibraryTagStyleClass(tag)}">${escapeHtml(tag)}</span>`).join('')}
+                    ${tags.length > 2 ? `<span class="pc-tag-pill pc-library-tag-pill pc-library-tag-default">+${tags.length - 2}</span>` : ''}
+                    ${tags.length === 0 ? `<span class="pc-library-prompt-meta">${escapeHtml(buildSummaryText(item))}</span>` : ''}
                 </div>
             </td>
             <td>
-                <div class="pc-library-tags">
-                    ${displayTags.map((tag, i) => `<span class="pc-tag-pill ${TAG_COLORS[i % TAG_COLORS.length]}">${escapeHtml(tag)}</span>`).join('')}
-                    ${tags.length > 3 ? `<span class="pc-tag-pill pc-tag-default">+${tags.length - 3}</span>` : ''}
+                <div class="pc-library-name-scroll" tabindex="0" title="${escapeHtml(item.name || '未命名提示词')}" aria-label="提示词名称：${escapeHtml(item.name || '未命名提示词')}">
+                    <span>${escapeHtml(item.name || '未命名提示词')}</span>
                 </div>
             </td>
-            <td><span class="pc-library-time">${formatShortDate(item.createdAt)}</span></td>
             <td><span class="pc-library-time">${formatRelativeTime(item.updatedAt)}</span></td>
             <td>
-                <button class="pc-library-icon-btn pc-library-star-btn ${item.isFavorite === true ? 'pc-library-starred' : ''}" data-id="${item.id}" title="收藏" aria-label="收藏">
+                <button type="button" class="pc-library-icon-btn pc-library-star-btn ${item.isFavorite === true ? 'pc-library-starred' : ''}" data-id="${item.id}" title="${item.isFavorite === true ? '取消收藏' : '收藏'}" aria-pressed="${item.isFavorite === true}" aria-label="${item.isFavorite === true ? '取消收藏' : '收藏'}">
                     ${ICONS.star}
                 </button>
             </td>
             <td>
-                <button class="pc-library-icon-btn pc-library-more-btn" data-id="${item.id}" title="更多" aria-label="更多">
-                    ${ICONS.more}
+                <button class="pc-library-icon-btn pc-library-more-btn" data-id="${item.id}" title="更多" aria-label="更多" aria-haspopup="menu" aria-expanded="false">
+                    <span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span>
                 </button>
             </td>
         </tr>
@@ -340,7 +369,7 @@ function renderThumb(item, className) {
     return `
         <div class="${className}${item.firstImage ? '' : ' pc-library-thumb-empty'}">
             ${item.firstImage
-                ? `<img alt="${escapeHtml(item.name || '提示词图片')}" data-first-image='${JSON.stringify(item.firstImage).replace(/'/g, '&#39;')}'>`
+                ? `<img alt="${escapeHtml(item.name || '提示词图片')}" data-first-image='${JSON.stringify(item.firstImage).replace(/'/g, '&#39;')}' data-cursor="native">`
                 : ICONS.image}
         </div>
     `;
@@ -394,23 +423,25 @@ function renderPreviewPanel(item) {
     const detail = promptDetailCache.get(item.id);
     const tags = getTags(detail || item);
     const currentVersion = detail?.versions?.[0] || null;
-    const description = getPreviewDescription(item, detail);
+    const promptPreview = getPreviewPrompt(item, detail);
     const versionText = currentVersion ? (currentVersion.version || 'V1.0') : `${item.versionCount || 1} 个版本`;
 
     return `
         ${renderThumb(item, 'pc-library-preview-cover')}
-        <div class="pc-library-preview-title-row">
-            <h3>${escapeHtml(item.name || '未命名提示词')}</h3>
-            <button class="pc-library-icon-btn pc-library-star-btn ${item.isFavorite === true ? 'pc-library-starred' : ''}" data-id="${item.id}" title="收藏" aria-label="收藏">
-                ${ICONS.star}
-            </button>
-        </div>
-        <div class="pc-library-preview-tags">
-            ${tags.slice(0, 5).map((tag, i) => `<span class="pc-tag-pill ${TAG_COLORS[i % TAG_COLORS.length]}">${escapeHtml(tag)}</span>`).join('') || '<span class="pc-tag-pill pc-tag-default">未设置标签</span>'}
+        <div class="pc-library-preview-summary">
+            <div class="pc-library-preview-title-row">
+                <h3>${escapeHtml(item.name || '未命名提示词')}</h3>
+                <button type="button" class="pc-library-icon-btn pc-library-star-btn ${item.isFavorite === true ? 'pc-library-starred' : ''}" data-id="${item.id}" title="${item.isFavorite === true ? '取消收藏' : '收藏'}" aria-pressed="${item.isFavorite === true}" aria-label="${item.isFavorite === true ? '取消收藏' : '收藏'}">
+                    ${ICONS.star}
+                </button>
+            </div>
+            <div class="pc-library-preview-tags">
+                ${tags.slice(0, 5).map(tag => `<span class="pc-tag-pill ${getPcTagStyleClass(tag)}">${escapeHtml(tag)}</span>`).join('') || '<span class="pc-tag-pill pc-tag-default">未设置标签</span>'}
+            </div>
         </div>
         <div class="pc-library-preview-section">
-            <h4>描述</h4>
-            <p>${escapeHtml(description)}</p>
+            <h4>正向提示词</h4>
+            <p>${escapeHtml(promptPreview)}</p>
         </div>
         <div class="pc-library-preview-meta">
             <div>
@@ -446,11 +477,9 @@ function renderPreviewPanel(item) {
     `;
 }
 
-function getPreviewDescription(item, detail) {
+function getPreviewPrompt(item, detail) {
     const version = detail?.versions?.[0] || null;
-    const note = version?.note || '';
     const prompt = version?.prompt || '';
-    if (note) return note;
     if (prompt) return prompt.length > 120 ? prompt.slice(0, 120) + '...' : prompt;
     return buildSummaryText(item);
 }
@@ -540,7 +569,7 @@ function setupLibraryEvents(pageEl) {
 
         const starBtn = e.target.closest('.pc-library-star-btn');
         if (starBtn) {
-            await toggleFavorite(pageEl, starBtn.dataset.id);
+            await toggleFavorite(pageEl, starBtn.dataset.id, starBtn);
             return;
         }
 
@@ -601,22 +630,45 @@ function setupLibraryEvents(pageEl) {
         e.preventDefault();
         selectedPromptId = row.dataset.id;
         renderPreviewOnly(pageEl);
-        await openPromptMenu(pageEl, row.dataset.id, { getBoundingClientRect: () => ({ right: e.clientX, bottom: e.clientY }) });
+        await openPromptMenu(pageEl, row.dataset.id, null, { x: e.clientX, y: e.clientY });
     });
 }
 
-async function toggleFavorite(pageEl, id) {
+async function toggleFavorite(pageEl, id, button) {
+    if (button?.dataset.favoritePending === 'true') return;
+    const item = libraryData?.promptSets.find(p => p.id === id);
+    const previousState = item?.isFavorite === true;
+    if (button) {
+        button.dataset.favoritePending = 'true';
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+    }
     try {
         const result = await getStorage().toggleFavorite(id);
-        const item = libraryData?.promptSets.find(p => p.id === id);
         if (item) item.isFavorite = result.isFavorite;
         const cached = promptDetailCache.get(id);
         if (cached) cached.isFavorite = result.isFavorite;
+        if (button) {
+            button.classList.toggle('pc-library-starred', result.isFavorite === true);
+            button.setAttribute('aria-pressed', String(result.isFavorite === true));
+            button.setAttribute('aria-label', result.isFavorite ? '取消收藏' : '收藏');
+            button.title = result.isFavorite ? '取消收藏' : '收藏';
+        }
+        playPcFavoriteFeedback(button, result.isFavorite === true);
         showToast(result.isFavorite ? '已收藏' : '已取消收藏');
-        renderFilterBar(pageEl);
-        renderLibraryContent(pageEl);
+        window.setTimeout(() => {
+            renderFilterBar(pageEl);
+            renderLibraryContent(pageEl);
+        }, 460);
     } catch (e) {
+        if (item) item.isFavorite = previousState;
         showToast('操作失败', 'error');
+    } finally {
+        if (button) {
+            delete button.dataset.favoritePending;
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+        }
     }
 }
 
@@ -642,13 +694,13 @@ async function handlePreviewAction(pageEl, button) {
     }
 }
 
-async function openPromptMenu(pageEl, id, anchor) {
+async function openPromptMenu(pageEl, id, anchor, point = null) {
     setContextMenuTargetId(id);
     const items = getPromptSetMenuItems(id, pageEl, {
         onActionDone: () => loadLibraryData(pageEl)
     });
-    const rect = anchor.getBoundingClientRect();
-    const action = await showContextMenu(rect.right, rect.bottom, items);
+    const rect = anchor?.getBoundingClientRect();
+    const action = await showContextMenu(point?.x ?? rect.right + 8, point?.y ?? rect.bottom + 8, items, anchor ? { anchor, source: 'more' } : {});
     if (action) {
         const menuItem = items.find(i => i.action === action);
         if (menuItem && menuItem.handler) menuItem.handler();
@@ -691,6 +743,10 @@ function getPageCount(total) {
 
 function unmount(pageEl) {
     libraryScrollState = captureLibraryScrollState(pageEl);
+    if (nameMarqueeResizeHandler) {
+        window.removeEventListener('resize', nameMarqueeResizeHandler);
+        nameMarqueeResizeHandler = null;
+    }
     libraryData = null;
     promptDetailCache.clear();
 }

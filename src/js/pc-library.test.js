@@ -142,4 +142,16 @@ describe('pc-library state restore', () => {
         expect(pageMain.scrollTop).toBe(180);
         expect(pageEl.querySelector('.pc-library-table-scroll').scrollLeft).toBe(84);
     });
+
+    it('右侧预览优先展示正向提示词正文而非版本备注', async () => {
+        const items = buildItems(1);
+        items[0].versions[0].prompt = '海边灯塔，油画质感，金色日落，细腻笔触';
+        items[0].versions[0].note = '从 ChatGPT 对话导入';
+        getStorageMock.mockReturnValue(createStorageMock(items));
+
+        const { pageEl } = await mountLibraryPage();
+
+        expect(pageEl.querySelector('.pc-library-preview-section h4')?.textContent).toBe('正向提示词');
+        expect(pageEl.querySelector('.pc-library-preview-section p')?.textContent).toBe('海边灯塔，油画质感，金色日落，细腻笔触');
+    });
 });

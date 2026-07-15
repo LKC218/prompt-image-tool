@@ -15,6 +15,10 @@ const pcUtilsMocks = vi.hoisted(() => ({
     showModal: vi.fn(),
     closeModal: vi.fn(),
     showConfirmModal: vi.fn(),
+    showContextMenu: vi.fn(),
+    hideContextMenu: vi.fn(),
+    showImageViewer: vi.fn(),
+    copyToClipboard: vi.fn(),
 }));
 
 vi.mock('./storage.js', () => ({
@@ -31,6 +35,10 @@ vi.mock('./pc-utils.js', () => ({
     showModal: pcUtilsMocks.showModal,
     closeModal: pcUtilsMocks.closeModal,
     showConfirmModal: pcUtilsMocks.showConfirmModal,
+    showContextMenu: pcUtilsMocks.showContextMenu,
+    hideContextMenu: pcUtilsMocks.hideContextMenu,
+    showImageViewer: pcUtilsMocks.showImageViewer,
+    copyToClipboard: pcUtilsMocks.copyToClipboard,
     escapeHtml: (value = '') => String(value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -190,5 +198,64 @@ describe('PC 编辑页保存流程', () => {
         const wrapper = document.createElement('div');
         wrapper.innerHTML = editorPage.render({ id: 'prompt-1' });
         expect(wrapper.querySelector('#pcEditorClearAll')).toBeNull();
+    });
+
+    it('比例选项包含并可选择21:9', async () => {
+        const pageEl = await mountEditor();
+        const ratioBtn = [...pageEl.querySelectorAll('.pc-editor-ratio-btn')]
+            .find(btn => btn.dataset.ratio === '21:9');
+
+        expect(ratioBtn).toBeTruthy();
+        ratioBtn.click();
+
+        expect(ratioBtn.classList.contains('pc-editor-ratio-active')).toBe(true);
+        expect(ratioBtn.getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('选中文本后自动弹出菜单并同步删除数据', async () => {
+        vi.useFakeTimers();
+        pcUtilsMocks.showContextMenu.mockResolvedValueOnce('delete');
+        const pageEl = await mountEditor();
+        const positiveInput = pageEl.querySelector('#pcEditorPositive');
+        positiveInput.value = '保留删除保留';
+        positiveInput.focus();
+        positiveInput.setSelectionRange(2, 4);
+
+        positiveInput.dispatchEvent(new Event('select', {
+            bubbles: true,
+        }));
+        await vi.advanceTimersByTimeAsync(180);
+
+        expect(pcUtilsMocks.showContextMenu).toHaveBeenCalledTimes(1);
+        expect(pcUtilsMocks.showContextMenu).toHaveBeenCalledWith(
+            expect.any(Number),
+            expect.any(Number),
+            expect.any(Array),
+            expect.objectContaining({
+                focusMenu: false,
+                referenceRect: expect.objectContaining({ width: expect.any(Number), height: expect.any(Number) }),
+                placement: expect.objectContaining({ preferredSide: 'top', gap: 20, safeMargin: 24 })
+            })
+        );
+        expect(pcUtilsMocks.showContextMenu.mock.calls[0][2]).toEqual(expect.arrayContaining([
+            expect.objectContaining({ action: 'copy', tone: 'copy' }),
+            expect.objectContaining({ action: 'paste', tone: 'paste' }),
+            expect.objectContaining({ action: 'delete', tone: 'delete' })
+        ]));
+        expect(positiveInput.value).toBe('保留保留');
+        expect(pageEl.querySelector('#pcPositiveCount').textContent).toBe(`4/6666`);
+        vi.useRealTimers();
+    });
+
+    it('右键选区不再触发项目操作菜单', async () => {
+        const pageEl = await mountEditor();
+        const positiveInput = pageEl.querySelector('#pcEditorPositive');
+        positiveInput.value = '右键不触发';
+        positiveInput.setSelectionRange(0, 2);
+
+        positiveInput.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
+        await flush();
+
+        expect(pcUtilsMocks.showContextMenu).not.toHaveBeenCalled();
     });
 });

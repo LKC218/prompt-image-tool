@@ -1,7 +1,7 @@
 import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showContextMenu, setContextMenuTargetId, escapeHtml, formatRelativeTime } from './pc-utils.js';
-import { aggregateTags } from './tag-utils.js';
+import { aggregateTags, getPcTagStyleClass } from './tag-utils.js';
 import { getPromptSetMenuItems } from './pc-menu-actions.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { isPromptImageToolImportStorageError, stagePromptImageToolImport } from './prompt-tool-json-import.js';
@@ -22,7 +22,8 @@ function playFavoriteFeedback(button, isFavorite) {
     button.classList.remove('pc-star-btn--favorited', 'pc-star-btn--unfavorited');
     void button.offsetWidth;
     button.classList.add(isFavorite ? 'pc-star-btn--favorited' : 'pc-star-btn--unfavorited');
-    button.addEventListener('animationend', () => {
+    button.addEventListener('animationend', (event) => {
+        if (event.target !== button) return;
         button.classList.remove('pc-star-btn--favorited', 'pc-star-btn--unfavorited');
     }, { once: true });
 }
@@ -35,8 +36,6 @@ const CATEGORY_COLORS = [
     '#3D9942',
     '#E07020',
 ];
-
-const TAG_COLORS = ['pc-tag-blue', 'pc-tag-pink', 'pc-tag-green', 'pc-tag-yellow', 'pc-tag-purple'];
 
 function assetIcon(src, className = 'pc-home-asset-icon') {
     return `<img src="${src}" alt="" class="${className}" aria-hidden="true">`;
@@ -229,19 +228,19 @@ function renderRecentList(pageEl, promptSets) {
         const tags = getTags(item).slice(0, 3);
         const isFavorite = item.isFavorite === true;
         return `
-            <div class="pc-recent-item" data-id="${item.id}">
+            <div class="pc-recent-item" data-id="${item.id}" data-cursor="action">
                 ${renderRecentThumb(item)}
                 <div class="pc-recent-info">
                     <div class="pc-recent-name">${escapeHtml(item.name)}</div>
                     <div class="pc-recent-tags">
                         <span class="pc-tag-pill pc-tag-default">${escapeHtml(getFolderName(item))}</span>
-                        ${tags.map((t, i) => `<span class="pc-tag-pill ${TAG_COLORS[i % TAG_COLORS.length]}">${escapeHtml(t)}</span>`).join('')}
+                        ${tags.map(t => `<span class="pc-tag-pill ${getPcTagStyleClass(t)}">${escapeHtml(t)}</span>`).join('')}
                     </div>
                     <div class="pc-recent-time">${formatRelativeTime(item.updatedAt)}</div>
                 </div>
                 <div class="pc-recent-actions">
                     <button type="button" class="pc-star-btn ${isFavorite ? 'pc-starred' : ''}" data-id="${item.id}" aria-pressed="${isFavorite}" aria-label="${isFavorite ? '取消收藏' : '收藏'}" title="${isFavorite ? '取消收藏' : '收藏'}">${ICONS.star}</button>
-                    <button class="pc-more-btn" data-id="${item.id}" aria-label="更多操作" title="更多操作">${ICONS.more}</button>
+                    <button class="pc-more-btn" data-id="${item.id}" aria-label="更多操作" aria-haspopup="menu" aria-expanded="false" title="更多操作"><span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span></button>
                 </div>
             </div>
         `;
@@ -403,7 +402,7 @@ function setupHomeEvents(pageEl) {
                 onActionDone: () => loadHomeData(pageEl)
             });
             const rect = moreBtn.getBoundingClientRect();
-            const action = await showContextMenu(rect.right, rect.bottom, items);
+            const action = await showContextMenu(rect.right + 8, rect.bottom + 8, items, { anchor: moreBtn, source: 'more' });
             if (action) {
                 const menuItem = items.find(i => i.action === action);
                 if (menuItem && menuItem.handler) menuItem.handler();

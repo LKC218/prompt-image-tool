@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getTagStyleClass, aggregateTags, getCustomTags, saveCustomTag, removeCustomTag } from './tag-utils.js';
+import { getLibraryTagStyleClass, getPcTagStyleClass, getTagStyleClass, getTagStyleToken, aggregateTags, getCustomTags, saveCustomTag, removeCustomTag } from './tag-utils.js';
 
 describe('tag-utils', () => {
     beforeEach(() => {
@@ -18,6 +18,30 @@ describe('tag-utils', () => {
         it('should return default style for unknown tags', () => {
             expect(getTagStyleClass('自定义')).toBe('m-tag-default');
             expect(getTagStyleClass('')).toBe('m-tag-default');
+        });
+    });
+
+    describe('platform tag style classes', () => {
+        it('should return shared semantic tokens', () => {
+            expect(getTagStyleToken('场景')).toBe('scene');
+            expect(getTagStyleToken('自定义')).toBe('default');
+        });
+
+        it('should return PC classes from the same semantic token', () => {
+            expect(getPcTagStyleClass('场景')).toBe('pc-tag-scene');
+            expect(getPcTagStyleClass('自定义')).toBe('pc-tag-default');
+        });
+    });
+
+    describe('library tag style classes', () => {
+        it('should return fixed colors for known library tags', () => {
+            expect(getLibraryTagStyleClass('UI提示词指令')).toBe('pc-library-tag-blue');
+            expect(getLibraryTagStyleClass('ChatGPT导入')).toBe('pc-library-tag-purple');
+        });
+
+        it('should keep unknown library tag colors stable', () => {
+            expect(getLibraryTagStyleClass('测试标签')).toBe(getLibraryTagStyleClass('测试标签'));
+            expect(getLibraryTagStyleClass('')).toBe('pc-library-tag-default');
         });
     });
 

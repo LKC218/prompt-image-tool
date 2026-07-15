@@ -4,9 +4,9 @@ import { downloadImage } from './image-download-utils.js';
 
 let contextMenuTargetId = null;
 let folderContextMenuTargetId = null;
-let contextMenuJustOpened = false;
-let activeContextMenuHandler = null;
-let activeContextMenuObserver = null;
+let contextMenuSession = null;
+let contextMenuOpenTimer = null;
+let contextMenuEventsBound = false;
 const IMAGE_VIEWER_MIN_SCALE = 1;
 const IMAGE_VIEWER_MAX_SCALE = 5;
 const IMAGE_VIEWER_WHEEL_STEP = 1.12;
@@ -100,86 +100,199 @@ function showConfirmModal(message, onConfirm) {
     });
 }
 
-function showContextMenu(x, y, items) {
+function prepareMoreButton(button) {
+    if (!button || button.querySelector('.pc-more-dots')) return;
+    button.innerHTML = '<span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span>';
+}
+
+function getContextMenuPlacement(menu, x, y, anchor, options = {}) {
+    const referenceRect = options.referenceRect;
+    const placementOptions = options.placement || {};
+    const margin = placementOptions.safeMargin ?? 8;
+    const gap = placementOptions.gap ?? 8;
+    const rect = menu.getBoundingClientRect();
+    const anchorRect = anchor?.getBoundingClientRect();
+    if (referenceRect) {
+        const centerX = referenceRect.left + referenceRect.width / 2;
+        const preferredSide = placementOptions.preferredSide ?? 'top';
+        const fallbackSide = placementOptions.fallbackSide ?? 'bottom';
+        const availableAbove = referenceRect.top - gap - margin;
+        const availableBelow = window.innerHeight - margin - referenceRect.bottom - gap;
+        const openAbove = preferredSide === 'top'
+            ? (availableAbove >= rect.height || (availableBelow < rect.height && availableAbove >= availableBelow))
+            : !(availableBelow >= rect.height || (availableAbove < rect.height && availableBelow >= availableAbove));
+        const preferredX = centerX - rect.width / 2;
+        const preferredY = openAbove
+            ? referenceRect.top - gap - rect.height
+            : referenceRect.bottom + gap;
+
+        menu.classList.remove('pc-context-extend-left', 'pc-context-extend-right');
+        menu.classList.toggle('pc-context-open-above', openAbove);
+        menu.classList.toggle('pc-context-open-below', !openAbove);
+        menu.dataset.contextPlacement = openAbove ? preferredSide : fallbackSide;
+
+        return {
+            left: Math.max(margin, Math.min(preferredX, window.innerWidth - rect.width - margin)),
+            top: Math.max(margin, Math.min(preferredY, window.innerHeight - rect.height - margin))
+        };
+    }
+    const extendLeft = anchorRect
+        ? anchorRect.left + anchorRect.width / 2 >= window.innerWidth / 2
+        : x >= window.innerWidth / 2;
+    const openAbove = anchorRect
+        ? anchorRect.bottom + gap + rect.height > window.innerHeight - margin && anchorRect.top - gap - rect.height >= margin
+        : y + rect.height > window.innerHeight - margin && y - rect.height >= margin;
+    const preferredX = anchorRect
+        ? (extendLeft ? anchorRect.right - rect.width : anchorRect.left)
+        : (extendLeft ? x - rect.width : x);
+    const preferredY = anchorRect
+        ? (openAbove ? anchorRect.top - gap - rect.height : anchorRect.bottom + gap)
+        : (openAbove ? y - rect.height : y);
+
+    menu.classList.toggle('pc-context-extend-left', extendLeft);
+    menu.classList.toggle('pc-context-extend-right', !extendLeft);
+    menu.classList.toggle('pc-context-open-above', openAbove);
+    menu.classList.toggle('pc-context-open-below', !openAbove);
+    delete menu.dataset.contextPlacement;
+
+    return {
+        left: Math.max(margin, Math.min(preferredX, window.innerWidth - rect.width - margin)),
+        top: Math.max(margin, Math.min(preferredY, window.innerHeight - rect.height - margin))
+    };
+}
+
+function clearContextMenuSession(result = null, restoreFocus = true) {
+    if (contextMenuOpenTimer) {
+        clearTimeout(contextMenuOpenTimer);
+        contextMenuOpenTimer = null;
+    }
+
+    const session = contextMenuSession;
+    contextMenuSession = null;
+    if (!session) return;
+
+    session.anchor?.classList.remove('pc-more-btn-opening', 'pc-more-btn-active');
+    session.anchor?.setAttribute('aria-expanded', 'false');
+    if (restoreFocus && session.restoreFocusElement?.isConnected) session.restoreFocusElement.focus({ preventScroll: true });
+    session.resolve(result);
+}
+
+function bindContextMenuEvents() {
+    if (contextMenuEventsBound) return;
+    contextMenuEventsBound = true;
+
+    document.addEventListener('pointerdown', (e) => {
+        const menu = document.getElementById('pcContextMenu');
+        if (!menu?.classList.contains('pc-context-active')) return;
+        if (menu.contains(e.target) || contextMenuSession?.anchor?.contains(e.target)) return;
+        hideContextMenu();
+    });
+    document.addEventListener('scroll', () => hideContextMenu(), true);
+    document.addEventListener('keydown', (e) => {
+        const menu = document.getElementById('pcContextMenu');
+        if (!menu?.classList.contains('pc-context-active')) return;
+        const buttons = [...menu.querySelectorAll('.pc-context-action')];
+        const currentIndex = buttons.indexOf(document.activeElement);
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            hideContextMenu();
+        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            const direction = e.key === 'ArrowDown' ? 1 : -1;
+            buttons[(currentIndex + direction + buttons.length) % buttons.length]?.focus();
+        } else if ((e.key === 'Enter' || e.key === ' ') && currentIndex >= 0) {
+            e.preventDefault();
+            buttons[currentIndex].click();
+        }
+    });
+}
+
+function showContextMenu(x, y, items, options = {}) {
     let menu = document.getElementById('pcContextMenu');
     if (!menu) {
         menu = document.createElement('div');
         menu.className = 'pc-context-menu';
         menu.id = 'pcContextMenu';
+        menu.setAttribute('role', 'menu');
         const app = getPcApp();
         if (app) app.appendChild(menu);
         else document.body.appendChild(menu);
-        document.addEventListener('click', (e) => {
-            if (contextMenuJustOpened) {
-                contextMenuJustOpened = false;
-                return;
-            }
-            if (!e.target.closest('.pc-context-menu')) hideContextMenu();
-        });
-        document.addEventListener('scroll', () => hideContextMenu(), true);
     }
+    bindContextMenuEvents();
 
-    if (activeContextMenuHandler) {
-        menu.removeEventListener('click', activeContextMenuHandler);
-        activeContextMenuHandler = null;
+    const anchor = options.anchor instanceof Element ? options.anchor : null;
+    const restoreFocusElement = options.restoreFocusElement instanceof Element ? options.restoreFocusElement : anchor;
+    const preserveFocus = options.focusMenu === false;
+    if (contextMenuSession?.anchor === anchor) {
+        hideContextMenu();
+        return Promise.resolve(null);
     }
-    if (activeContextMenuObserver) {
-        activeContextMenuObserver.disconnect();
-        activeContextMenuObserver = null;
-    }
-
-    menu.innerHTML = items.map(item => {
-        if (item.divider) return '<div class="pc-context-divider"></div>';
-        const tone = item.tone ? ` pc-context-tone-${item.tone}` : '';
-        return `<div class="pc-context-item${tone} ${item.danger ? 'pc-context-danger' : ''}" data-action="${item.action}">
-            ${item.icon ? `<span class="pc-context-icon${tone}">${item.icon}</span>` : ''}
-            <span>${item.label}</span>
-        </div>`;
-    }).join('');
-
-    menu.style.visibility = 'hidden';
-    menu.classList.add('pc-context-active');
-
-    const rect = menu.getBoundingClientRect();
-    const maxX = window.innerWidth - rect.width - 8;
-    const maxY = window.innerHeight - rect.height - 8;
-    menu.style.left = Math.min(x, maxX) + 'px';
-    menu.style.top = Math.min(y, maxY) + 'px';
-    menu.style.visibility = '';
-
-    contextMenuJustOpened = true;
+    hideContextMenu(null, false);
 
     return new Promise((resolve) => {
-        const clickHandler = (e) => {
-            const item = e.target.closest('.pc-context-item');
-            if (item) {
-                e.stopPropagation();
-                hideContextMenu();
-                menu.removeEventListener('click', clickHandler);
-                activeContextMenuHandler = null;
-                resolve(item.dataset.action);
+        contextMenuSession = { anchor, restoreFocusElement, preserveFocus, resolve };
+        const open = () => {
+            if (!contextMenuSession || contextMenuSession.resolve !== resolve) return;
+            menu.innerHTML = items.filter(item => !item.divider).map((item, index) => {
+                const tone = item.tone ? ` pc-context-tone-${item.tone}` : '';
+                return `<button type="button" class="pc-context-action${tone} ${item.danger ? 'pc-context-danger' : ''}" role="menuitem" data-action="${item.action}" style="--pc-context-index:${index}">
+                    <span class="pc-context-label">${item.label}</span>
+                    <span class="pc-context-icon${tone}">${item.icon || ''}</span>
+                </button>`;
+            }).join('');
+            menu.style.visibility = 'hidden';
+            menu.classList.add('pc-context-active');
+
+            const placement = getContextMenuPlacement(menu, x, y, anchor, options);
+            menu.style.left = `${placement.left}px`;
+            menu.style.top = `${placement.top}px`;
+            menu.style.visibility = '';
+            menu.classList.toggle('pc-context-preserve-focus', preserveFocus);
+            anchor?.classList.remove('pc-more-btn-opening');
+            anchor?.classList.add('pc-more-btn-active');
+            anchor?.setAttribute('aria-expanded', 'true');
+            if (!preserveFocus) menu.querySelector('.pc-context-action')?.focus({ preventScroll: true });
+
+            menu.onpointerdown = (e) => {
+                if (contextMenuSession?.preserveFocus && e.target.closest('.pc-context-action')) {
+                    e.preventDefault();
+                }
+            };
+
+            menu.onclick = (e) => {
+                const action = e.target.closest('.pc-context-action')?.dataset.action;
+                if (!action) return;
+                hideContextMenu(action, false);
             }
         };
-        menu.addEventListener('click', clickHandler);
-        activeContextMenuHandler = clickHandler;
-
-        const observer = new MutationObserver(() => {
-            if (!menu.classList.contains('pc-context-active')) {
-                menu.removeEventListener('click', clickHandler);
-                activeContextMenuHandler = null;
-                observer.disconnect();
-                activeContextMenuObserver = null;
-                resolve(null);
+        if (options.source === 'more' && anchor) {
+            prepareMoreButton(anchor);
+            anchor.classList.remove('pc-more-btn-opening');
+            void anchor.offsetWidth;
+            anchor.classList.add('pc-more-btn-opening');
+            anchor.setAttribute('aria-controls', 'pcContextMenu');
+            anchor.setAttribute('aria-expanded', 'false');
+            if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+                open();
+            } else {
+                contextMenuOpenTimer = setTimeout(() => {
+                    contextMenuOpenTimer = null;
+                    open();
+                }, 220);
             }
-        });
-        observer.observe(menu, { attributes: true, attributeFilter: ['class'] });
-        activeContextMenuObserver = observer;
+        } else {
+            open();
+        }
     });
 }
 
-function hideContextMenu() {
+function hideContextMenu(result = null, restoreFocus = true) {
     const menu = document.getElementById('pcContextMenu');
-    if (menu) menu.classList.remove('pc-context-active');
+    if (menu) {
+        menu.classList.remove('pc-context-active', 'pc-context-preserve-focus');
+        menu.onpointerdown = null;
+    }
+    clearContextMenuSession(result, restoreFocus);
 }
 
 function setContextMenuTargetId(id) {

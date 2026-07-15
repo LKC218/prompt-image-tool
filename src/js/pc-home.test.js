@@ -24,6 +24,9 @@ describe('PC 首页新拟态结构', () => {
         expect(pcCss).toContain('.pc-home-search-bar:focus-within');
         expect(pcCss).toContain('.pc-home-category-card:active');
         expect(pcCss).toContain('.pc-home-category-card::before');
+        expect(pcCss).toContain('.pc-home-category-card:hover::before');
+        expect(pcCss).toContain('.pc-home-category-card:hover .pc-home-category-icon');
+        expect(pcCss).toContain('.pc-home-category-card:focus-visible');
         expect(pcCss).toContain('.pc-home-page .pc-home-quick-card-import:active');
         expect(pcCss).toContain('.pc-home-page .pc-star-btn:active');
         expect(pcCss).toContain('min-height: 96px;');
@@ -37,7 +40,13 @@ describe('PC 首页新拟态结构', () => {
         expect(pcHomeJs).toContain('playFavoriteFeedback(starBtn, nextState);');
         expect(pcHomeJs).toContain('setFavoriteButtonState(starBtn, previousState);');
         expect(pcCss).toContain('@keyframes pc-home-star-favorite');
+        expect(pcCss).toContain('@keyframes pc-home-star-favorite-icon');
+        expect(pcCss).toContain('@keyframes pc-home-star-ring');
+        expect(pcCss).toContain('@keyframes pc-home-star-particles');
         expect(pcCss).toContain('.pc-home-page .pc-star-btn--favorited');
+        expect(pcCss).toContain('.pc-home-page .pc-star-btn--favorited::before');
+        expect(pcCss).toContain('.pc-home-page .pc-star-btn--favorited::after');
+        expect(pcCss).toContain('.pc-home-page .pc-star-btn--unfavorited svg');
         expect(pcCss).toContain('.pc-home-page .pc-star-btn:disabled');
     });
 });

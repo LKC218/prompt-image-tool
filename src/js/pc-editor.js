@@ -1,7 +1,7 @@
 import { getStorage } from './storage.js';
 import { navigate, goBack } from './pc-app.js';
-import { showToast, showModal, closeModal, showConfirmModal, escapeHtml } from './pc-utils.js';
-import { aggregateTags } from './tag-utils.js';
+import { showToast, showModal, closeModal, showConfirmModal, showContextMenu, hideContextMenu, showImageViewer, copyToClipboard, escapeHtml } from './pc-utils.js';
+import { aggregateTags, getPcTagStyleClass } from './tag-utils.js';
 import { readFileAsDataURL, optimizeImageDataUrl } from './image-utils.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { pcIcon } from './pc-icon-assets.js';
@@ -37,7 +37,7 @@ let activeDraftKey = '';
 let draftStorageWarned = false;
 let isSaving = false;
 
-const RATIO_OPTIONS = ['1:1', '3:4', '4:3', '16:9', '9:16'];
+const RATIO_OPTIONS = ['1:1', '3:4', '4:3', '16:9', '9:16', '21:9'];
 const MAX_TITLE_LEN = 100;
 const MAX_POSITIVE_PROMPT_LEN = 6666;
 const MAX_NEGATIVE_PROMPT_LEN = 2000;
@@ -52,6 +52,7 @@ const IMAGE_OPTIMIZE_OPTIONS = {
     maxInputPixels: 40 * 1000 * 1000,
     outputType: 'image/webp'
 };
+const TEXT_SELECTION_MENU_DELAY = 180;
 
 const beforeUnloadHandler = (e) => {
     if (hasUnsavedChanges) {
@@ -508,11 +509,11 @@ function renderEditorContent(pageEl) {
                         </label>
                         <div class="pc-editor-image-area" id="pcEditorImageArea">
                             ${imageCount === 0 ? `
-                                <div class="pc-editor-image-placeholder" id="pcEditorImagePlaceholder">
+                                <button class="pc-editor-image-placeholder" id="pcEditorImagePlaceholder" type="button">
                                     <img class="pc-editor-image-placeholder-icon" src="${editorImagePlaceholderIconUrl}" alt="" aria-hidden="true">
                                     <span class="pc-editor-image-placeholder-text">点击上传图片</span>
                                     <span class="pc-editor-image-paste-hint">也可 Ctrl+V 粘贴外部图片</span>
-                                </div>
+                                </button>
                             ` : `
                                 <div class="pc-editor-image-paste-bar">
                                     <span>可继续 Ctrl+V 粘贴外部图片，图片会追加到末尾</span>
@@ -522,16 +523,16 @@ function renderEditorContent(pageEl) {
                                         const isExisting = idx < getExistingImages().length;
                                         const src = getLocalPreviewSrc(img);
                                         return `
-                                            <div class="pc-editor-image-thumb" data-img-idx="${idx}" data-img-existing="${isExisting}">
+                                            <div class="pc-editor-image-thumb" data-img-idx="${idx}" data-img-existing="${isExisting}" data-cursor="native" role="button" tabindex="0" aria-label="查看图片预览">
                                                 <img ${src ? `src="${escapeAttr(src)}"` : ''} alt="预览" loading="lazy" data-editor-image-idx="${idx}">
                                                 <button class="pc-editor-image-delete" data-img-idx="${idx}" data-img-existing="${isExisting}" type="button" aria-label="删除图片">${pcIcon('x', 'pc-editor-image-delete-icon')}</button>
                                             </div>
                                         `;
                                     }).join('')}
                                     ${canAddMore ? `
-                                        <div class="pc-editor-image-add" id="pcEditorImageAdd">
+                                        <button class="pc-editor-image-add" id="pcEditorImageAdd" type="button" aria-label="添加图片">
                                             ${pcIcon('plus', 'pc-editor-image-add-icon')}
-                                        </div>
+                                        </button>
                                     ` : ''}
                                 </div>
                             `}
@@ -543,7 +544,7 @@ function renderEditorContent(pageEl) {
                             <span class="pc-editor-prompt-label pc-editor-prompt-label-positive">
                                 ${pcIcon('sparkles', 'pc-editor-prompt-label-icon')}<span>正向提示词</span><span class="pc-editor-form-required">*</span>
                             </span>
-                            <button class="pc-editor-prompt-clear" id="pcClearPositive" ${!positivePrompt ? 'disabled' : ''}>清空</button>
+                            <button class="pc-editor-prompt-clear" id="pcClearPositive" type="button" ${!positivePrompt ? 'disabled' : ''}>清空</button>
                         </div>
                         <div class="pc-editor-textarea-wrap">
                             <textarea class="pc-editor-textarea" id="pcEditorPositive"
@@ -559,7 +560,7 @@ function renderEditorContent(pageEl) {
                             <span class="pc-editor-prompt-label pc-editor-prompt-label-negative">
                                 ${pcIcon('ban', 'pc-editor-prompt-label-icon')}<span>负向提示词</span>
                             </span>
-                            <button class="pc-editor-prompt-clear" id="pcClearNegative" ${!negativePrompt ? 'disabled' : ''}>清空</button>
+                            <button class="pc-editor-prompt-clear" id="pcClearNegative" type="button" ${!negativePrompt ? 'disabled' : ''}>清空</button>
                         </div>
                         <div class="pc-editor-textarea-wrap">
                             <textarea class="pc-editor-textarea" id="pcEditorNegative"
@@ -573,12 +574,12 @@ function renderEditorContent(pageEl) {
                         <label class="pc-editor-form-label"><span>标签</span></label>
                         <div class="pc-editor-tags-area" id="pcEditorTags">
                             ${formData.tags.map(t => `
-                                <span class="pc-editor-tag-pill pc-editor-tag-enter" data-tag="${escapeAttr(t)}">
+                                <span class="pc-editor-tag-pill ${getPcTagStyleClass(t)} pc-editor-tag-enter" data-tag="${escapeAttr(t)}">
                                     ${escapeHtml(t)}
                                     <button class="pc-editor-tag-remove" data-tag="${escapeAttr(t)}" type="button" aria-label="删除标签">${pcIcon('x', 'pc-editor-tag-remove-icon')}</button>
                                 </span>
                             `).join('')}
-                            <button class="pc-editor-add-tag-btn" id="pcAddTagBtn">${pcIcon('plus', 'pc-editor-add-tag-icon')}<span>添加标签</span></button>
+                            <button class="pc-editor-add-tag-btn" id="pcAddTagBtn" type="button">${pcIcon('plus', 'pc-editor-add-tag-icon')}<span>添加标签</span></button>
                         </div>
                     </div>
                 </div>
@@ -588,18 +589,18 @@ function renderEditorContent(pageEl) {
                 <div class="pc-editor-card">
                     <div class="pc-editor-form-group">
                         <label class="pc-editor-form-label"><span>分类</span></label>
-                        <div class="pc-select-card" id="pcEditorFolderSelect">
+                        <button class="pc-select-card pc-editor-folder-select" id="pcEditorFolderSelect" type="button" aria-haspopup="dialog" aria-label="选择分类">
                             <span class="pc-select-card-icon">${pcIcon('folder', 'pc-select-card-icon-img')}</span>
                             <span class="pc-select-card-text" id="pcEditorFolderText">${currentFolder ? escapeHtml(currentFolder.name) : (formData.folderId ? '未分类' : '选择分类')}</span>
                             <span class="pc-select-card-arrow">${pcIcon('chevronRight', 'pc-select-card-arrow-icon')}</span>
-                        </div>
+                        </button>
                     </div>
 
                     <div class="pc-editor-form-group">
                         <label class="pc-editor-form-label"><span>比例</span></label>
                         <div class="pc-editor-ratio-group" id="pcEditorRatio">
                             ${RATIO_OPTIONS.map(r => `
-                                <button class="pc-editor-ratio-btn ${r === aspectRatio ? 'pc-editor-ratio-active' : ''}" data-ratio="${r}">${r}</button>
+                                <button class="pc-editor-ratio-btn ${r === aspectRatio ? 'pc-editor-ratio-active' : ''}" data-ratio="${r}" type="button" aria-pressed="${r === aspectRatio}">${r}</button>
                             `).join('')}
                         </div>
                     </div>
@@ -711,8 +712,12 @@ function setupEditorEvents(pageEl) {
     pageEl.querySelector('#pcEditorRatio')?.addEventListener('click', (e) => {
         const btn = e.target.closest('.pc-editor-ratio-btn');
         if (!btn) return;
-        pageEl.querySelectorAll('.pc-editor-ratio-btn').forEach(b => b.classList.remove('pc-editor-ratio-active'));
+        pageEl.querySelectorAll('.pc-editor-ratio-btn').forEach(b => {
+            b.classList.remove('pc-editor-ratio-active');
+            b.setAttribute('aria-pressed', 'false');
+        });
         btn.classList.add('pc-editor-ratio-active');
+        btn.setAttribute('aria-pressed', 'true');
         if (formData.versions[0]) formData.versions[0].aspectRatio = btn.dataset.ratio;
         markEditorDirty();
     });
@@ -742,6 +747,7 @@ function setupEditorEvents(pageEl) {
 
     setupKeyboardShortcuts(pageEl);
     setupPasteHandler(pageEl);
+    setupTextSelectionContextMenu(pageEl);
 }
 
 function setupImagePreviewEvents(pageEl) {
@@ -775,6 +781,186 @@ function setupImagePreviewEvents(pageEl) {
             setupEditorEvents(pageEl);
         });
     });
+
+    pageEl.querySelectorAll('.pc-editor-image-thumb').forEach(thumb => {
+        const openViewer = () => openEditorImageViewer(thumb);
+        thumb.addEventListener('click', openViewer);
+        thumb.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            openViewer();
+        });
+    });
+}
+
+async function openEditorImageViewer(thumb) {
+    const index = Number.parseInt(thumb.dataset.imgIdx || '-1', 10);
+    const image = getAllImages()[index];
+    if (!image) return;
+
+    let src = getLocalPreviewSrc(image);
+    if (!src) {
+        try {
+            src = await getStorage().getImageUrl(image);
+        } catch (e) {
+            console.error('open editor image preview error:', e);
+        }
+    }
+    if (!src) {
+        showToast('图片预览加载失败', 'error');
+        return;
+    }
+    showImageViewer({
+        src,
+        filename: getImportedImageName(image),
+        image
+    });
+}
+
+function setupTextSelectionContextMenu(pageEl) {
+    clearTimeout(pageEl._editorTextSelectionTimer);
+    if (pageEl._editorTextSelectionHandler) {
+        pageEl.removeEventListener('select', pageEl._editorTextSelectionHandler, true);
+        pageEl.removeEventListener('pointerup', pageEl._editorTextSelectionHandler, true);
+        pageEl.removeEventListener('keyup', pageEl._editorTextSelectionHandler, true);
+        pageEl.removeEventListener('input', pageEl._editorTextSelectionHandler, true);
+        pageEl.removeEventListener('compositionstart', pageEl._editorTextSelectionHandler, true);
+        pageEl.removeEventListener('compositionend', pageEl._editorTextSelectionHandler, true);
+    }
+
+    pageEl._editorTextSelectionHandler = (e) => {
+        const input = e.target.closest('#pcEditorName, #pcEditorPositive, #pcEditorNegative');
+        if (!input) return;
+        if (e.type === 'compositionstart' || e.type === 'input') {
+            input.dataset.editorComposing = e.type === 'compositionstart' ? 'true' : '';
+            clearTimeout(pageEl._editorTextSelectionTimer);
+            pageEl._editorTextSelectionSignature = '';
+            hideContextMenu(null, false);
+            return;
+        }
+        if (e.type === 'compositionend') input.dataset.editorComposing = '';
+        queueEditorTextSelectionMenu(pageEl, input);
+    };
+    ['select', 'pointerup', 'keyup', 'input', 'compositionstart', 'compositionend'].forEach(type => {
+        pageEl.addEventListener(type, pageEl._editorTextSelectionHandler, true);
+    });
+}
+
+function queueEditorTextSelectionMenu(pageEl, input) {
+    clearTimeout(pageEl._editorTextSelectionTimer);
+    if (input.dataset.editorComposing === 'true' || input.selectionStart === input.selectionEnd) {
+        pageEl._editorTextSelectionSignature = '';
+        hideContextMenu(null, false);
+        return;
+    }
+    const signature = `${input.id}:${input.selectionStart}:${input.selectionEnd}`;
+    if (pageEl._editorTextSelectionSignature === signature) return;
+    pageEl._editorTextSelectionTimer = setTimeout(() => {
+        if (!input.isConnected || document.activeElement !== input || input.dataset.editorComposing === 'true') return;
+        if (input.selectionStart === input.selectionEnd) return;
+        pageEl._editorTextSelectionSignature = signature;
+        showEditorTextContextMenu(pageEl, input, getEditorTextSelectionRect(input));
+    }, TEXT_SELECTION_MENU_DELAY);
+}
+
+function getEditorTextSelectionRect(input) {
+    const rect = input.getBoundingClientRect();
+    const styles = getComputedStyle(input);
+    const mirror = document.createElement('div');
+    const marker = document.createElement('span');
+    const copiedStyles = [
+        'boxSizing', 'width', 'height', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle',
+        'letterSpacing', 'lineHeight', 'textTransform', 'textIndent', 'textAlign', 'wordSpacing',
+        'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderTopWidth',
+        'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth', 'whiteSpace', 'wordBreak',
+        'overflowWrap', 'tabSize', 'direction'
+    ];
+    copiedStyles.forEach(property => {
+        mirror.style[property] = styles[property];
+    });
+    mirror.style.position = 'fixed';
+    mirror.style.left = `${rect.left}px`;
+    mirror.style.top = `${rect.top}px`;
+    mirror.style.height = `${rect.height}px`;
+    mirror.style.overflow = 'hidden';
+    mirror.style.visibility = 'hidden';
+    mirror.style.pointerEvents = 'none';
+    mirror.style.zIndex = '-1';
+    mirror.style.whiteSpace = input instanceof HTMLTextAreaElement ? 'pre-wrap' : 'pre';
+    mirror.style.overflowWrap = 'break-word';
+    mirror.textContent = input.value.slice(0, input.selectionStart);
+    marker.textContent = input.value.slice(input.selectionStart, input.selectionEnd) || '\u200b';
+    mirror.appendChild(marker);
+    mirror.append(input.value.slice(input.selectionEnd));
+    document.body.appendChild(mirror);
+    mirror.scrollTop = input.scrollTop;
+    mirror.scrollLeft = input.scrollLeft;
+    const markerRects = [...marker.getClientRects()];
+    mirror.remove();
+    if (markerRects.length) {
+        const left = Math.min(...markerRects.map(item => item.left));
+        const right = Math.max(...markerRects.map(item => item.right));
+        const top = Math.min(...markerRects.map(item => item.top));
+        const bottom = Math.max(...markerRects.map(item => item.bottom));
+        return { left, right, top, bottom, width: right - left, height: bottom - top };
+    }
+    return {
+        left: rect.left + rect.width / 2,
+        right: rect.left + rect.width / 2,
+        top: rect.top + rect.height / 2,
+        bottom: rect.top + rect.height / 2,
+        width: 0,
+        height: 0
+    };
+}
+
+async function showEditorTextContextMenu(pageEl, input, selectionRect) {
+    const selectionStart = input.selectionStart;
+    const selectionEnd = input.selectionEnd;
+    const selectedText = input.value.slice(selectionStart, selectionEnd);
+    const action = await showContextMenu(selectionRect.left + selectionRect.width / 2, selectionRect.top, [
+        { action: 'copy', icon: pcIcon('clipboard'), label: '复制', tone: 'copy' },
+        { action: 'paste', icon: pcIcon('clipboard'), label: '粘贴', tone: 'paste' },
+        { action: 'delete', icon: pcIcon('x'), label: '删除', tone: 'delete', danger: true },
+    ], {
+        restoreFocusElement: input,
+        focusMenu: false,
+        referenceRect: selectionRect,
+        placement: {
+            preferredSide: 'top',
+            fallbackSide: 'bottom',
+            gap: 20,
+            safeMargin: 24
+        }
+    });
+    if (!action || !input.isConnected) {
+        pageEl._editorTextSelectionSignature = '';
+        return;
+    }
+
+    input.focus({ preventScroll: true });
+    input.setSelectionRange(selectionStart, selectionEnd);
+    pageEl._editorTextSelectionSignature = '';
+    if (action === 'copy') {
+        await copyToClipboard(selectedText);
+        return;
+    }
+    if (action === 'delete') {
+        replaceSelectedEditorText(input, '');
+        return;
+    }
+    try {
+        const text = await navigator.clipboard?.readText?.();
+        if (typeof text !== 'string') throw new Error('clipboard unavailable');
+        replaceSelectedEditorText(input, text);
+    } catch (e) {
+        showToast('无法读取剪贴板，请使用 Ctrl+V 粘贴', 'warning');
+    }
+}
+
+function replaceSelectedEditorText(input, text) {
+    input.setRangeText(text, input.selectionStart, input.selectionEnd, 'end');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function openImageFilePicker(pageEl) {
@@ -960,7 +1146,7 @@ function showTagPicker(pageEl) {
         ${tagNames.length > 0 ? `
             <div class="pc-tag-picker-grid">
                 ${tagNames.map(t => `
-                    <button class="pc-tag-picker-item pc-tag-default" data-tag="${escapeAttr(t)}">${escapeHtml(t)}</button>
+                    <button class="pc-tag-picker-item ${getPcTagStyleClass(t)}" data-tag="${escapeAttr(t)}">${escapeHtml(t)}</button>
                 `).join('')}
             </div>
         ` : ''}
@@ -1115,6 +1301,13 @@ function unmount(pageEl) {
     if (pageEl._editorPasteHandler) {
         pageEl.removeEventListener('paste', pageEl._editorPasteHandler);
         delete pageEl._editorPasteHandler;
+    }
+    clearTimeout(pageEl._editorTextSelectionTimer);
+    if (pageEl._editorTextSelectionHandler) {
+        ['select', 'pointerup', 'keyup', 'input', 'compositionstart', 'compositionend'].forEach(type => {
+            pageEl.removeEventListener(type, pageEl._editorTextSelectionHandler, true);
+        });
+        delete pageEl._editorTextSelectionHandler;
     }
     if (pageEl._editorKeyHandler) {
         document.removeEventListener('keydown', pageEl._editorKeyHandler);

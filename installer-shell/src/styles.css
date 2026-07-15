@@ -1,3 +1,9 @@
+@font-face {
+  font-family: "乐米小熊日记体";
+  src: url("./assets/fonts/乐米小熊日记体.ttf") format("truetype");
+  font-display: swap;
+}
+
 :root {
   color-scheme: light;
   --ink: #3a2116;
@@ -8,7 +14,8 @@
   --paper-line: rgba(199, 162, 111, 0.28);
   --window-shadow: 0 18px 42px rgba(66, 84, 101, 0.18);
   --button-shadow: 0 14px 24px rgba(43, 122, 228, 0.28);
-  font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+  --font-small: 12px;
+  font-family: "乐米小熊日记体", "Microsoft YaHei", "Segoe UI", sans-serif;
 }
 
 * {
@@ -221,7 +228,7 @@ button {
   margin-top: 3px;
   max-width: 252px;
   color: #3f332e;
-  font-size: 11px;
+  font-size: var(--font-small);
   font-weight: 600;
 }
 
@@ -423,7 +430,7 @@ button {
 .feature-copy small {
   margin-top: 7px;
   color: #5a5551;
-  font-size: 11px;
+  font-size: var(--font-small);
   line-height: 1.35;
   font-weight: 600;
 }
@@ -1464,7 +1471,7 @@ button {
 .tasks-summary small {
   margin-top: 6px;
   color: #5f5751;
-  font-size: 11px;
+  font-size: var(--font-small);
   line-height: 1.35;
   font-weight: 700;
 }
@@ -1475,7 +1482,7 @@ button {
 
 .tasks-summary dt {
   color: #928983;
-  font-size: 11px;
+  font-size: var(--font-small);
   line-height: 1.2;
   font-weight: 800;
 }
@@ -2380,7 +2387,7 @@ button {
 .complete-option-copy small {
   margin-top: 4px;
   color: #726a65;
-  font-size: 11px;
+  font-size: var(--font-small);
   line-height: 1.35;
   font-weight: 700;
 }
@@ -2426,7 +2433,7 @@ button {
   min-height: 16px;
   margin-top: 5px;
   color: #7a7069;
-  font-size: 11px;
+  font-size: var(--font-small);
   line-height: 1.35;
   font-weight: 700;
 }

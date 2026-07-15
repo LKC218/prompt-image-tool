@@ -5,6 +5,7 @@ import * as detailPage from './mobile-detail.js';
 import * as editorPage from './mobile-editor.js';
 import * as categoryPage from './mobile-category.js';
 import * as settingsPage from './mobile-settings.js';
+import { toggleFavoriteWithFeedback } from './favorite-feedback.js';
 import { DOWNLOAD_HISTORY_KEY, clearDownloadHistory } from './download-history.js';
 
 const storageMocks = vi.hoisted(() => ({
@@ -227,6 +228,47 @@ describe('移动端页面全功能回归冒烟', () => {
         click('.m-star-btn[data-id="prompt-1"]', pageEl);
         await flush();
         expect(storage.toggleFavorite).toHaveBeenCalledWith('prompt-1');
+    });
+
+    it('共享收藏反馈会乐观更新、锁定重复请求并在失败时回滚', async () => {
+        const button = document.createElement('button');
+        button.innerHTML = '<span>初始</span>';
+        let resolveToggle;
+        storage.toggleFavorite.mockImplementationOnce(() => new Promise(resolve => {
+            resolveToggle = resolve;
+        }));
+
+        const firstRequest = toggleFavoriteWithFeedback({
+            id: 'prompt-1',
+            button,
+            isFavorite: false,
+        });
+        const duplicateRequest = toggleFavoriteWithFeedback({
+            id: 'prompt-1',
+            button,
+            isFavorite: true,
+        });
+
+        expect(button.getAttribute('aria-pressed')).toBe('true');
+        expect(button.getAttribute('aria-busy')).toBe('true');
+        expect(button.disabled).toBe(true);
+        expect(duplicateRequest).resolves.toBeNull();
+        expect(storage.toggleFavorite).toHaveBeenCalledTimes(1);
+
+        resolveToggle({ isFavorite: true });
+        await firstRequest;
+        expect(button.getAttribute('aria-pressed')).toBe('true');
+        expect(button.hasAttribute('aria-busy')).toBe(false);
+        expect(button.disabled).toBe(false);
+
+        storage.toggleFavorite.mockRejectedValueOnce(new Error('失败'));
+        await toggleFavoriteWithFeedback({
+            id: 'prompt-2',
+            button,
+            isFavorite: true,
+        });
+        expect(button.getAttribute('aria-pressed')).toBe('true');
+        expect(mobileUtilsMocks.showMobileToast).toHaveBeenLastCalledWith('操作失败，已恢复原状态', 'error');
     });
 
     it('提示词库支持筛选、搜索、详情跳转、收藏和导出入口', async () => {
