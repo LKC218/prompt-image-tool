@@ -9,6 +9,7 @@ import {
     normalizeChatGptVaultConversationImport,
     stageChatGptVaultConversationImport,
 } from './prompt-tool-json-import.js';
+import { renderVersionInfo } from './version-info.js';
 import corgiSettings from '../assets/mobile/mascots/corgi-settings.png';
 import dataIcon from '../assets/mobile/data.png';
 import saveIcon from '../assets/mobile/save.png';
@@ -116,6 +117,7 @@ function render(params = {}) {
                         <span class="m-storage-label" id="mStorageQuota">可用 / 未知</span>
                     </div>
                 </div>
+                ${renderVersionInfo({ className: 'm-version-info' })}
             </div>
 
             <div class="m-section-gap">

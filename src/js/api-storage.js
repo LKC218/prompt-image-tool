@@ -138,6 +138,17 @@ export class ApiStorage {
         return this.api('POST', '/export-file', payload);
     }
 
+    async exportZipBackup(filename = '', options = {}) {
+        const payload = typeof filename === 'object'
+            ? filename
+            : { filename, ...options };
+        return this.api('POST', '/backup/zip/export', payload);
+    }
+
+    async previewZipBackup(path) {
+        return this.api('POST', '/backup/zip/preview', { path });
+    }
+
     async downloadImageFile(sourceFile = '', options = {}) {
         const payload = typeof sourceFile === 'object'
             ? sourceFile

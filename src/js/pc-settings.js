@@ -1,9 +1,10 @@
 import { getStorage, isCapacitor } from './storage.js';
 import { setAccent, navigate } from './pc-app.js';
 import { showToast, showConfirmModal, escapeHtml, formatBytes, copyToClipboard } from './pc-utils.js';
-import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
+import { buildExportSuccessMessage, exportBackup, exportZipBackup, getErrorMessage } from './backup-utils.js';
 import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel } from './download-history.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
+import { renderVersionInfo } from './version-info.js';
 import {
     isPromptImageToolImportStorageError,
     normalizeChatGptVaultConversationImport,
@@ -86,7 +87,7 @@ function render(params = {}) {
                         <span id="pcEnvValue">浏览器</span>
                         <span id="pcStorageType">本地存储</span>
                         <span class="pc-settings-data-dir" id="pcDataDirValue" title="">数据目录检测中</span>
-                        <span>v<span id="pcVersionValue">3.0.0</span></span>
+                        ${renderVersionInfo({ tag: 'span', className: 'pc-version-info', label: '' })}
                     </div>
                 </section>
             </div>
@@ -94,7 +95,7 @@ function render(params = {}) {
             <section class="pc-settings-panel pc-settings-backup-panel" aria-labelledby="pcBackupTitle">
                 <div class="pc-settings-backup-head">
                     <h2 id="pcBackupTitle" class="pc-settings-panel-title">数据备份与恢复</h2>
-                    <div class="pc-settings-export-mode" role="radiogroup" aria-label="JSON 导出位置">
+                    <div class="pc-settings-export-mode" role="radiogroup" aria-label="备份导出位置">
                         <label class="pc-settings-export-mode-option">
                             <input type="radio" name="pcExportMode" value="downloads" checked>
                             <span>下载目录</span>
@@ -123,12 +124,13 @@ function render(params = {}) {
                     <button class="pc-settings-action-card pc-settings-action-purple" type="button" data-settings-action="export">
                         <span class="pc-settings-action-icon">${iconImg(exportJsonIcon)}</span>
                         <span class="pc-settings-action-copy">
-                            <strong>导出 JSON</strong>
-                            <small>默认保存到下载目录</small>
+                            <strong>导出完整备份</strong>
+                            <small>ZIP · 包含原图</small>
                         </span>
                     </button>
                 </div>
-                <p class="pc-settings-backup-hint">导出文件包含提示词、分类、版本与图片内容；选择自定义位置时会打开保存位置选择窗口。</p>
+                <button class="pc-btn pc-btn-secondary pc-btn-sm" type="button" data-settings-action="export-json">导出兼容 JSON</button>
+                <p class="pc-settings-backup-hint">完整备份使用 ZIP 保存原图；兼容 JSON 适用于旧版本和少量图片。选择自定义位置时会打开保存位置选择窗口。</p>
             </section>
 
             <section class="pc-settings-panel pc-settings-download-history-panel" aria-labelledby="pcDownloadHistoryTitle">
@@ -356,12 +358,6 @@ function loadDeviceInfo(pageEl) {
             else storageTypeEl.textContent = '本地存储';
         }
     }
-
-    try {
-        const version = document.querySelector('meta[name="version"]')?.content || '3.0.0';
-        const versionEl = pageEl.querySelector('#pcVersionValue');
-        if (versionEl) versionEl.textContent = version;
-    } catch (e) {}
 }
 
 function setupSettingsEvents(pageEl) {
@@ -384,6 +380,10 @@ function setupSettingsEvents(pageEl) {
             const action = btn.dataset.settingsAction;
             if (action === 'export') {
                 await handleExport(pageEl);
+                return;
+            }
+            if (action === 'export-json') {
+                await handleJsonExport(pageEl);
                 return;
             }
             if (action === 'import') {
@@ -428,13 +428,27 @@ async function handleExport(pageEl) {
     try {
         const storage = getStorage();
         const saveMode = pageEl.querySelector('input[name="pcExportMode"]:checked')?.value || 'downloads';
-        const result = await exportBackup(storage, { saveMode });
+        const result = await exportZipBackup(storage, { saveMode });
         if (!result.canceled) {
             showToast(buildExportSuccessMessage(result));
         }
     } catch (e) {
         console.error('export backup failed:', e);
         showToast(`导出失败：${getErrorMessage(e)}`, 'error');
+    }
+}
+
+async function handleJsonExport(pageEl) {
+    try {
+        const storage = getStorage();
+        const saveMode = pageEl.querySelector('input[name="pcExportMode"]:checked')?.value || 'downloads';
+        const result = await exportBackup(storage, { saveMode });
+        if (!result.canceled) {
+            showToast(buildExportSuccessMessage(result, '兼容 JSON 导出成功'));
+        }
+    } catch (e) {
+        console.error('export json backup failed:', e);
+        showToast(`兼容 JSON 导出失败：${getErrorMessage(e)}`, 'error');
     }
 }
 

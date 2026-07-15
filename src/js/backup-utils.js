@@ -1,5 +1,6 @@
 const JSON_MIME = 'application/json;charset=utf-8';
 const DEFAULT_PREFIX = 'prompt-backup';
+const ZIP_BACKUP_PREFIX = 'prompt-image-tool-backup';
 const DOWNLOAD_CLEANUP_DELAY_MS = 30000;
 
 function pad2(value) {
@@ -14,6 +15,16 @@ function buildBackupFilename(prefix = DEFAULT_PREFIX, date = new Date()) {
     const minute = pad2(date.getMinutes());
     const second = pad2(date.getSeconds());
     return `${prefix}-${year}-${month}-${day}-${hour}${minute}${second}.json`;
+}
+
+function buildZipBackupFilename(prefix = ZIP_BACKUP_PREFIX, date = new Date()) {
+    const year = date.getFullYear();
+    const month = pad2(date.getMonth() + 1);
+    const day = pad2(date.getDate());
+    const hour = pad2(date.getHours());
+    const minute = pad2(date.getMinutes());
+    const second = pad2(date.getSeconds());
+    return `${prefix}-${year}${month}${day}-${hour}${minute}${second}.zip`;
 }
 
 function formatBackupSize(bytes) {
@@ -280,6 +291,44 @@ async function exportBackup(storage, options = {}) {
     }
 }
 
+async function exportZipBackup(storage, options = {}) {
+    if (!storage || typeof storage.exportZipBackup !== 'function') {
+        throw new Error('当前运行环境暂不支持 ZIP 完整备份');
+    }
+    const filename = options.filename || buildZipBackupFilename(options.prefix || ZIP_BACKUP_PREFIX);
+    const saveMode = options.saveMode || 'downloads';
+    const result = await storage.exportZipBackup(filename, {
+        saveMode,
+        directory: options.directory,
+        targetPath: options.targetPath,
+    });
+    if (result?.canceled) {
+        return {
+            success: false,
+            canceled: true,
+            method: 'backend',
+            format: 'zip-v2',
+            saveMode,
+            filename: result.filename || filename,
+        };
+    }
+    return {
+        ...result,
+        success: true,
+        method: 'backend',
+        format: 'zip-v2',
+        saveMode: result.saveMode || saveMode,
+        filename: result.filename || filename,
+        stats: {
+            promptSetCount: result.promptSetCount || 0,
+            versionCount: result.versionCount || 0,
+            imageCount: result.imageCount || 0,
+            size: result.size || 0,
+            sizeLabel: formatBackupSize(result.size || 0),
+        },
+    };
+}
+
 function buildExportSuccessMessage(result, prefix = '导出成功') {
     const stats = result?.stats || {};
     const imageCount = stats.imageCount ?? 0;
@@ -301,8 +350,10 @@ function buildExportSuccessMessage(result, prefix = '导出成功') {
 
 export {
     buildBackupFilename,
+    buildZipBackupFilename,
     buildExportSuccessMessage,
     exportBackup,
+    exportZipBackup,
     formatBackupSize,
     getBackupStats,
     getErrorMessage,

@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
     buildBackupFilename,
+    buildZipBackupFilename,
     buildExportSuccessMessage,
     exportBackup,
+    exportZipBackup,
     getBackupStats,
     saveJsonBackup,
 } from './backup-utils.js';
@@ -62,6 +64,30 @@ describe('backup-utils', () => {
     it('生成带时间戳的备份文件名', () => {
         const date = new Date(2026, 4, 9, 8, 7, 6);
         expect(buildBackupFilename('prompt-backup', date)).toBe('prompt-backup-2026-05-09-080706.json');
+    });
+
+    it('生成 ZIP 完整备份文件名', () => {
+        const date = new Date(2026, 4, 9, 8, 7, 6);
+        expect(buildZipBackupFilename('prompt-image-tool-backup', date)).toBe('prompt-image-tool-backup-20260509-080706.zip');
+    });
+
+    it('调用后端导出 ZIP 完整备份', async () => {
+        const storage = {
+            exportZipBackup: vi.fn(async () => ({
+                filename: 'backup.zip',
+                path: 'D:\\backup.zip',
+                size: 2048,
+                imageCount: 2,
+                promptSetCount: 1,
+                versionCount: 1,
+            })),
+        };
+
+        const result = await exportZipBackup(storage, { filename: 'backup.zip', saveMode: 'custom' });
+
+        expect(storage.exportZipBackup).toHaveBeenCalledWith('backup.zip', expect.objectContaining({ saveMode: 'custom' }));
+        expect(result.format).toBe('zip-v2');
+        expect(result.stats.sizeLabel).toBe('2 KB');
     });
 
     it('统计提示词、版本、图片和文件大小', () => {

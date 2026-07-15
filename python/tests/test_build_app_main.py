@@ -59,6 +59,21 @@ def test_build_save_data_keeps_last_good_backup(tmp_path, monkeypatch):
     assert json.loads(Path(f"{data_file}.bak").read_text(encoding="utf-8")) == first_data
 
 
+def test_build_get_data_dir_uses_default_user_root_for_source_run(tmp_path, monkeypatch):
+    module = load_build_app_main()
+    app_data = tmp_path / "AppData" / "Roaming"
+    monkeypatch.delenv(module.DATA_DIR_ENV_VAR, raising=False)
+    monkeypatch.setenv("APPDATA", str(app_data))
+    monkeypatch.setattr(module.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(module, "get_app_dir", lambda: str(tmp_path / "Source"))
+    monkeypatch.setattr(module.sys, "frozen", False, raising=False)
+
+    expected_root = app_data / module.DATA_APP_NAME
+    assert module.get_data_dir() == str(expected_root)
+    assert (expected_root / "data" / "images").exists()
+    assert (expected_root / "data" / "backups").exists()
+
+
 def test_build_get_data_dir_uses_user_root_and_migrates_legacy_data(tmp_path, monkeypatch):
     module = load_build_app_main()
     install_dir = tmp_path / "Install"

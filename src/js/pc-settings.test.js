@@ -95,8 +95,10 @@ describe('PC 设置页下载历史', () => {
 
         const pageEl = await mountPage();
 
-        expect(pageEl.querySelectorAll('[data-settings-action]')).toHaveLength(3);
+        expect(pageEl.querySelectorAll('[data-settings-action]')).toHaveLength(4);
         expect(pageEl.querySelector('[data-settings-action="import-chatgpt-vault"]').textContent).toContain('导入 ChatGPT 对话');
+        expect(pageEl.querySelector('[data-settings-action="export"]').textContent).toContain('导出完整备份');
+        expect(pageEl.querySelector('[data-settings-action="export-json"]').textContent).toContain('导出兼容 JSON');
         expect(pageEl.querySelector('#pcDataDirValue').textContent).toContain('PromptImageManager');
 
         expect(pageEl.querySelector('#pcDownloadHistoryCount').textContent).toBe('1');

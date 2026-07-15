@@ -396,6 +396,65 @@
 }
 ```
 
+### POST /api/backup/zip/export
+
+导出 ZIP v2 完整备份。压缩包包含 `manifest.json`、分类与提示词 JSON，以及 `images/` 下的原始图片文件；图片按文件流写入 ZIP，不会转换为 Base64。JSON v1 的 `/api/export-file` 保持兼容。
+
+**请求体**：
+
+```json
+{
+  "filename": "prompt-image-tool-backup-20260715-113000.zip",
+  "saveMode": "downloads",
+  "directory": "D:\\Backups",
+  "targetPath": "D:\\Backups\\prompt-image-tool-backup-20260715-113000.zip"
+}
+```
+
+请求字段与 `/api/export-file` 一致，但后端会清洗文件名并补齐 `.zip`。ZIP 内 JSON 使用 DEFLATE，PNG、JPEG、WebP 和 GIF 使用存储模式，避免重复压缩。
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "format": "zip-v2",
+  "filename": "prompt-image-tool-backup-20260715-113000.zip",
+  "path": "C:\\Users\\User\\Downloads\\prompt-image-tool-backup-20260715-113000.zip",
+  "imageCount": 2,
+  "imageBytes": 123456,
+  "missingImageCount": 0
+}
+```
+
+### POST /api/backup/zip/preview
+
+预检本机可访问的 ZIP v2 备份路径，不修改当前数据。接口校验固定目录、格式版本、条目数量、解压后总大小、图片大小与 SHA-256 摘要；当前版本尚未开放 ZIP 恢复提交接口。
+
+**请求体**：
+
+```json
+{
+  "path": "D:\\Backups\\prompt-image-tool-backup-20260715-113000.zip"
+}
+```
+
+**响应**：
+
+```json
+{
+  "success": true,
+  "format": "zip-v2",
+  "version": 2,
+  "folderCount": 1,
+  "promptSetCount": 3,
+  "versionCount": 6,
+  "imageCount": 2,
+  "warnings": [],
+  "errors": []
+}
+```
+
 - `filename`：可选，后端会清洗非法字符并补齐 `.json`。
 - `saveMode`：可选，`downloads` 表示保存到系统下载目录，`custom` 表示自定义位置。
 - `directory`：可选，自定义保存目录；传入后会和清洗后的 `filename` 组成目标路径。

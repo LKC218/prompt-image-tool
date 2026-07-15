@@ -14,6 +14,7 @@ import time
 import secrets
 import hashlib
 import shutil
+import zipfile
 from datetime import datetime
 
 try:
@@ -45,29 +46,6 @@ def get_user_data_root():
             return os.path.join(os.path.abspath(os.path.expandvars(base_dir)), DATA_APP_NAME)
 
     return os.path.join(os.path.expanduser('~'), '.prompt-image-tool')
-
-
-def should_use_user_data_dir(app_dir):
-    if os.environ.get(DATA_DIR_ENV_VAR, '').strip():
-        return True
-    if getattr(sys, 'frozen', False):
-        return True
-    if os.environ.get('PROMPT_IMAGE_TOOL_FORCE_USER_DATA', '').strip() == '1':
-        return True
-
-    if platform.system() == 'Windows':
-        local_app_data = os.environ.get('LOCALAPPDATA')
-        if local_app_data:
-            try:
-                app_path = os.path.abspath(app_dir).lower()
-                installed_root = os.path.join(
-                    os.path.abspath(os.path.expandvars(local_app_data)),
-                    DATA_APP_NAME,
-                ).lower()
-                return app_path == installed_root or app_path.startswith(installed_root + os.sep)
-            except OSError:
-                return False
-    return False
 
 
 def data_dir_has_user_data(data_dir):
@@ -150,25 +128,11 @@ def get_frontend_dir():
 
 def get_data_dir():
     app_dir = get_app_dir()
-    if should_use_user_data_dir(app_dir):
-        user_root = get_user_data_root()
-        os.makedirs(os.path.join(user_root, 'data', 'images'), exist_ok=True)
-        os.makedirs(os.path.join(user_root, 'data', 'backups'), exist_ok=True)
-        migrate_legacy_data_if_needed(user_root, app_dir)
-        return user_root
-
-    test_dir = os.path.join(app_dir, 'data')
-    try:
-        os.makedirs(test_dir, exist_ok=True)
-        test_file = os.path.join(test_dir, '.write_test')
-        with open(test_file, 'w', encoding='utf-8') as f:
-            f.write('test')
-        os.remove(test_file)
-        return app_dir
-    except (PermissionError, OSError):
-        user_data = os.path.join(os.path.expanduser('~'), '.prompt-image-tool')
-        os.makedirs(os.path.join(user_data, 'data', 'images'), exist_ok=True)
-        return user_data
+    user_root = get_user_data_root()
+    os.makedirs(os.path.join(user_root, 'data', 'images'), exist_ok=True)
+    os.makedirs(os.path.join(user_root, 'data', 'backups'), exist_ok=True)
+    migrate_legacy_data_if_needed(user_root, app_dir)
+    return user_root
 
 
 APP_DIR = get_data_dir()
@@ -183,6 +147,13 @@ SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 8888
 EXPORT_SAVE_MODES = {'downloads', 'custom'}
 IMAGE_DOWNLOAD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+ZIP_BACKUP_FORMAT = 'prompt-image-tool-backup'
+ZIP_BACKUP_VERSION = 2
+ZIP_BACKUP_ALLOWED_ENTRIES = {'manifest.json', 'data/folders.json', 'data/prompt_sets.json'}
+ZIP_BACKUP_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+ZIP_BACKUP_MAX_ENTRIES = 10000
+ZIP_BACKUP_MAX_FILE_BYTES = 1024 * 1024 * 1024
+ZIP_BACKUP_MAX_UNCOMPRESSED_BYTES = 20 * 1024 * 1024 * 1024
 
 
 class DataFileError(RuntimeError):
@@ -450,6 +421,17 @@ def build_backup_filename(filename=None):
     return raw
 
 
+def build_zip_backup_filename(filename=None):
+    raw = os.path.basename(str(filename or '').strip())
+    if not raw:
+        raw = f"prompt-image-tool-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}.zip"
+    for char in '<>:"/\\|?*':
+        raw = raw.replace(char, '_')
+    if not raw.lower().endswith('.zip'):
+        raw += '.zip'
+    return raw
+
+
 def get_downloads_dir():
     if platform.system() == 'Windows':
         try:
@@ -478,6 +460,20 @@ def build_backup_target_path(filename=None, directory=None, target_path=None):
     if not directory:
         raise ValueError('导出目录不能为空')
 
+    os.makedirs(directory, exist_ok=True)
+    return os.path.join(directory, safe_name), safe_name, directory
+
+
+def build_zip_backup_target_path(filename=None, directory=None, target_path=None):
+    if target_path:
+        target_path = os.path.abspath(os.path.expanduser(str(target_path)))
+        directory = os.path.dirname(target_path)
+        safe_name = build_zip_backup_filename(os.path.basename(target_path))
+    else:
+        directory = os.path.abspath(os.path.expanduser(str(directory or get_downloads_dir())))
+        safe_name = build_zip_backup_filename(filename)
+    if not directory:
+        raise ValueError('导出目录不能为空')
     os.makedirs(directory, exist_ok=True)
     return os.path.join(directory, safe_name), safe_name, directory
 
@@ -515,6 +511,37 @@ def choose_backup_file_path(filename=None):
     thread.start()
     thread.join()
 
+    if result['error']:
+        raise result['error']
+    return result['path']
+
+
+def choose_zip_backup_file_path(filename=None):
+    result = {'path': None, 'error': None}
+    def run_dialog():
+        try:
+            import tkinter as tk
+            from tkinter import filedialog
+            root = tk.Tk()
+            root.withdraw()
+            root.update_idletasks()
+            try:
+                root.attributes('-topmost', True)
+                root.lift()
+                root.focus_force()
+            except tk.TclError:
+                pass
+            result['path'] = filedialog.asksaveasfilename(
+                parent=root, title='选择 ZIP 完整备份保存位置', initialdir=get_downloads_dir(),
+                initialfile=build_zip_backup_filename(filename), defaultextension='.zip',
+                filetypes=[('ZIP 备份文件', '*.zip'), ('所有文件', '*.*')],
+            ) or None
+            root.destroy()
+        except Exception as e:
+            result['error'] = e
+    thread = threading.Thread(target=run_dialog, daemon=True)
+    thread.start()
+    thread.join()
     if result['error']:
         raise result['error']
     return result['path']
@@ -676,6 +703,153 @@ def save_backup_file(filename=None, directory=None, target_path=None, save_mode=
         'promptSetCount': len(prompt_sets),
         'versionCount': count_backup_versions(prompt_sets),
         'imageCount': payload.get('backup_meta', {}).get('imageCount', 0),
+    }
+
+
+def calculate_file_sha256(filepath):
+    digest = hashlib.sha256()
+    with open(filepath, 'rb') as f:
+        while True:
+            chunk = f.read(1024 * 1024)
+            if not chunk:
+                break
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def build_zip_backup_content():
+    prompt_sets = json.loads(json.dumps(load_data(), ensure_ascii=False))
+    folders = load_folders()
+    images, missing_images, image_bytes = [], [], 0
+    for prompt_set in prompt_sets:
+        for version in prompt_set.get('versions', []):
+            for image in version.get('images', []):
+                image.pop('data', None)
+                image.pop('size', None)
+                image.pop('mimeType', None)
+                filename = os.path.basename(str(image.get('file') or ''))
+                if not filename:
+                    continue
+                source_path, safe_name = get_safe_image_path(filename)
+                extension = os.path.splitext(safe_name)[1].lower()
+                if extension not in ZIP_BACKUP_IMAGE_EXTENSIONS or not source_path or not os.path.isfile(source_path):
+                    missing_images.append({'id': image.get('id', ''), 'file': filename, 'reason': '图片文件不存在或格式不支持'})
+                    continue
+                byte_size = os.path.getsize(source_path)
+                images.append({
+                    'id': image.get('id', ''), 'file': safe_name, 'path': f'images/{safe_name}',
+                    'mimeType': get_image_content_type(safe_name), 'size': byte_size,
+                    'sha256': calculate_file_sha256(source_path), 'sourcePath': source_path,
+                })
+                image_bytes += byte_size
+    data_files = {'data/folders.json': folders, 'data/prompt_sets.json': prompt_sets}
+    manifest = {
+        'app': 'prompt-image-tool', 'format': ZIP_BACKUP_FORMAT, 'version': ZIP_BACKUP_VERSION,
+        'createdAt': datetime.now().isoformat(), 'foldersCount': len(folders),
+        'promptSetCount': len(prompt_sets), 'versionCount': count_backup_versions(prompt_sets),
+        'imageCount': len(images), 'imageBytes': image_bytes,
+        'images': [{key: value for key, value in image.items() if key != 'sourcePath'} for image in images],
+        'missingImages': missing_images,
+        'dataFiles': {path: hashlib.sha256(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode('utf-8')).hexdigest() for path, data in data_files.items()},
+    }
+    return manifest, data_files, images
+
+
+def save_zip_backup_file(filename=None, directory=None, target_path=None, save_mode='downloads'):
+    ensure_dirs()
+    save_mode = save_mode if save_mode in EXPORT_SAVE_MODES else 'downloads'
+    if save_mode == 'custom' and not directory and not target_path:
+        target_path = choose_zip_backup_file_path(filename)
+        if not target_path:
+            return {'success': False, 'canceled': True, 'method': 'backend', 'format': 'zip-v2', 'saveMode': save_mode, 'filename': build_zip_backup_filename(filename)}
+    filepath, safe_name, target_dir = build_zip_backup_target_path(filename, directory, target_path)
+    manifest, data_files, images = build_zip_backup_content()
+    with zipfile.ZipFile(filepath, 'w', allowZip64=True) as archive:
+        archive.writestr('manifest.json', json.dumps(manifest, ensure_ascii=False, indent=2), compress_type=zipfile.ZIP_DEFLATED)
+        for archive_path, data in data_files.items():
+            archive.writestr(archive_path, json.dumps(data, ensure_ascii=False, indent=2), compress_type=zipfile.ZIP_DEFLATED)
+        for image in images:
+            archive.write(image['sourcePath'], image['path'], compress_type=zipfile.ZIP_STORED)
+    return {
+        'success': True, 'filename': safe_name, 'path': filepath, 'directory': target_dir,
+        'method': 'backend', 'format': 'zip-v2', 'saveMode': save_mode,
+        'locationLabel': '下载目录' if save_mode == 'downloads' else '自定义位置', 'size': os.path.getsize(filepath),
+        'promptSetCount': manifest['promptSetCount'], 'versionCount': manifest['versionCount'],
+        'imageCount': manifest['imageCount'], 'imageBytes': manifest['imageBytes'],
+        'missingImageCount': len(manifest['missingImages']),
+    }
+
+
+def is_valid_zip_backup_entry(name):
+    if not name or '\\' in name or name.startswith('/') or name.startswith('../') or '/..' in name:
+        return False
+    if name in ZIP_BACKUP_ALLOWED_ENTRIES:
+        return True
+    return name.startswith('images/') and os.path.splitext(name)[1].lower() in ZIP_BACKUP_IMAGE_EXTENSIONS and '/' not in name[len('images/'):]
+
+
+def preview_zip_backup_file(filepath):
+    source_path = os.path.abspath(os.path.expanduser(str(filepath or '')))
+    if not source_path or not os.path.isfile(source_path) or not source_path.lower().endswith('.zip'):
+        raise ValueError('ZIP 备份文件不存在或格式不正确')
+    errors, warnings = [], []
+    archive_size = os.path.getsize(source_path)
+    with zipfile.ZipFile(source_path, 'r') as archive:
+        entries = archive.infolist()
+        uncompressed_size = sum(entry.file_size for entry in entries)
+        if len(entries) > ZIP_BACKUP_MAX_ENTRIES:
+            errors.append('备份条目数量超过限制')
+        if uncompressed_size > ZIP_BACKUP_MAX_UNCOMPRESSED_BYTES:
+            errors.append('备份解压后大小超过限制')
+        for entry in entries:
+            if entry.file_size > ZIP_BACKUP_MAX_FILE_BYTES:
+                errors.append(f'文件超过大小限制：{entry.filename}')
+            if not is_valid_zip_backup_entry(entry.filename):
+                errors.append(f'备份包含不允许的路径：{entry.filename}')
+        names = {entry.filename for entry in entries}
+        if not ZIP_BACKUP_ALLOWED_ENTRIES.issubset(names):
+            errors.append('备份缺少必要的数据文件')
+            manifest, folders, prompt_sets = {}, [], []
+        else:
+            try:
+                manifest = json.loads(archive.read('manifest.json').decode('utf-8'))
+                folders = json.loads(archive.read('data/folders.json').decode('utf-8'))
+                prompt_sets = json.loads(archive.read('data/prompt_sets.json').decode('utf-8'))
+            except (UnicodeDecodeError, json.JSONDecodeError, KeyError):
+                errors.append('备份清单或数据文件格式错误')
+                manifest, folders, prompt_sets = {}, [], []
+        if manifest.get('format') != ZIP_BACKUP_FORMAT or manifest.get('version') != ZIP_BACKUP_VERSION:
+            errors.append('不支持的 ZIP 备份格式或版本')
+        if not isinstance(folders, list) or not isinstance(prompt_sets, list):
+            errors.append('备份业务数据格式错误')
+        image_entries = [entry for entry in entries if entry.filename.startswith('images/')]
+        expected_images = manifest.get('images', []) if isinstance(manifest.get('images'), list) else []
+        expected_paths = {item.get('path') for item in expected_images if isinstance(item, dict)}
+        if expected_paths != {entry.filename for entry in image_entries}:
+            errors.append('图片清单与 ZIP 内容不一致')
+        for item in expected_images:
+            if not isinstance(item, dict):
+                errors.append('图片清单格式错误')
+            elif item.get('path') in names and archive.getinfo(item['path']).file_size != item.get('size'):
+                errors.append(f"图片大小校验失败：{item['path']}")
+            elif item.get('path') in names:
+                digest = hashlib.sha256()
+                with archive.open(item['path'], 'r') as image_file:
+                    while True:
+                        chunk = image_file.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        digest.update(chunk)
+                if digest.hexdigest() != item.get('sha256'):
+                    errors.append(f"图片摘要校验失败：{item['path']}")
+    missing_images = manifest.get('missingImages', []) if isinstance(manifest.get('missingImages'), list) else []
+    if missing_images:
+        warnings.append(f'备份导出时跳过了 {len(missing_images)} 张缺失图片')
+    return {
+        'success': not errors, 'format': 'zip-v2', 'version': manifest.get('version'),
+        'archiveSize': archive_size, 'uncompressedSize': uncompressed_size, 'folderCount': len(folders),
+        'promptSetCount': len(prompt_sets), 'versionCount': count_backup_versions(prompt_sets) if isinstance(prompt_sets, list) else 0,
+        'imageCount': len(image_entries), 'missingImageCount': len(missing_images), 'warnings': warnings, 'errors': errors,
     }
 
 
@@ -1176,6 +1350,10 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_export()
         elif path == '/api/export-file':
             self.handle_export_file()
+        elif path == '/api/backup/zip/export':
+            self.handle_zip_export_file()
+        elif path == '/api/backup/zip/preview':
+            self.handle_zip_preview()
         elif path == '/api/image-download-file':
             self.handle_image_download_file()
         elif path == '/api/import':
@@ -1646,6 +1824,33 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error_json(str(e), 400)
         except Exception as e:
             self.send_error_json(f'导出失败：{e}', 500)
+
+    def handle_zip_export_file(self):
+        body = self.read_body()
+        if not isinstance(body, dict):
+            body = {}
+        try:
+            self.send_json(save_zip_backup_file(
+                filename=body.get('filename'),
+                directory=body.get('directory'),
+                target_path=body.get('targetPath'),
+                save_mode=body.get('saveMode', 'downloads'),
+            ))
+        except ValueError as e:
+            self.send_error_json(str(e), 400)
+        except Exception as e:
+            self.send_error_json(f'ZIP 完整备份导出失败：{e}', 500)
+
+    def handle_zip_preview(self):
+        body = self.read_body()
+        if not isinstance(body, dict):
+            body = {}
+        try:
+            self.send_json(preview_zip_backup_file(body.get('path')))
+        except (ValueError, zipfile.BadZipFile) as e:
+            self.send_error_json(str(e) or 'ZIP 备份文件格式不正确', 400)
+        except Exception as e:
+            self.send_error_json(f'ZIP 备份预检失败：{e}', 500)
 
     def handle_image_download_file(self):
         body = self.read_body()

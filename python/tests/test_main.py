@@ -3,10 +3,12 @@ import os
 import json
 import tempfile
 import base64
+import hashlib
 import socketserver
 import threading
 import urllib.request
 import urllib.error
+import zipfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -15,6 +17,7 @@ from main import (
     load_data, save_data, save_folders, save_image, delete_image_file,
     ensure_dirs, AppHandler, APP_DIR, DATA_DIR, IMAGES_DIR, DATA_FILE,
     build_backup_payload, save_backup_file, save_image_download_file,
+    save_zip_backup_file, preview_zip_backup_file,
 )
 
 
@@ -56,6 +59,19 @@ def request_json_with_headers(url, data=None, method='GET', headers=None):
 
 
 class TestLoadSaveData:
+    def test_get_data_dir_uses_default_user_root_for_source_run(self, tmp_path, monkeypatch):
+        app_data = tmp_path / 'AppData' / 'Roaming'
+        monkeypatch.delenv(main_module.DATA_DIR_ENV_VAR, raising=False)
+        monkeypatch.setenv('APPDATA', str(app_data))
+        monkeypatch.setattr(main_module.platform, 'system', lambda: 'Windows')
+        monkeypatch.setattr(main_module, 'get_app_dir', lambda: str(tmp_path / 'Source'))
+        monkeypatch.setattr(main_module.sys, 'frozen', False, raising=False)
+
+        expected_root = app_data / main_module.DATA_APP_NAME
+        assert main_module.get_data_dir() == str(expected_root)
+        assert (expected_root / 'data' / 'images').exists()
+        assert (expected_root / 'data' / 'backups').exists()
+
     def test_get_data_dir_uses_env_override(self, tmp_path, monkeypatch):
         user_root = tmp_path / 'UserData'
         install_dir = tmp_path / 'Install'
@@ -296,6 +312,48 @@ class TestBackupExport:
         assert result['directory'] == str(tmp_path / 'custom')
         assert result['saveMode'] == 'custom'
         assert os.path.exists(result['path'])
+
+    def test_save_zip_backup_streams_images_and_preview_validates_manifest(self, tmp_path, monkeypatch):
+        images_dir = tmp_path / 'images'
+        monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(images_dir))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        images_dir.mkdir()
+        image_bytes = b'\x89PNG\r\nraw-image-bytes'
+        (images_dir / 'img1.png').write_bytes(image_bytes)
+        save_folders([{'id': 'folder1', 'name': '分类'}])
+        save_data([{
+            'id': 'set1',
+            'name': '测试集合',
+            'versions': [{'version': 'v1', 'images': [{'id': 'img1', 'file': 'img1.png'}]}],
+        }])
+
+        result = save_zip_backup_file('../full-backup', directory=str(tmp_path / 'exports'))
+
+        assert result['success'] is True
+        assert result['filename'] == 'full-backup.zip'
+        with zipfile.ZipFile(result['path']) as archive:
+            assert set(archive.namelist()) == {'manifest.json', 'data/folders.json', 'data/prompt_sets.json', 'images/img1.png'}
+            assert archive.getinfo('images/img1.png').compress_type == zipfile.ZIP_STORED
+            manifest = json.loads(archive.read('manifest.json'))
+            assert manifest['version'] == 2
+            assert manifest['images'][0]['sha256'] == hashlib.sha256(image_bytes).hexdigest()
+            assert archive.read('images/img1.png') == image_bytes
+
+        preview = preview_zip_backup_file(result['path'])
+        assert preview['success'] is True
+        assert preview['imageCount'] == 1
+
+    def test_preview_zip_backup_rejects_path_traversal(self, tmp_path):
+        archive_path = tmp_path / 'unsafe.zip'
+        with zipfile.ZipFile(archive_path, 'w') as archive:
+            archive.writestr('../escape.txt', 'unsafe')
+
+        preview = preview_zip_backup_file(str(archive_path))
+
+        assert preview['success'] is False
+        assert any('不允许的路径' in message for message in preview['errors'])
 
     def test_post_export_file_accepts_custom_directory(self, tmp_path, monkeypatch):
         monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'prompt_sets.json'))

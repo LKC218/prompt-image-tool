@@ -239,6 +239,26 @@ describe('ApiStorage', () => {
             }));
         });
 
+        it('exportZipBackup should call ZIP export endpoint', async () => {
+            await storage.exportZipBackup('backup.zip', { saveMode: 'custom', directory: 'D:\\Backups' });
+            expect(mockFetch).toHaveBeenCalledWith('/api/backup/zip/export', expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({
+                    filename: 'backup.zip',
+                    saveMode: 'custom',
+                    directory: 'D:\\Backups',
+                }),
+            }));
+        });
+
+        it('previewZipBackup should call ZIP preview endpoint', async () => {
+            await storage.previewZipBackup('D:\\Backups\\backup.zip');
+            expect(mockFetch).toHaveBeenCalledWith('/api/backup/zip/preview', expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({ path: 'D:\\Backups\\backup.zip' }),
+            }));
+        });
+
         it('downloadImageFile should call POST /api/image-download-file with save options', async () => {
             await storage.downloadImageFile('preview.png', { filename: 'download.png', saveMode: 'custom' });
             expect(mockFetch).toHaveBeenCalledWith('/api/image-download-file', expect.objectContaining({

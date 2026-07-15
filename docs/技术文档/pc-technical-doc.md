@@ -142,7 +142,7 @@ Tauri 启动
 ### 5.2 数据目录
 
 ```
-开发模式应用目录，或安装版用户级目录 `%APPDATA%\PromptImageManager`
+用户级目录 `%APPDATA%\PromptImageManager`
 ├── data/
 │   ├── prompt_sets.json     # 所有集合数据（JSON）
 │   ├── folders.json         # 文件夹数据（JSON）
@@ -158,12 +158,11 @@ Tauri 启动
 
 [main.py](../../python/main.py) `get_data_dir()` 函数：
 
-1. 开发模式默认继续在应用目录下创建 `data/`，便于本地调试。
-2. 安装版、显式开启 `PROMPT_IMAGE_TOOL_FORCE_USER_DATA=1`，或设置 `PROMPT_IMAGE_TOOL_DATA_DIR` 时，优先使用用户级稳定目录。
-3. Windows 安装版默认用户级目录为 `%APPDATA%\PromptImageManager\data`。
-4. 如果旧安装目录 `$INSTDIR\data` 存在且用户级目录为空，启动时会复制迁移旧数据，并写入 `data-migration.json`。
-5. 如果用户级目录已有数据，则不会用旧安装目录覆盖，只记录跳过迁移。
-6. 若普通开发目录无法写入，仍回退到 `~/.prompt-image-tool`。
+1. 源码开发、安装版和打包版默认使用用户级稳定目录。
+2. Windows 默认数据目录为 `%APPDATA%\PromptImageManager\data`。
+3. 设置 `PROMPT_IMAGE_TOOL_DATA_DIR` 时，使用该目录作为显式覆盖，用于测试隔离或特殊部署。
+4. 如果旧应用目录 `data/` 存在且用户级目录为空，启动时会复制迁移旧数据，并写入 `data-migration.json`。
+5. 如果用户级目录已有数据，则不会用旧应用目录覆盖，只记录跳过迁移。
 
 ### 5.3.1 版本更新数据保护
 
@@ -275,9 +274,9 @@ PC 设置页的导入入口现在分成两个显式按钮：
 | 提示词编辑 | 正向提示词前端上限 6666 字符，反向提示词前端上限 2000 字符 | `pc-editor.js` |
 | 提示词预览 | 二级窗口完整预览 + 一键复制 | `app.js` → `openPromptPreview()` |
 | 图片上传 | 点击/拖拽上传，支持 PNG/JPG/WEBP/GIF | `app.js` → `ApiStorage` → Python API |
-| 图片查看 | 全屏查看，支持滚轮缩放、拖拽平移、双击缩放/复位、复位按钮、ESC/点击遮罩关闭；下载菜单提供“下载原格式”和“导出 JPG”，原格式下载可回退后端原生保存窗口，JPG 导出由前端 Canvas 转码并写入本地下载历史 | `pc-utils.js` → `showImageViewer()` → `image-download-utils.js` / `download-history.js` |
+| 图片查看 | 详情页封面读取当前版本图片列表，多图时显示横向缩略图条并支持缩略图、箭头和圆点切换；全屏查看支持滚轮缩放、拖拽平移、双击缩放/复位、复位按钮、ESC/点击遮罩关闭；下载菜单提供“下载原格式”和“导出 JPG”，原格式下载可回退后端原生保存窗口，JPG 导出由前端 Canvas 转码并写入本地下载历史 | `pc-detail.js` / `pc-utils.js` → `showImageViewer()` → `image-download-utils.js` / `download-history.js` |
 | 版本对比 | 并排对比两个版本的提示词和图片 | `app.js` → `toggleCompare()` |
-| 数据导入导出 | 完整备份 JSON，包含文件夹、提示词、版本和图片文件内容；设置页常驻入口收敛为“导入 JSON”“导入 ChatGPT 对话”和“导出 JSON”三个按钮；PC 默认导出到系统下载目录，自定义位置模式优先使用文件保存选择器，桌面 WebView 可由后端打开原生保存窗口；相同 ID 默认覆盖 | `pc-settings.js` / `backup-utils.js` → `ApiStorage` → Python API |
+| 数据导入导出 | 默认导出 ZIP v2 完整备份，包含 `manifest.json`、业务 JSON 与原始图片文件；设置页保留“导出兼容 JSON”用于 JSON v1。当前导入仍只支持 JSON v1，ZIP 已提供本机路径预检，待事务化恢复完成后开放。对话导入保持独立入口 | `pc-settings.js` / `backup-utils.js` → `ApiStorage` → Python API |
 | 图片下载历史 | 设置页展示最近图片下载记录，并支持一键清空历史 | `pc-settings.js` → `download-history.js` |
 | 暗色/亮色主题 | 主题切换，localStorage 持久化 | `app.js` → `initTheme()` / `toggleTheme()` |
 | 右键菜单 | 集合项右键弹出操作菜单 | `app.js` → `showContextMenu()` |
@@ -292,7 +291,7 @@ PC 设置页的导入入口现在分成两个显式按钮：
 | 隐藏控制台 | Windows 下 Python 子进程无控制台窗口 | `lib.rs` → `CREATE_NO_WINDOW` |
 | 数据目录回退 | 应用目录无写权限时回退到用户目录 | `main.py` → `get_data_dir()` |
 | 局域网互通服务 | 作为同步服务端，Android 端可拉取、预览冲突、回传和发起双向同步，PC 端不主动连接其他设备 | `main.py` → `/api/sync`、`/api/sync/preview`、`/api/sync/import` |
-| 桌面端备份保存 | PC 默认由 Python 后端写入系统下载目录并返回保存路径；自定义位置模式可由后端打开原生保存窗口，取消选择时返回 `canceled: true` | `backup-utils.js` → `ApiStorage.exportFile()` → `/api/export-file` |
+| 桌面端备份保存 | ZIP v2 默认由 Python 后端流式写入系统下载目录；自定义位置模式可由后端打开原生保存窗口，取消选择时返回 `canceled: true`。兼容 JSON 仍走原有接口 | `backup-utils.js` → `ApiStorage.exportZipBackup()` → `/api/backup/zip/export` |
 | 本机 IP 显示 | 显示本机局域网 IP、端口和复制入口，方便移动端连接 | `pc-settings.js` → `getNetworkInfo()` |
 | SVG 图标系统 | PC 页面运行时不使用 Emoji、星号、勾号、叉号或箭头字符充当图标，通用图标和 iconfont 语义补充图标均本地化为 SVG | `pc-icon-assets.js`、`src/assets/icons/*.svg`、`src/assets/icons/pc/*.svg` |
 
@@ -334,6 +333,8 @@ async init() {
 | `deleteImage(filename)` | DELETE | `/api/image/{filename}` | 删除图片 |
 | `exportData()` | GET | `/api/export` | 导出完整备份，图片以 Data URL 嵌入 |
 | `exportFile(filename, options)` | POST | `/api/export-file` | 后端直接生成备份文件并返回保存路径；`options.saveMode` 支持 `downloads` 和 `custom` |
+| `exportZipBackup(filename, options)` | POST | `/api/backup/zip/export` | 后端流式生成 ZIP v2 原图完整备份并返回保存路径 |
+| `previewZipBackup(path)` | POST | `/api/backup/zip/preview` | 校验本机 ZIP v2 路径的清单、白名单、资源阈值与图片摘要，不修改数据 |
 | `downloadImageFile(sourceFile, options)` | POST | `/api/image-download-file` | 后端保存 `data/images` 内的指定图片并返回保存路径；用于 PC 图片预览自定义位置下载 |
 | `importData(data)` | POST | `/api/import` | 导入完整备份，相同 ID 覆盖并恢复图片 |
 | `getNetworkInfo()` | GET | `/api/network-info` | 获取 PC 同步服务 IP 和端口 |
