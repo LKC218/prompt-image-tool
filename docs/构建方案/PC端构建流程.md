@@ -192,13 +192,13 @@ build/dist/PromptImageManager/
 
 | 文件 | 当前值 | 位置 |
 |------|--------|------|
-| `package.json` / `package-lock.json` | `"version": "2.3.7"` | 第3行 / 第3、8行 |
-| `src/index.html` | `<meta name="version" content="2.3.7">` | 第9行 |
-| `build/installer.nsi` | `!define APPVERSION "2.3.7"` | 第2行 |
-| `build.bat` | `v2.3.7` 与 `PromptImageManager-Setup-2.3.7.exe` | 构建标题与发布路径 |
-| `src-tauri/tauri.conf.json` | `"version": "2.3.7"` | 第4行 |
-| `src-tauri/Cargo.toml` | `version = "2.3.7"` | 第3行 |
-| `android/app/build.gradle` | `versionCode 13` / `versionName "2.3.7"` | 第16-17行 |
+| `package.json` / `package-lock.json` | `"version": "2.4.0"` | 第3行 / 第3、8行 |
+| `src/index.html` | `<meta name="version" content="2.4.0">` | 第9行 |
+| `build/installer.nsi` | `!define APPVERSION "2.4.0"` | 第2行 |
+| `build.bat` | `v2.4.0` 与 `PromptImageManager-Setup-2.4.0.exe` | 构建标题与发布路径 |
+| `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` / `src-tauri/Cargo.lock` | `2.4.0` | 主桌面端配置与锁文件 |
+| `installer-shell/` 下的包、Tauri 和 Cargo 文件 | `2.4.0` | 安装器壳配置与锁文件 |
+| `android/app/build.gradle` | `versionCode 14` / `versionName "2.4.0"` | 第16-17行 |
 
 ---
 

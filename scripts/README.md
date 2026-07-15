@@ -6,7 +6,7 @@
 
 - `compress_icon.py`：压缩 `src/assets/icons/图标.svg` 内嵌的 PNG 数据。会直接改写图标文件，运行前应确认当前工作区状态。
 - `patch-java-version.ps1`：将 Capacitor 相关 Gradle 配置中的 Java 版本从 21 修补为 17。该脚本会修改 `android` 和 `node_modules` 下的 Gradle 文件，仅在 Android 构建遇到 Java 版本兼容问题时使用。
-- `start_dev_server.py`：本地开发服务器启动入口，优先复用现有 `5173/8888` 服务，缺失时启动 Python 后端与 Vite 前端，并验证 PC / 移动端预览地址。
+- `start_dev_server.py`：本地开发服务器启动入口，优先复用现有 `5173/8888` 服务，缺失时启动 Python 后端与 Vite 前端，并验证 PC / 移动端预览地址和实际数据目录。
 - `一键启动-服务器和网页.bat`：Windows 双击入口，直接调用 `scripts/start_dev_server.py --pc-only`，一键启动后端和前端并打开 PC 预览页。
 - `build_pc_package.py`：非交互式 PC 独立安装包构建入口，按 `Vite -> PyInstaller -> NSIS -> releases` 顺序执行，并在每一步校验关键产物。
 - `build_installer_shell_package.py`：Tauri 安装器壳发布产物构建入口，可将现有 NSIS 安装核心嵌入自定义安装器壳，并输出到 `releases/`。
@@ -38,6 +38,8 @@ Windows 双击入口：
 ```powershell
 python scripts\start_dev_server.py --check-only
 ```
+
+Windows 默认使用 `%APPDATA%\PromptImageManager\data`。需要隔离测试数据时，在启动前设置 `PROMPT_IMAGE_TOOL_DATA_DIR` 为独立目录。
 
 ## PC 快速打包
 

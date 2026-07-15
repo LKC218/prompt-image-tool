@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
@@ -33,6 +34,17 @@ def resolve_npm() -> str:
     if not npm:
         raise RuntimeError("未找到 npm，请先安装 Node.js 并确认 npm 可用。")
     return npm
+
+
+def request_json(url: str, timeout: float = 2.0) -> dict | None:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            if not 200 <= response.status < 400:
+                return None
+            payload = json.loads(response.read().decode("utf-8"))
+            return payload if isinstance(payload, dict) else None
+    except (OSError, urllib.error.URLError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
 
 
 def request_ok(url: str, timeout: float = 2.0) -> bool:
@@ -138,7 +150,8 @@ def main() -> int:
     log("提示词管家 - 本地开发服务器")
     log(f"[目录] {PROJECT_ROOT}")
 
-    backend_ready = request_ok(BACKEND_URL)
+    backend_health = request_json(BACKEND_URL)
+    backend_ready = backend_health is not None
     frontend_ready = request_ok(PC_URL) and request_ok(MOBILE_URL)
 
     if args.check_only:
@@ -154,6 +167,10 @@ def main() -> int:
             if not wait_until_ready(BACKEND_URL, "后端", args.timeout):
                 stop_processes(processes)
                 return 1
+            backend_health = request_json(BACKEND_URL)
+
+        if backend_health and backend_health.get("dataDir"):
+            log(f"[数据目录] {backend_health['dataDir']}")
 
         if frontend_ready:
             log(f"[复用] 前端已可用：{PC_URL}")
