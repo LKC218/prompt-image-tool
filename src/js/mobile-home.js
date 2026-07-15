@@ -70,7 +70,7 @@ function render(params = {}) {
             <div class="m-section-gap">
                 <div class="m-section-title">
                     <span class="m-section-title-text">最近使用</span>
-                    <button class="m-section-title-action" id="mViewAllBtn">查看全部 ${mobileIcon('chevron-right', { className: 'm-icon-sm' })}</button>
+                    <button class="m-section-title-action m-neu-btn m-neu-btn--small" id="mViewAllBtn">查看全部 ${mobileIcon('chevron-right', { className: 'm-icon-sm' })}</button>
                 </div>
                 <div class="m-list-gap" id="mRecentList"></div>
             </div>

@@ -1432,6 +1432,19 @@
         inset calc(-1 * var(--m-neu-offset) + 1px) calc(-1 * var(--m-neu-offset) + 1px) calc(var(--m-neu-blur) - 3px) var(--m-neu-light);
 }
 
+/* 小尺寸胶囊变体：用于首页「查看全部」等低频导航操作 */
+.mobile-app .m-neu-btn.m-neu-btn--small {
+    padding: 6px 12px;
+    font: var(--m-font-caption);
+    border-radius: var(--m-neu-radius-full);
+    color: var(--m-blue);
+}
+
+.mobile-app .m-neu-btn.m-neu-btn--small:active {
+    opacity: 1;
+    background: var(--m-neu-bg);
+}
+
 .mobile-app .m-form-group {
     margin-bottom: var(--m-space-xl);
 }
@@ -2171,6 +2184,22 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: var(--m-space-md);
+}
+
+.mobile-app .m-version-info {
+    margin-top: var(--m-space-md);
+    padding: var(--m-space-md) var(--m-space-lg);
+    border-radius: var(--m-radius-md);
+    background: var(--m-surface);
+    box-shadow: var(--m-shadow-sm);
+    text-align: center;
+    font: var(--m-font-caption);
+    color: var(--m-text2);
+}
+
+.mobile-app .m-version-info-label {
+    margin-right: 4px;
+    color: var(--m-text3);
 }
 
 .mobile-app .m-storage-card {

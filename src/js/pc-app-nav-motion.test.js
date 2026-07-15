@@ -45,6 +45,12 @@ vi.mock('./pc-utils.js', () => ({
     formatBytes: () => '0 B',
 }));
 
+vi.mock('./release-notes.js', () => ({
+    openReleaseNotes: vi.fn(),
+    showUnreadReleaseNotes: vi.fn(),
+    syncReleaseNotesUnreadBadge: vi.fn(),
+}));
+
 function mockPage() {
     return {
         render: () => '<section data-testid="page"></section>',
@@ -166,9 +172,11 @@ describe('PC 侧边栏导航点击动效', () => {
 
         const primaryNav = app.querySelector('#pcSidebarNav');
         const utilityNav = app.querySelector('.pc-sidebar-utility-nav');
+        const releaseNotesItem = utilityNav.querySelector('[data-release-notes]');
         const settingsItem = utilityNav.querySelector('[data-nav="/settings"]');
 
         expect(primaryNav.querySelector('[data-nav="/settings"]')).toBeNull();
+        expect(releaseNotesItem).not.toBeNull();
         expect(utilityNav.nextElementSibling.id).toBe('pcSidebarClock');
 
         settingsItem.click();

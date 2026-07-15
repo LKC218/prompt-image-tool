@@ -116,6 +116,7 @@ function renderDetailContent(pageEl) {
             <div class="pc-detail-layout">
                 <section class="pc-detail-main-column" aria-label="提示词主内容">
                     ${renderCoverImage()}
+                    ${renderImageThumbs()}
                     ${renderTitleRow(promptSet.name, tags)}
                     ${renderMetaStrip(tags, promptSet)}
                     ${renderPositivePromptCard(positivePrompt)}
@@ -167,6 +168,33 @@ function renderCoverImage() {
     `;
 }
 
+function renderImageThumbs() {
+    if (imageUrls.length <= 1) return '';
+
+    return `
+        <section class="pc-detail-image-thumbs pc-detail-fade-in" aria-label="图片预览">
+            <div class="pc-detail-image-thumbs-header">
+                <span class="pc-detail-image-thumbs-title">图片预览</span>
+                <span class="pc-detail-image-thumbs-count">${imageUrls.length} 张</span>
+            </div>
+            <div class="pc-detail-image-thumbs-scroll" id="pcDetailImageThumbs">
+                ${imageUrls.map((image, index) => `
+                    <button
+                        class="pc-detail-image-thumb ${index === currentImageIndex ? 'pc-detail-image-thumb-active' : ''}"
+                        type="button"
+                        data-thumb-index="${index}"
+                        aria-label="查看第 ${index + 1} 张图片"
+                        aria-pressed="${index === currentImageIndex ? 'true' : 'false'}">
+                        ${image.url
+                            ? `<img src="${image.url}" alt="${escapeHtml(image.name || `第 ${index + 1} 张图片`)}" loading="lazy">`
+                            : '<span class="pc-detail-image-thumb-fallback">加载失败</span>'}
+                    </button>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
+
 function switchImage(newIndex) {
     if (newIndex < 0 || newIndex >= imageUrls.length) return;
     currentImageIndex = newIndex;
@@ -174,6 +202,7 @@ function switchImage(newIndex) {
     const imgWrap = document.getElementById('pcDetailCoverImgWrap');
     const counter = document.getElementById('pcDetailImgCounter');
     const dots = document.querySelectorAll('.pc-detail-cover-dot');
+    const thumbs = document.querySelectorAll('.pc-detail-image-thumb');
 
     if (imgWrap) {
         const currentImg = imgWrap.querySelector('img');
@@ -182,6 +211,7 @@ function switchImage(newIndex) {
             setTimeout(() => {
                 if (imageUrls[currentImageIndex] && imageUrls[currentImageIndex].url) {
                     currentImg.src = imageUrls[currentImageIndex].url;
+                    currentImg.alt = imageUrls[currentImageIndex].name || '封面';
                 }
                 currentImg.style.opacity = '1';
             }, 150);
@@ -197,6 +227,15 @@ function switchImage(newIndex) {
             dot.classList.add('pc-detail-cover-dot-active');
         } else {
             dot.classList.remove('pc-detail-cover-dot-active');
+        }
+    });
+
+    thumbs.forEach((thumb, i) => {
+        const isActive = i === currentImageIndex;
+        thumb.classList.toggle('pc-detail-image-thumb-active', isActive);
+        thumb.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        if (isActive && typeof thumb.scrollIntoView === 'function') {
+            thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
         }
     });
 }
@@ -457,6 +496,14 @@ function setupEvents(pageEl) {
         dot.addEventListener('click', (e) => {
             e.stopPropagation();
             const idx = parseInt(dot.dataset.dotIndex);
+            if (!isNaN(idx)) switchImage(idx);
+        });
+    });
+
+    pageEl.querySelectorAll('.pc-detail-image-thumb').forEach(thumb => {
+        thumb.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const idx = parseInt(thumb.dataset.thumbIndex);
             if (!isNaN(idx)) switchImage(idx);
         });
     });

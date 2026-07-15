@@ -83,7 +83,7 @@ function render(params = {}) {
             <section class="pc-home-panel pc-home-recent-panel">
                 <div class="pc-section-title pc-home-panel-head">
                     <span class="pc-section-title-text">最近使用</span>
-                    <button class="pc-section-title-action pc-home-title-action" id="pcHomeViewAll">
+                    <button class="pc-section-title-action pc-home-title-action pc-neu-btn pc-neu-btn--small" id="pcHomeViewAll">
                         <span>查看全部</span>
                         ${ICONS.arrowRight}
                     </button>
@@ -95,7 +95,7 @@ function render(params = {}) {
                 <section class="pc-home-panel pc-home-category-panel">
                     <div class="pc-section-title pc-home-panel-head">
                         <span class="pc-section-title-text">收藏分类</span>
-                        <button class="pc-section-title-action pc-home-title-action" id="pcHomeCategoryAll">
+                        <button class="pc-section-title-action pc-home-title-action pc-neu-btn pc-neu-btn--small" id="pcHomeCategoryAll">
                             <span>查看全部</span>
                             ${ICONS.arrowRight}
                         </button>

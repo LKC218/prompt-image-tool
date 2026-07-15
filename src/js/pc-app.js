@@ -8,6 +8,7 @@ import navLibrary from '../assets/pc/nav-icons/library.png';
 import navEditor from '../assets/pc/nav-icons/editor.png';
 import navCategory from '../assets/pc/nav-icons/category.png';
 import navSettings from '../assets/pc/nav-icons/settings.png';
+import { openReleaseNotes, showUnreadReleaseNotes, syncReleaseNotesUnreadBadge } from './release-notes.js';
 import { render as renderHome, mount as mountHome, unmount as unmountHome } from './pc-home.js';
 import { render as renderLibrary, mount as mountLibrary, unmount as unmountLibrary } from './pc-library.js';
 import { render as renderDetail, mount as mountDetail, unmount as unmountDetail } from './pc-detail.js';
@@ -31,6 +32,14 @@ const NAV_ITEMS = [
 ];
 
 const SETTINGS_NAV_ITEM = { path: '/settings', icon: navSettings, label: '设置' };
+
+const RELEASE_NOTES_ICON = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 4v5h5"></path>
+        <path d="M4.6 13a8 8 0 1 0 2-5.4L4 9"></path>
+        <path d="M12 8v4l2.8 1.8"></path>
+    </svg>
+`;
 
 const TAB_ROUTES = ['/', '/library', '/category', '/settings'];
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
@@ -101,6 +110,10 @@ function renderShell() {
             </nav>
             <div class="pc-sidebar-footer">
                 <div class="pc-sidebar-utility-nav" aria-label="应用设置">
+                    <button class="pc-nav-item pc-sidebar-utility-item pc-sidebar-release-notes-item" type="button" data-release-notes data-ripple="false" aria-label="更新记录" title="更新记录">
+                        <span class="pc-release-notes-nav-icon" aria-hidden="true">${RELEASE_NOTES_ICON}</span>
+                        <span class="pc-release-notes-nav-badge" aria-hidden="true"></span>
+                    </button>
                     <button class="pc-nav-item pc-sidebar-settings-item" type="button" data-nav="${SETTINGS_NAV_ITEM.path}" data-ripple="false" aria-label="${SETTINGS_NAV_ITEM.label}" title="${SETTINGS_NAV_ITEM.label}">
                         <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${SETTINGS_NAV_ITEM.icon});mask-image:url(${SETTINGS_NAV_ITEM.icon})"></div>
                     </button>
@@ -145,11 +158,13 @@ async function mount(el) {
     setupKeyboardShortcuts();
     setupSidebarClock();
     initRipple(appEl);
+    syncReleaseNotesUnreadBadge(appEl);
 
     setRouteChangeCallback(handleRouteChange);
     initRouter();
 
     createPage('/', {}, 'tab');
+    window.requestAnimationFrame(() => showUnreadReleaseNotes());
 }
 
 function readSidebarCollapsedState() {
@@ -194,6 +209,10 @@ function setupSidebarNav() {
     const handleNavigation = (e) => {
         const item = e.target.closest('.pc-nav-item');
         if (!item) return;
+        if (item.hasAttribute('data-release-notes')) {
+            openReleaseNotes();
+            return;
+        }
         playNavIconClickMotion(item);
         const path = item.dataset.nav;
         if (path === '/editor/') {
