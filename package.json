@@ -1,11 +1,11 @@
 {
   "name": "prompt-image-manager",
-  "version": "2.3.7",
+  "version": "2.4.0",
   "description": "生图提示词管理器",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:full": "concurrently \"python python/main.py\" \"vite\"",
+    "dev:full": "python scripts/start_dev_server.py",
     "dev:tauri": "tauri dev",
     "build": "vite build",
     "build:tauri": "vite build && tauri build",
