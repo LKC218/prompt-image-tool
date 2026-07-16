@@ -945,6 +945,14 @@
     box-shadow: -2px -2px 4px var(--pc-library-tag-shadow-light), 2px 3px 6px var(--pc-library-tag-shadow-dark);
 }
 
+:root[data-appearance="dark"] .pc-library-prompt-cell .pc-library-tag-pill:hover {
+    box-shadow: -3px -3px 6px var(--pc-library-tag-shadow-light), 3px 5px 10px var(--pc-library-tag-shadow-dark);
+}
+
+:root[data-appearance="dark"] .pc-library-prompt-cell .pc-library-tag-pill:active {
+    box-shadow: inset 2px 2px 5px var(--pc-library-tag-shadow-dark), inset -2px -2px 4px var(--pc-library-tag-shadow-light);
+}
+
 :root[data-appearance="dark"] .pc-library-prompt-cell .pc-library-tag-blue { --pc-library-tag-bg: #173C63; --pc-library-tag-color: #7DBDFF; --pc-library-tag-border: #2F6190; }
 :root[data-appearance="dark"] .pc-library-prompt-cell .pc-library-tag-purple { --pc-library-tag-bg: #373967; --pc-library-tag-color: #B2B6FF; --pc-library-tag-border: #5C62A4; }
 :root[data-appearance="dark"] .pc-library-prompt-cell .pc-library-tag-orange { --pc-library-tag-bg: #59341F; --pc-library-tag-color: #FFB078; --pc-library-tag-border: #925932; }
@@ -1039,6 +1047,15 @@
 }
 
 :root[data-appearance="dark"] .pc-settings-page {
+    --pc-settings-surface: var(--color-surface-raised);
+    --pc-settings-surface-subtle: var(--color-surface-subtle);
+    --pc-settings-surface-floating: var(--color-surface-floating);
+    --pc-settings-border: var(--color-border-subtle);
+    --pc-settings-shadow: var(--pc-control-soft-shadow);
+    --pc-settings-toggle-off: var(--color-surface-control-pressed);
+    --pc-settings-ring-success: var(--color-state-success-fg);
+    --pc-settings-ring-info: var(--color-state-info-fg);
+    --pc-settings-ring-track: var(--color-state-info-bg);
     --pc-settings-neu-inset-soft: var(--pc-control-pressed-shadow);
 }
 

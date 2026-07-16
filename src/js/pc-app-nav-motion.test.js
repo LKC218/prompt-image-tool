@@ -100,6 +100,16 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(pcCss).not.toContain('pc-sidebar-settings-ring-pulse');
     });
 
+    it('收起态隐藏导航滚动条并将底部工具入口纵向排布', () => {
+        const collapsedNavRule = pcCss.match(/\.pc-app\.pc-sidebar-collapsed \.pc-sidebar-nav\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+        const collapsedUtilityRule = pcCss.match(/\.pc-app\.pc-sidebar-collapsed \.pc-sidebar-utility-nav\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+
+        expect(collapsedNavRule).toContain('scrollbar-width: none');
+        expect(pcCss).toContain('.pc-app.pc-sidebar-collapsed .pc-sidebar-nav::-webkit-scrollbar');
+        expect(collapsedUtilityRule).toContain('flex-direction: column');
+        expect(collapsedUtilityRule).toContain('gap: 8px');
+    });
+
     it('点击当前激活导航项时播放一次性动效并在动画结束后清理', async () => {
         const { mount } = await import('./pc-app.js');
         const app = document.getElementById('app');
