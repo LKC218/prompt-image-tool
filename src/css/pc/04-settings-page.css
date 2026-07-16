@@ -129,6 +129,15 @@
 }
 
 .pc-settings-page {
+    --pc-settings-surface: var(--color-surface-raised);
+    --pc-settings-surface-subtle: var(--color-surface-subtle);
+    --pc-settings-surface-floating: var(--color-surface-floating);
+    --pc-settings-border: var(--color-border-subtle);
+    --pc-settings-shadow: var(--color-shadow-control-soft);
+    --pc-settings-toggle-off: var(--color-surface-control-pressed);
+    --pc-settings-ring-success: var(--color-state-success-fg);
+    --pc-settings-ring-info: var(--color-state-info-fg);
+    --pc-settings-ring-track: var(--color-state-info-bg);
     max-width: 1060px;
     margin: 0 auto;
 }
@@ -141,10 +150,10 @@
 }
 
 .pc-settings-panel {
-    background: rgba(255,255,255,0.92);
-    border: 1px solid var(--pc-border-light);
+    background: var(--pc-settings-surface);
+    border: 1px solid var(--pc-settings-border);
     border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(120, 90, 50, 0.045);
+    box-shadow: var(--pc-settings-shadow);
     padding: var(--pc-space-xl);
 }
 
@@ -155,10 +164,10 @@
 }
 
 .pc-settings-list {
-    border: 1px solid var(--pc-border-light);
+    border: 1px solid var(--pc-settings-border);
     border-radius: 14px;
     overflow: hidden;
-    background: #fff;
+    background: var(--pc-settings-surface);
 }
 
 .pc-settings-list-row {
@@ -171,7 +180,7 @@
 }
 
 .pc-settings-list-row + .pc-settings-list-row {
-    border-top: 1px solid var(--pc-border-light);
+    border-top: 1px solid var(--pc-settings-border);
 }
 
 .pc-settings-list-left {
@@ -218,6 +227,10 @@
     filter: brightness(0);
 }
 
+:root[data-appearance="dark"] .pc-settings-list-image-icon img {
+    filter: brightness(0) invert(1);
+}
+
 .pc-settings-list-icon-text {
     -webkit-mask-image: none !important;
     mask-image: none !important;
@@ -226,8 +239,8 @@
     border-radius: 50%;
     align-items: center;
     justify-content: center;
-    background: #181A20;
-    color: #fff;
+    background: var(--color-text-primary);
+    color: var(--color-text-on-solid);
     font: 700 11px/1 var(--pc-font-family);
 }
 
@@ -236,7 +249,7 @@
     height: 22px;
     border: none;
     border-radius: 999px;
-    background: #D8D8D8;
+    background: var(--pc-settings-toggle-off);
     padding: 2px;
     cursor: pointer;
     display: inline-flex;
@@ -248,8 +261,8 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 2px 5px rgba(20, 20, 20, 0.16);
+    background: var(--pc-settings-surface-floating);
+    box-shadow: var(--pc-control-soft-shadow);
     transition: transform 0.18s ease;
 }
 
@@ -290,8 +303,8 @@
 }
 
 .pc-theme-dot.pc-theme-active {
-    border-color: rgba(255,255,255,0.92);
-    box-shadow: 0 0 0 2px var(--dot-color), 0 6px 12px rgba(0,0,0,0.12);
+    border-color: var(--pc-settings-surface-floating);
+    box-shadow: 0 0 0 2px var(--dot-color), 0 6px 12px var(--color-shadow-dark);
 }
 
 .pc-theme-dot.pc-theme-active::after {
@@ -301,7 +314,7 @@
     top: 50%;
     width: 7px;
     height: 12px;
-    border: solid #fff;
+    border: solid var(--color-text-on-solid);
     border-width: 0 2px 2px 0;
     transform: translate(-50%, -58%) rotate(45deg);
     transform-origin: center;
@@ -315,9 +328,9 @@
 
 .pc-settings-storage-tile {
     min-height: 148px;
-    border: 1px solid #E6F1FF;
+    border: 1px solid var(--pc-settings-border);
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(239, 248, 255, 0.96), rgba(255,255,255,0.96));
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-state-info-bg) 72%, var(--pc-settings-surface)), var(--pc-settings-surface));
     padding: var(--pc-space-xl);
 }
 
@@ -326,7 +339,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--pc-space-lg);
-    background: rgba(255,255,255,0.96);
+    background: var(--pc-settings-surface);
 }
 
 .pc-settings-storage-kicker {
@@ -353,7 +366,7 @@
     top: 50%;
     width: 5px;
     height: 9px;
-    border: solid #fff;
+    border: solid var(--color-text-on-solid);
     border-width: 0 2px 2px 0;
     transform: translate(-50%, -58%) rotate(45deg);
     transform-origin: center;
@@ -361,7 +374,7 @@
 
 .pc-settings-storage-number {
     font: 700 30px/1.1 var(--pc-font-family);
-    color: #101219;
+    color: var(--pc-text);
     margin-bottom: var(--pc-space-sm);
 }
 
@@ -386,7 +399,7 @@
     height: 96px;
     margin: 0;
     position: relative;
-    background: conic-gradient(#00C4A4 var(--ring-percent, 0%), #A7D8FF var(--ring-percent, 0%) 75%, #EEF6FF 0);
+    background: conic-gradient(var(--pc-settings-ring-success) var(--ring-percent, 0%), var(--pc-settings-ring-info) var(--ring-percent, 0%) 75%, var(--pc-settings-ring-track) 0);
 }
 
 .pc-settings-storage-ring::after {
@@ -395,7 +408,7 @@
     width: 52px;
     height: 52px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--pc-settings-surface);
 }
 
 .pc-settings-storage-ring .pc-storage-ring-value {
@@ -458,9 +471,9 @@
     align-items: center;
     gap: 4px;
     padding: 4px;
-    border: 1px solid var(--pc-border-light);
+    border: 1px solid var(--pc-settings-border);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.78);
+    background: var(--pc-settings-surface);
 }
 
 .pc-settings-export-mode-option {
@@ -531,7 +544,7 @@
 
 .pc-settings-action-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(120, 90, 50, 0.08);
+    box-shadow: 0 10px 20px var(--color-shadow-dark);
 }
 
 .pc-settings-action-card:active {
@@ -580,27 +593,27 @@
 }
 
 .pc-settings-action-green {
-    color: #18A650;
-    background: linear-gradient(135deg, #F2FFF4, #FAFFF9);
-    border-color: #DDF3E1;
+    color: var(--color-state-success-fg);
+    background: color-mix(in srgb, var(--color-state-success-bg) 74%, var(--pc-settings-surface));
+    border-color: color-mix(in srgb, var(--color-state-success-fg) 28%, var(--pc-settings-border));
 }
 
 .pc-settings-action-blue {
-    color: #2688E8;
-    background: linear-gradient(135deg, #F2F9FF, #FAFDFF);
-    border-color: #DDEEFF;
+    color: var(--color-state-info-fg);
+    background: color-mix(in srgb, var(--color-state-info-bg) 74%, var(--pc-settings-surface));
+    border-color: color-mix(in srgb, var(--color-state-info-fg) 28%, var(--pc-settings-border));
 }
 
 .pc-settings-action-purple {
-    color: #7A4FF0;
-    background: linear-gradient(135deg, #F7F1FF, #FCFAFF);
-    border-color: #E9DCFF;
+    color: var(--color-context-rename-fg);
+    background: color-mix(in srgb, var(--color-context-rename-bg) 74%, var(--pc-settings-surface));
+    border-color: color-mix(in srgb, var(--color-context-rename-fg) 28%, var(--pc-settings-border));
 }
 
 .pc-settings-action-orange {
-    color: #F28A17;
-    background: linear-gradient(135deg, #FFF8EC, #FFFDF8);
-    border-color: #F5E6CB;
+    color: var(--color-state-warning-fg);
+    background: color-mix(in srgb, var(--color-state-warning-bg) 74%, var(--pc-settings-surface));
+    border-color: color-mix(in srgb, var(--color-state-warning-fg) 28%, var(--pc-settings-border));
 }
 
 .pc-settings-backup-hint {
@@ -656,9 +669,9 @@
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    border: 1px solid var(--pc-border-light);
+    border: 1px solid var(--pc-settings-border);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.82);
+    background: var(--pc-settings-surface);
 }
 
 .pc-settings-download-history-icon {
@@ -891,4 +904,3 @@
         transition-duration: 0.01ms !important;
     }
 }
-
