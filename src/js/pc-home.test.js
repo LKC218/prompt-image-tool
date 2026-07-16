@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { readPcCss } from './pc-css-test-utils.js';
 
 const pcHomeJs = readFileSync(resolve(process.cwd(), 'src/js/pc-home.js'), 'utf8');
-const pcCss = readFileSync(resolve(process.cwd(), 'src/css/pc.css'), 'utf8');
+const pcCss = readPcCss();
 
 describe('PC 首页新拟态结构', () => {
     it('将收藏分类渲染为可键盘触发的原生按钮', () => {

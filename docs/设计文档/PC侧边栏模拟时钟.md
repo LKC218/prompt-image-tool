@@ -2,7 +2,7 @@
 
 > 参考来源：Uiverse `chase2k25/nice-fly-98`  
 > URL：`https://uiverse.io/chase2k25/nice-fly-98`  
-> 落点文件：`src/js/pc-app.js`、`src/css/pc.css`  
+> 落点文件：`src/js/pc-app.js`、`src/css/pc.css`、`src/css/pc/01-foundation-shell.css`
 > 相关规范：`docs/设计文档/新拟态按钮设计规范.md`
 
 > 当前钟面已于 2026-07-11 纳入侧栏暖色轻拟态规范：表盘使用 `--pc-sidebar-clock-*` 令牌，降低阴影和数字对比度，以避免与导航激活态竞争。完整侧栏规范见 `docs/设计文档/PC左侧导航栏轻拟态设计.md`。
@@ -97,7 +97,9 @@
 | 文件 | 职责 |
 |------|------|
 .| `src/js/pc-app.js` | `renderShell()` 渲染时钟 HTML；底部 footer 仅保留时钟。 |
-| `src/css/pc.css` | `.pc-sidebar-clock*` 系列规则（新拟态视觉、指针 transform）；`.pc-sidebar-mascot` 位于 nav 与 footer 之间（红框区域）；`prefers-reduced-motion` 与折叠态适配。 |
+| `src/css/pc.css` | PC 端稳定样式聚合入口。 |
+| `src/css/pc/01-foundation-shell.css` | `.pc-sidebar-clock*` 系列基础规则（新拟态视觉、指针 transform）与 `.pc-sidebar-mascot`。 |
+| `src/css/pc/03-shared-components.css` | 侧边栏折叠状态适配；该规则因保持原始连续级联顺序而不与基础侧边栏规则合并。 |
 | `docs/apps-code-map.md` | 更新 `pc.css` 与 `pc-app.js` 的说明。 |
 | `docs/设计文档/PC侧边栏模拟时钟.md` | 本文档，记录设计来源、方案与源码落点。 |
 

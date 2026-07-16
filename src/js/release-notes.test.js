@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { readPcCss } from './pc-css-test-utils.js';
 
 const pcUtilsMocks = vi.hoisted(() => ({
     closeModal: vi.fn(),
@@ -8,7 +9,7 @@ const pcUtilsMocks = vi.hoisted(() => ({
     showToast: vi.fn(),
 }));
 
-const pcCss = readFileSync(resolve(process.cwd(), 'src/css/pc.css'), 'utf8');
+const pcCss = readPcCss();
 
 vi.mock('./pc-utils.js', () => pcUtilsMocks);
 

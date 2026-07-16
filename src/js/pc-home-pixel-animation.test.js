@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { readPcCss } from './pc-css-test-utils.js';
 
 const pcHomeJs = readFileSync(resolve(process.cwd(), 'src/js/pc-home.js'), 'utf8');
 const pcLibraryJs = readFileSync(resolve(process.cwd(), 'src/js/pc-library.js'), 'utf8');
@@ -9,7 +10,7 @@ const pcSettingsJs = readFileSync(resolve(process.cwd(), 'src/js/pc-settings.js'
 const pcEditorJs = readFileSync(resolve(process.cwd(), 'src/js/pc-editor.js'), 'utf8');
 const pcDetailJs = readFileSync(resolve(process.cwd(), 'src/js/pc-detail.js'), 'utf8');
 const pcWelcomeBannerJs = readFileSync(resolve(process.cwd(), 'src/js/pc-welcome-banner.js'), 'utf8');
-const pcCss = readFileSync(resolve(process.cwd(), 'src/css/pc.css'), 'utf8');
+const pcCss = readPcCss();
 const spritePath = resolve(process.cwd(), 'src/assets/pc/home-pixel-dog-sprite.png');
 
 describe('PC 端共享顶部栏像素走路动画', () => {

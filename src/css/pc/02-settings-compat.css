@@ -1,0 +1,166 @@
+.pc-settings-page {
+    --pc-settings-neu-raised: -8px -8px 18px var(--pc-neu-light), 8px 8px 20px var(--pc-neu-dark), inset 1px 1px 1px rgba(255, 255, 255, 0.72);
+    --pc-settings-neu-raised-hover: -10px -10px 22px var(--pc-neu-light), 10px 10px 24px var(--pc-neu-dark-accent), inset 1px 1px 1px rgba(255, 255, 255, 0.78);
+    --pc-settings-neu-inset: inset 6px 6px 14px var(--pc-neu-dark), inset -6px -6px 14px var(--pc-neu-light);
+    --pc-settings-neu-inset-soft: inset 3px 3px 8px rgba(120, 90, 50, 0.1), inset -3px -3px 8px rgba(255, 255, 255, 0.8);
+}
+
+.pc-settings-panel {
+    border: 0;
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-settings-neu-raised);
+}
+
+.pc-settings-list,
+.pc-settings-export-mode,
+.pc-settings-download-history-list {
+    border: 0;
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-settings-neu-inset);
+}
+
+.pc-settings-list-row + .pc-settings-list-row {
+    border-top-color: rgba(120, 90, 50, 0.08);
+}
+
+.pc-theme-dot {
+    box-shadow: 3px 3px 7px color-mix(in srgb, var(--pc-neu-dark) 72%, var(--dot-color)), -3px -3px 7px var(--pc-neu-light);
+}
+
+.pc-theme-dot:hover {
+    transform: translateY(-1px) scale(1.08);
+}
+
+.pc-theme-dot:active {
+    transform: translateY(1px) scale(0.96);
+    box-shadow: inset 2px 2px 5px color-mix(in srgb, var(--pc-neu-dark) 72%, var(--dot-color)), inset -2px -2px 5px var(--pc-neu-light);
+}
+
+.pc-theme-dot.pc-theme-active {
+    box-shadow: 0 0 0 2px var(--pc-neu-bg), 0 0 0 4px var(--dot-color), 4px 4px 9px var(--pc-neu-dark), -4px -4px 9px var(--pc-neu-light);
+}
+
+.pc-theme-appearance-select {
+    min-width: 128px;
+    border: 1px solid var(--pc-border);
+    border-radius: var(--pc-radius-sm);
+    padding: 7px 10px;
+    background: var(--pc-surface);
+    color: var(--pc-text);
+    font: var(--pc-font-caption);
+}
+
+.pc-settings-storage-tile {
+    border: 0;
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-settings-neu-inset-soft);
+}
+
+.pc-settings-space-tile {
+    background: var(--pc-neu-bg);
+}
+
+.pc-settings-storage-ring {
+    box-shadow: 4px 4px 10px var(--pc-neu-dark), -4px -4px 10px var(--pc-neu-light);
+}
+
+.pc-settings-storage-ring::after {
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-settings-neu-inset-soft);
+}
+
+.pc-settings-meta-row span,
+.pc-settings-meta-row .pc-version-info,
+.pc-settings-download-history-count,
+.pc-settings-sync-badge {
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-settings-neu-inset-soft);
+}
+
+.pc-settings-export-mode-option input:checked + span {
+    background: var(--pc-neu-bg);
+    box-shadow: 3px 3px 8px var(--pc-neu-dark-accent), -3px -3px 8px var(--pc-neu-light);
+}
+
+.pc-settings-action-card {
+    border: 0;
+    background: var(--pc-neu-bg);
+    box-shadow: 5px 5px 12px var(--pc-neu-dark), -5px -5px 12px var(--pc-neu-light);
+}
+
+.pc-settings-action-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--pc-settings-neu-raised-hover);
+}
+
+.pc-settings-action-card:active {
+    transform: translateY(1px);
+    box-shadow: var(--pc-settings-neu-inset);
+}
+
+.pc-settings-action-icon,
+.pc-settings-sync-icon {
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-settings-neu-inset-soft);
+}
+
+.pc-settings-action-blue .pc-settings-action-icon { color: #2688E8; }
+.pc-settings-action-orange .pc-settings-action-icon { color: #F28A17; }
+.pc-settings-action-purple .pc-settings-action-icon { color: #7A4FF0; }
+.pc-settings-action-green .pc-settings-action-icon { color: #18A650; }
+
+.pc-settings-action-icon img,
+.pc-settings-sync-icon img {
+    filter: none;
+}
+
+.pc-settings-backup-panel > .pc-btn,
+.pc-settings-download-history-panel .pc-btn,
+.pc-settings-sync-panel .pc-btn {
+    border: 0;
+    background: var(--pc-neu-bg);
+    box-shadow: 3px 3px 8px var(--pc-neu-dark), -3px -3px 8px var(--pc-neu-light);
+}
+
+.pc-settings-backup-panel > .pc-btn:hover,
+.pc-settings-download-history-panel .pc-btn:hover,
+.pc-settings-sync-panel .pc-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 5px 5px 11px var(--pc-neu-dark-accent), -5px -5px 11px var(--pc-neu-light);
+}
+
+.pc-settings-backup-panel > .pc-btn:active,
+.pc-settings-download-history-panel .pc-btn:active,
+.pc-settings-sync-panel .pc-btn:active {
+    transform: translateY(1px);
+    box-shadow: var(--pc-settings-neu-inset-soft);
+}
+
+.pc-settings-sync-panel .pc-btn-primary { color: var(--pc-accent); }
+.pc-settings-download-history-panel .pc-btn-danger-outline { color: var(--pc-danger); }
+
+.pc-settings-download-history-item,
+.pc-settings-download-history-empty {
+    border: 0;
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-settings-neu-inset-soft);
+}
+
+.pc-settings-download-history-empty {
+    border-style: solid;
+}
+
+.pc-settings-download-history-icon {
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-settings-neu-inset-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-settings-action-card:hover,
+    .pc-settings-backup-panel > .pc-btn:hover,
+    .pc-settings-download-history-panel .pc-btn:hover,
+    .pc-settings-sync-panel .pc-btn:hover {
+        box-shadow: var(--pc-settings-neu-raised);
+    }
+}
+
