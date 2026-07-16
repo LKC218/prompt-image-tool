@@ -1,13 +1,13 @@
 @font-face {
-  font-family: "乐米小熊日记体";
-  src: url("./assets/fonts/乐米小熊日记体.ttf") format("truetype");
+  font-family: "庞门正道细线体";
+  src: url("./assets/fonts/庞门正道细线体.ttf") format("truetype");
   font-display: swap;
 }
 
 :root {
   color-scheme: light;
-  --ink: #3a2116;
-  --muted: #6f6a66;
+  --ink: #342721;
+  --muted: #695B55;
   --blue: #337de8;
   --blue-deep: #216bdd;
   --gold: #f7c86c;
@@ -15,7 +15,7 @@
   --window-shadow: 0 18px 42px rgba(66, 84, 101, 0.18);
   --button-shadow: 0 14px 24px rgba(43, 122, 228, 0.28);
   --font-small: 12px;
-  font-family: "乐米小熊日记体", "Microsoft YaHei", "Segoe UI", sans-serif;
+  font-family: "庞门正道细线体", "Microsoft YaHei", "Segoe UI", sans-serif;
 }
 
 * {
