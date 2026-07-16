@@ -14,6 +14,7 @@ import navLibrary from '../assets/mobile/nav-icons/library.png';
 import navCategory from '../assets/mobile/nav-icons/category.png';
 import navSettings from '../assets/mobile/nav-icons/settings.png';
 import { mobileIcon } from './mobile-icon-assets.js';
+import { initTheme } from './theme-service.js';
 
 let appEl = null;
 let pageContainer = null;
@@ -64,7 +65,7 @@ function renderShell() {
 
 function mount(el) {
     appEl = el;
-    document.documentElement.setAttribute('data-theme', 'light');
+    initTheme();
     appEl.classList.add('mobile-app');
     appEl.innerHTML = renderShell();
     pageContainer = document.getElementById('mPageContainer');

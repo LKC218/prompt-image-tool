@@ -1,6 +1,8 @@
 import { getStorage, isCapacitor } from './storage.js';
-import { setAccent, navigate } from './pc-app.js';
+import { navigate } from './pc-app.js';
 import { showToast, showConfirmModal, escapeHtml, formatBytes, copyToClipboard } from './pc-utils.js';
+import { APPEARANCE_PREFERENCES, WORKBENCH_THEMES } from './theme-config.js';
+import { getThemeState, setAppearancePreference, setWorkbenchTheme } from './theme-service.js';
 import { buildExportSuccessMessage, exportBackup, exportZipBackup, getErrorMessage } from './backup-utils.js';
 import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel } from './download-history.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
@@ -19,20 +21,12 @@ import downloadHistoryIcon from '../assets/icons/pc/download.svg';
 
 let settingsData = null;
 
-const ACCENT_COLORS = [
-    { name: '粉色', value: 'pink', color: '#FF6B9A' },
-    { name: '蓝色', value: 'blue', color: '#2D8CFF' },
-    { name: '绿色', value: 'green', color: '#29B37A' },
-    { name: '紫色', value: 'purple', color: '#8A6BFF' },
-    { name: '黄色', value: 'yellow', color: '#FFC94A' },
-];
-
 function iconImg(icon, alt = '') {
     return `<img src="${icon}" alt="${alt}" aria-hidden="${alt ? 'false' : 'true'}">`;
 }
 
 function render(params = {}) {
-    const activeAccent = localStorage.getItem('pc-accent') || 'pink';
+    const themeState = getThemeState();
     return `
         ${renderPcWelcomeBanner({
             title: '设置',
@@ -49,13 +43,19 @@ function render(params = {}) {
                         <div class="pc-settings-list-row">
                             <div class="pc-settings-list-left">
                                 <span class="pc-settings-list-image-icon">${iconImg(themeColorIcon)}</span>
-                                <span>应用主题色</span>
+                                <span>工作台主题</span>
                             </div>
-                            <div class="pc-theme-dots" id="pcAccentPicker" role="radiogroup" aria-label="应用主题色">
-                                ${ACCENT_COLORS.map(c => `
-                                    <button class="pc-theme-dot ${c.value === activeAccent ? 'pc-theme-active' : ''}" type="button" role="radio" aria-checked="${c.value === activeAccent ? 'true' : 'false'}" data-accent="${c.value}" style="--dot-color:${c.color};" title="${c.name}" aria-label="${c.name}"></button>
+                            <div class="pc-theme-dots" id="pcThemePicker" role="radiogroup" aria-label="工作台主题">
+                                ${WORKBENCH_THEMES.map(theme => `
+                                    <button class="pc-theme-dot ${theme.key === themeState.workbenchTheme ? 'pc-theme-active' : ''}" type="button" role="radio" aria-checked="${theme.key === themeState.workbenchTheme ? 'true' : 'false'}" data-workbench-theme="${theme.key}" style="--dot-color:${theme.color};" title="${theme.name}" aria-label="${theme.name}"></button>
                                 `).join('')}
                             </div>
+                        </div>
+                        <div class="pc-settings-list-row">
+                            <div class="pc-settings-list-left"><span>外观模式</span></div>
+                            <select class="pc-theme-appearance-select" id="pcAppearancePicker" aria-label="外观模式">
+                                ${APPEARANCE_PREFERENCES.map(value => `<option value="${value}" ${value === themeState.appearancePreference ? 'selected' : ''}>${({ light: '浅色', dark: '深色', system: '跟随系统', scheduled: '定时切换' })[value]}</option>`).join('')}
+                            </select>
                         </div>
                     </div>
                 </section>
@@ -361,18 +361,23 @@ function loadDeviceInfo(pageEl) {
 }
 
 function setupSettingsEvents(pageEl) {
-    pageEl.querySelector('#pcAccentPicker')?.addEventListener('click', async (e) => {
+    pageEl.querySelector('#pcThemePicker')?.addEventListener('click', async (e) => {
         const dot = e.target.closest('.pc-theme-dot');
         if (!dot) return;
-        const accent = dot.dataset.accent;
-        setAccent(accent);
+        const theme = dot.dataset.workbenchTheme;
+        setWorkbenchTheme(theme);
         pageEl.querySelectorAll('.pc-theme-dot').forEach(d => {
             d.classList.remove('pc-theme-active');
             d.setAttribute('aria-checked', 'false');
         });
         dot.classList.add('pc-theme-active');
         dot.setAttribute('aria-checked', 'true');
-        showToast('主题色已切换');
+        showToast(`已切换为${WORKBENCH_THEMES.find(item => item.key === theme)?.name || '新'}主题`);
+    });
+
+    pageEl.querySelector('#pcAppearancePicker')?.addEventListener('change', (e) => {
+        setAppearancePreference(e.target.value);
+        showToast('外观模式已更新');
     });
 
     pageEl.querySelectorAll('[data-settings-action]').forEach(btn => {

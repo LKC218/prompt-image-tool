@@ -11,8 +11,8 @@
     <link rel="icon" type="image/svg+xml" href="./assets/icons/图标.svg">
     <style>
         @font-face {
-            font-family: '乐米小熊日记体';
-            src: url('./assets/fonts/乐米小熊日记体.ttf') format('truetype');
+            font-family: '庞门正道细线体';
+            src: url('./assets/fonts/庞门正道细线体.ttf') format('truetype');
             font-display: swap;
         }
         .splash-screen {
@@ -40,8 +40,12 @@
         .splash-title {
             font-size: 20px;
             font-weight: 700;
-            color: #1F1F24;
-            font-family: '乐米小熊日记体', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: #342721;
+            font-family: '庞门正道细线体', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        @media (prefers-color-scheme: dark) {
+            .splash-screen { background: #101822; }
+            .splash-title { color: #E8F1FA; }
         }
         #pcApp { display: none; }
         #mobileApp { display: none; }

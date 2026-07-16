@@ -326,9 +326,6 @@ function render(params = {}) {
                 title,
                 subtitle,
                 className: 'pc-welcome-banner-editor',
-                leadingHtml: `
-                    <button class="pc-top-nav-back pc-welcome-back" id="pcEditorBack" aria-label="返回">${pcIcon('chevronLeft', 'pc-editor-back-icon')}</button>
-                `,
                 actionsHtml: `
                     ${clearActionHtml}
                     <button class="pc-editor-save-btn pc-create-btn" id="pcEditorSave" type="button" aria-label="保存">
@@ -579,7 +576,7 @@ function renderEditorContent(pageEl) {
                                     <button class="pc-editor-tag-remove" data-tag="${escapeAttr(t)}" type="button" aria-label="删除标签">${pcIcon('x', 'pc-editor-tag-remove-icon')}</button>
                                 </span>
                             `).join('')}
-                            <button class="pc-editor-add-tag-btn" id="pcAddTagBtn" type="button">${pcIcon('plus', 'pc-editor-add-tag-icon')}<span>添加标签</span></button>
+                            <button class="pc-editor-add-tag-btn" id="pcAddTagBtn" type="button"><span class="pc-editor-add-tag-icon" aria-hidden="true"></span><span>添加标签</span></button>
                         </div>
                     </div>
                 </div>
@@ -590,9 +587,9 @@ function renderEditorContent(pageEl) {
                     <div class="pc-editor-form-group">
                         <label class="pc-editor-form-label"><span>分类</span></label>
                         <button class="pc-select-card pc-editor-folder-select" id="pcEditorFolderSelect" type="button" aria-haspopup="dialog" aria-label="选择分类">
-                            <span class="pc-select-card-icon">${pcIcon('folder', 'pc-select-card-icon-img')}</span>
+                            <span class="pc-select-card-icon" aria-hidden="true"></span>
                             <span class="pc-select-card-text" id="pcEditorFolderText">${currentFolder ? escapeHtml(currentFolder.name) : (formData.folderId ? '未分类' : '选择分类')}</span>
-                            <span class="pc-select-card-arrow">${pcIcon('chevronRight', 'pc-select-card-arrow-icon')}</span>
+                            <span class="pc-select-card-arrow" aria-hidden="true"></span>
                         </button>
                     </div>
 
@@ -615,19 +612,6 @@ function renderEditorContent(pageEl) {
 }
 
 function setupEditorEvents(pageEl) {
-    const backBtn = pageEl.querySelector('#pcEditorBack');
-    if (backBtn && pageEl._editorBackHandler) {
-        backBtn.removeEventListener('click', pageEl._editorBackHandler);
-    }
-    pageEl._editorBackHandler = () => {
-        if (hasUnsavedChanges) {
-            showConfirmModal('有未保存的修改，确定放弃吗？', () => goBack());
-        } else {
-            goBack();
-        }
-    };
-    backBtn?.addEventListener('click', pageEl._editorBackHandler);
-
     const nameInput = pageEl.querySelector('#pcEditorName');
     nameInput?.addEventListener('input', (e) => {
         formData.name = e.target.value;
@@ -1109,23 +1093,36 @@ function showFieldError(pageEl, inputId, errorId) {
 
 function showFolderPicker(pageEl) {
     const modal = showModal(`
-        <h3>选择分类</h3>
-        <div class="pc-picker-list">
-            <button class="pc-picker-list-item ${!formData.folderId ? 'pc-picker-list-active' : ''}" data-folder-id="">
-                <span class="pc-picker-list-icon">${pcIcon('folder', 'pc-picker-list-icon-img')}</span>
+        <div class="pc-folder-picker-dialog">
+            <div class="pc-folder-picker-heading">
+                <div>
+                    <span class="pc-folder-picker-eyebrow">提示词归档</span>
+                    <h3 id="pcFolderPickerTitle">选择分类</h3>
+                </div>
+                <button class="pc-folder-picker-close" id="pcFolderPickerClose" type="button" aria-label="关闭分类选择"></button>
+            </div>
+            <div class="pc-picker-list" role="listbox" aria-labelledby="pcFolderPickerTitle">
+                <button class="pc-picker-list-item ${!formData.folderId ? 'pc-picker-list-active' : ''}" data-folder-id="" type="button" role="option" aria-selected="${!formData.folderId}">
+                <span class="pc-picker-list-icon pc-picker-list-icon--folder" aria-hidden="true"></span>
                 <span>未分类</span>
-                ${!formData.folderId ? `<span class="pc-picker-list-check">${pcIcon('check', 'pc-picker-list-check-icon')}</span>` : ''}
+                ${!formData.folderId ? '<span class="pc-picker-list-check" aria-hidden="true"></span>' : ''}
             </button>
             ${allFolders.map(f => `
-                <button class="pc-picker-list-item ${f.id === formData.folderId ? 'pc-picker-list-active' : ''}" data-folder-id="${f.id}">
-                    <span class="pc-picker-list-icon">${pcIcon('folderOpen', 'pc-picker-list-icon-img')}</span>
+                <button class="pc-picker-list-item ${f.id === formData.folderId ? 'pc-picker-list-active' : ''}" data-folder-id="${f.id}" type="button" role="option" aria-selected="${f.id === formData.folderId}">
+                    <span class="pc-picker-list-icon pc-picker-list-icon--folder-open" aria-hidden="true"></span>
                     <span>${escapeHtml(f.name)}</span>
-                    ${f.id === formData.folderId ? `<span class="pc-picker-list-check">${pcIcon('check', 'pc-picker-list-check-icon')}</span>` : ''}
+                    ${f.id === formData.folderId ? '<span class="pc-picker-list-check" aria-hidden="true"></span>' : ''}
                 </button>
             `).join('')}
+            </div>
         </div>
     `);
 
+    const closePicker = () => {
+        closeModal();
+        pageEl.querySelector('#pcEditorFolderSelect')?.focus();
+    };
+    modal.querySelector('#pcFolderPickerClose')?.addEventListener('click', closePicker);
     modal.querySelectorAll('.pc-picker-list-item').forEach(btn => {
         btn.addEventListener('click', () => {
             formData.folderId = btn.dataset.folderId || '';
@@ -1133,8 +1130,10 @@ function showFolderPicker(pageEl) {
             closeModal();
             renderEditorContent(pageEl);
             setupEditorEvents(pageEl);
+            pageEl.querySelector('#pcEditorFolderSelect')?.focus();
         });
     });
+    modal.querySelector('.pc-picker-list-item[aria-selected="true"]')?.focus();
 }
 
 function showTagPicker(pageEl) {
@@ -1312,11 +1311,6 @@ function unmount(pageEl) {
     if (pageEl._editorKeyHandler) {
         document.removeEventListener('keydown', pageEl._editorKeyHandler);
         delete pageEl._editorKeyHandler;
-    }
-    const backBtn = pageEl.querySelector('#pcEditorBack');
-    if (backBtn && pageEl._editorBackHandler) {
-        backBtn.removeEventListener('click', pageEl._editorBackHandler);
-        delete pageEl._editorBackHandler;
     }
     const saveBtn = pageEl.querySelector('#pcEditorSave');
     if (saveBtn && pageEl._editorSaveHandler) {

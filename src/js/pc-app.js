@@ -17,12 +17,13 @@ import { render as renderCategory, mount as mountCategory, unmount as unmountCat
 import { render as renderSettings, mount as mountSettings, unmount as unmountSettings } from './pc-settings.js';
 import { initRipple } from './ripple.js';
 import { initPcCursor } from './pc-cursor.js';
+import { getThemeState, setWorkbenchTheme } from './theme-service.js';
 
 let appEl = null;
 let pageContainer = null;
 let activeNav = '/';
 let activePage = null;
-let currentAccent = 'pink';
+let currentAccent = 'sky';
 let isSidebarCollapsed = false;
 
 const NAV_ITEMS = [
@@ -144,8 +145,7 @@ async function mount(el) {
     appEl.innerHTML = renderShell();
     pageContainer = document.getElementById('pcMain');
 
-    const savedAccent = localStorage.getItem('pc-accent') || 'pink';
-    setAccent(savedAccent);
+    currentAccent = getThemeState().workbenchTheme;
 
     registerRoute('/', { render: renderHome, mount: mountHome, unmount: unmountHome });
     registerRoute('/library', { render: renderLibrary, mount: mountLibrary, unmount: unmountLibrary });
@@ -411,9 +411,7 @@ function setupSidebarClock() {
 }
 
 function setAccent(color) {
-    currentAccent = color;
-    if (appEl) appEl.setAttribute('data-accent', color);
-    localStorage.setItem('pc-accent', color);
+    currentAccent = setWorkbenchTheme(color).workbenchTheme;
 }
 
 function getAccent() {

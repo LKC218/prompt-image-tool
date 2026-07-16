@@ -1,14 +1,16 @@
 @font-face {
-    font-family: '乐米小熊日记体';
-    src: url('../assets/fonts/乐米小熊日记体.ttf') format('truetype');
+    font-family: '庞门正道细线体';
+    src: url('../assets/fonts/庞门正道细线体.ttf') format('truetype');
     font-display: swap;
 }
 
 .mobile-app {
-    --m-bg: #FFFDF8;
-    --m-surface: #FFFFFF;
-    --m-surface2: #FFF8EC;
-    --m-surface3: #FFF0E0;
+    --m-bg: var(--color-surface-canvas);
+    --m-surface: var(--color-surface-raised);
+    --m-surface2: var(--color-surface-subtle);
+    --m-surface3: var(--color-brand-subtle);
+    --m-control-surface: var(--color-surface-control);
+    --m-control-surface-pressed: var(--color-surface-control-pressed);
 
     --m-pink: #FF6F9F;
     --m-pink-light: #FFE3EB;
@@ -23,20 +25,20 @@
     --m-purple: #B99CFF;
     --m-purple-light: #EFE5FF;
 
-    --m-text: #3D302B;
-    --m-text2: #756863;
-    --m-text3: #AAA09B;
+    --m-text: var(--color-text-primary);
+    --m-text2: var(--color-text-secondary);
+    --m-text3: var(--color-text-tertiary);
 
-    --m-border: #EFE8DE;
-    --m-border-light: #F5F0E8;
+    --m-border: var(--color-border-subtle);
+    --m-border-light: var(--color-border-strong);
 
-    --m-danger: #FF5A5A;
-    --m-success: #72D879;
-    --m-warning: #FFD15C;
+    --m-danger: var(--color-state-danger-fg);
+    --m-success: var(--color-state-success-fg);
+    --m-warning: var(--color-state-warning-fg);
 
-    --m-shadow-sm: 0 2px 8px rgba(120, 90, 50, 0.06);
-    --m-shadow-md: 0 4px 16px rgba(120, 90, 50, 0.08);
-    --m-shadow-lg: 0 8px 24px rgba(120, 90, 50, 0.10);
+    --m-shadow-sm: 0 2px 8px var(--color-shadow-dark);
+    --m-shadow-md: 0 4px 16px var(--color-shadow-dark);
+    --m-shadow-lg: 0 8px 24px var(--color-shadow-dark);
     --m-shadow-pink: 0 4px 16px rgba(255, 111, 159, 0.25);
 
     --m-radius-sm: 12px;
@@ -49,7 +51,7 @@
     --m-transition-normal: 0.25s ease;
     --m-transition-slow: 0.35s ease;
 
-    --m-font-family: '乐米小熊日记体', 'PingFang SC', 'HarmonyOS Sans', 'MiSans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    --m-font-family: '庞门正道细线体', 'PingFang SC', 'HarmonyOS Sans', 'MiSans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
     --m-font-h1: 700 34px/1.3 var(--m-font-family);
     --m-font-h2: 700 27px/1.3 var(--m-font-family);
     --m-font-h3: 600 22px/1.4 var(--m-font-family);
@@ -66,23 +68,26 @@
     --m-space-2xl: 24px;
     --m-space-3xl: 32px;
 
-    --m-accent: var(--m-pink);
-    --m-accent-light: var(--m-pink-light);
-    --m-accent-bg: var(--m-pink-bg);
+    --m-accent: var(--color-brand-primary);
+    --m-accent-light: var(--color-brand-emphasis);
+    --m-accent-bg: var(--color-brand-subtle);
     --m-accent-strong: color-mix(in srgb, var(--m-accent) 82%, #000);
     --m-focus-ring: color-mix(in srgb, var(--m-accent) 30%, transparent);
     --m-shadow-accent: 0 4px 16px color-mix(in srgb, var(--m-accent) 25%, transparent);
 
     /* 新拟态按钮 Token（Neumorphism） */
     --m-neu-bg: var(--m-surface);
-    --m-neu-light: rgba(255, 255, 255, 0.92);
-    --m-neu-dark: rgba(120, 90, 50, 0.14);
-    --m-neu-dark-accent: color-mix(in srgb, var(--m-accent) 22%, rgba(120, 90, 50, 0.12));
+    --m-neu-light: var(--color-shadow-highlight);
+    --m-neu-dark: var(--color-shadow-neu-dark);
+    --m-neu-dark-accent: color-mix(in srgb, var(--m-accent) 22%, var(--color-shadow-neu-dark));
     --m-neu-offset: 6px;
     --m-neu-blur: 12px;
     --m-neu-radius: var(--m-radius-md);
     --m-neu-radius-full: var(--m-radius-full);
     --m-neu-transition: 0.2s ease;
+    --m-control-raised-shadow: var(--color-shadow-control-raised);
+    --m-control-pressed-shadow: var(--color-shadow-control-pressed);
+    --m-control-soft-shadow: var(--color-shadow-control-soft);
 
     position: fixed;
     inset: 0;
@@ -450,7 +455,7 @@
     height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--m-accent), var(--m-accent-strong));
-    color: #fff;
+    color: var(--color-text-on-brand);
     font-size: 28px;
     display: flex;
     align-items: center;
@@ -475,7 +480,7 @@
 .mobile-app .m-search-bar {
     display: flex;
     align-items: center;
-    background: var(--m-surface);
+    background: var(--color-surface-input);
     border: 1px solid var(--m-border);
     border-radius: var(--m-radius-full);
     padding: 0 var(--m-space-lg);
@@ -485,7 +490,8 @@
 }
 
 .mobile-app .m-search-bar.m-search-focused {
-    border-color: var(--m-accent);
+    border-color: var(--color-brand-focus);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-focus) 24%, transparent);
 }
 
 .mobile-app .m-search-icon {
@@ -533,13 +539,13 @@
     white-space: nowrap;
     background: var(--m-tag-bg, var(--m-surface2));
     color: var(--m-tag-color, var(--m-text2));
-    box-shadow: 2px 2px 5px color-mix(in srgb, var(--m-tag-color, var(--m-text2)) 12%, transparent), -1px -1px 3px rgba(255, 255, 255, 0.92), inset 0 1px 0 rgba(255, 255, 255, 0.74);
+    box-shadow: 2px 2px 5px color-mix(in srgb, var(--m-tag-color, var(--m-text2)) 12%, transparent), -1px -1px 3px var(--color-shadow-highlight), inset 0 1px 0 var(--color-shadow-highlight);
     transition: transform var(--m-transition-fast), box-shadow var(--m-transition-fast);
 }
 
 .mobile-app .m-tag-pill:active {
     transform: scale(0.95);
-    box-shadow: inset 2px 2px 5px color-mix(in srgb, var(--m-tag-color, var(--m-text2)) 14%, transparent), inset -1px -1px 3px rgba(255, 255, 255, 0.8);
+    box-shadow: inset 2px 2px 5px color-mix(in srgb, var(--m-tag-color, var(--m-text2)) 14%, transparent), inset -1px -1px 3px var(--color-shadow-highlight);
 }
 
 .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-blue,
@@ -567,7 +573,7 @@
     align-items: center;
     justify-content: center;
     font-size: 10px;
-    background: rgba(0,0,0,0.1);
+    background: color-mix(in srgb, currentColor 14%, transparent);
     color: inherit;
     margin-left: 2px;
 }
@@ -578,7 +584,7 @@
 }
 
 .mobile-app .m-tag-pill.m-tag-removable .m-tag-remove:active {
-    background: rgba(0,0,0,0.2);
+    background: color-mix(in srgb, currentColor 24%, transparent);
 }
 
 .mobile-app .m-filter-tag {
@@ -593,14 +599,14 @@
     background: var(--m-neu-bg);
     color: var(--m-text2);
     cursor: pointer;
-    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.04);
+    text-shadow: none;
     box-shadow:
-        -4px -4px 12px rgba(255, 255, 255, 0.85),
-        -1px -1px 4px rgba(255, 255, 255, 0.9),
-        4px 4px 12px rgba(120, 90, 50, 0.1),
-        1px 1px 4px rgba(120, 90, 50, 0.12),
-        inset 1px 1px 2px rgba(255, 255, 255, 0.7),
-        inset -1px -1px 2px rgba(120, 90, 50, 0.05);
+        -4px -4px 12px var(--m-neu-light),
+        -1px -1px 4px var(--m-neu-light),
+        4px 4px 12px var(--m-neu-dark),
+        1px 1px 4px var(--m-neu-dark),
+        inset 1px 1px 2px var(--m-neu-light),
+        inset -1px -1px 2px var(--m-neu-dark);
     transition: box-shadow 0.3s ease-out, transform 0.3s ease-out, color 0.3s ease-out, background 0.3s ease-out, text-shadow 0.3s ease-out;
 }
 
@@ -608,12 +614,8 @@
 .mobile-app .m-filter-tag.m-filter-active {
     background: var(--m-accent-light);
     color: var(--m-accent);
-    text-shadow: -1px -1px 1px rgba(0, 0, 0, 0.04), 1px 1px 2px rgba(255, 255, 255, 0.5);
-    box-shadow:
-        inset 3px 3px 9px rgba(120, 90, 50, 0.14),
-        inset 1px 1px 4px rgba(120, 90, 50, 0.12),
-        inset -2px -2px 8px rgba(255, 255, 255, 0.85),
-        inset -1px -1px 3px rgba(255, 255, 255, 0.9);
+    text-shadow: none;
+    box-shadow: var(--m-control-pressed-shadow);
     transform: translateY(2px);
 }
 
@@ -625,9 +627,9 @@
 
 .mobile-app .m-filter-tag[class*="m-tag-"].m-filter-active {
     background: var(--m-tag-color);
-    color: #fff;
+    color: var(--color-text-on-solid);
     border-color: var(--m-tag-color);
-    box-shadow: inset 3px 3px 9px color-mix(in srgb, var(--m-tag-color) 35%, #000 8%), inset -2px -2px 7px rgba(255, 255, 255, 0.22);
+    box-shadow: inset 3px 3px 9px color-mix(in srgb, var(--m-tag-color) 35%, #000 8%), inset -2px -2px 7px var(--color-shadow-highlight);
 }
 
 .mobile-app .m-filter-tag:focus-visible {
@@ -710,6 +712,22 @@
 .mobile-app .m-stat-card.m-stat-pink::before {
     background: linear-gradient(90deg, transparent, #D4567F, transparent);
     box-shadow: 0 2px 5px color-mix(in srgb, #D4567F 25%, transparent);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-stat-card {
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: 0 8px 20px var(--color-shadow-dark);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-stat-card:active {
+    background: var(--color-surface-floating);
+    border-color: var(--color-border-strong);
+    box-shadow: 0 4px 12px var(--color-shadow-dark);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-stat-card::before {
+    box-shadow: none;
 }
 
 .mobile-app .m-stat-number {
@@ -2215,6 +2233,16 @@
     filter: brightness(0) invert(1);
 }
 
+.mobile-app .m-theme-appearance-select {
+    max-width: 124px;
+    border: 1px solid var(--m-border);
+    border-radius: var(--m-radius-sm);
+    padding: 6px 8px;
+    background: var(--m-surface);
+    color: var(--m-text);
+    font: var(--m-font-caption);
+}
+
 .mobile-app .m-storage-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -2653,7 +2681,7 @@
     border-radius: var(--m-radius-full);
     font: var(--m-font-caption);
     font-weight: 500;
-    color: #fff;
+    color: var(--color-text-on-solid);
     z-index: 9999;
     transition: transform 0.3s ease;
     white-space: nowrap;
@@ -2679,7 +2707,7 @@
 .mobile-app .m-action-sheet-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: var(--color-overlay-backdrop);
     z-index: 200;
     display: flex;
     align-items: flex-end;
@@ -2817,6 +2845,29 @@
     mix-blend-mode: multiply;
 }
 
+:root[data-appearance="dark"] .mobile-app .m-welcome-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(105deg, rgb(8 21 35 / 86%), rgb(20 45 70 / 58%));
+    pointer-events: none;
+}
+
+:root[data-appearance="dark"] .mobile-app .m-welcome-text h2 {
+    color: var(--color-text-primary);
+    text-shadow: 0 2px 10px var(--color-shadow-media);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-welcome-text p {
+    color: var(--color-text-secondary);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-welcome-mascot img {
+    mix-blend-mode: normal;
+    filter: drop-shadow(0 8px 12px var(--color-shadow-media));
+}
+
 .mobile-app .m-version-item {
     display: flex;
     align-items: center;
@@ -2948,7 +2999,7 @@
 .mobile-app .m-confirm-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: var(--color-overlay-backdrop);
     z-index: 300;
     display: flex;
     align-items: center;
@@ -3012,13 +3063,13 @@
 
 .mobile-app .m-confirm-ok {
     background: var(--m-danger);
-    color: #fff;
+    color: var(--color-text-on-solid);
 }
 
 .mobile-app .m-picker-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: var(--color-overlay-backdrop);
     z-index: 250;
     display: flex;
     align-items: flex-end;
@@ -3250,7 +3301,7 @@
 .mobile-app .m-folder-dialog-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: var(--color-overlay-backdrop);
     z-index: 300;
     display: flex;
     align-items: center;
@@ -3307,8 +3358,8 @@
 }
 
 .mobile-app .m-folder-dialog-input:focus {
-    border-color: var(--m-pink);
-    box-shadow: 0 0 0 3px rgba(255, 111, 159, 0.15);
+    border-color: var(--m-accent);
+    box-shadow: 0 0 0 3px var(--m-focus-ring);
 }
 
 .mobile-app .m-folder-dialog-colors {
@@ -3364,8 +3415,8 @@
 }
 
 .mobile-app .m-folder-dialog-ok {
-    background: var(--m-pink);
-    color: #fff;
+    background: var(--m-accent);
+    color: var(--color-text-on-brand);
 }
 
 .mobile-app .m-folder-dialog-ok.m-folder-dialog-ok-disabled {
@@ -3557,6 +3608,57 @@
 
 .mobile-app .m-image-viewer-next {
     right: 12px;
+}
+
+:root[data-appearance="dark"] .mobile-app .m-cover-image {
+    background: linear-gradient(135deg, var(--color-surface-decoration-start), var(--color-surface-decoration-end));
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: 0 12px 28px var(--color-shadow-media);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-image-thumbs-section {
+    padding: var(--m-space-sm);
+    border-radius: var(--m-radius-md);
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border-subtle);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-image-thumb {
+    border-color: var(--color-border-subtle);
+    box-shadow: 0 4px 10px var(--color-shadow-media);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-image-thumb-active {
+    border-color: var(--color-brand-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-primary) 34%, transparent);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-overlay.m-image-viewer-show {
+    background: rgb(3 12 23 / 96%);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-close,
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-download,
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-nav {
+    background: var(--color-surface-media-overlay);
+    border: 1px solid var(--color-border-translucent);
+    color: var(--color-text-on-media);
+    box-shadow: 0 6px 18px var(--color-shadow-media);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-close:active,
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-download:active,
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-nav:active {
+    background: var(--color-surface-floating);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-counter,
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-note {
+    color: var(--color-text-secondary);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-image-viewer-img {
+    box-shadow: 0 16px 44px var(--color-shadow-media);
 }
 
 .mobile-app .m-text-btn-danger:active {
@@ -4207,7 +4309,7 @@
     --m-settings-neu-raised: 6px 6px 14px var(--m-neu-dark), -6px -6px 14px var(--m-neu-light);
     --m-settings-neu-raised-hover: 8px 8px 17px var(--m-neu-dark-accent), -8px -8px 17px var(--m-neu-light);
     --m-settings-neu-inset: inset 4px 4px 9px var(--m-neu-dark), inset -4px -4px 9px var(--m-neu-light);
-    --m-settings-neu-inset-soft: inset 2px 2px 6px rgba(120, 90, 50, 0.1), inset -2px -2px 6px rgba(255, 255, 255, 0.8);
+    --m-settings-neu-inset-soft: var(--m-control-pressed-shadow);
 }
 
 .mobile-app:has(.m-mascot-banner) .m-mascot-banner {
@@ -4305,7 +4407,72 @@
 }
 
 .mobile-app:has(.m-mascot-banner) .m-lan-sync-status[data-type="success"] { color: var(--m-green); }
-.mobile-app:has(.m-mascot-banner) .m-lan-sync-status[data-type="warning"] { color: #A36A00; }
+.mobile-app:has(.m-mascot-banner) .m-lan-sync-status[data-type="warning"] { color: var(--m-warning); }
+
+:root[data-appearance="dark"] .mobile-app:has(.m-mascot-banner) {
+    --m-settings-neu-raised: var(--m-control-raised-shadow);
+    --m-settings-neu-raised-hover: var(--m-control-raised-shadow);
+    --m-settings-neu-inset: var(--m-control-pressed-shadow);
+    --m-settings-neu-inset-soft: var(--m-control-pressed-shadow);
+}
+
+:root[data-appearance="dark"] .mobile-app:has(.m-mascot-banner) :is(
+    .m-mascot-banner,
+    .m-mascot-bubble,
+    .m-settings-card,
+    .m-version-info,
+    .m-storage-card,
+    .m-backup-card,
+    .m-lan-mode-btn.is-active,
+    .m-lan-sync-btn,
+    .m-lan-device-item
+) {
+    background: var(--m-control-surface);
+}
+
+:root[data-appearance="dark"] .mobile-app :is(
+    .m-segment-control,
+    .m-category-list-item,
+    .m-quick-action-btn,
+    .m-tag-selector-option,
+    .m-editor-bottom-bar,
+    .m-bottom-sheet,
+    .m-settings-row
+) {
+    background: var(--color-surface-raised);
+    border-color: var(--color-border-subtle);
+}
+
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-blue,
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-illustration { --m-tag-bg: #173C63; --m-tag-color: #7DBDFF; --m-tag-border: #2F6190; }
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-pink,
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-japanese { --m-tag-bg: #642B4B; --m-tag-color: #FFA7CC; --m-tag-border: #914567; }
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-green,
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-scene { --m-tag-bg: #194A37; --m-tag-color: #6ED7A3; --m-tag-border: #347255; }
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-yellow,
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-chinese { --m-tag-bg: #604514; --m-tag-color: #FFCA6B; --m-tag-border: #8D6A27; }
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-purple,
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-pill, .m-filter-tag, .m-tag-picker-item).m-tag-scifi { --m-tag-bg: #373967; --m-tag-color: #B2B6FF; --m-tag-border: #5C62A4; }
+
+:root[data-appearance="dark"] .mobile-app :is(.m-tag-picker-empty, .m-picker-footer, .m-picker-sheet-tags) {
+    background: var(--color-surface-floating);
+    border-color: var(--color-border-subtle);
+    box-shadow: 0 -12px 32px var(--color-shadow-dark);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-toggle-knob {
+    background: var(--color-surface-floating);
+    box-shadow: 0 2px 5px var(--color-shadow-dark);
+}
+
+:root[data-appearance="dark"] .mobile-app :is(
+    .m-segment-btn.m-segment-active,
+    .m-tag-selector-option.is-selected
+) {
+    background: color-mix(in srgb, var(--m-accent) 18%, var(--color-surface-raised));
+    color: var(--m-accent);
+    box-shadow: var(--m-control-pressed-shadow);
+}
 .mobile-app:has(.m-mascot-banner) .m-lan-sync-status[data-type="error"] { color: var(--m-danger); }
 
 .mobile-app:has(.m-mascot-banner) .m-lan-mode-btn.is-active,
@@ -4542,4 +4709,55 @@
 .mobile-app .m-page:has(.m-category-page) :is(.m-folder-dialog-btn, .m-confirm-btn):active {
     transform: translateY(1px);
     box-shadow: var(--m-category-neu-inset-accent);
+}
+
+:root[data-appearance="dark"] .mobile-app .m-category-page {
+    --m-category-neu-raised: var(--m-control-raised-shadow);
+    --m-category-neu-raised-hover: var(--m-control-raised-shadow);
+    --m-category-neu-inset: var(--m-control-pressed-shadow);
+    --m-category-neu-inset-accent: var(--m-control-pressed-shadow);
+}
+
+:root[data-appearance="dark"] .mobile-app:has(.m-category-page) :is(
+    .m-top-nav,
+    .m-top-nav-back,
+    .m-segment-control,
+    .m-segment-btn.m-segment-active,
+    .m-save-btn,
+    .m-text-btn-danger,
+    .m-category-list-item,
+    .m-more-btn,
+    .m-drag-handle,
+    .m-quick-action-btn,
+    .m-quick-action-icon,
+    .m-tip-banner,
+    .m-folder-dialog,
+    .m-confirm-dialog,
+    .m-folder-dialog-input,
+    .m-folder-dialog-btn,
+    .m-confirm-btn
+) {
+    background: var(--m-control-surface);
+    box-shadow: var(--m-control-soft-shadow);
+}
+
+:root[data-appearance="dark"] .mobile-app:has(.m-category-page) :is(
+    .m-top-nav-back:active,
+    .m-segment-btn:active,
+    .m-save-btn:active,
+    .m-text-btn-danger:active,
+    .m-category-list-item:active,
+    .m-more-btn:active,
+    .m-drag-handle:active,
+    .m-quick-action-btn:active,
+    .m-folder-dialog-btn:active,
+    .m-confirm-btn:active
+) {
+    box-shadow: var(--m-control-pressed-shadow);
+}
+
+:root[data-appearance="dark"] .mobile-app:has(.m-category-page) :is(.m-folder-dialog, .m-confirm-dialog) {
+    background: var(--color-surface-floating);
+    border-color: var(--color-border-subtle);
+    box-shadow: 0 18px 42px var(--color-shadow-dark);
 }

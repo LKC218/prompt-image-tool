@@ -10,24 +10,17 @@ import {
     stageChatGptVaultConversationImport,
 } from './prompt-tool-json-import.js';
 import { renderVersionInfo } from './version-info.js';
+import { APPEARANCE_PREFERENCES, WORKBENCH_THEMES } from './theme-config.js';
+import { getThemeState, setAppearancePreference, setWorkbenchTheme } from './theme-service.js';
 import corgiSettings from '../assets/mobile/mascots/corgi-settings.png';
 import dataIcon from '../assets/mobile/data.png';
 import saveIcon from '../assets/mobile/save.png';
 import fileTextIcon from '../assets/icons/mobile/file-text.svg';
 
-let selectedThemeColor = 0;
 let lanScanner = null;
 let lanSync = null;
 let selectedLanMode = localStorage.getItem('lan-sync-mode') || 'pull';
 const RECENT_DEVICES_KEY = 'lan-sync-recent-devices';
-
-const THEME_COLORS = [
-    { color: '#FF6F9F', label: '粉', accent: 'pink' },
-    { color: '#72D879', label: '绿', accent: 'green' },
-    { color: '#2D9CFF', label: '蓝', accent: 'blue' },
-    { color: '#B99CFF', label: '紫', accent: 'purple' },
-    { color: '#FFD15C', label: '橙', accent: 'yellow' },
-];
 
 function formatBytes(bytes) {
     if (bytes === 0) return '0 B';
@@ -65,9 +58,7 @@ async function getStorageInfo() {
 }
 
 function render(params = {}) {
-    const storedAccent = localStorage.getItem('accent') || 'pink';
-    selectedThemeColor = THEME_COLORS.findIndex(c => c.accent === storedAccent);
-    if (selectedThemeColor < 0) selectedThemeColor = 0;
+    const themeState = getThemeState();
 
     return `
         <div class="m-top-nav">
@@ -90,13 +81,19 @@ function render(params = {}) {
                     <div class="m-settings-row">
                         <div class="m-settings-row-left">
                             <span class="m-settings-row-icon">${mobileIcon('palette')}</span>
-                            <span>应用主题色</span>
+                            <span>工作台主题</span>
                         </div>
-                        <div class="m-theme-dots" id="mThemeDots">
-                            ${THEME_COLORS.map((c, idx) => `
-                                <button class="m-theme-dot ${idx === selectedThemeColor ? 'm-theme-active' : ''}" data-color-idx="${idx}" style="background: ${c.color};" title="${c.label}"></button>
+                        <div class="m-theme-dots" id="mThemeDots" role="radiogroup" aria-label="工作台主题">
+                            ${WORKBENCH_THEMES.map(theme => `
+                                <button class="m-theme-dot ${theme.key === themeState.workbenchTheme ? 'm-theme-active' : ''}" data-workbench-theme="${theme.key}" style="background: ${theme.color};" title="${theme.name}" aria-label="${theme.name}" role="radio" aria-checked="${theme.key === themeState.workbenchTheme ? 'true' : 'false'}"></button>
                             `).join('')}
                         </div>
+                    </div>
+                    <div class="m-settings-row">
+                        <div class="m-settings-row-left"><span class="m-settings-row-icon">${mobileIcon('palette')}</span><span>外观模式</span></div>
+                        <select class="m-theme-appearance-select" id="mAppearancePicker" aria-label="外观模式">
+                            ${APPEARANCE_PREFERENCES.map(value => `<option value="${value}" ${value === themeState.appearancePreference ? 'selected' : ''}>${({ light: '浅色', dark: '深色', system: '跟随系统', scheduled: '定时切换' })[value]}</option>`).join('')}
+                        </select>
                     </div>
                 </div>
             </div>
@@ -191,11 +188,7 @@ function render(params = {}) {
 }
 
 async function mount(pageEl, params = {}) {
-    const storedAccent = localStorage.getItem('accent') || 'pink';
-    selectedThemeColor = THEME_COLORS.findIndex(c => c.accent === storedAccent);
-    if (selectedThemeColor < 0) selectedThemeColor = 0;
     const app = document.querySelector('.mobile-app');
-    app?.setAttribute('data-accent', THEME_COLORS[selectedThemeColor].accent);
     app?.style.setProperty('--m-theme-check-icon', `url(${MOBILE_ICONS.check})`);
 
     setupSettingsEvents(pageEl);
@@ -251,13 +244,20 @@ function setupSettingsEvents(pageEl) {
     pageEl.querySelector('#mThemeDots')?.addEventListener('click', (e) => {
         const dot = e.target.closest('.m-theme-dot');
         if (!dot) return;
-        selectedThemeColor = parseInt(dot.dataset.colorIdx);
-        const accent = THEME_COLORS[selectedThemeColor].accent;
-        localStorage.setItem('accent', accent);
-        document.querySelector('.mobile-app')?.setAttribute('data-accent', accent);
-        pageEl.querySelectorAll('.m-theme-dot').forEach(d => d.classList.remove('m-theme-active'));
+        const theme = dot.dataset.workbenchTheme;
+        setWorkbenchTheme(theme);
+        pageEl.querySelectorAll('.m-theme-dot').forEach(d => {
+            d.classList.remove('m-theme-active');
+            d.setAttribute('aria-checked', 'false');
+        });
         dot.classList.add('m-theme-active');
-        showMobileToast(`已切换为${THEME_COLORS[selectedThemeColor].label}色主题`);
+        dot.setAttribute('aria-checked', 'true');
+        showMobileToast(`已切换为${WORKBENCH_THEMES.find(item => item.key === theme)?.name || '新'}主题`);
+    });
+
+    pageEl.querySelector('#mAppearancePicker')?.addEventListener('change', (e) => {
+        setAppearancePreference(e.target.value);
+        showMobileToast('外观模式已更新');
     });
 
     pageEl.querySelector('#mLocalBackup')?.addEventListener('click', handleExport);

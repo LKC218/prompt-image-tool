@@ -5,6 +5,7 @@ import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { aggregateTags } from './tag-utils.js';
 import { mobileIcon } from './mobile-icon-assets.js';
 import { isPromptImageToolImportStorageError, stagePromptImageToolImport } from './prompt-tool-json-import.js';
+import { getFolderColor } from './folder-color.js';
 import corgiHome from '../assets/mobile/mascots/corgi-home.png';
 import searchIcon from '../assets/mobile/search.png';
 import plusIcon from '../assets/icons/plus.svg';
@@ -16,15 +17,6 @@ import emptyMailbox from '../assets/mobile/empty-mailbox.png';
 import emptyFolder from '../assets/mobile/empty-folder.png';
 
 let homeData = null;
-
-const CATEGORY_COLORS = [
-    { bg: '#E8F4FF', text: '#2580D6' },
-    { bg: '#FFE8A3', text: '#C4A030' },
-    { bg: '#EFE5FF', text: '#8B6FCC' },
-    { bg: '#FFF0F5', text: '#D4567F' },
-    { bg: '#CFF7D7', text: '#3D9942' },
-    { bg: '#FFE0CC', text: '#E07020' },
-];
 
 const TAG_STYLES = ['m-tag-scene', 'm-tag-japanese', 'm-tag-scifi', 'm-tag-illustration', 'm-tag-chinese'];
 
@@ -201,12 +193,12 @@ function renderCategoryGrid(pageEl, folders, promptSets) {
 
     const displayFolders = folders.slice(0, 4);
     container.innerHTML = displayFolders.map((folder, idx) => {
-        const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+        const color = getFolderColor(folder, document.documentElement.dataset.appearance);
         const count = promptSets.filter(p => p.folderId === folder.id).length;
         return `
             <div class="m-category-card m-fade-in" data-folder-id="${folder.id}" style="background: ${color.bg}; animation-delay: ${idx * 50}ms">
-                <span class="m-category-name" style="color: ${color.text}">${escapeHtml(folder.name)}</span>
-                <span class="m-category-count" style="color: ${color.text}">${count} 个提示词</span>
+                <span class="m-category-name" style="color: ${color.color}">${escapeHtml(folder.name)}</span>
+                <span class="m-category-count" style="color: ${color.color}">${count} 个提示词</span>
             </div>
         `;
     }).join('');

@@ -9,7 +9,8 @@ describe('PC 首页新拟态结构', () => {
     it('将收藏分类渲染为可键盘触发的原生按钮', () => {
         expect(pcHomeJs).toContain('<button type="button" class="pc-category-card pc-home-category-card"');
         expect(pcHomeJs).toContain('data-folder-id="${folder.id}"');
-        expect(pcHomeJs).toContain('--pc-home-category-color: ${color}');
+        expect(pcHomeJs).toContain('getFolderColor(folder)');
+        expect(pcHomeJs).toContain('--pc-home-category-color: ${color.color}');
         expect(pcHomeJs).toContain("navigate('/library', { folder: card.dataset.folderId })");
     });
 

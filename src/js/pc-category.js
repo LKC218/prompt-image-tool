@@ -2,6 +2,7 @@ import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showModal, closeModal, showConfirmModal, showContextMenu, escapeHtml } from './pc-utils.js';
 import { aggregateTags, getCustomTags, getPcTagStyleClass, removeCustomTag, saveCustomTag } from './tag-utils.js';
+import { getFolderColor } from './folder-color.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import categoryFolderIcon from '../../UI设计稿/图标/插画设计/文件夹.png';
 import categoryTagIcon from '../assets/pc/tag-2.png';
@@ -137,11 +138,11 @@ function renderCategoriesList(container) {
                     </div>
                 ` : filteredFolders.map(folder => {
                     const count = promptSets.filter(p => p.folderId === folder.id).length;
-                    const color = FOLDER_COLORS.find(c => c.value === folder.color) || FOLDER_COLORS[0];
+                    const color = getFolderColor(folder, document.documentElement.dataset.appearance);
                     return `
                         <div class="pc-category-list-item" data-folder-id="${folder.id}" draggable="true">
                             <div class="pc-category-name-cell">
-                                <div class="pc-category-icon" style="background:${color.bg};color:${color.value};">${iconImg(categoryFolderIcon)}</div>
+                                <div class="pc-category-icon" style="background:${color.bg};color:${color.color};">${iconImg(categoryFolderIcon)}</div>
                                 <div class="pc-category-item-info">
                                     <div class="pc-category-item-name">${escapeHtml(folder.name)}</div>
                                 </div>

@@ -34,7 +34,7 @@ describe('更新记录模块', () => {
 
         expect(overlayRule).toContain('backdrop-filter: blur(10px) saturate(0.82)');
         expect(overlayRule).toContain('-webkit-backdrop-filter: blur(10px) saturate(0.82)');
-        expect(releaseModalRule).toContain('box-shadow: 0 18px 36px rgba(79, 63, 45, 0.2)');
+        expect(releaseModalRule).toContain('box-shadow: 0 18px 36px var(--color-shadow-dark)');
         expect(releaseModalRule).not.toContain('-10px -10px');
     });
 

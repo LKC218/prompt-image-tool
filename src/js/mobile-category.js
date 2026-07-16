@@ -1,6 +1,7 @@
 import { getStorage } from './storage.js';
 import { showMobileToast, showActionSheet, goBack, iconImg } from './mobile-utils.js';
 import { aggregateTags, getTagStyleClass, saveCustomTag, removeCustomTag } from './tag-utils.js';
+import { getFolderColor as resolveFolderColor } from './folder-color.js';
 import { mobileIcon } from './mobile-icon-assets.js';
 import rabbitTip from '../assets/mobile/mascots/rabbit-tip.png';
 import folderIcon from '../assets/mobile/folder.png';
@@ -157,7 +158,7 @@ function renderCategoryList(pageEl) {
     }
 
     container.innerHTML = categoryData.folders.map((folder, idx) => {
-        const color = getFolderColor(folder, idx);
+        const color = resolveFolderColor(folder, document.documentElement.dataset.appearance);
         const count = categoryData.promptSets.filter(p => p.folderId === folder.id).length;
         return `
             <div class="m-category-list-item m-fade-in" data-folder-id="${folder.id}" style="animation-delay: ${idx * 30}ms">

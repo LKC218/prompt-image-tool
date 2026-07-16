@@ -449,8 +449,8 @@ describe('移动端页面全功能回归冒烟', () => {
         expect(pageEl.querySelector('#mDownloadHistoryCount').textContent).toBe('0 条');
         expect(pageEl.querySelector('#mClearDownloadHistory').disabled).toBe(true);
 
-        click('[data-color-idx="2"]', pageEl);
-        expect(localStorage.getItem('accent')).toBe('blue');
+        click('[data-workbench-theme="sky"]', pageEl);
+        expect(localStorage.getItem('workbench-theme')).toBe('sky');
 
         click('#mLocalBackup', pageEl);
         await flush();

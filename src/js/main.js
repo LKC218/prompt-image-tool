@@ -1,4 +1,6 @@
 import { initStorage, isCapacitor } from './storage.js';
+import '../css/theme-tokens.css';
+import { initTheme } from './theme-service.js';
 
 function detectUI() {
     const params = new URLSearchParams(window.location.search);
@@ -17,6 +19,7 @@ function detectUI() {
 
 async function init() {
     try {
+        initTheme();
         await initStorage();
 
         const ui = detectUI();

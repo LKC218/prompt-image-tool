@@ -5,6 +5,7 @@ import { aggregateTags, getPcTagStyleClass } from './tag-utils.js';
 import { getPromptSetMenuItems } from './pc-menu-actions.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { isPromptImageToolImportStorageError, stagePromptImageToolImport } from './prompt-tool-json-import.js';
+import { getFolderColor } from './folder-color.js';
 import homeFolderIcon from '../assets/pc/home-folder.png';
 import tagIcon from '../assets/pc/tag-2.png';
 
@@ -27,15 +28,6 @@ function playFavoriteFeedback(button, isFavorite) {
         button.classList.remove('pc-star-btn--favorited', 'pc-star-btn--unfavorited');
     }, { once: true });
 }
-
-const CATEGORY_COLORS = [
-    '#2580D6',
-    '#C4A030',
-    '#8B6FCC',
-    '#D4567F',
-    '#3D9942',
-    '#E07020',
-];
 
 function assetIcon(src, className = 'pc-home-asset-icon') {
     return `<img src="${src}" alt="" class="${className}" aria-hidden="true">`;
@@ -297,11 +289,11 @@ function renderCategoryGrid(pageEl, folders, promptSets) {
     }
 
     displayFolders = displayFolders.slice(0, 4);
-    container.innerHTML = displayFolders.map((folder, idx) => {
-        const color = CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+    container.innerHTML = displayFolders.map(folder => {
+        const color = getFolderColor(folder);
         const count = promptSets.filter(p => p.folderId === folder.id).length;
         return `
-            <button type="button" class="pc-category-card pc-home-category-card" data-folder-id="${folder.id}" style="--pc-home-category-color: ${color}">
+            <button type="button" class="pc-category-card pc-home-category-card" data-folder-id="${folder.id}" style="--pc-home-category-color: ${color.color}">
                 <span class="pc-home-category-icon">
                     <img src="${homeFolderIcon}" alt="" aria-hidden="true">
                 </span>

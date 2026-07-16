@@ -235,7 +235,7 @@ function showContextMenu(x, y, items, options = {}) {
             if (!contextMenuSession || contextMenuSession.resolve !== resolve) return;
             menu.innerHTML = items.filter(item => !item.divider).map((item, index) => {
                 const tone = item.tone ? ` pc-context-tone-${item.tone}` : '';
-                return `<button type="button" class="pc-context-action${tone} ${item.danger ? 'pc-context-danger' : ''}" role="menuitem" data-action="${item.action}" style="--pc-context-index:${index}">
+                return `<button type="button" class="pc-context-action${tone} ${item.danger ? 'pc-context-danger' : ''}" role="menuitem" data-action="${item.action}" data-ripple="false" style="--pc-context-index:${index}">
                     <span class="pc-context-label">${item.label}</span>
                     <span class="pc-context-icon${tone}">${item.icon || ''}</span>
                 </button>`;

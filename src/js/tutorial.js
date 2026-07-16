@@ -376,7 +376,7 @@ export class TutorialGuide {
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', d);
-        path.setAttribute('stroke', '#8B6914');
+        path.setAttribute('stroke', 'var(--color-brand-primary)');
         path.setAttribute('stroke-width', '2.5');
         path.setAttribute('fill', 'none');
         path.setAttribute('stroke-linecap', 'round');
@@ -414,7 +414,7 @@ export class TutorialGuide {
 
         const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
         polygon.setAttribute('points', points);
-        polygon.setAttribute('fill', '#8B6914');
+        polygon.setAttribute('fill', 'var(--color-brand-primary)');
         polygon.style.opacity = '0';
         polygon.style.animation = 'tutorialFadeIn 0.3s ease 0.5s forwards';
 
