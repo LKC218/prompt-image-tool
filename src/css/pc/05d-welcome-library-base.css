@@ -1,7 +1,8 @@
 .pc-welcome-banner {
     box-sizing: border-box;
-    background-size: cover;
-    background-position: center -18px;
+    background-image: var(--pc-welcome-bg-image);
+    background-size: 100% auto;
+    background-position: center bottom;
     background-repeat: no-repeat;
     margin: calc(var(--pc-page-pad-y) * -1) calc(var(--pc-page-pad-x) * -1) 0;
     padding: 24px var(--pc-page-pad-x) 28px;
@@ -119,29 +120,21 @@
 }
 
 :root[data-appearance="dark"] .pc-welcome-banner {
+    background-image: url('../../assets/pc/home-bg2.jpg');
     background-color: #162C44;
-    background-position: center -18px;
     box-shadow: inset 0 -1px 0 var(--color-border-subtle);
-}
-
-:root[data-appearance="dark"] .pc-welcome-banner::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background: linear-gradient(100deg, rgb(11 25 40 / 90%) 0%, rgb(18 43 68 / 70%) 48%, rgb(17 37 57 / 42%) 100%);
-    pointer-events: none;
 }
 
 :root[data-appearance="dark"] .pc-welcome-text h2,
 :root[data-appearance="dark"] .pc-welcome-banner-editor .pc-welcome-text h2 {
     color: var(--color-text-primary);
-    text-shadow: 0 2px 12px rgb(0 8 18 / 34%);
+    text-shadow: 0 1px 2px rgb(0 8 18 / 72%), 0 2px 12px rgb(0 8 18 / 42%);
 }
 
 :root[data-appearance="dark"] .pc-welcome-text p,
 :root[data-appearance="dark"] .pc-welcome-banner-editor .pc-welcome-text p {
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
+    text-shadow: 0 1px 2px rgb(0 8 18 / 76%), 0 2px 10px rgb(0 8 18 / 46%);
 }
 
 :root[data-appearance="dark"] .pc-welcome-mascot,
@@ -158,7 +151,6 @@
     height: 176px;
     padding-top: 24px;
     padding-bottom: 28px;
-    background-position: center -18px;
 }
 
 .pc-welcome-banner-editor .pc-welcome-section {
@@ -249,7 +241,6 @@
     height: 176px;
     padding-top: 24px;
     padding-bottom: 28px;
-    background-position: center -18px;
 }
 
 .pc-welcome-banner-library .pc-welcome-section {

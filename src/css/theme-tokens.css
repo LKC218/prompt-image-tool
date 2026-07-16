@@ -137,6 +137,15 @@
     --color-brand-decoration: #E8A36B;
 }
 
+:root[data-workbench-theme="rose"] {
+    --color-brand-primary: #C94F83;
+    --color-brand-hover: #A93B69;
+    --color-brand-subtle: #FFF0F6;
+    --color-brand-emphasis: #FFD9E8;
+    --color-brand-focus: #C94F83;
+    --color-brand-decoration: #EC91B4;
+}
+
 :root[data-workbench-theme="forest"] {
     --color-brand-primary: #2E8B69;
     --color-brand-hover: #216B50;
@@ -171,6 +180,15 @@
     --color-brand-emphasis: #714326;
     --color-brand-focus: #FFD0AF;
     --color-brand-decoration: #A36239;
+}
+
+:root[data-appearance="dark"][data-workbench-theme="rose"] {
+    --color-brand-primary: #FF9BC1;
+    --color-brand-hover: #FFC2D8;
+    --color-brand-subtle: #5B2741;
+    --color-brand-emphasis: #73324F;
+    --color-brand-focus: #FFC2D8;
+    --color-brand-decoration: #A54C75;
 }
 
 :root[data-appearance="dark"][data-workbench-theme="sky"] {

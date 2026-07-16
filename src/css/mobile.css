@@ -2036,9 +2036,9 @@
     min-height: 40px;
     padding: 0 10px;
     border-radius: var(--m-radius-full);
-    border: 1px solid rgba(224, 112, 32, 0.16);
-    background: #FFF4EA;
-    color: #E07020;
+    border: 1px solid color-mix(in srgb, var(--color-state-warning-fg) 28%, transparent);
+    background: var(--color-state-warning-bg);
+    color: var(--color-state-warning-fg);
     font: var(--m-font-tag);
     white-space: nowrap;
     transition: opacity var(--m-transition-fast), transform var(--m-transition-fast), background var(--m-transition-fast);
@@ -2192,7 +2192,7 @@
     width: 27px;
     height: 27px;
     border-radius: 50%;
-    background: #fff;
+    background: var(--color-surface-floating);
     position: absolute;
     top: 2px;
     left: 2px;
@@ -2343,7 +2343,7 @@
 }
 
 .mobile-app .m-lan-sync-status[data-type="warning"] {
-    color: #A36A00;
+    color: var(--color-state-warning-fg);
     background: var(--m-yellow-light);
 }
 
@@ -2573,8 +2573,8 @@
 }
 
 .mobile-app .m-backup-card.m-backup-orange {
-    background: #FFE8D0;
-    color: #E07020;
+    background: var(--color-state-warning-bg);
+    color: var(--color-state-warning-fg);
 }
 
 .mobile-app .m-backup-icon {
@@ -2856,11 +2856,12 @@
 
 :root[data-appearance="dark"] .mobile-app .m-welcome-text h2 {
     color: var(--color-text-primary);
-    text-shadow: 0 2px 10px var(--color-shadow-media);
+    text-shadow: 0 1px 2px rgb(0 8 18 / 72%), 0 2px 10px var(--color-shadow-media);
 }
 
 :root[data-appearance="dark"] .mobile-app .m-welcome-text p {
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
+    text-shadow: 0 1px 2px rgb(0 8 18 / 76%), 0 2px 10px var(--color-shadow-media);
 }
 
 :root[data-appearance="dark"] .mobile-app .m-welcome-mascot img {
@@ -3212,8 +3213,8 @@
 .mobile-app .m-picker-footer {
     padding: var(--m-space-md) var(--m-space-xl) calc(var(--m-space-lg) + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--m-border-light);
-    background: rgba(255, 255, 255, 0.96);
-    box-shadow: 0 -10px 24px rgba(120, 90, 50, 0.06);
+    background: var(--color-surface-floating);
+    box-shadow: 0 -10px 24px var(--color-shadow-dark);
 }
 
 .mobile-app .m-picker-confirm {
@@ -4310,6 +4311,9 @@
     --m-settings-neu-raised-hover: 8px 8px 17px var(--m-neu-dark-accent), -8px -8px 17px var(--m-neu-light);
     --m-settings-neu-inset: inset 4px 4px 9px var(--m-neu-dark), inset -4px -4px 9px var(--m-neu-light);
     --m-settings-neu-inset-soft: var(--m-control-pressed-shadow);
+    --m-settings-warning-bg: var(--color-state-warning-bg);
+    --m-settings-warning-fg: var(--color-state-warning-fg);
+    --m-settings-divider: var(--color-border-subtle);
 }
 
 .mobile-app:has(.m-mascot-banner) .m-mascot-banner {
@@ -4326,7 +4330,7 @@
 
 .mobile-app:has(.m-mascot-banner) .m-settings-row + .m-settings-row,
 .mobile-app:has(.m-mascot-banner) .m-download-history-item + .m-download-history-item {
-    border-top-color: rgba(120, 90, 50, 0.08);
+    border-top-color: var(--m-settings-divider);
 }
 
 .mobile-app:has(.m-mascot-banner) .m-theme-dot {

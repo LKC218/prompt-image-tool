@@ -2,7 +2,8 @@ export const APPEARANCE_PREFERENCES = ['light', 'dark', 'system', 'scheduled'];
 
 export const WORKBENCH_THEMES = [
     { key: 'sky', name: '晴空巡逻', color: '#2477D4', legacyAccents: ['blue'] },
-    { key: 'caramel', name: '焦糖午后', color: '#C96A2C', legacyAccents: ['pink', 'yellow'] },
+    { key: 'rose', name: '蔷薇漫游', color: '#C94F83', legacyAccents: ['pink'] },
+    { key: 'caramel', name: '焦糖午后', color: '#C96A2C', legacyAccents: ['yellow'] },
     { key: 'forest', name: '松林远足', color: '#2E8B69', legacyAccents: ['green'] },
     { key: 'night', name: '星夜侦察', color: '#5C62C9', legacyAccents: ['purple'] },
     { key: 'mint', name: '海盐薄荷', color: '#168A9A', legacyAccents: [] },

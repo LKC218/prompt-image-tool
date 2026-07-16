@@ -36,7 +36,7 @@ function renderPcWelcomeBanner(options = {}) {
     const actions = actionsHtml ? `<div class="pc-welcome-actions">${actionsHtml}</div>` : '';
 
     return `
-        <div class="${bannerClass}" style="background-image: url('${homeBg}');">
+        <div class="${bannerClass}" style="--pc-welcome-bg-image: url('${homeBg}');">
             <div class="pc-welcome-section">
                 ${leadingHtml ? `<div class="pc-welcome-leading">${leadingHtml}</div>` : ''}
                 <div class="pc-welcome-text">

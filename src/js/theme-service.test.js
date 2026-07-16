@@ -27,6 +27,15 @@ describe('主题服务', () => {
         expect(document.documentElement.dataset.appearance).toBe('light');
     });
 
+    it('将历史粉色偏好迁移为蔷薇主题', () => {
+        localStorage.setItem('accent', 'pink');
+
+        initTheme();
+
+        expect(localStorage.getItem('workbench-theme')).toBe('rose');
+        expect(document.documentElement.dataset.workbenchTheme).toBe('rose');
+    });
+
     it('独立保存工作台主题与固定外观模式', () => {
         initTheme();
         setWorkbenchTheme('forest');
