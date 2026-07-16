@@ -50,7 +50,7 @@ const isCapacitor = typeof window !== 'undefined' && window.Capacitor
 | 文档 | 说明 |
 |------|------|
 | [技术文档](技术文档/README.md) | API、PC、移动端、Web 和局域网同步技术说明 |
-| [设计文档](设计文档/README.md) | UI/UX 设计系统、组件规范和响应式设计 |
+| [设计文档](设计文档/README.md) | UI/UX、跨端配色与主题 Token、组件规范和响应式设计 |
 | [构建方案](构建方案/README.md) | PC、Android、独立安装包和平台打包流程 |
 | [计划文档](计划文档/) | 版本计划、功能实施计划和优化计划 |
 | [工程文档](工程文档/README.md) | 工程交接、迁移和目录职责说明 |
