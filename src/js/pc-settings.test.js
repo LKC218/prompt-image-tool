@@ -103,6 +103,9 @@ describe('PC 设置页下载历史', () => {
 
         expect(pageEl.querySelector('#pcDownloadHistoryCount').textContent).toBe('1');
         expect(pageEl.querySelector('#pcDownloadHistoryList').textContent).toContain('桌面预览图');
+        expect(pageEl.querySelector('#pcDownloadHistoryList').textContent).toContain('preview.png');
+        expect(pageEl.querySelector('#pcDownloadHistoryList').textContent).toContain('浏览器下载');
+        expect(pageEl.querySelector('#pcClearDownloadHistory').disabled).toBe(false);
 
         pageEl.querySelector('#pcClearDownloadHistory').click();
         expect(pcUtilsMocks.showConfirmModal).toHaveBeenCalledWith(
@@ -113,5 +116,6 @@ describe('PC 设置页下载历史', () => {
         pcUtilsMocks.showConfirmModal.mock.calls[0][1]();
         expect(localStorage.getItem(DOWNLOAD_HISTORY_KEY)).toBeNull();
         expect(pageEl.querySelector('#pcDownloadHistoryCount').textContent).toBe('0');
+        expect(pageEl.querySelector('#pcClearDownloadHistory').disabled).toBe(true);
     });
 });

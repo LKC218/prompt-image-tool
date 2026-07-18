@@ -17,7 +17,7 @@ import { render as renderCategory, mount as mountCategory, unmount as unmountCat
 import { render as renderSettings, mount as mountSettings, unmount as unmountSettings } from './pc-settings.js';
 import { initRipple } from './ripple.js';
 import { initPcCursor } from './pc-cursor.js';
-import { getThemeState, setWorkbenchTheme } from './theme-service.js';
+import { getThemeState, setAppearancePreference, setWorkbenchTheme } from './theme-service.js';
 
 let appEl = null;
 let pageContainer = null;
@@ -43,11 +43,26 @@ const RELEASE_NOTES_ICON = `
     </svg>
 `;
 
+const THEME_TOGGLE_ICONS = {
+    light: `
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.72 5.28l-1.42 1.42M6.7 17.3l-1.42 1.42M18.72 18.72 17.3 17.3M6.7 6.7 5.28 5.28"></path>
+        </svg>
+    `,
+    dark: `
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z"></path>
+        </svg>
+    `,
+};
+
 const TAB_ROUTES = ['/', '/library', '/category', '/settings'];
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
 
 const navClickMotionCleanups = new WeakMap();
+let activeThemeTransition = null;
 
 const SIDEBAR_TOGGLE_ICON = `
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -116,6 +131,7 @@ function renderShell() {
                         <span class="pc-release-notes-nav-icon" aria-hidden="true">${RELEASE_NOTES_ICON}</span>
                         <span class="pc-release-notes-nav-badge" aria-hidden="true"></span>
                     </button>
+                    ${renderThemeToggle()}
                     <button class="pc-nav-item pc-sidebar-settings-item" type="button" data-nav="${SETTINGS_NAV_ITEM.path}" data-ripple="false" aria-label="${SETTINGS_NAV_ITEM.label}" title="${SETTINGS_NAV_ITEM.label}">
                         <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${SETTINGS_NAV_ITEM.icon});mask-image:url(${SETTINGS_NAV_ITEM.icon})"></div>
                     </button>
@@ -133,6 +149,22 @@ function renderShell() {
             </div>
         </aside>
         <main class="pc-main" id="pcMain"></main>
+    `;
+}
+
+function renderThemeToggle() {
+    const appearance = getThemeState().appearance;
+    const nextAppearance = appearance === 'dark' ? 'light' : 'dark';
+    const label = `切换为${nextAppearance === 'dark' ? '深色' : '浅色'}主题`;
+
+    return `
+        <button class="pc-theme-toggle" type="button" role="switch" aria-checked="${String(appearance === 'dark')}" aria-label="${label}" title="${label}" data-ripple="false">
+            <span class="pc-theme-toggle-track" aria-hidden="true">
+                <span class="pc-theme-toggle-orbit pc-theme-toggle-orbit-light">${THEME_TOGGLE_ICONS.light}</span>
+                <span class="pc-theme-toggle-orbit pc-theme-toggle-orbit-dark">${THEME_TOGGLE_ICONS.dark}</span>
+                <span class="pc-theme-toggle-thumb">${THEME_TOGGLE_ICONS[appearance]}</span>
+            </span>
+        </button>
     `;
 }
 
@@ -209,6 +241,11 @@ function setupSidebarNav() {
     const nav = document.getElementById('pcSidebarNav');
     const settingsNav = appEl.querySelector('.pc-sidebar-utility-nav');
     const handleNavigation = (e) => {
+        const themeToggle = e.target.closest('.pc-theme-toggle');
+        if (themeToggle) {
+            toggleAppearance(themeToggle);
+            return;
+        }
         const item = e.target.closest('.pc-nav-item');
         if (!item) return;
         if (item.hasAttribute('data-release-notes')) {
@@ -227,6 +264,56 @@ function setupSidebarNav() {
 
     nav.addEventListener('click', handleNavigation);
     settingsNav?.addEventListener('click', handleNavigation);
+}
+
+function toggleAppearance(toggle) {
+    const nextAppearance = getThemeState().appearance === 'dark' ? 'light' : 'dark';
+    const thumb = toggle.querySelector('.pc-theme-toggle-thumb');
+    const rect = (thumb || toggle).getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const radius = Math.ceil(Math.max(
+        Math.hypot(x, y),
+        Math.hypot(window.innerWidth - x, y),
+        Math.hypot(x, window.innerHeight - y),
+        Math.hypot(window.innerWidth - x, window.innerHeight - y),
+    ));
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const applyAppearance = () => {
+        setAppearancePreference(nextAppearance);
+        syncThemeToggle(toggle);
+    };
+
+    if (reducedMotion || typeof document.startViewTransition !== 'function') {
+        applyAppearance();
+        return;
+    }
+
+    activeThemeTransition?.skipTransition();
+    document.documentElement.style.setProperty('--pc-theme-transition-x', `${x}px`);
+    document.documentElement.style.setProperty('--pc-theme-transition-y', `${y}px`);
+    document.documentElement.style.setProperty('--pc-theme-transition-radius', `${radius}px`);
+    document.documentElement.dataset.themeTransitioning = 'true';
+    const transition = document.startViewTransition(applyAppearance);
+    activeThemeTransition = transition;
+    const cleanupTransition = () => {
+        if (activeThemeTransition !== transition) return;
+        activeThemeTransition = null;
+        delete document.documentElement.dataset.themeTransitioning;
+    };
+    transition.finished.then(cleanupTransition, cleanupTransition);
+}
+
+function syncThemeToggle(toggle) {
+    const appearance = getThemeState().appearance;
+    const nextAppearance = appearance === 'dark' ? 'light' : 'dark';
+    const label = `切换为${nextAppearance === 'dark' ? '深色' : '浅色'}主题`;
+    const thumb = toggle.querySelector('.pc-theme-toggle-thumb');
+
+    toggle.setAttribute('aria-checked', String(appearance === 'dark'));
+    toggle.setAttribute('aria-label', label);
+    toggle.setAttribute('title', label);
+    if (thumb) thumb.innerHTML = THEME_TOGGLE_ICONS[appearance];
 }
 
 function playNavIconClickMotion(item) {

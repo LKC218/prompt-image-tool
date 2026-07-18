@@ -74,6 +74,16 @@ function getDownloadHistoryLocationLabel(entry = {}) {
     return '本地下载';
 }
 
+function getDownloadHistoryMethodLabel(entry = {}) {
+    const labels = {
+        'file-picker': '自选位置',
+        'native-gallery': '保存到相册',
+        backend: '本地保存',
+        download: '浏览器下载',
+    };
+    return labels[entry.method] || '本地下载';
+}
+
 export {
     DOWNLOAD_HISTORY_KEY,
     DOWNLOAD_HISTORY_LIMIT,
@@ -81,5 +91,6 @@ export {
     formatDownloadHistoryTime,
     getDownloadHistory,
     getDownloadHistoryLocationLabel,
+    getDownloadHistoryMethodLabel,
     recordDownloadHistory
 };

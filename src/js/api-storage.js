@@ -30,7 +30,10 @@ export class ApiStorage {
             const res = await fetch(`${this.baseUrl}/api${path}`, opts);
             const data = await this._readJsonResponse(res, path);
             if (!res.ok) {
-                throw new Error(`API error ${res.status}: ${JSON.stringify(data)}`);
+                const message = data && typeof data === 'object' && data.error
+                    ? data.error
+                    : `API error ${res.status}: ${JSON.stringify(data)}`;
+                throw new Error(message);
             }
             return data;
         } catch (e) {
@@ -174,7 +177,7 @@ export class ApiStorage {
     }
 
     async getImageUrl(img) {
-        if (img.file) return `${this.baseUrl}/images/${img.file}`;
+        if (img.file) return `${this.baseUrl}/images/${encodeURIComponent(img.file)}`;
         return img.data || '';
     }
 

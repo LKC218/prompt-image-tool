@@ -12,6 +12,7 @@ const PC_CSS_FILES = [
     '05d-welcome-library-base.css',
     '05e-page-late-overrides.css',
     '06-responsive-overrides.css',
+    '07-theme-toggle.css',
 ];
 
 export function readPcCss() {

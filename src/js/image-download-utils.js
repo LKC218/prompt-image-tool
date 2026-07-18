@@ -216,6 +216,12 @@ async function saveWithBackend(storage, options = {}) {
     };
 }
 
+function createDownloadError(message, cause) {
+    const error = new Error(message);
+    if (cause) error.cause = cause;
+    return error;
+}
+
 async function downloadImage(options = {}) {
     if (!options.url) {
         throw new Error('缺少图片地址');
@@ -253,11 +259,11 @@ async function downloadImage(options = {}) {
     }
 
     if (isCapacitor) {
-        const { blob, contentType, filename } = await prepareDownloadAsset(
-            { ...options, filename: baseFilename },
-            sourceFile
-        );
         try {
+            const { blob, contentType, filename } = await prepareDownloadAsset(
+                { ...options, filename: baseFilename },
+                sourceFile
+            );
             const result = await saveBlobToNativeGallery(blob, filename, contentType);
             if (result?.success) {
                 recordDownloadHistory({
@@ -273,8 +279,10 @@ async function downloadImage(options = {}) {
                 });
                 return result;
             }
+            throw createDownloadError('保存到手机相册失败');
         } catch (error) {
-            console.warn('native gallery save failed, fallback to browser download:', error);
+            const reason = error?.message ? `：${error.message}` : '';
+            throw createDownloadError(`保存到手机相册失败${reason}`, error);
         }
     }
 

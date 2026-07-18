@@ -88,9 +88,14 @@ async function renderDetail(pageEl, set) {
     const allImages = currentVersion && currentVersion.images ? currentVersion.images : [];
     imageUrls = [];
     for (const img of allImages) {
-        const storage = getStorage();
-        const url = await storage.getImageUrl(img);
-        imageUrls.push({ url, name: img.name || '', note: img.note || '', data: img });
+        try {
+            const storage = getStorage();
+            const url = await storage.getImageUrl(img);
+            imageUrls.push({ url, name: img.name || '', note: img.note || '', data: img });
+        } catch (error) {
+            console.warn('mobile detail image URL resolve failed:', error);
+            imageUrls.push({ url: '', name: img.name || '', note: img.note || '', data: img, loadError: true });
+        }
     }
     currentImageIndex = 0;
 
@@ -462,7 +467,8 @@ function showImageViewer(pageEl, startIndex) {
             }
         } catch (error) {
             console.error('mobile image download failed:', error);
-            showMobileToast(format === 'jpg' ? 'JPG 导出失败' : '图片下载失败', 'error');
+            const message = error?.message || (format === 'jpg' ? 'JPG 导出失败' : '图片下载失败');
+            showMobileToast(message, 'error');
         } finally {
             if (downloadBtn) downloadBtn.disabled = false;
         }

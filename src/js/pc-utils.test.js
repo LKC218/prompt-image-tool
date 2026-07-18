@@ -19,6 +19,19 @@ describe('showContextMenu', () => {
         await expect(actionPromise).resolves.toBe('copy');
     });
 
+    it('图片查看器内的菜单可以置于遮罩层之上并选择下载动作', async () => {
+        const viewer = document.createElement('div');
+        viewer.className = 'pc-image-viewer';
+        document.body.appendChild(viewer);
+
+        const actionPromise = showContextMenu(24, 32, [{ action: 'original', label: '下载原格式' }]);
+        const menu = document.getElementById('pcContextMenu');
+
+        expect(menu.classList.contains('pc-context-active')).toBe(true);
+        menu.querySelector('.pc-context-action').click();
+        await expect(actionPromise).resolves.toBe('original');
+    });
+
     it('三点入口延后展开并在关闭时归还焦点', async () => {
         vi.useFakeTimers();
         const anchor = document.createElement('button');

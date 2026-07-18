@@ -49,6 +49,11 @@ describe('ApiStorage', () => {
             expect(await storage.getImageUrl(img)).toBe('/images/test.png');
         });
 
+        it('should encode special characters in file URL', async () => {
+            const img = { file: '灯塔 #1.png' };
+            expect(await storage.getImageUrl(img)).toBe('/images/%E7%81%AF%E5%A1%94%20%231.png');
+        });
+
         it('should return data URL when img has data property', async () => {
             const img = { data: 'data:image/png;base64,abc' };
             expect(await storage.getImageUrl(img)).toBe('data:image/png;base64,abc');
@@ -105,7 +110,7 @@ describe('ApiStorage', () => {
             const mockFetch = vi.fn().mockResolvedValue(mockResponse({ error: 'not found' }, false, 404));
             global.fetch = mockFetch;
 
-            await expect(storage.api('GET', '/prompt-set/missing')).rejects.toThrow('API error 404');
+            await expect(storage.api('GET', '/prompt-set/missing')).rejects.toThrow('not found');
         });
 
         it('should explain html responses instead of leaking json parse errors', async () => {

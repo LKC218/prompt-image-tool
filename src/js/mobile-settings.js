@@ -2,7 +2,7 @@ import { getStorage } from './storage.js';
 import { showMobileToast, showActionSheet, iconImg, navigate } from './mobile-utils.js';
 import { DEFAULT_SCAN_PORTS, DEFAULT_SYNC_PORT, formatLanAddress, LanScanner, LanSync, parseLanTarget } from './lan-sync.js';
 import { buildExportSuccessMessage, exportBackup, getErrorMessage } from './backup-utils.js';
-import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel } from './download-history.js';
+import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel, getDownloadHistoryMethodLabel } from './download-history.js';
 import { MOBILE_ICONS, mobileIcon } from './mobile-icon-assets.js';
 import {
     isPromptImageToolImportStorageError,
@@ -219,25 +219,28 @@ function renderDownloadHistory(pageEl) {
         return;
     }
 
-    listEl.innerHTML = history.map(item => {
+    listEl.innerHTML = `<ul class="m-download-history-items" aria-label="图片下载记录">${history.map(item => {
         const platformLabel = item.platform === 'mobile' ? '移动端' : item.platform === 'pc' ? 'PC 端' : '本地';
         const locationLabel = getDownloadHistoryLocationLabel(item);
+        const filename = item.filename || item.title;
         return `
-        <div class="m-download-history-item">
+        <li class="m-download-history-item">
             <span class="m-download-history-icon">${mobileIcon('download', { className: 'm-icon-sm' })}</span>
             <div class="m-download-history-body">
                 <div class="m-download-history-main">
                     <strong title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong>
-                    <small>${escapeHtml(item.source)} · ${escapeHtml(locationLabel)}</small>
+                    <span class="m-download-history-filename" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
+                    <small title="${escapeHtml(locationLabel)}">${escapeHtml(item.source)} · ${escapeHtml(locationLabel)}</small>
                 </div>
                 <div class="m-download-history-meta">
                     <span class="m-download-history-time">${escapeHtml(formatDownloadHistoryTime(item.createdAt))}</span>
                     <span class="m-download-history-platform">${escapeHtml(platformLabel)}</span>
+                    <span class="m-download-history-method">${escapeHtml(getDownloadHistoryMethodLabel(item))}</span>
                 </div>
             </div>
-        </div>
+        </li>
     `;
-    }).join('');
+    }).join('')}</ul>`;
 }
 
 function setupSettingsEvents(pageEl) {

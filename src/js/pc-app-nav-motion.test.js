@@ -222,6 +222,28 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(settingsItem.classList.contains('pc-nav-clicking')).toBe(false);
     });
 
+    it('底部工具区提供可访问的图标主题开关，并保留更新记录和设置入口', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const utilityNav = app.querySelector('.pc-sidebar-utility-nav');
+        const toggle = utilityNav.querySelector('.pc-theme-toggle');
+
+        expect(utilityNav.querySelector('[data-release-notes]')).not.toBeNull();
+        expect(utilityNav.querySelector('[data-nav="/settings"]')).not.toBeNull();
+        expect(toggle.getAttribute('role')).toBe('switch');
+        expect(toggle.getAttribute('aria-checked')).toBe('false');
+        expect(toggle.getAttribute('aria-label')).toBe('切换为深色主题');
+        expect(toggle.querySelector('.pc-theme-toggle-thumb')).not.toBeNull();
+        expect(pcCss).toContain('pc-theme-circle-reveal');
+        expect(pcCss).toContain('prefers-reduced-motion: reduce');
+        expect(pcCss).toContain('width: 96px');
+        expect(pcCss).toContain('height: 48px');
+        expect(pcCss).toContain('flex-wrap: nowrap');
+        expect(pcCss).toContain('gap: 8px');
+    });
+
     it('折叠按钮在图标动效结束后更新侧栏状态并持久化', async () => {
         const { mount } = await import('./pc-app.js');
         const app = document.getElementById('app');

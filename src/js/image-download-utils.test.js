@@ -163,6 +163,18 @@ describe('image-download-utils', () => {
         }));
     });
 
+    it('图片读取失败时不将 URL 回退下载记为成功', async () => {
+        global.fetch = vi.fn().mockRejectedValue(new Error('图片文件不存在'));
+
+        await expect(downloadImage({
+            url: '/images/missing.png',
+            filename: 'missing.png',
+            allowUrlFallback: false,
+        })).rejects.toThrow('图片文件不存在');
+
+        expect(getDownloadHistory()).toHaveLength(0);
+    });
+
     it('PC 后端自定义保存优先调用图片保存接口', async () => {
         const storage = {
             downloadImageFile: vi.fn(async () => ({

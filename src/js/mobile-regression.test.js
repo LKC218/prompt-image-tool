@@ -438,6 +438,8 @@ describe('移动端页面全功能回归冒烟', () => {
 
         expect(pageEl.querySelector('#mDownloadHistoryCount').textContent).toBe('1 条');
         expect(pageEl.querySelector('#mDownloadHistoryList').textContent).toContain('移动端预览图');
+        expect(pageEl.querySelector('#mDownloadHistoryList').textContent).toContain('preview.png');
+        expect(pageEl.querySelector('#mDownloadHistoryList').textContent).toContain('保存到相册');
         expect(pageEl.querySelector('#mClearDownloadHistory').disabled).toBe(false);
 
         click('#mClearDownloadHistory', pageEl);

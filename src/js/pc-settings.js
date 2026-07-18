@@ -4,7 +4,7 @@ import { showToast, showConfirmModal, escapeHtml, formatBytes, copyToClipboard }
 import { APPEARANCE_PREFERENCES, WORKBENCH_THEMES } from './theme-config.js';
 import { getThemeState, setAppearancePreference, setWorkbenchTheme } from './theme-service.js';
 import { buildExportSuccessMessage, exportBackup, exportZipBackup, getErrorMessage } from './backup-utils.js';
-import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel } from './download-history.js';
+import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel, getDownloadHistoryMethodLabel } from './download-history.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { renderVersionInfo } from './version-info.js';
 import {
@@ -94,16 +94,22 @@ function render(params = {}) {
 
             <section class="pc-settings-panel pc-settings-backup-panel" aria-labelledby="pcBackupTitle">
                 <div class="pc-settings-backup-head">
-                    <h2 id="pcBackupTitle" class="pc-settings-panel-title">数据备份与恢复</h2>
-                    <div class="pc-settings-export-mode" role="radiogroup" aria-label="备份导出位置">
-                        <label class="pc-settings-export-mode-option">
-                            <input type="radio" name="pcExportMode" value="downloads" checked>
-                            <span>下载目录</span>
-                        </label>
-                        <label class="pc-settings-export-mode-option">
-                            <input type="radio" name="pcExportMode" value="custom">
-                            <span>自定义位置</span>
-                        </label>
+                    <div class="pc-settings-backup-title-group">
+                        <h2 id="pcBackupTitle" class="pc-settings-panel-title">数据备份与恢复</h2>
+                        <p>导入、导出和恢复均在本机完成。</p>
+                    </div>
+                    <div class="pc-settings-backup-location">
+                        <span>导出位置</span>
+                        <div class="pc-settings-export-mode" role="radiogroup" aria-label="备份导出位置">
+                            <label class="pc-settings-export-mode-option">
+                                <input type="radio" name="pcExportMode" value="downloads" checked>
+                                <span>下载目录</span>
+                            </label>
+                            <label class="pc-settings-export-mode-option">
+                                <input type="radio" name="pcExportMode" value="custom">
+                                <span>自定义位置</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="pc-settings-action-grid pc-settings-action-grid-three">
@@ -129,8 +135,10 @@ function render(params = {}) {
                         </span>
                     </button>
                 </div>
-                <button class="pc-btn pc-btn-secondary pc-btn-sm" type="button" data-settings-action="export-json">导出兼容 JSON</button>
-                <p class="pc-settings-backup-hint">完整备份使用 ZIP 保存原图；兼容 JSON 适用于旧版本和少量图片。选择自定义位置时会打开保存位置选择窗口。</p>
+                <div class="pc-settings-backup-footer">
+                    <button class="pc-btn pc-btn-secondary pc-btn-sm" type="button" data-settings-action="export-json">导出兼容 JSON</button>
+                    <p class="pc-settings-backup-hint">完整备份使用 ZIP 保存原图；兼容 JSON 适用于旧版本和少量图片。选择自定义位置时会打开保存位置选择窗口。</p>
+                </div>
             </section>
 
             <section class="pc-settings-panel pc-settings-download-history-panel" aria-labelledby="pcDownloadHistoryTitle">
@@ -203,8 +211,10 @@ async function loadSettingsData(pageEl) {
 function renderDownloadHistory(pageEl) {
     const history = getDownloadHistory();
     const countEl = pageEl.querySelector('#pcDownloadHistoryCount');
+    const clearBtn = pageEl.querySelector('#pcClearDownloadHistory');
     const listEl = pageEl.querySelector('#pcDownloadHistoryList');
     if (countEl) countEl.textContent = String(history.length);
+    if (clearBtn) clearBtn.disabled = !history.length;
     if (!listEl) return;
 
     if (!history.length) {
@@ -217,19 +227,28 @@ function renderDownloadHistory(pageEl) {
         return;
     }
 
-    listEl.innerHTML = history.map(item => `
-        <div class="pc-settings-download-history-item">
+    listEl.innerHTML = `<ul class="pc-settings-download-history-items" aria-label="图片下载记录">${history.map(item => {
+        const platformLabel = item.platform === 'mobile' ? '移动端' : item.platform === 'pc' ? 'PC 端' : '本地';
+        const filename = item.filename || item.title;
+        const locationLabel = getDownloadHistoryLocationLabel(item);
+        return `
+        <li class="pc-settings-download-history-item">
             <span class="pc-settings-download-history-icon">${iconImg(downloadHistoryIcon)}</span>
             <div class="pc-settings-download-history-main">
                 <strong title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong>
-                <small>${escapeHtml(item.source)} · ${escapeHtml(getDownloadHistoryLocationLabel(item))}</small>
+                <span class="pc-settings-download-history-filename" title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
+                <small title="${escapeHtml(locationLabel)}">${escapeHtml(item.source)} · ${escapeHtml(locationLabel)}</small>
             </div>
             <div class="pc-settings-download-history-meta">
-                <span>${escapeHtml(formatDownloadHistoryTime(item.createdAt))}</span>
-                <span>${escapeHtml(item.platform === 'mobile' ? '移动端' : item.platform === 'pc' ? 'PC 端' : '')}</span>
+                <span class="pc-settings-download-history-time">${escapeHtml(formatDownloadHistoryTime(item.createdAt))}</span>
+                <div class="pc-settings-download-history-tags">
+                    <span>${escapeHtml(platformLabel)}</span>
+                    <span>${escapeHtml(getDownloadHistoryMethodLabel(item))}</span>
+                </div>
             </div>
-        </div>
-    `).join('');
+        </li>
+    `;
+    }).join('')}</ul>`;
 }
 
 async function loadDataDirectory(pageEl) {

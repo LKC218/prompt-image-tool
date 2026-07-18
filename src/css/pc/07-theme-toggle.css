@@ -1,0 +1,178 @@
+.pc-theme-toggle {
+    box-sizing: border-box;
+    flex: 0 0 96px;
+    width: 96px;
+    min-width: 96px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    color: var(--pc-text3);
+    background: transparent;
+    cursor: pointer;
+}
+
+.pc-theme-toggle-track {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--pc-sidebar-bg) 72%, var(--pc-accent));
+    box-shadow: inset 3px 3px 6px var(--pc-sidebar-clock-dark), inset -3px -3px 6px var(--pc-sidebar-clock-light);
+    transition: background-color 0.22s var(--td-motion-easing), box-shadow 0.22s var(--td-motion-easing);
+}
+
+.pc-theme-toggle-orbit,
+.pc-theme-toggle-thumb {
+    position: absolute;
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+}
+
+.pc-theme-toggle-orbit {
+    top: 5px;
+    color: color-mix(in srgb, var(--pc-text3) 64%, transparent);
+    opacity: 0.6;
+}
+
+.pc-theme-toggle-orbit-light {
+    left: 5px;
+    color: #D69A26;
+}
+
+.pc-theme-toggle-orbit-dark {
+    right: 5px;
+    color: #9789D8;
+}
+
+.pc-theme-toggle-thumb {
+    top: 5px;
+    left: 5px;
+    z-index: 1;
+    border-radius: 50%;
+    color: #D69A26;
+    background: var(--color-surface-floating);
+    box-shadow: 3px 3px 7px var(--pc-sidebar-clock-dark), -2px -2px 4px var(--pc-sidebar-clock-light);
+    transform: translateX(0);
+    transition: transform 0.22s cubic-bezier(.34, 1.45, .64, 1), color 0.18s ease, background-color 0.22s ease, box-shadow 0.22s ease;
+    will-change: transform;
+}
+
+.pc-theme-toggle svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pc-theme-toggle[aria-checked="true"] .pc-theme-toggle-track {
+    background: color-mix(in srgb, var(--color-surface-raised) 78%, #475569);
+}
+
+.pc-theme-toggle[aria-checked="true"] .pc-theme-toggle-thumb {
+    color: #B8A9F2;
+    background: var(--color-surface-raised);
+    box-shadow: 3px 3px 7px var(--color-shadow-dark), -2px -2px 4px var(--color-shadow-highlight);
+    transform: translateX(48px);
+}
+
+.pc-theme-toggle:hover .pc-theme-toggle-track {
+    box-shadow: inset 1px 1px 3px var(--pc-sidebar-clock-dark), inset -2px -2px 4px var(--pc-sidebar-clock-light), 0 3px 8px color-mix(in srgb, var(--pc-accent) 20%, transparent);
+}
+
+.pc-theme-toggle:active .pc-theme-toggle-thumb {
+    transform: translateX(0) scale(0.94);
+}
+
+.pc-theme-toggle[aria-checked="true"]:active .pc-theme-toggle-thumb {
+    transform: translateX(48px) scale(0.94);
+}
+
+.pc-theme-toggle:focus-visible {
+    outline: 2px solid var(--pc-accent);
+    outline-offset: 3px;
+}
+
+.pc-sidebar-utility-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 0 var(--pc-space-md);
+}
+
+.pc-sidebar-release-notes-item {
+    order: 1;
+}
+
+.pc-sidebar-settings-item {
+    order: 3;
+}
+
+.pc-theme-toggle {
+    order: 2;
+}
+
+.pc-app.pc-sidebar-collapsed .pc-theme-toggle {
+    flex: 0 0 48px;
+    width: 48px;
+    min-width: 48px;
+}
+
+.pc-app.pc-sidebar-collapsed .pc-theme-toggle-orbit {
+    display: none;
+}
+
+.pc-app.pc-sidebar-collapsed .pc-theme-toggle-thumb {
+    left: 5px;
+}
+
+.pc-app.pc-sidebar-collapsed .pc-theme-toggle[aria-checked="true"] .pc-theme-toggle-thumb {
+    transform: translateX(0);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+    will-change: clip-path;
+    animation: pc-theme-circle-reveal 0.65s cubic-bezier(.25, .55, .35, 1) both;
+}
+
+@keyframes pc-theme-circle-reveal {
+    from {
+        clip-path: circle(0 at var(--pc-theme-transition-x) var(--pc-theme-transition-y));
+    }
+    86%,
+    to {
+        clip-path: circle(var(--pc-theme-transition-radius) at var(--pc-theme-transition-x) var(--pc-theme-transition-y));
+    }
+}
+
+:root[data-theme-transitioning="true"] *,
+:root[data-theme-transitioning="true"] *::before,
+:root[data-theme-transitioning="true"] *::after {
+    animation: none !important;
+    transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-theme-toggle,
+    .pc-theme-toggle-track,
+    .pc-theme-toggle-thumb {
+        animation: none !important;
+        transition: none !important;
+    }
+}

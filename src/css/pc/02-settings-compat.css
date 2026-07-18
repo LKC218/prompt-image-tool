@@ -12,8 +12,7 @@
 }
 
 .pc-settings-list,
-.pc-settings-export-mode,
-.pc-settings-download-history-list {
+.pc-settings-export-mode {
     border: 0;
     background: var(--pc-neu-bg);
     box-shadow: var(--pc-settings-neu-inset);
@@ -139,22 +138,6 @@
 .pc-settings-sync-panel .pc-btn-primary { color: var(--pc-accent); }
 .pc-settings-download-history-panel .pc-btn-danger-outline { color: var(--pc-danger); }
 
-.pc-settings-download-history-item,
-.pc-settings-download-history-empty {
-    border: 0;
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-settings-neu-inset-soft);
-}
-
-.pc-settings-download-history-empty {
-    border-style: solid;
-}
-
-.pc-settings-download-history-icon {
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-settings-neu-inset-soft);
-}
-
 @media (prefers-reduced-motion: reduce) {
     .pc-settings-action-card:hover,
     .pc-settings-backup-panel > .pc-btn:hover,
@@ -163,4 +146,3 @@
         box-shadow: var(--pc-settings-neu-raised);
     }
 }
-

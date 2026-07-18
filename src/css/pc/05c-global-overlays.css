@@ -324,7 +324,7 @@
     flex-direction: column;
     align-items: flex-end;
     gap: 10px;
-    z-index: 9500;
+    z-index: 10001;
     isolation: isolate;
     padding: 0;
     opacity: 0;
@@ -772,4 +772,3 @@
         transition: none;
     }
 }
-

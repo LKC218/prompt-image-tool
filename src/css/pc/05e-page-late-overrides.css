@@ -4260,7 +4260,6 @@
 .pc-editor-clear-all-btn,
 .pc-editor-save-btn,
 .pc-editor-ratio-btn,
-.pc-settings-action-card,
 .pc-category-create-btn {
     white-space: nowrap;
 }
@@ -4403,7 +4402,6 @@
 @container pc-main (max-width: 900px) {
     .pc-home-stat-grid,
     .pc-home-category-grid,
-    .pc-settings-action-grid,
     .pc-quick-actions {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -4411,8 +4409,6 @@
     .pc-home-recent-grid,
     .pc-home-bottom-grid,
     .pc-library-search-row,
-    .pc-settings-overview,
-    .pc-settings-storage-grid,
     .pc-detail-meta-strip,
     .pc-detail-side-column {
         grid-template-columns: 1fr;
@@ -4465,6 +4461,17 @@
 
     .pc-editor-header-illustration {
         display: none;
+    }
+}
+
+@container pc-main (max-width: 760px) {
+    .pc-settings-action-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pc-settings-overview,
+    .pc-settings-storage-grid {
+        grid-template-columns: 1fr;
     }
 }
 

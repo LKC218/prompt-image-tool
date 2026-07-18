@@ -71,3 +71,5 @@ credentials*
 build/_*.txt
 build/_*.py
 docs/*.bak
+debug-*.md
+afecrlf=false diff -- docs --stat

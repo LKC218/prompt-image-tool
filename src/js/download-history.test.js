@@ -4,6 +4,7 @@ import {
     formatDownloadHistoryTime,
     getDownloadHistory,
     getDownloadHistoryLocationLabel,
+    getDownloadHistoryMethodLabel,
     recordDownloadHistory,
 } from './download-history.js';
 
@@ -41,5 +42,12 @@ describe('download-history', () => {
 
     it('格式化下载时间', () => {
         expect(formatDownloadHistoryTime('2026-05-24T09:08:00.000Z')).toContain('2026-05-24');
+    });
+
+    it('将保存方式转换为可读标签', () => {
+        expect(getDownloadHistoryMethodLabel({ method: 'file-picker' })).toBe('自选位置');
+        expect(getDownloadHistoryMethodLabel({ method: 'native-gallery' })).toBe('保存到相册');
+        expect(getDownloadHistoryMethodLabel({ method: 'backend' })).toBe('本地保存');
+        expect(getDownloadHistoryMethodLabel({ method: 'download' })).toBe('浏览器下载');
     });
 });

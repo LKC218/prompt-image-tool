@@ -1,6 +1,6 @@
 @font-face {
-    font-family: '庞门正道细线体';
-    src: url('../assets/fonts/庞门正道细线体.ttf') format('truetype');
+    font-family: '乐米沐和圆体';
+    src: url('../assets/fonts/乐米沐和圆体.ttf') format('truetype');
     font-display: swap;
 }
 
@@ -46,7 +46,7 @@
     --pc-radius-xl: 28px;
     --pc-radius-full: 9999px;
 
-    --pc-font-family: '庞门正道细线体', 'PingFang SC', 'Microsoft YaHei', 'HarmonyOS Sans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    --pc-font-family: '乐米沐和圆体', 'PingFang SC', 'Microsoft YaHei', 'HarmonyOS Sans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
     --pc-font-h1: 700 34px/1.3 var(--pc-font-family);
     --pc-font-h2: 700 27px/1.3 var(--pc-font-family);
     --pc-font-h3: 600 22px/1.4 var(--pc-font-family);

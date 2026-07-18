@@ -138,23 +138,24 @@
     --pc-settings-ring-success: var(--color-state-success-fg);
     --pc-settings-ring-info: var(--color-state-info-fg);
     --pc-settings-ring-track: var(--color-state-info-bg);
-    max-width: 1060px;
+    max-width: 1280px;
     margin: 0 auto;
 }
 
 .pc-settings-overview {
     display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
-    gap: var(--pc-space-lg);
-    margin-bottom: var(--pc-space-lg);
+    grid-template-columns: minmax(360px, 5fr) minmax(520px, 7fr);
+    align-items: start;
+    gap: 16px;
+    margin-bottom: 16px;
 }
 
 .pc-settings-panel {
     background: var(--pc-settings-surface);
     border: 1px solid var(--pc-settings-border);
     border-radius: 16px;
-    box-shadow: var(--pc-settings-shadow);
-    padding: var(--pc-space-xl);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--color-shadow-dark) 48%, transparent);
+    padding: 20px;
 }
 
 .pc-settings-panel-title {
@@ -164,19 +165,20 @@
 }
 
 .pc-settings-list {
-    border: 1px solid var(--pc-settings-border);
+    border: 1px solid color-mix(in srgb, var(--pc-settings-border) 88%, transparent);
     border-radius: 14px;
     overflow: hidden;
-    background: var(--pc-settings-surface);
+    background: var(--pc-settings-surface-subtle);
+    box-shadow: none;
 }
 
 .pc-settings-list-row {
-    min-height: 48px;
+    min-height: 54px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--pc-space-md);
-    padding: 0 var(--pc-space-lg);
+    padding: 0 16px;
 }
 
 .pc-settings-list-row + .pc-settings-list-row {
@@ -322,16 +324,17 @@
 
 .pc-settings-storage-grid {
     display: grid;
-    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
-    gap: var(--pc-space-lg);
+    grid-template-columns: minmax(150px, 0.78fr) minmax(0, 1.22fr);
+    gap: 12px;
 }
 
 .pc-settings-storage-tile {
-    min-height: 148px;
-    border: 1px solid var(--pc-settings-border);
+    min-height: 138px;
+    border: 1px solid color-mix(in srgb, var(--pc-settings-border) 82%, transparent);
     border-radius: 12px;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--color-state-info-bg) 72%, var(--pc-settings-surface)), var(--pc-settings-surface));
-    padding: var(--pc-space-xl);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--color-state-info-bg) 54%, var(--pc-settings-surface)), var(--pc-settings-surface));
+    box-shadow: none;
+    padding: 16px;
 }
 
 .pc-settings-space-tile {
@@ -339,7 +342,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--pc-space-lg);
-    background: var(--pc-settings-surface);
+    background: var(--pc-settings-surface-subtle);
 }
 
 .pc-settings-storage-kicker {
@@ -348,7 +351,7 @@
     gap: 8px;
     font: 700 14px/1.4 var(--pc-font-family);
     color: var(--pc-accent);
-    margin-bottom: 26px;
+    margin-bottom: 20px;
 }
 
 .pc-settings-storage-dot {
@@ -387,16 +390,16 @@
 .pc-settings-storage-subtitle {
     font: 700 14px/1.4 var(--pc-font-family);
     color: var(--pc-text);
-    margin-bottom: var(--pc-space-xl);
+    margin-bottom: 16px;
 }
 
 .pc-settings-space-line + .pc-settings-space-line {
-    margin-top: var(--pc-space-lg);
+    margin-top: 10px;
 }
 
 .pc-settings-storage-ring {
-    width: 96px;
-    height: 96px;
+    width: 86px;
+    height: 86px;
     margin: 0;
     position: relative;
     background: conic-gradient(var(--pc-settings-ring-success) var(--ring-percent, 0%), var(--pc-settings-ring-info) var(--ring-percent, 0%) 75%, var(--pc-settings-ring-track) 0);
@@ -405,8 +408,8 @@
 .pc-settings-storage-ring::after {
     content: "";
     position: absolute;
-    width: 52px;
-    height: 52px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: var(--pc-settings-surface);
 }
@@ -433,7 +436,8 @@
 }
 
 .pc-settings-meta-row .pc-settings-data-dir {
-    max-width: min(100%, 460px);
+    min-width: 0;
+    max-width: min(100%, 360px);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -451,19 +455,39 @@
 }
 
 .pc-settings-backup-panel {
-    margin-bottom: var(--pc-space-lg);
+    margin-bottom: 16px;
 }
 
 .pc-settings-backup-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--pc-space-lg);
-    margin-bottom: var(--pc-space-md);
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
 }
 
 .pc-settings-backup-head .pc-settings-panel-title {
     margin-bottom: 0;
+}
+
+.pc-settings-backup-title-group p,
+.pc-settings-backup-location > span {
+    margin: 4px 0 0;
+    color: var(--pc-text2);
+    font: 400 12px/1.45 var(--pc-font-family);
+}
+
+.pc-settings-backup-title-group {
+    min-width: 0;
+}
+
+.pc-settings-backup-location {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
 }
 
 .pc-settings-export-mode {
@@ -518,7 +542,7 @@
 .pc-settings-action-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--pc-space-lg);
+    gap: 12px;
 }
 
 .pc-settings-action-grid-two {
@@ -527,24 +551,28 @@
 
 .pc-settings-action-grid-three {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: 1fr;
 }
 
 .pc-settings-action-card {
-    min-height: 78px;
+    width: 100%;
+    height: 100%;
+    min-height: 82px;
     display: flex;
     align-items: center;
     gap: var(--pc-space-lg);
-    border: 1px solid transparent;
+    border: 1px solid var(--pc-settings-border);
     border-radius: 12px;
-    padding: var(--pc-space-lg);
+    padding: 14px 16px;
     text-align: left;
     cursor: pointer;
+    min-width: 0;
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
 .pc-settings-action-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px var(--color-shadow-dark);
+    box-shadow: 0 10px 20px color-mix(in srgb, var(--color-shadow-dark) 46%, transparent);
 }
 
 .pc-settings-action-card:active {
@@ -585,11 +613,13 @@
 .pc-settings-action-copy strong {
     font: 700 14px/1.35 var(--pc-font-family);
     color: var(--pc-text);
+    overflow-wrap: anywhere;
 }
 
 .pc-settings-action-copy small {
     font: 400 12px/1.35 var(--pc-font-family);
     color: var(--pc-text2);
+    overflow-wrap: anywhere;
 }
 
 .pc-settings-action-green {
@@ -600,30 +630,45 @@
 
 .pc-settings-action-blue {
     color: var(--color-state-info-fg);
-    background: color-mix(in srgb, var(--color-state-info-bg) 74%, var(--pc-settings-surface));
+    background: var(--pc-settings-surface);
     border-color: color-mix(in srgb, var(--color-state-info-fg) 28%, var(--pc-settings-border));
 }
 
 .pc-settings-action-purple {
     color: var(--color-context-rename-fg);
-    background: color-mix(in srgb, var(--color-context-rename-bg) 74%, var(--pc-settings-surface));
+    background: var(--pc-settings-surface);
     border-color: color-mix(in srgb, var(--color-context-rename-fg) 28%, var(--pc-settings-border));
 }
 
 .pc-settings-action-orange {
     color: var(--color-state-warning-fg);
-    background: color-mix(in srgb, var(--color-state-warning-bg) 74%, var(--pc-settings-surface));
+    background: var(--pc-settings-surface);
     border-color: color-mix(in srgb, var(--color-state-warning-fg) 28%, var(--pc-settings-border));
 }
 
+.pc-settings-backup-footer {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.pc-settings-backup-footer .pc-btn {
+    flex-shrink: 0;
+}
+
 .pc-settings-backup-hint {
-    margin-top: var(--pc-space-sm);
+    margin: 0;
     color: var(--pc-text2);
     font: 400 12px/1.6 var(--pc-font-family);
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .pc-settings-download-history-panel {
-    margin-bottom: var(--pc-space-lg);
+    margin-bottom: 16px;
+    overflow: hidden;
 }
 
 .pc-settings-download-history-head {
@@ -645,11 +690,11 @@
 }
 
 .pc-settings-download-history-count {
-    min-width: 32px;
-    height: 26px;
-    padding: 0 10px;
+    min-width: 28px;
+    height: 24px;
+    padding: 0 9px;
     border-radius: 999px;
-    background: var(--pc-blue-light);
+    background: color-mix(in srgb, var(--pc-blue-light) 72%, var(--pc-settings-surface));
     color: var(--pc-blue);
     display: inline-flex;
     align-items: center;
@@ -658,27 +703,44 @@
 }
 
 .pc-settings-download-history-list {
+    min-width: 0;
+    border: 1px solid var(--pc-settings-border);
+    border-radius: 12px;
+    background: var(--pc-settings-surface);
+    overflow: hidden;
+}
+
+.pc-settings-download-history-items {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 }
 
 .pc-settings-download-history-item {
     display: grid;
-    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-columns: 40px minmax(0, 1fr) minmax(132px, auto);
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border: 1px solid var(--pc-settings-border);
-    border-radius: 12px;
-    background: var(--pc-settings-surface);
+    gap: 14px;
+    padding: 13px 14px;
+    background: transparent;
+    transition: background 160ms ease;
+}
+
+.pc-settings-download-history-item + .pc-settings-download-history-item {
+    border-top: 1px solid var(--pc-settings-border);
+}
+
+.pc-settings-download-history-item:hover {
+    background: color-mix(in srgb, var(--pc-blue-light) 28%, transparent);
 }
 
 .pc-settings-download-history-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 12px;
-    background: var(--pc-blue-light);
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--pc-blue-light) 68%, var(--pc-settings-surface));
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -696,7 +758,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 .pc-settings-download-history-main strong {
@@ -707,39 +769,99 @@
     white-space: nowrap;
 }
 
+.pc-settings-download-history-filename {
+    overflow: hidden;
+    color: var(--pc-blue);
+    font: 500 12px/1.35 var(--pc-font-family);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .pc-settings-download-history-main small {
     font: 400 12px/1.35 var(--pc-font-family);
     color: var(--pc-text2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .pc-settings-download-history-meta {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 4px;
+    gap: 6px;
     color: var(--pc-text2);
     font: 400 12px/1.35 var(--pc-font-family);
     white-space: nowrap;
 }
 
+.pc-settings-download-history-time {
+    font-variant-numeric: tabular-nums;
+}
+
+.pc-settings-download-history-tags {
+    display: flex;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.pc-settings-download-history-tags span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 20px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--pc-text2) 8%, var(--pc-settings-surface));
+    color: var(--pc-text2);
+    font: 600 11px/1 var(--pc-font-family);
+}
+
+.pc-settings-download-history-tags span:first-child {
+    background: var(--pc-blue-light);
+    color: var(--pc-blue);
+}
+
+.pc-settings-download-history-panel .pc-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    pointer-events: none;
+}
+
 .pc-settings-download-history-empty {
-    padding: 18px 16px;
+    min-height: 96px;
+    padding: 22px 24px;
     border: 0;
     border-radius: 0;
-    background: var(--pc-neu-bg);
-    clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
-    box-shadow: var(--pc-settings-neu-inset-soft);
+    background: color-mix(in srgb, var(--pc-blue-light) 18%, var(--pc-settings-surface));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .pc-settings-download-history-empty-title {
     font: 600 14px/1.35 var(--pc-font-family);
     color: var(--pc-text);
-    margin-bottom: 4px;
+    margin-bottom: 5px;
 }
 
 .pc-settings-download-history-empty-text {
     font: 400 12px/1.55 var(--pc-font-family);
     color: var(--pc-text2);
+}
+
+@media (max-width: 640px) {
+    .pc-settings-download-history-item {
+        grid-template-columns: 40px minmax(0, 1fr);
+    }
+
+    .pc-settings-download-history-meta {
+        grid-column: 2;
+        align-items: flex-start;
+    }
+
+    .pc-settings-download-history-tags {
+        justify-content: flex-start;
+    }
 }
 
 .pc-settings-sync-panel {
@@ -843,13 +965,18 @@
 }
 
 @media (max-width: 1120px) {
-    .pc-settings-overview,
     .pc-settings-storage-grid {
         grid-template-columns: 1fr;
     }
 
     .pc-settings-action-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container pc-main (max-width: 920px) {
+    .pc-settings-overview {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -877,6 +1004,16 @@
 
     .pc-settings-export-mode-option {
         flex: 1;
+    }
+
+    .pc-settings-backup-location {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .pc-settings-backup-footer {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
     }
 
     .pc-settings-action-grid,
