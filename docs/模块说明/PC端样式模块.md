@@ -22,7 +22,7 @@
 
 `src/js/main.js` 先加载 `theme-tokens.css`，桌面端再动态加载 `src/js/pc-app.js`。`pc-app.js` 导入 `pc.css`，入口依次导入六个子文件。
 
-`pc.css` 是对外稳定入口。HTML 演示页、JavaScript 模块和其他调用方不得直接改为导入子文件。
+`pc.css` 是对外稳定入口。HTML 演示页、JavaScript 模块和其他调用方不得直接改为导入子文件。`01-foundation-shell.css` 通过本地 `src/assets/fonts/乐米沐和圆体.ttf` 注册全局主字体，并由 `--pc-font-family` 保留系统字体回退链。
 
 ## 顺序契约
 
@@ -59,7 +59,8 @@
 ## 维护说明
 
 - 新增规则优先归入现有职责最匹配的文件，并保持覆盖关系可解释。
-- 设置页历史规则与正式规则的覆盖关系未收敛前，不得合并 `02-settings-compat.css` 与 `04-settings-page.css`。
+- 下载记录视觉规则以 `04-settings-page.css` 为唯一正式来源：列表使用单一边框容器与分隔行，空态使用同一容器内的低对比提示面；`02-settings-compat.css` 不得再为该模块追加拟态阴影，避免形成嵌套窗口效果。
+- 设置页其他历史规则与正式规则的覆盖关系未收敛前，不得合并 `02-settings-compat.css` 与 `04-settings-page.css`。
 - 动态弹层依赖全局可用样式，不得随路由延迟加载。
 - 深色、容器查询、低动效和末尾补丁优先保留在 `06-responsive-overrides.css`，确保覆盖顺序稳定。
 - PC 提示词库列表标签在暗色主题下由 `06-responsive-overrides.css` 覆盖默认、悬浮和按下态阴影；三种状态均使用深色主题阴影令牌，避免继承基础样式中的亮色内高光。

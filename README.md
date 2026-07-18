@@ -16,7 +16,7 @@
   <a href="https://github.com/LKC218/prompt-image-tool/releases">
     <img alt="Release" src="https://img.shields.io/github/v/release/LKC218/prompt-image-tool?label=release">
   </a>
-  <img alt="Version" src="https://img.shields.io/badge/version-v2.4.0-5B8CFF">
+  <img alt="Version" src="https://img.shields.io/badge/version-v2.4.1-5B8CFF">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Android%20%7C%20Web-28C76F">
   <img alt="Local first" src="https://img.shields.io/badge/data-local%20first-F59E0B">
 </p>

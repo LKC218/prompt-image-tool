@@ -101,7 +101,7 @@
 
 | 属性 | 值 |
 |------|-----|
-| 字体族 | `'庞门正道细线体', 'PingFang SC', 'Microsoft YaHei', 'HarmonyOS Sans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif` |
+| 字体族 | `'乐米沐和圆体', 'PingFang SC', 'Microsoft YaHei', 'HarmonyOS Sans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif` |
 | 基础字号 | 12px（微文字、字数统计、版本信息） |
 | 辅助字号 | 13px（标签、紧凑操作文字） |
 | 正文字号 | 16px（列表内容、说明文字、表单正文） |

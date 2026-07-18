@@ -218,6 +218,7 @@ prompt_sets ←──(prompt_set_id)── versions ←──(version_id)── 
 - `保存原格式`：保持当前存储格式，写入 Android 相册或浏览器下载。
 - `导出 JPG`：通过 `src/js/image-download-utils.js` fetch 当前图片并用 Canvas 输出 `image/jpeg`，文件名统一改为 `.jpg`。
 - JPG 导出前填充白色背景，避免透明 PNG/WebP 转 JPEG 后出现黑底。
+- Capacitor 环境只认原生相册插件返回的成功结果；图片读取、转码或相册写入失败时不回退为“浏览器下载成功”，并且不写入下载成功历史。界面会展示具体失败原因，便于用户检查相册权限、存储空间或原图是否仍存在。
 - 历史图片不会自动转换，完整备份与局域网同步继续保留真实存储格式。
 
 ### 6.4 提示词长度限制

@@ -3,7 +3,7 @@ chcp 65001 >nul
 title 生图提示词管理器 - 构建
 
 echo ╔══════════════════════════════════════════╗
-echo ║       生图提示词管理器 v2.4.0 构建脚本      ║
+echo ║       生图提示词管理器 v2.4.1 构建脚本      ║
 echo ╚══════════════════════════════════════════╝
 echo.
 
@@ -103,13 +103,13 @@ if %NSIS_RESULT% neq 0 (
 )
 echo.
 echo ✅ PC 安装包构建完成！
-echo 安装包：build\PromptImageManager-Setup-2.4.0.exe
+echo 安装包：build\PromptImageManager-Setup-2.4.1.exe
 if not exist releases mkdir releases
-copy /Y build\PromptImageManager-Setup-2.4.0.exe releases\PromptImageManager-Setup-2.4.0.exe >nul
+copy /Y build\PromptImageManager-Setup-2.4.1.exe releases\PromptImageManager-Setup-2.4.1.exe >nul
 if %errorlevel% neq 0 (
     echo ⚠️ 安装包复制到 releases 失败，请手动复制
 ) else (
-    echo 发布副本：releases\PromptImageManager-Setup-2.4.0.exe
+    echo 发布副本：releases\PromptImageManager-Setup-2.4.1.exe
 )
 echo.
 goto menu

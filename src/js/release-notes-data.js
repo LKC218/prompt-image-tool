@@ -1,5 +1,34 @@
 const RELEASE_NOTES = [
     {
+        version: '2.4.1',
+        date: '2026-07-18',
+        sections: [
+            {
+                title: '新增',
+                tone: 'pink',
+                items: [
+                    'PC 与移动端新增图片下载记录，可查看已保存图片及下载状态。',
+                    'PC 设置页补充数据备份与导出入口，便于管理本地资料。'
+                ]
+            },
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    'PC 侧栏新增浅色与深色主题切换，并适配减少动态效果偏好。',
+                    '完善图片下载的地址编码、失败提示和移动端相册保存反馈。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '完成桌面端、Android、安装器与应用内版本信息同步。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.4.0',
         date: '2026-07-15',
         sections: [

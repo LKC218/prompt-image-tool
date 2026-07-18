@@ -17,7 +17,7 @@ describe('更新记录模块', () => {
     beforeEach(() => {
         vi.resetModules();
         localStorage.clear();
-        document.head.innerHTML = '<meta name="version" content="2.4.0">';
+        document.head.innerHTML = '<meta name="version" content="2.4.1">';
         document.body.innerHTML = '<button data-release-notes></button>';
         pcUtilsMocks.closeModal.mockClear();
         pcUtilsMocks.showModal.mockClear();
@@ -68,7 +68,7 @@ describe('更新记录模块', () => {
         const button = document.querySelector('[data-release-notes]');
 
         expect(markCurrentReleaseNotesSeen()).toBe(true);
-        expect(localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe('2.4.0');
+        expect(localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe('2.4.1');
         expect(hasUnreadReleaseNotes()).toBe(false);
         syncReleaseNotesUnreadBadge();
         expect(button.classList.contains('pc-release-notes-unread')).toBe(false);
