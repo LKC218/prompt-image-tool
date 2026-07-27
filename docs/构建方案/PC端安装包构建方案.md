@@ -153,7 +153,7 @@ releases/PromptImageManager-Shell-Setup-2.3.2.exe # 带 Tauri 安装器壳的正
 
 安装位置：`%LOCALAPPDATA%\PromptImageManager\`
 
-用户数据位置：安装版默认使用 `%APPDATA%\PromptImageManager\data\`，不随普通卸载删除。旧版本曾写入安装目录的 `data\` 会在新版本启动时复制迁移；安装器壳开始安装前还会把旧安装目录数据和用户级数据复制到 `%APPDATA%\PromptImageManager\update-backups\`。
+用户数据位置：安装版默认使用 `%APPDATA%\PromptImageManager\data\`，不随普通卸载删除。旧版本曾写入安装目录的 `data\` 会在卸载前移动至 `%APPDATA%\PromptImageManager\legacy-install-data\`；若归档已存在或迁移失败，卸载器会保留旧数据目录，不覆盖也不删除。安装器壳开始覆盖安装前会将旧安装目录数据和用户级数据复制到 `%APPDATA%\PromptImageManager\update-backups\`；快照失败会取消本次安装。
 
 ### 4.2 便携文件夹
 
@@ -181,8 +181,20 @@ build/dist/PromptImageManager/
 |------|------|
 | `build/app_main.py` | PC 独立版主程序：Python HTTP 服务器 + pywebview 桌面窗口 + 全部 API 逻辑 + 安装版用户级数据目录和旧数据迁移 |
 | `build/app.spec` | PyInstaller 打包配置：入口文件、前端资源打包规则、隐藏导入、图标、是否显示控制台 |
-| `build/installer.nsi` | NSIS 安装包脚本：安装向导页面、快捷方式、注册表、卸载逻辑和旧安装目录数据保护（必须为无 BOM 的 UTF-8 编码） |
+| `build/installer.nsi` | NSIS 安装包脚本：安装向导页面、快捷方式、注册表、清单式卸载逻辑和旧安装目录数据保护（必须为无 BOM 的 UTF-8 编码） |
+| `build/_uninstall_files.nsh` | 由 PC 构建脚本根据 PyInstaller 产物生成的卸载文件清单；仅列出安装器创建的程序文件，属于构建产物，不提交仓库 |
 | `build/icon.ico` | 应用图标（同时用于 exe 和安装包） |
+| `scripts/build_installer_shell_package.py` | Tauri 安装器壳构建入口：以根目录 `package.json` 的 `version` 为唯一版本来源，同步壳元数据、NSIS 核心安装包资源名，并构建发布壳程序 |
+| `installer-shell/src-tauri/build.rs` | 将根目录版本注入壳程序编译环境，确保嵌入、定位与释放的 NSIS 安装核心始终使用当前版本文件名 |
+| `installer-shell/src-tauri/icons/icon.ico` | 安装器壳 EXE 图标 |
+
+### 5.1 Tauri 安装器壳构建
+
+```bash
+python scripts/build_installer_shell_package.py
+```
+
+该命令先生成与根目录 `package.json` 同版本的 NSIS 核心安装包，再构建安装器壳。PC 构建会基于实际 PyInstaller 输出生成 `build/_uninstall_files.nsh`，卸载器仅删除清单内程序文件，未知文件和用户手工放入的文件会保留在安装目录。壳程序的嵌入安装核心、资源查找文件名和临时释放文件名均从同一版本来源生成，禁止在 `main.rs` 中手工写死版本号。安装器壳图标由 `installer-shell/src-tauri/icons/icon.ico` 提供。
 
 > **⚠️ 编码注意**：`installer.nsi` 必须使用无 BOM 的 UTF-8 编码保存。如果文件包含 UTF-8 BOM（`EF BB BF`），NSIS 会报语法错误。可用以下 PowerShell 命令转换：
 > ```powershell

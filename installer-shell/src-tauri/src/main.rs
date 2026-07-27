@@ -15,8 +15,16 @@ use std::os::windows::process::CommandExt;
 #[cfg(feature = "embedded-installer")]
 const EMBEDDED_INSTALLER_BYTES: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../build/PromptImageManager-Setup-2.3.6.exe"
+    "/../../build/PromptImageManager-Setup-",
+    env!("PROMPT_IMAGE_MANAGER_VERSION"),
+    ".exe"
 ));
+
+const INSTALLER_FILE_NAME: &str = concat!(
+    "PromptImageManager-Setup-",
+    env!("PROMPT_IMAGE_MANAGER_VERSION"),
+    ".exe"
+);
 
 #[derive(Serialize)]
 struct InstallResult {
@@ -692,16 +700,13 @@ fn find_installer(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .map_err(|error| format!("读取资源目录失败：{error}"))?;
 
     let candidates = [
-        resource_dir.join("PromptImageManager-Setup-2.3.6.exe"),
-        resource_dir
-            .join("_up_")
-            .join("build")
-            .join("PromptImageManager-Setup-2.3.6.exe"),
+        resource_dir.join(INSTALLER_FILE_NAME),
+        resource_dir.join("_up_").join("build").join(INSTALLER_FILE_NAME),
         Path::new("..")
             .join("..")
             .join("build")
-            .join("PromptImageManager-Setup-2.3.6.exe"),
-        Path::new("build").join("PromptImageManager-Setup-2.3.6.exe"),
+            .join(INSTALLER_FILE_NAME),
+        Path::new("build").join(INSTALLER_FILE_NAME),
     ];
 
     candidates
@@ -717,7 +722,7 @@ fn materialize_embedded_installer() -> Result<PathBuf, String> {
     fs::create_dir_all(&installer_dir)
         .map_err(|error| format!("创建临时安装核心目录失败：{error}"))?;
 
-    let installer_path = installer_dir.join("PromptImageManager-Setup-2.3.6.exe");
+    let installer_path = installer_dir.join(INSTALLER_FILE_NAME);
     let should_write = fs::metadata(&installer_path)
         .map(|metadata| metadata.len() != EMBEDDED_INSTALLER_BYTES.len() as u64)
         .unwrap_or(true);

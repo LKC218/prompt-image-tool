@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+import re
 
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -64,6 +65,42 @@ def get_package_version() -> str:
         raise SystemExit("[失败] package.json 缺少 version 字段")
 
     return str(version)
+
+
+def sync_shell_metadata(version: str) -> None:
+    shell_package_path = INSTALLER_SHELL_DIR / "package.json"
+    shell_tauri_config_path = INSTALLER_SHELL_TAURI_DIR / "tauri.conf.json"
+    shell_cargo_path = INSTALLER_SHELL_TAURI_DIR / "Cargo.toml"
+    installer_name = f"PromptImageManager-Setup-{version}.exe"
+
+    with shell_package_path.open("r", encoding="utf-8") as file:
+        shell_package = json.load(file)
+    shell_package["version"] = version
+    shell_package_path.write_text(
+        json.dumps(shell_package, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    with shell_tauri_config_path.open("r", encoding="utf-8") as file:
+        tauri_config = json.load(file)
+    tauri_config["version"] = version
+    tauri_config.setdefault("bundle", {})["icon"] = ["icons/icon.ico"]
+    tauri_config["bundle"]["resources"] = [f"../../build/{installer_name}"]
+    shell_tauri_config_path.write_text(
+        json.dumps(tauri_config, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    cargo_content = shell_cargo_path.read_text(encoding="utf-8")
+    updated_cargo_content, count = re.subn(
+        r'(?m)^(version\s*=\s*)"[^"]+"',
+        rf'\g<1>"{version}"',
+        cargo_content,
+        count=1,
+    )
+    if count != 1:
+        raise SystemExit("[失败] installer-shell Cargo.toml 缺少 package version 字段")
+    shell_cargo_path.write_text(updated_cargo_content, encoding="utf-8")
 
 
 def build_pc_installer(skip_env_check: bool) -> None:
@@ -139,6 +176,7 @@ def main() -> None:
     core_installer = BUILD_DIR / f"PromptImageManager-Setup-{version}.exe"
 
     print(f"[开始] PromptImageManager v{version} Tauri 安装器壳构建")
+    sync_shell_metadata(version)
 
     if not args.skip_pc_build:
         build_pc_installer(args.skip_env_check)

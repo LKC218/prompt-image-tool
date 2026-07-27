@@ -49,7 +49,9 @@ python/data/*
 
 build/debug_output.txt
 build/stderr.log
+build/_uninstall_files.nsh
 debug-backups/
+.dbg/
 
 .DS_Store
 Thumbs.db
@@ -72,4 +74,3 @@ build/_*.txt
 build/_*.py
 docs/*.bak
 debug-*.md
-afecrlf=false diff -- docs --stat

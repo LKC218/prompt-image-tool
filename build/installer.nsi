@@ -1,6 +1,7 @@
 !define APPNAME "PromptImageManager"
-!define APPVERSION "2.4.1"
+!define APPVERSION "2.4.2"
 !define APPEXE "PromptImageManager.exe"
+!define LEGACYDATA "$APPDATA\${APPNAME}\legacy-install-data"
 
 Name "生图提示词管理器 ${APPVERSION}"
 InstallDir "$LOCALAPPDATA\${APPNAME}"
@@ -48,12 +49,24 @@ SectionEnd
 
 Section "Uninstall"
     SetOutPath "$TEMP"
-    IfFileExists "$INSTDIR\data\*.*" 0 +4
+    IfFileExists "$INSTDIR\data\*" 0 uninstall_program_files
         CreateDirectory "$APPDATA\${APPNAME}"
-        RMDir /r "$APPDATA\${APPNAME}\legacy-install-data"
-        Rename "$INSTDIR\data" "$APPDATA\${APPNAME}\legacy-install-data"
+        IfFileExists "${LEGACYDATA}\*" legacy_data_exists
+        ClearErrors
+        Rename "$INSTDIR\data" "${LEGACYDATA}"
+        IfErrors legacy_data_move_failed
+        Goto uninstall_program_files
 
-    RMDir /r "$INSTDIR"
+    legacy_data_exists:
+        MessageBox MB_ICONEXCLAMATION|MB_OK "检测到旧安装数据且归档目录已存在。为保护您的文件，本次卸载将保留 $INSTDIR\data。"
+        Goto uninstall_program_files
+
+    legacy_data_move_failed:
+        MessageBox MB_ICONEXCLAMATION|MB_OK "旧安装数据无法迁移到用户数据目录。为保护您的文件，本次卸载将保留 $INSTDIR\data。"
+
+    uninstall_program_files:
+    !include "_uninstall_files.nsh"
+    Delete "$INSTDIR\uninstall.exe"
 
     Delete "$SMPROGRAMS\生图提示词管理器\生图提示词管理器.lnk"
     Delete "$SMPROGRAMS\生图提示词管理器\卸载生图提示词管理器.lnk"
@@ -61,6 +74,11 @@ Section "Uninstall"
 
     Delete "$DESKTOP\生图提示词管理器.lnk"
 
-    DeleteRegKey HKCU "Software\${APPNAME}"
-    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
+    ReadRegStr $0 HKCU "Software\${APPNAME}" "InstallDir"
+    StrCmp $0 "$INSTDIR" 0 +2
+        DeleteRegKey HKCU "Software\${APPNAME}"
+
+    ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString"
+    StrCmp $0 "$INSTDIR\uninstall.exe" 0 +2
+        DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 SectionEnd

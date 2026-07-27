@@ -20,6 +20,7 @@ PYINSTALLER_APP_DIR = BUILD_DIR / "dist" / "PromptImageManager"
 RELEASES_DIR = ROOT_DIR / "releases"
 INSTALLER_SCRIPT = BUILD_DIR / "installer.nsi"
 INSTALLER_ICON = BUILD_DIR / "icon.ico"
+UNINSTALL_MANIFEST = BUILD_DIR / "_uninstall_files.nsh"
 
 
 def resolve_command(command: str) -> str:
@@ -78,9 +79,13 @@ def validate_pc_installer_config() -> None:
         ('CreateShortCut "$SMPROGRAMS\\生图提示词管理器\\生图提示词管理器.lnk"', "开始菜单快捷方式未配置"),
         ('"$INSTDIR\\icon.ico" 0', "快捷方式未绑定安装目录图标"),
         ('"DisplayIcon" "$INSTDIR\\icon.ico"', "卸载项图标未配置"),
+        ('!include "_uninstall_files.nsh"', "卸载文件清单未配置"),
     ]
     for needle, message in required_items:
         require_text(installer_text, needle, message)
+
+    if 'RMDir /r "$INSTDIR"' in installer_text:
+        raise SystemExit("[失败] 卸载脚本不得递归删除整个安装目录")
 
 
 def check_environment(skip_nsis: bool) -> None:
@@ -119,6 +124,37 @@ def build_pyinstaller() -> None:
             "-y",
         ]
     )
+
+
+def generate_uninstall_manifest() -> None:
+    require_file(PYINSTALLER_APP_DIR, "PyInstaller 可执行目录缺失")
+    files = sorted(
+        path
+        for path in PYINSTALLER_APP_DIR.rglob("*")
+        if path.is_file() and not path.is_symlink()
+    )
+    if not files:
+        raise SystemExit("[失败] PyInstaller 可执行目录中未找到可卸载文件")
+
+    relative_files = [path.relative_to(PYINSTALLER_APP_DIR) for path in files]
+    relative_dirs = sorted(
+        {
+            parent
+            for relative_file in relative_files
+            for parent in relative_file.parents
+            if parent != Path(".")
+        },
+        key=lambda path: (len(path.parts), path.as_posix()),
+        reverse=True,
+    )
+
+    def nsis_path(path: Path) -> str:
+        return str(path).replace("/", "\\")
+
+    lines = [f'Delete "$INSTDIR\\{nsis_path(path)}"' for path in relative_files]
+    lines.extend(f'RMDir "$INSTDIR\\{nsis_path(path)}"' for path in relative_dirs)
+    UNINSTALL_MANIFEST.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    require_file(UNINSTALL_MANIFEST, "卸载文件清单生成失败")
     require_file(PYINSTALLER_APP_DIR / "PromptImageManager.exe", "PyInstaller 主程序缺失")
     require_file(
         PYINSTALLER_APP_DIR / "_internal" / "frontend" / "index.html",
@@ -127,6 +163,7 @@ def build_pyinstaller() -> None:
 
 
 def build_nsis(version: str) -> Path:
+    generate_uninstall_manifest()
     run_command(["makensis", "/INPUTCHARSET", "UTF8", "installer.nsi"], cwd=BUILD_DIR)
     setup_path = BUILD_DIR / f"PromptImageManager-Setup-{version}.exe"
     require_file(setup_path, "NSIS 安装包缺失")

@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "提示词管家安装向导",
-  "version": "2.4.1",
+  "version": "2.4.2",
   "identifier": "com.promptimagemanager.installershell",
   "build": {
     "frontendDist": "../src"
@@ -29,8 +29,11 @@
   },
   "bundle": {
     "active": false,
+    "icon": [
+      "icons/icon.ico"
+    ],
     "resources": [
-      "../../build/PromptImageManager-Setup-2.4.1.exe"
+      "../../build/PromptImageManager-Setup-2.4.2.exe"
     ]
   }
 }
