@@ -89,9 +89,8 @@ function mount(el) {
     setupBackButton();
 
     setRouteChangeCallback(handleRouteChange);
-    initRouter();
-
-    createPage('/', {}, 'tab');
+    const initialRoute = initRouter() || getCurrentRoute() || { path: '/', params: {} };
+    handleRouteChange(initialRoute, null, 'tab');
 }
 
 function setupBottomNav() {

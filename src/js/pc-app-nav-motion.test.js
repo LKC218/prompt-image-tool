@@ -73,6 +73,9 @@ describe('PC 侧边栏导航点击动效', () => {
         routerMocks.routes.clear();
         routerMocks.navigate.mockClear();
         routerMocks.navigateToTab.mockClear();
+        routerMocks.initRouter.mockReset();
+        routerMocks.getCurrentRoute.mockReset();
+        routerMocks.getCurrentRoute.mockReturnValue({ path: '/' });
         localStorage.clear();
         document.body.innerHTML = '<div id="app"></div>';
         window.matchMedia = vi.fn(() => ({
@@ -126,6 +129,16 @@ describe('PC 侧边栏导航点击动效', () => {
         homeIcon.dispatchEvent(new Event('animationend', { bubbles: true }));
 
         expect(homeItem.classList.contains('pc-nav-clicking')).toBe(false);
+    });
+
+    it('启动时按路由器恢复的标签页挂载并同步导航当前态', async () => {
+        routerMocks.initRouter.mockReturnValue({ path: '/library', params: {} });
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        expect(app.querySelector('[data-nav="/library"]').getAttribute('aria-current')).toBe('page');
+        expect(app.querySelector('[data-nav="/"]').hasAttribute('aria-current')).toBe(false);
     });
 
     it('收起态导航项点击时仍触发动效', async () => {

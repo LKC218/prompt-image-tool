@@ -171,9 +171,10 @@ PC 端版本更新安装需要保证提示词 JSON、分类、参考图片和备
 当前约束：
 
 1. `python/main.py` 与 `build/app_main.py` 使用同一套用户级数据目录、旧目录迁移和迁移标记逻辑。
-2. 安装器壳执行 NSIS 安装前会创建升级快照，覆盖旧安装目录 `data/` 与用户级 `data/`。
-3. NSIS 普通卸载默认只删除程序文件、快捷方式和卸载注册表项；若旧 `$INSTDIR\data` 仍存在，会先移到 `%APPDATA%\PromptImageManager\legacy-install-data`。
-4. PC 设置页本地存储区通过 `/api/health` 展示真实数据目录，便于排障。
+2. 安装器壳执行 NSIS 安装前会创建升级快照，覆盖旧安装目录 `data/` 与用户级 `data/`；快照失败时会取消安装，不覆盖已安装版本。
+3. NSIS 普通卸载只删除构建期生成的程序文件清单、快捷方式和经过安装路径校验的卸载注册表项，不递归删除整个安装目录。
+4. 若旧 `$INSTDIR\data` 仍存在，卸载器会将其移至 `%APPDATA%\PromptImageManager\legacy-install-data`；归档已存在或迁移失败时保留原目录，不覆盖、不删除。
+5. PC 设置页本地存储区通过 `/api/health` 展示真实数据目录，便于排障。
 
 ### 5.4 数据加载容错
 
@@ -278,6 +279,7 @@ PC 设置页的导入入口现在分成两个显式按钮：
 | 版本对比 | 并排对比两个版本的提示词和图片 | `app.js` → `toggleCompare()` |
 | 数据导入导出 | 默认导出 ZIP v2 完整备份，包含 `manifest.json`、业务 JSON 与原始图片文件；设置页保留“导出兼容 JSON”用于 JSON v1。当前导入仍只支持 JSON v1，ZIP 已提供本机路径预检，待事务化恢复完成后开放。对话导入保持独立入口 | `pc-settings.js` / `backup-utils.js` → `ApiStorage` → Python API |
 | 图片下载历史 | 设置页展示最近图片下载记录，并支持一键清空历史 | `pc-settings.js` → `download-history.js` |
+| 路由历史恢复 | History 快照保存当前页面、参数与业务返回栈；启动、浏览器后退和前进均按合法 PC 快照恢复页面与侧栏当前态 | `pc-router.js` → `pc-app.js` |
 | 暗色/亮色主题 | 主题切换，localStorage 持久化 | `app.js` → `initTheme()` / `toggleTheme()` |
 | 右键菜单 | 集合项右键弹出操作菜单 | `app.js` → `showContextMenu()` |
 | 新手引导 | 首次使用分步引导教程 | `app.js` → `tutorial.js` → `TutorialGuide` |

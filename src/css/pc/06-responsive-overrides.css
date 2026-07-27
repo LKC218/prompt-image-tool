@@ -191,6 +191,15 @@
     box-shadow: 0 10px 24px rgba(120, 90, 50, 0.11);
 }
 
+.pc-app :is(
+    .pc-detail-prompt-card,
+    .pc-detail-info-card,
+    .pc-detail-version-card,
+    .pc-detail-cover-nav
+):hover {
+    box-shadow: none;
+}
+
 .pc-app :is(button, [role="button"], a, input, textarea, select):focus-visible {
     outline: var(--td-focus-outline);
     outline-offset: var(--td-focus-outline-offset);

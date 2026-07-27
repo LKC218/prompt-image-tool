@@ -391,7 +391,7 @@ IDLE → CONNECTING → SYNCING → VERIFYING → SUCCESS/PARTIAL/ERROR
 |------|------|---------|
 | 离线使用 | 无需网络和后端服务 | SQLite + Filesystem 本地存储 |
 | 移动端适配 | 列表/详情切换模式，返回按钮导航 | `app.js` + `responsive.css` |
-| 手势返回 | 系统返回键/手势返回上一级；Android 硬件返回键在 Capacitor `App` 模块异步导入完成后注册，并通过防重入标记避免重复监听 | `mobile-app.js` → `popstate` / `App.addListener('backButton')` |
+| 手势返回与路由历史恢复 | 系统返回键/手势返回上一级；History 快照保存当前页面、参数与业务返回栈，启动、浏览器后退和前进均按合法移动端快照恢复页面与底部导航状态；Android 硬件返回键在 Capacitor `App` 模块异步导入完成后注册 | `mobile-router.js` → `mobile-app.js` → `App.addListener('backButton')` |
 | 局域网 PC 搜索 | 搜索同一局域网内已打开的 PC 端并填入完整地址 | `lan-sync.js` → `LanScanner.scan()` / `mobile-settings.js` |
 | 局域网同步 | 从 PC 端拉取全量数据、回传 Android 数据、发起双向同步，并在写入前展示冲突预览 | `lan-sync.js` → `LanSync.preview()` / `LanSync.sync()` / `LanSync.push()` / `LanSync.bidirectional()` |
 | 图片下载历史 | 设置页展示最近图片下载记录，并支持一键清空历史 | `download-history.js` → `mobile-settings.js` |

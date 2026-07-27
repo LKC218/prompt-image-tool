@@ -72,6 +72,443 @@
     transform: scale(1);
 }
 
+.pc-prompt-detail-modal-host {
+    position: fixed;
+    inset: 0;
+    z-index: 8800;
+    padding: 24px;
+    pointer-events: none;
+}
+
+.pc-prompt-detail-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: rgba(222, 234, 248, 0.14);
+    -webkit-backdrop-filter: blur(10px) saturate(0.92);
+    backdrop-filter: blur(10px) saturate(0.92);
+    transition: opacity 0.22s ease-out;
+    pointer-events: none;
+}
+
+.pc-prompt-detail-modal-host-active .pc-prompt-detail-modal-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.pc-prompt-detail-modal-deck {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    display: grid;
+    place-items: center;
+}
+
+.pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal-deck {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    place-items: stretch;
+}
+
+.pc-prompt-detail-modal {
+    position: relative;
+    pointer-events: auto;
+    width: min(1200px, calc(100vw - 64px));
+    height: min(860px, calc(100dvh - 48px));
+    max-height: calc(100dvh - 48px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: none;
+    border-radius: var(--pc-radius-xl);
+    background: var(--pc-neu-bg);
+    box-shadow: 12px 16px 32px color-mix(in srgb, var(--pc-neu-dark) 72%, transparent);
+    outline: none;
+}
+
+.pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+.pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal-content .pc-detail-shell {
+    margin: 0 16px;
+}
+
+.pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal-content .pc-detail-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+}
+
+.pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal-content .pc-detail-side-column {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal-content .pc-detail-safety-card {
+    grid-column: 1 / -1;
+}
+
+.pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal-content .pc-detail-cover {
+    aspect-ratio: auto;
+    height: clamp(150px, 17vw, 190px);
+}
+
+.pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal-content .pc-detail-page {
+    padding-bottom: 20px;
+}
+
+.pc-prompt-detail-modal-minimized {
+    display: none;
+}
+
+.pc-prompt-detail-modal-content {
+    min-width: 0;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.pc-prompt-detail-modal-content::-webkit-scrollbar,
+.pc-detail-image-thumbs-scroll::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-screen {
+    min-height: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0 0 32px;
+    background: transparent;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-sky,
+.pc-prompt-detail-modal-content .pc-detail-walk-decoration {
+    display: none;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-hero {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    min-height: 64px;
+    padding: 12px 20px 12px 32px;
+    border-bottom: none;
+    background: var(--pc-neu-bg);
+    box-shadow: 0 8px 18px color-mix(in srgb, var(--pc-neu-dark) 38%, transparent);
+}
+
+.pc-prompt-detail-modal-content .pc-detail-page-title {
+    margin: 0;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-hero-copy {
+    min-width: 0;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-top-nav-actions {
+    margin-right: 100px;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-top-nav-btn {
+    min-width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 12px;
+    background: var(--pc-neu-bg);
+    box-shadow: 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark) 76%, transparent), -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
+    transition: box-shadow var(--pc-neu-transition), color var(--pc-neu-transition), transform var(--pc-neu-transition);
+}
+
+.pc-prompt-detail-modal-content .pc-detail-top-nav-btn:hover,
+.pc-prompt-detail-modal-content .pc-detail-top-nav-btn:focus-visible {
+    color: var(--pc-accent);
+    border-color: transparent;
+    background: var(--pc-neu-bg);
+    box-shadow: inset 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark-accent) 76%, transparent), inset -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent), 0 0 0 3px color-mix(in srgb, var(--pc-accent) 24%, transparent);
+    outline: none;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-top-nav-btn:active {
+    transform: translateY(1px);
+    box-shadow: inset 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark-accent) 76%, transparent), inset -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
+}
+
+.pc-prompt-detail-modal-content .pc-detail-page {
+    padding-bottom: 32px;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-shell {
+    margin: 0 32px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.pc-prompt-detail-modal-close {
+    position: absolute;
+    z-index: 4;
+    top: 12px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    color: var(--pc-text);
+    background: var(--pc-neu-bg);
+    font: 400 28px/1 var(--pc-font-family);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark) 76%, transparent), -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
+    transition: box-shadow var(--pc-neu-transition), color var(--pc-neu-transition), transform var(--pc-neu-transition);
+}
+
+.pc-prompt-detail-modal-actions {
+    position: absolute;
+    z-index: 4;
+    top: 12px;
+    right: 20px;
+    display: flex;
+    gap: 8px;
+}
+
+.pc-prompt-detail-modal-minimize {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 12px;
+    color: var(--pc-text);
+    background: var(--pc-neu-bg);
+    font: 400 28px/1 var(--pc-font-family);
+    cursor: pointer;
+    box-shadow: 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark) 76%, transparent), -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
+}
+
+.pc-prompt-detail-modal-actions .pc-prompt-detail-modal-close {
+    position: relative;
+    top: auto;
+    right: auto;
+}
+
+.pc-prompt-detail-modal-actions .pc-prompt-detail-modal-close::before {
+    display: none;
+}
+
+.pc-prompt-detail-minimized-tray {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1;
+    display: flex;
+    pointer-events: auto;
+}
+
+.pc-prompt-detail-minimized-list {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 10px);
+    width: min(320px, calc(100vw - 48px));
+    max-height: min(360px, calc(100dvh - 112px));
+    padding: 8px;
+    overflow-y: auto;
+    border-radius: 14px;
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-shadow-lg);
+    display: grid;
+    gap: 4px;
+}
+
+.pc-prompt-detail-minimized-item {
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 10px 8px 12px;
+    border: none;
+    border-radius: 10px;
+    color: var(--pc-text);
+    background: transparent;
+    font: 600 13px/1.2 var(--pc-font-family);
+    text-align: left;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 8px;
+    transition: background var(--pc-neu-transition), color var(--pc-neu-transition), transform var(--pc-neu-transition);
+}
+
+.pc-prompt-detail-minimized-item-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pc-prompt-detail-minimized-item-icon {
+    color: var(--pc-accent);
+    font-size: 16px;
+    line-height: 1;
+    text-align: center;
+}
+
+.pc-prompt-detail-minimized-item:hover,
+.pc-prompt-detail-minimized-item:focus-visible {
+    color: var(--pc-accent);
+    background: color-mix(in srgb, var(--pc-accent) 11%, transparent);
+    outline: none;
+}
+
+.pc-prompt-detail-minimized-item:active {
+    transform: translateY(1px);
+}
+
+.pc-prompt-detail-minimized-button {
+    width: min(264px, calc(100vw - 48px));
+    min-height: 42px;
+    padding: 8px 10px 8px 12px;
+    overflow: hidden;
+    border: none;
+    border-radius: 999px;
+    color: var(--pc-text);
+    background: var(--pc-neu-bg);
+    font: 600 13px/1.2 var(--pc-font-family);
+    text-align: left;
+    cursor: pointer;
+    box-shadow: var(--pc-shadow-lg);
+    display: inline-grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    transition: box-shadow var(--pc-neu-transition), color var(--pc-neu-transition), transform var(--pc-neu-transition);
+}
+
+.pc-prompt-detail-minimized-icon {
+    color: var(--pc-accent);
+    font-size: 16px;
+    line-height: 1;
+    text-align: center;
+}
+
+.pc-prompt-detail-minimized-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pc-prompt-detail-minimized-count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    color: var(--pc-neu-bg);
+    background: var(--pc-accent);
+    font: 700 11px/20px var(--pc-font-family);
+    text-align: center;
+}
+
+.pc-prompt-detail-minimized-button:hover,
+.pc-prompt-detail-minimized-button:focus-visible {
+    color: var(--pc-accent);
+    box-shadow: inset 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark-accent) 76%, transparent), inset -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent), 0 0 0 3px color-mix(in srgb, var(--pc-accent) 24%, transparent);
+    outline: none;
+}
+
+.pc-prompt-detail-minimized-button:active {
+    transform: translateY(1px);
+    box-shadow: inset 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark-accent) 76%, transparent), inset -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
+}
+
+.pc-prompt-detail-modal-close:hover,
+.pc-prompt-detail-modal-close:focus-visible {
+    color: var(--pc-accent);
+    background: var(--pc-neu-bg);
+    box-shadow: inset 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark-accent) 76%, transparent), inset -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent), 0 0 0 3px color-mix(in srgb, var(--pc-accent) 24%, transparent);
+    outline: none;
+}
+
+.pc-prompt-detail-modal-close:active {
+    transform: translateY(1px);
+    box-shadow: inset 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark-accent) 76%, transparent), inset -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
+}
+
+.pc-prompt-detail-modal-close::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: -13px;
+    width: 1px;
+    background: color-mix(in srgb, var(--pc-neu-dark) 46%, transparent);
+    pointer-events: none;
+}
+
+@media (max-width: 1180px) {
+    .pc-prompt-detail-modal-content .pc-detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .pc-prompt-detail-modal-content .pc-detail-side-column {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .pc-prompt-detail-modal-host {
+        padding: 0;
+    }
+
+    .pc-prompt-detail-modal {
+        width: 100vw;
+        max-height: 100dvh;
+        height: 100dvh;
+        border-radius: 0;
+    }
+
+    .pc-prompt-detail-modal-content .pc-detail-hero {
+        padding-left: 20px;
+    }
+
+    .pc-prompt-detail-modal-content .pc-detail-shell {
+        margin: 0 12px;
+    }
+
+    .pc-prompt-detail-modal-content .pc-detail-side-column {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 721px) and (max-width: 1439px) {
+    .pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal-deck {
+        grid-template-columns: 1fr;
+        grid-template-rows: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .pc-prompt-detail-modal-host-dual .pc-prompt-detail-modal-content .pc-detail-side-column {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-prompt-detail-modal-backdrop,
+    .pc-prompt-detail-modal-overlay,
+    .pc-prompt-detail-modal,
+    .pc-prompt-detail-modal * {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
 .pc-modal h3 {
     font: var(--pc-font-h3);
     color: var(--pc-text);

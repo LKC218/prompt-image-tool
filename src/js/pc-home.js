@@ -6,6 +6,7 @@ import { getPromptSetMenuItems } from './pc-menu-actions.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { isPromptImageToolImportStorageError, stagePromptImageToolImport } from './prompt-tool-json-import.js';
 import { getFolderColor } from './folder-color.js';
+import { openPromptDetail } from './pc-detail-modal.js';
 import homeFolderIcon from '../assets/pc/home-folder.png';
 import tagIcon from '../assets/pc/tag-2.png';
 
@@ -348,7 +349,9 @@ function setupHomeEvents(pageEl) {
     pageEl.querySelector('#pcRecentList')?.addEventListener('click', async (e) => {
         const item = e.target.closest('.pc-recent-item');
         if (item && !e.target.closest('.pc-star-btn') && !e.target.closest('.pc-more-btn')) {
-            navigate('/detail/' + item.dataset.id);
+            openPromptDetail(item.dataset.id, {
+                triggerElement: item
+            });
         }
 
         const starBtn = e.target.closest('.pc-star-btn');

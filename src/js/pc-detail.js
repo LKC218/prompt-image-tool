@@ -1,6 +1,6 @@
 import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
-import { showToast, showConfirmModal, copyToClipboard, showImageViewer, showContextMenu, escapeHtml, formatDate } from './pc-utils.js';
+import { showToast, showConfirmModal, copyToClipboard, showImageViewer, showContextMenu, hideContextMenu, escapeHtml, formatDate } from './pc-utils.js';
 import { formatPromptForDisplay } from './pc-prompt-ui-utils.js';
 import { pcIcon } from './pc-icon-assets.js';
 import { playPcFavoriteFeedback } from './pc-favorite-feedback.js';
@@ -14,10 +14,9 @@ function iconImg(src, alt = '') {
     return `<img src="${src}" alt="${escapeHtml(alt)}" class="pc-icon-img">`;
 }
 
-let promptSet = null;
-let activeVersionIndex = 0;
-let imageUrls = [];
-let currentImageIndex = 0;
+function getDetailState(pageEl) {
+    return pageEl._pcDetailState;
+}
 
 function render(params = {}) {
     return `
@@ -28,7 +27,7 @@ function render(params = {}) {
             </div>
             <div class="pc-detail-hero">
                 <div class="pc-detail-hero-copy">
-                    <h1 class="pc-detail-page-title">提示词详情</h1>
+                    <h1 class="pc-detail-page-title"><span class="pc-detail-page-kicker">提示词详情</span><span class="pc-detail-page-name" id="pcDetailPageName">加载中</span></h1>
                     <nav class="pc-detail-breadcrumb" aria-label="当前位置">
                         <button class="pc-detail-breadcrumb-link" id="pcDetailBack" type="button">首页</button>
                         <span class="pc-detail-breadcrumb-sep">${pcIcon('chevronRight', 'pc-detail-breadcrumb-icon')}</span>
@@ -58,12 +57,10 @@ async function mount(pageEl, params = {}) {
 
     try {
         const storage = getStorage();
-        promptSet = await storage.getPromptSet(id);
+        const promptSet = await storage.getPromptSet(id);
         if (!promptSet) { showToast('提示词不存在', 'error'); navigate('/library'); return; }
-
-        activeVersionIndex = 0;
-        currentImageIndex = 0;
-        await loadImages();
+        pageEl._pcDetailState = { promptSet, activeVersionIndex: 0, imageUrls: [], currentImageIndex: 0, onEdit: params.onEdit };
+        await loadImages(pageEl);
         renderDetailContent(pageEl);
         setupEvents(pageEl);
     } catch (e) {
@@ -72,9 +69,11 @@ async function mount(pageEl, params = {}) {
     }
 }
 
-async function loadImages() {
-    imageUrls = [];
-    currentImageIndex = 0;
+async function loadImages(pageEl) {
+    const state = getDetailState(pageEl);
+    state.imageUrls = [];
+    state.currentImageIndex = 0;
+    const { promptSet, activeVersionIndex } = state;
     if (!promptSet) return;
     const versions = promptSet.versions || [];
     const currentVersion = versions[activeVersionIndex];
@@ -84,14 +83,15 @@ async function loadImages() {
     for (const img of currentVersion.images) {
         try {
             const url = await storage.getImageUrl(img);
-            imageUrls.push({ url, name: img.name || '', data: img });
+            state.imageUrls.push({ url, name: img.name || '', data: img });
         } catch (e) {
-            imageUrls.push({ url: '', name: img.name || '', data: img });
+            state.imageUrls.push({ url: '', name: img.name || '', data: img });
         }
     }
 }
 
 function renderDetailContent(pageEl) {
+    const { promptSet, activeVersionIndex } = getDetailState(pageEl);
     const container = pageEl.querySelector('#pcDetailContent');
     if (!container || !promptSet) return;
 
@@ -113,32 +113,39 @@ function renderDetailContent(pageEl) {
         <div class="pc-detail-shell">
             <div class="pc-detail-layout">
                 <section class="pc-detail-main-column" aria-label="提示词主内容">
-                    ${renderCoverImage()}
-                    ${renderImageThumbs()}
-                    ${renderTitleRow(promptSet.name, tags)}
-                    ${renderMetaStrip(tags, promptSet)}
+                    ${renderCoverImage(pageEl)}
+                    ${renderImageThumbs(pageEl)}
+                    ${renderTitleRow(promptSet.name, tags, pageEl)}
+                    ${renderMetaStrip(promptSet)}
                     ${renderPositivePromptCard(positivePrompt)}
                     ${renderNegativePromptCard(negativePrompt)}
                     ${renderBottomBar()}
                 </section>
                 <aside class="pc-detail-side-column" aria-label="提示词辅助信息">
                     ${renderInfoCard(currentVersion, tags, promptSet)}
-                    ${renderVersionCard(versions)}
+                    ${renderVersionCard(versions, pageEl)}
                     ${renderLocalSafetyCard()}
                 </aside>
             </div>
         </div>
     `;
 
-    loadCoverImage();
+    loadCoverImage(pageEl);
 }
 
 function updateBreadcrumbName(pageEl, name) {
     const current = pageEl.querySelector('#pcDetailBreadcrumbName');
     if (current) current.textContent = name || '未命名提示词';
+    const pageName = pageEl.querySelector('#pcDetailPageName');
+    if (pageName) {
+        const displayName = name || '未命名提示词';
+        pageName.textContent = displayName;
+        pageName.title = displayName;
+    }
 }
 
-function renderCoverImage() {
+function renderCoverImage(pageEl) {
+    const { imageUrls, currentImageIndex } = getDetailState(pageEl);
     const hasImages = imageUrls.length > 0;
     const hasMultiple = imageUrls.length > 1;
 
@@ -166,7 +173,8 @@ function renderCoverImage() {
     `;
 }
 
-function renderImageThumbs() {
+function renderImageThumbs(pageEl) {
+    const { imageUrls, currentImageIndex } = getDetailState(pageEl);
     if (imageUrls.length <= 1) return '';
 
     return `
@@ -193,23 +201,25 @@ function renderImageThumbs() {
     `;
 }
 
-function switchImage(newIndex) {
+function switchImage(pageEl, newIndex) {
+    const state = getDetailState(pageEl);
+    const { imageUrls } = state;
     if (newIndex < 0 || newIndex >= imageUrls.length) return;
-    currentImageIndex = newIndex;
+    state.currentImageIndex = newIndex;
 
-    const imgWrap = document.getElementById('pcDetailCoverImgWrap');
-    const counter = document.getElementById('pcDetailImgCounter');
-    const dots = document.querySelectorAll('.pc-detail-cover-dot');
-    const thumbs = document.querySelectorAll('.pc-detail-image-thumb');
+    const imgWrap = pageEl.querySelector('#pcDetailCoverImgWrap');
+    const counter = pageEl.querySelector('#pcDetailImgCounter');
+    const dots = pageEl.querySelectorAll('.pc-detail-cover-dot');
+    const thumbs = pageEl.querySelectorAll('.pc-detail-image-thumb');
 
     if (imgWrap) {
         const currentImg = imgWrap.querySelector('img');
         if (currentImg) {
             currentImg.style.opacity = '0';
             setTimeout(() => {
-                if (imageUrls[currentImageIndex] && imageUrls[currentImageIndex].url) {
-                    currentImg.src = imageUrls[currentImageIndex].url;
-                    currentImg.alt = imageUrls[currentImageIndex].name || '封面';
+                if (imageUrls[state.currentImageIndex] && imageUrls[state.currentImageIndex].url) {
+                    currentImg.src = imageUrls[state.currentImageIndex].url;
+                    currentImg.alt = imageUrls[state.currentImageIndex].name || '封面';
                 }
                 currentImg.style.opacity = '1';
             }, 150);
@@ -217,11 +227,11 @@ function switchImage(newIndex) {
     }
 
     if (counter) {
-        counter.textContent = `${currentImageIndex + 1} / ${imageUrls.length}`;
+        counter.textContent = `${state.currentImageIndex + 1} / ${imageUrls.length}`;
     }
 
     dots.forEach((dot, i) => {
-        if (i === currentImageIndex) {
+        if (i === state.currentImageIndex) {
             dot.classList.add('pc-detail-cover-dot-active');
         } else {
             dot.classList.remove('pc-detail-cover-dot-active');
@@ -229,7 +239,7 @@ function switchImage(newIndex) {
     });
 
     thumbs.forEach((thumb, i) => {
-        const isActive = i === currentImageIndex;
+        const isActive = i === state.currentImageIndex;
         thumb.classList.toggle('pc-detail-image-thumb-active', isActive);
         thumb.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         if (isActive && typeof thumb.scrollIntoView === 'function') {
@@ -238,7 +248,8 @@ function switchImage(newIndex) {
     });
 }
 
-function renderTitleRow(name, tags) {
+function renderTitleRow(name, tags, pageEl) {
+    const { promptSet } = getDetailState(pageEl);
     const tagsHtml = renderTagPills(tags);
 
     return `
@@ -265,18 +276,13 @@ function renderTagPills(tags) {
         : '<span class="pc-tag-pill pc-tag-default">提示词</span>';
 }
 
-function renderMetaStrip(tags, set) {
+function renderMetaStrip(set) {
     return `
         <div class="pc-detail-meta-strip pc-detail-fade-in">
             <div class="pc-detail-meta-item">
                 <span class="pc-detail-meta-icon">${pcIcon('calendar', 'pc-detail-meta-icon-img')}</span>
                 <span class="pc-detail-meta-label">创建时间</span>
                 <span class="pc-detail-meta-value">${formatDate(set.createdAt) || '-'}</span>
-            </div>
-            <div class="pc-detail-meta-item">
-                <span class="pc-detail-meta-icon">${pcIcon('tag', 'pc-detail-meta-icon-img')}</span>
-                <span class="pc-detail-meta-label">标签</span>
-                <span class="pc-detail-meta-tags">${renderTagPills(tags)}</span>
             </div>
             <div class="pc-detail-meta-item">
                 <span class="pc-detail-meta-icon">${pcIcon('user', 'pc-detail-meta-icon-img')}</span>
@@ -352,7 +358,8 @@ function renderInfoCard(currentVersion, tags, set) {
     `;
 }
 
-function renderVersionCard(versions) {
+function renderVersionCard(versions, pageEl) {
+    const { activeVersionIndex, promptSet } = getDetailState(pageEl);
     if (!versions || versions.length === 0) return '';
 
     const displayVersions = versions.slice(0, 3);
@@ -430,8 +437,9 @@ function updateStarButton(pageEl, isFavorite) {
     btn.title = isFavorite ? '取消收藏' : '收藏';
 }
 
-async function loadCoverImage() {
-    const imgWrap = document.getElementById('pcDetailCoverImgWrap');
+async function loadCoverImage(pageEl) {
+    const { imageUrls, currentImageIndex } = getDetailState(pageEl);
+    const imgWrap = pageEl.querySelector('#pcDetailCoverImgWrap');
     if (!imgWrap) return;
 
     if (imageUrls.length > 0 && imageUrls[currentImageIndex] && imageUrls[currentImageIndex].url) {
@@ -444,6 +452,8 @@ async function loadCoverImage() {
 }
 
 function setupEvents(pageEl) {
+    const state = getDetailState(pageEl);
+    const { promptSet } = state;
     pageEl.querySelector('#pcDetailBack')?.addEventListener('click', () => navigate('/'));
     pageEl.querySelector('#pcDetailLibraryCrumb')?.addEventListener('click', () => navigate('/library'));
 
@@ -480,8 +490,8 @@ function setupEvents(pageEl) {
     });
 
     pageEl.querySelector('#pcDetailCoverImgWrap')?.addEventListener('click', () => {
-        if (imageUrls.length > 0 && imageUrls[currentImageIndex] && imageUrls[currentImageIndex].url) {
-            const image = imageUrls[currentImageIndex];
+        if (state.imageUrls.length > 0 && state.imageUrls[state.currentImageIndex] && state.imageUrls[state.currentImageIndex].url) {
+            const image = state.imageUrls[state.currentImageIndex];
             showImageViewer({
                 src: image.url,
                 filename: image.name || promptSet.name || 'preview',
@@ -492,21 +502,21 @@ function setupEvents(pageEl) {
 
     pageEl.querySelector('#pcDetailImgPrev')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newIndex = currentImageIndex > 0 ? currentImageIndex - 1 : imageUrls.length - 1;
-        switchImage(newIndex);
+        const newIndex = state.currentImageIndex > 0 ? state.currentImageIndex - 1 : state.imageUrls.length - 1;
+        switchImage(pageEl, newIndex);
     });
 
     pageEl.querySelector('#pcDetailImgNext')?.addEventListener('click', (e) => {
         e.stopPropagation();
-        const newIndex = currentImageIndex < imageUrls.length - 1 ? currentImageIndex + 1 : 0;
-        switchImage(newIndex);
+        const newIndex = state.currentImageIndex < state.imageUrls.length - 1 ? state.currentImageIndex + 1 : 0;
+        switchImage(pageEl, newIndex);
     });
 
     pageEl.querySelectorAll('.pc-detail-cover-dot').forEach(dot => {
         dot.addEventListener('click', (e) => {
             e.stopPropagation();
             const idx = parseInt(dot.dataset.dotIndex);
-            if (!isNaN(idx)) switchImage(idx);
+            if (!isNaN(idx)) switchImage(pageEl, idx);
         });
     });
 
@@ -514,15 +524,15 @@ function setupEvents(pageEl) {
         thumb.addEventListener('click', (e) => {
             e.stopPropagation();
             const idx = parseInt(thumb.dataset.thumbIndex);
-            if (!isNaN(idx)) switchImage(idx);
+            if (!isNaN(idx)) switchImage(pageEl, idx);
         });
     });
 
     pageEl.querySelectorAll('.pc-detail-prompt-copy').forEach(btn => {
         btn.addEventListener('click', () => {
             const type = btn.dataset.copy;
-            const versions = promptSet.versions || [];
-            const v = versions[activeVersionIndex];
+            const versions = state.promptSet.versions || [];
+            const v = versions[state.activeVersionIndex];
             if (!v) return;
             const text = type === 'positive'
                 ? (v.prompt || '')
@@ -533,12 +543,14 @@ function setupEvents(pageEl) {
         });
     });
 
+    setupPromptTextSelectionMenu(pageEl);
+
     pageEl.querySelectorAll('.pc-detail-version-item').forEach(item => {
         item.addEventListener('click', async () => {
             const idx = parseInt(item.dataset.versionIndex);
             if (isNaN(idx)) return;
-            activeVersionIndex = idx;
-            await loadImages();
+            state.activeVersionIndex = idx;
+            await loadImages(pageEl);
             renderDetailContent(pageEl);
             setupEvents(pageEl);
         });
@@ -548,13 +560,15 @@ function setupEvents(pageEl) {
         showToast('版本管理功能开发中');
     });
 
-    pageEl.querySelector('#pcDetailEdit')?.addEventListener('click', () => {
-        if (promptSet) navigate('/editor/' + promptSet.id);
+    pageEl.querySelector('#pcDetailEdit')?.addEventListener('click', async () => {
+        if (!state.promptSet) return;
+        if (state.onEdit) await state.onEdit(state.promptSet.id);
+        navigate('/editor/' + state.promptSet.id);
     });
 
     pageEl.querySelector('#pcDetailCopyAll')?.addEventListener('click', () => {
-        if (!promptSet || !promptSet.versions || promptSet.versions.length === 0) return;
-        const v = promptSet.versions[activeVersionIndex];
+        if (!state.promptSet || !state.promptSet.versions || state.promptSet.versions.length === 0) return;
+        const v = state.promptSet.versions[state.activeVersionIndex];
         const positive = v.prompt || '';
         const negative = v.negativePrompt || v.negative_prompt || '';
         const full = positive + (negative ? '\n\nNegative:\n' + negative : '');
@@ -571,7 +585,92 @@ function setupEvents(pageEl) {
     });
 }
 
+function clearPromptTextSelectionMenu(pageEl) {
+    if (pageEl._promptTextSelectionTimer) {
+        clearTimeout(pageEl._promptTextSelectionTimer);
+        pageEl._promptTextSelectionTimer = null;
+    }
+    pageEl._promptTextSelectionSignature = '';
+    if (pageEl._promptTextSelectionHandler) {
+        document.removeEventListener('selectionchange', pageEl._promptTextSelectionHandler);
+        pageEl._promptTextSelectionHandler = null;
+    }
+    hideContextMenu();
+}
+
+function getPromptTextSelection(contentEls) {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount || selection.isCollapsed) return null;
+
+    const range = selection.getRangeAt(0);
+    const selectedText = selection.toString().trim();
+    const isWithinPromptContent = (node) => {
+        const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+        return contentEls.some(contentEl => contentEl.contains(element));
+    };
+
+    if (!selectedText || !isWithinPromptContent(range.startContainer) || !isWithinPromptContent(range.endContainer)) return null;
+
+    const rect = range.getBoundingClientRect();
+    if (!rect.width && !rect.height) return null;
+
+    return {
+        text: selectedText,
+        rect,
+        signature: `${selectedText}:${rect.left}:${rect.top}:${rect.width}:${rect.height}`,
+    };
+}
+
+function setupPromptTextSelectionMenu(pageEl) {
+    clearPromptTextSelectionMenu(pageEl);
+    const contentEls = [...pageEl.querySelectorAll('.pc-detail-prompt-content')];
+    if (!contentEls.length) return;
+
+    const queueMenu = () => {
+        const selection = getPromptTextSelection(contentEls);
+        if (!selection) {
+            clearPromptTextSelectionMenuTimer(pageEl);
+            pageEl._promptTextSelectionSignature = '';
+            hideContextMenu();
+            return;
+        }
+        if (selection.signature === pageEl._promptTextSelectionSignature) return;
+
+        clearPromptTextSelectionMenuTimer(pageEl);
+        pageEl._promptTextSelectionTimer = setTimeout(async () => {
+            pageEl._promptTextSelectionTimer = null;
+            const currentSelection = getPromptTextSelection(contentEls);
+            if (!currentSelection) return;
+            pageEl._promptTextSelectionSignature = currentSelection.signature;
+            const action = await showContextMenu(0, 0, [
+                { action: 'copy', icon: pcIcon('clipboard'), tone: 'copy', label: '复制' },
+            ], {
+                focusMenu: false,
+                restoreFocusElement: contentEls.find(contentEl => contentEl.contains(window.getSelection()?.anchorNode)),
+                referenceRect: currentSelection.rect,
+                placement: { preferredSide: 'top', fallbackSide: 'bottom', gap: 16, safeMargin: 24 },
+                variant: 'text-selection',
+            });
+            if (action === 'copy') copyToClipboard(currentSelection.text);
+        }, 180);
+    };
+
+    pageEl._promptTextSelectionHandler = queueMenu;
+    document.addEventListener('selectionchange', queueMenu);
+    contentEls.forEach(contentEl => {
+        contentEl.addEventListener('pointerup', queueMenu);
+        contentEl.addEventListener('keyup', queueMenu);
+    });
+}
+
+function clearPromptTextSelectionMenuTimer(pageEl) {
+    if (!pageEl._promptTextSelectionTimer) return;
+    clearTimeout(pageEl._promptTextSelectionTimer);
+    pageEl._promptTextSelectionTimer = null;
+}
+
 async function showMoreMenu(e, pageEl) {
+    const state = getDetailState(pageEl);
     const anchor = e.currentTarget;
     const rect = anchor.getBoundingClientRect();
     const x = rect.right + 8;
@@ -593,7 +692,7 @@ async function showMoreMenu(e, pageEl) {
     } else if (action === 'delete') {
         showConfirmModal('确定要删除这个提示词吗？此操作不可撤销。', async () => {
             try {
-                await getStorage().deletePromptSet(promptSet.id);
+                await getStorage().deletePromptSet(state.promptSet.id);
                 showToast('已删除');
                 navigate('/library');
             } catch (e) {
@@ -604,6 +703,8 @@ async function showMoreMenu(e, pageEl) {
 }
 
 async function addNewVersion(pageEl) {
+    const state = getDetailState(pageEl);
+    const { promptSet } = state;
     const { showModal, closeModal } = await import('./pc-utils.js');
     const modal = showModal(`
         <h3>新建版本</h3>
@@ -639,8 +740,8 @@ async function addNewVersion(pageEl) {
         try {
             await getStorage().updatePromptSet(promptSet.id, { versions });
             promptSet.versions = versions;
-            activeVersionIndex = 0;
-            await loadImages();
+            state.activeVersionIndex = 0;
+            await loadImages(pageEl);
             closeModal();
             renderDetailContent(pageEl);
             setupEvents(pageEl);
@@ -654,10 +755,8 @@ async function addNewVersion(pageEl) {
 }
 
 function unmount(pageEl) {
-    promptSet = null;
-    activeVersionIndex = 0;
-    imageUrls = [];
-    currentImageIndex = 0;
+    clearPromptTextSelectionMenu(pageEl);
+    delete pageEl._pcDetailState;
 }
 
 export { render, mount, unmount };

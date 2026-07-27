@@ -2,7 +2,6 @@ const routes = {};
 const routeStack = [];
 let currentRoute = null;
 let onRouteChange = null;
-let _programmaticBack = false;
 
 function registerRoute(path, handler) {
     routes[path] = { ...handler, key: path };
@@ -31,6 +30,44 @@ function resolveRouteKey(path) {
     return handler ? handler.key : path;
 }
 
+function cloneRoute(route) {
+    return {
+        path: route.path,
+        params: { ...(route.params || {}) },
+        routeKey: route.routeKey,
+    };
+}
+
+function buildHistoryState() {
+    return {
+        view: 'mobile',
+        path: currentRoute.path,
+        params: { ...(currentRoute.params || {}) },
+        stack: routeStack.map(cloneRoute),
+    };
+}
+
+function hydrateHistoryState(state) {
+    if (!state || state.view !== 'mobile' || typeof state.path !== 'string') return null;
+    const handler = getRouteHandler(state.path);
+    if (!handler) return null;
+
+    const stack = Array.isArray(state.stack)
+        ? state.stack.map((route) => {
+            if (!route || typeof route.path !== 'string') return null;
+            const stackHandler = getRouteHandler(route.path);
+            return stackHandler
+                ? { path: route.path, params: { ...(route.params || {}) }, routeKey: stackHandler.key }
+                : null;
+        }).filter(Boolean)
+        : [];
+
+    return {
+        route: { path: state.path, params: { ...(state.params || {}) }, routeKey: handler.key },
+        stack,
+    };
+}
+
 function navigate(path, params = {}) {
     const handler = getRouteHandler(path);
     if (!handler) {
@@ -46,7 +83,7 @@ function navigate(path, params = {}) {
         routeStack.push(prevRoute);
     }
 
-    history.pushState({ view: 'mobile', path, params }, '');
+    history.pushState(buildHistoryState(), '');
 
     if (onRouteChange) {
         onRouteChange(currentRoute, prevRoute, 'push');
@@ -55,16 +92,7 @@ function navigate(path, params = {}) {
 
 function goBack() {
     if (routeStack.length === 0) return false;
-    const prevRoute = routeStack.pop();
-    const currentSnapshot = currentRoute;
-    currentRoute = prevRoute;
-
-    _programmaticBack = true;
     history.back();
-
-    if (onRouteChange) {
-        onRouteChange(currentRoute, currentSnapshot, 'pop');
-    }
     return true;
 }
 
@@ -81,11 +109,13 @@ function clearStack() {
 }
 
 function navigateToTab(path) {
+    const handler = getRouteHandler(path);
+    if (!handler) return;
     routeStack.length = 0;
     const prevRoute = currentRoute;
-    currentRoute = { path, params: {}, routeKey: path };
+    currentRoute = { path, params: {}, routeKey: handler.key };
 
-    history.replaceState({ view: 'mobile', path, params: {} }, '');
+    history.replaceState(buildHistoryState(), '');
 
     if (onRouteChange) {
         onRouteChange(currentRoute, prevRoute, 'tab');
@@ -93,26 +123,28 @@ function navigateToTab(path) {
 }
 
 function initRouter() {
-    history.replaceState({ view: 'mobile', path: '/', params: {} }, '');
-    currentRoute = { path: '/', params: {}, routeKey: '/' };
+    const restored = hydrateHistoryState(history.state);
+    if (restored) {
+        currentRoute = restored.route;
+        routeStack.splice(0, routeStack.length, ...restored.stack);
+    } else {
+        routeStack.length = 0;
+        currentRoute = { path: '/', params: {}, routeKey: '/' };
+        history.replaceState(buildHistoryState(), '');
+    }
 
     window.addEventListener('popstate', (e) => {
-        if (!e.state || e.state.view !== 'mobile') return;
-
-        if (_programmaticBack) {
-            _programmaticBack = false;
-            return;
-        }
-
-        if (routeStack.length > 0) {
-            const prev = routeStack.pop();
-            const currentSnapshot = currentRoute;
-            currentRoute = prev;
-            if (onRouteChange) {
-                onRouteChange(currentRoute, currentSnapshot, 'pop');
-            }
+        const restoredState = hydrateHistoryState(e.state);
+        if (!restoredState) return;
+        const previousRoute = currentRoute;
+        currentRoute = restoredState.route;
+        routeStack.splice(0, routeStack.length, ...restoredState.stack);
+        if (onRouteChange) {
+            onRouteChange(currentRoute, previousRoute, 'pop');
         }
     });
+
+    return currentRoute;
 }
 
 export {

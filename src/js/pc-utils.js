@@ -241,6 +241,7 @@ function showContextMenu(x, y, items, options = {}) {
                 </button>`;
             }).join('');
             menu.style.visibility = 'hidden';
+            menu.classList.toggle('pc-context-menu-text-selection', options.variant === 'text-selection');
             menu.classList.add('pc-context-active');
 
             const placement = getContextMenuPlacement(menu, x, y, anchor, options);

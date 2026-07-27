@@ -14,6 +14,7 @@ const utilsMocks = vi.hoisted(() => ({
     copyToClipboard: vi.fn(),
     showImageViewer: vi.fn(),
     showContextMenu: vi.fn(),
+    hideContextMenu: vi.fn(),
 }));
 
 vi.mock('./storage.js', () => ({
@@ -30,6 +31,7 @@ vi.mock('./pc-utils.js', () => ({
     copyToClipboard: utilsMocks.copyToClipboard,
     showImageViewer: utilsMocks.showImageViewer,
     showContextMenu: utilsMocks.showContextMenu,
+    hideContextMenu: utilsMocks.hideContextMenu,
     escapeHtml: (value = '') => String(value)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -93,6 +95,9 @@ describe('pc-detail image preview', () => {
             getImageUrl: vi.fn(async (image) => `https://local.test/images/${image.file}`),
         });
         utilsMocks.showImageViewer.mockClear();
+        utilsMocks.showContextMenu.mockReset();
+        utilsMocks.hideContextMenu.mockClear();
+        utilsMocks.copyToClipboard.mockClear();
     });
 
     afterEach(() => {
@@ -142,5 +147,44 @@ describe('pc-detail image preview', () => {
             expect.any(Array),
             { anchor: topMore, source: 'more' }
         );
+    });
+
+    it('点击编辑进入当前提示词的编辑页', async () => {
+        const { pageEl } = await mountDetailPage();
+
+        pageEl.querySelector('#pcDetailEdit')?.click();
+
+        expect(appMocks.navigate).toHaveBeenCalledWith('/editor/prompt-1');
+    });
+
+    it('选中提示词正文后显示仅含复制操作的浮动菜单', async () => {
+        utilsMocks.showContextMenu.mockResolvedValue('copy');
+        const { pageEl } = await mountDetailPage();
+        const content = pageEl.querySelector('.pc-detail-prompt-content-positive');
+        const textNode = content.firstChild;
+        const range = document.createRange();
+        range.setStart(textNode, 0);
+        range.setEnd(textNode, 8);
+        Object.defineProperty(range, 'getBoundingClientRect', {
+            value: () => ({ left: 40, top: 80, width: 96, height: 20 }),
+        });
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        document.dispatchEvent(new Event('selectionchange'));
+        await vi.advanceTimersByTimeAsync(180);
+
+        expect(utilsMocks.showContextMenu).toHaveBeenCalledWith(
+            0,
+            0,
+            [expect.objectContaining({ action: 'copy', label: '复制' })],
+            expect.objectContaining({
+                focusMenu: false,
+                referenceRect: expect.objectContaining({ left: 40, top: 80 }),
+                variant: 'text-selection',
+            })
+        );
+        expect(utilsMocks.copyToClipboard).toHaveBeenCalledWith('positive');
     });
 });

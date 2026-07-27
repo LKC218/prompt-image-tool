@@ -195,9 +195,16 @@ async function mount(el) {
     syncReleaseNotesUnreadBadge(appEl);
 
     setRouteChangeCallback(handleRouteChange);
-    initRouter();
-
-    createPage('/', {}, 'tab');
+    const initialRoute = initRouter() || getCurrentRoute() || { path: '/', params: {} };
+    const initialPath = initialRoute.path || '/';
+    if (TAB_ROUTES.includes(initialPath)) {
+        updateNavHighlight(initialPath);
+    } else if (initialPath.startsWith('/detail')) {
+        updateNavHighlight('/library');
+    } else if (initialPath.startsWith('/editor')) {
+        updateNavHighlight('/editor/');
+    }
+    createPage(resolveRouteKey(initialPath), initialRoute.params || {}, 'tab');
     window.requestAnimationFrame(() => showUnreadReleaseNotes());
 }
 
@@ -241,6 +248,20 @@ function setupSidebarNav() {
     const nav = document.getElementById('pcSidebarNav');
     const settingsNav = appEl.querySelector('.pc-sidebar-utility-nav');
     const handleNavigation = (e) => {
+        fetch('http://127.0.0.1:7777/event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sessionId: 'pc-overlay-navigation',
+                hypothesisId: 'navigation-hit',
+                event: 'sidebar-click',
+                target: e.target?.className || e.target?.tagName || null,
+                navItem: e.target?.closest?.('.pc-nav-item')?.dataset?.nav || null,
+                detailHostActive: document.documentElement.classList.contains('pc-prompt-detail-modal-host-active'),
+                overlayState: document.getElementById('pcModalOverlay')?.className || null,
+                timestamp: Date.now(),
+            }),
+        }).catch(() => {});
         const themeToggle = e.target.closest('.pc-theme-toggle');
         if (themeToggle) {
             toggleAppearance(themeToggle);
@@ -416,6 +437,20 @@ function handleRouteChange(newRoute, oldRoute, direction) {
     if (!newRoute) return;
     const path = newRoute.path || '';
     const routeKey = resolveRouteKey(path);
+    fetch('http://127.0.0.1:7777/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            sessionId: 'pc-overlay-navigation',
+            hypothesisId: 'route-render',
+            event: 'route-change',
+            path,
+            routeKey,
+            detailHostActive: document.documentElement.classList.contains('pc-prompt-detail-modal-host-active'),
+            overlayState: document.getElementById('pcModalOverlay')?.className || null,
+            timestamp: Date.now(),
+        }),
+    }).catch(() => {});
 
     if (TAB_ROUTES.includes(path)) {
         updateNavHighlight(path);

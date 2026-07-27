@@ -7,6 +7,7 @@ import { countPromptSetsByFolder, getPromptFolderId } from './pc-prompt-ui-utils
 import { pcIcon } from './pc-icon-assets.js';
 import { playPcFavoriteFeedback } from './pc-favorite-feedback.js';
 import { aggregateTags, getLibraryTagStyleClass, getPcTagStyleClass } from './tag-utils.js';
+import { openPromptDetail } from './pc-detail-modal.js';
 
 let libraryData = null;
 let currentFilter = 'all';
@@ -599,12 +600,15 @@ function setupLibraryEvents(pageEl) {
             row.classList.add('pc-library-row-active');
             renderPreviewOnly(pageEl);
             ensureSelectedDetail(pageEl, selectedPromptId);
+            openPromptDetail(row.dataset.id, {
+                triggerElement: row
+            });
         }
     });
 
     pageEl.querySelector('#pcLibraryContent')?.addEventListener('dblclick', (e) => {
         const row = e.target.closest('tr[data-id]');
-        if (row && !e.target.closest('button')) navigate('/detail/' + row.dataset.id);
+        if (row && !e.target.closest('button')) e.preventDefault();
     });
 
     pageEl.querySelector('#pcLibraryContent')?.addEventListener('change', (e) => {
