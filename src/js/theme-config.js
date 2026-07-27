@@ -9,7 +9,7 @@ export const WORKBENCH_THEMES = [
     { key: 'mint', name: '海盐薄荷', color: '#168A9A', legacyAccents: [] },
 ];
 
-export const DEFAULT_APPEARANCE_PREFERENCE = 'system';
+export const DEFAULT_APPEARANCE_PREFERENCE = 'light';
 export const DEFAULT_WORKBENCH_THEME = 'sky';
 
 const legacyThemeMap = new Map(

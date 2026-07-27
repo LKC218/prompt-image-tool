@@ -27,6 +27,23 @@ describe('主题服务', () => {
         expect(document.documentElement.dataset.appearance).toBe('light');
     });
 
+    it('在系统深色且无历史偏好时默认使用亮色', () => {
+        window.matchMedia = vi.fn(() => ({
+            matches: true,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        }));
+
+        initTheme();
+
+        expect(getThemeState()).toMatchObject({
+            appearancePreference: 'light',
+            appearance: 'light',
+        });
+        expect(localStorage.getItem('appearance-preference')).toBe('light');
+        expect(document.documentElement.dataset.appearance).toBe('light');
+    });
+
     it('将历史粉色偏好迁移为蔷薇主题', () => {
         localStorage.setItem('accent', 'pink');
 
