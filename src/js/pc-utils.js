@@ -7,6 +7,7 @@ let folderContextMenuTargetId = null;
 let contextMenuSession = null;
 let contextMenuOpenTimer = null;
 let contextMenuEventsBound = false;
+let modalKeyboardEventsBound = false;
 const IMAGE_VIEWER_MIN_SCALE = 1;
 const IMAGE_VIEWER_MAX_SCALE = 5;
 const IMAGE_VIEWER_WHEEL_STEP = 1.12;
@@ -70,6 +71,12 @@ function showModal(content) {
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) closeModal();
         });
+    }
+    if (!modalKeyboardEventsBound) {
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+        modalKeyboardEventsBound = true;
     }
     const modal = document.getElementById('pcModalContent');
     modal.innerHTML = content;
