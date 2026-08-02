@@ -2777,6 +2777,10 @@
     width: 100%;
 }
 
+.mobile-app .m-action-sheet-item:disabled {
+    opacity: .45;
+}
+
 .mobile-app .m-action-sheet-item:active {
     background: var(--m-surface2);
 }
@@ -2792,6 +2796,19 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+}
+
+.mobile-app .m-action-sheet-chevron {
+    margin-left: auto;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--m-text-secondary);
+}
+
+.mobile-app .m-action-sheet-back {
+    margin-bottom: var(--m-space-sm);
+    border-bottom: 1px solid var(--m-border);
+    border-radius: 0;
 }
 
 .mobile-app .m-action-sheet-icon .m-svg-icon {
@@ -4638,6 +4655,10 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+.mobile-app .m-category-page .m-tag-bulk-menu {
+    color: var(--m-danger);
 }
 
 .mobile-app .m-category-page .m-drag-handle {

@@ -259,30 +259,49 @@ function _showMobileToast(msg, type = 'success') {
 function _showActionSheet(items) {
     const overlay = document.getElementById('mActionSheetOverlay');
     const sheet = document.getElementById('mActionSheet');
+    let currentItems = items;
+    const history = [];
 
-    sheet.innerHTML = `
-        <div class="m-action-sheet-handle"></div>
-        ${items.map(item => `
-            <button class="m-action-sheet-item ${item.danger ? 'm-sheet-danger' : ''}" data-action="${item.action}">
-                <span class="m-action-sheet-icon">${item.icon || ''}</span>
-                <span>${item.label}</span>
-            </button>
-        `).join('')}
-    `;
+    const render = () => {
+        sheet.innerHTML = `
+            <div class="m-action-sheet-handle"></div>
+            ${history.length ? '<button class="m-action-sheet-item m-action-sheet-back" data-action="__back"><span class="m-action-sheet-icon" aria-hidden="true">‹</span><span>返回</span></button>' : ''}
+            ${currentItems.map(item => `
+                <button class="m-action-sheet-item ${item.danger ? 'm-sheet-danger' : ''}" data-action="${item.action}" ${item.disabled ? 'disabled' : ''}>
+                    <span class="m-action-sheet-icon">${item.icon || ''}</span>
+                    <span>${item.label}</span>
+                    ${Array.isArray(item.children) && item.children.length ? '<span class="m-action-sheet-chevron" aria-hidden="true">›</span>' : ''}
+                </button>
+            `).join('')}
+        `;
 
-    sheet.querySelectorAll('.m-action-sheet-item').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const action = btn.dataset.action;
-            hideActionSheet();
-            const item = items.find(i => i.action === action);
-            if (item && item.handler) item.handler();
+        sheet.querySelectorAll('.m-action-sheet-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const action = btn.dataset.action;
+                if (action === '__back') {
+                    currentItems = history.pop();
+                    render();
+                    return;
+                }
+                const item = currentItems.find(i => i.action === action);
+                if (!item) return;
+                if (Array.isArray(item.children) && item.children.length) {
+                    history.push(currentItems);
+                    currentItems = item.children;
+                    render();
+                    return;
+                }
+                hideActionSheet();
+                if (item.handler) item.handler();
+            });
         });
-    });
+    };
 
-    overlay.addEventListener('click', (e) => {
+    overlay.onclick = (e) => {
         if (e.target === overlay) hideActionSheet();
-    });
+    };
 
+    render();
     overlay.classList.add('m-sheet-show');
 }
 

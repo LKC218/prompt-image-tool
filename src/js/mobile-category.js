@@ -9,6 +9,7 @@ import arrowUpDownIcon from '../assets/icons/arrow-up-down.svg';
 import pencilLineIcon from '../assets/icons/pencil-line.svg';
 import mergeIcon from '../assets/icons/merge.svg';
 import trashIcon from '../assets/icons/trash-2.svg';
+import tagIcon from '../assets/icons/tag.svg';
 import emptyTagIcon from '../assets/mobile/tag.png';
 
 let currentSegment = 'category';
@@ -99,7 +100,7 @@ function render(params = {}) {
                     <span class="m-section-title-text">标签管理</span>
                     <div style="display:flex; gap:var(--m-space-sm);">
                         <button class="m-save-btn" id="mCreateTagBtn" style="font-size:13px; padding:6px 14px;">${mobileIcon('plus', { className: 'm-icon-sm' })} 新建标签</button>
-                        <button class="m-text-btn m-text-btn-danger" id="mClearAllTagsBtn">清除全部</button>
+                        <button class="m-more-btn m-tag-bulk-menu" id="mTagBulkMenuBtn" type="button" aria-label="标签批量操作">${mobileIcon('more')}</button>
                     </div>
                 </div>
                 <div style="display:flex; flex-wrap:wrap; gap:var(--m-space-sm);" id="mTagList"></div>
@@ -242,8 +243,10 @@ function setupCategoryEvents(pageEl) {
         if (tagName) showTagActionMenu(pageEl, tagName);
     });
 
-    pageEl.querySelector('#mClearAllTagsBtn')?.addEventListener('click', () => {
-        showClearAllTagsConfirm(pageEl);
+    pageEl.querySelector('#mTagBulkMenuBtn')?.addEventListener('click', () => {
+        showActionSheet([
+            { action: 'clear-all', icon: iconImg(trashIcon), label: '清除全部标签', danger: true, handler: () => showClearAllTagsConfirm(pageEl) }
+        ]);
     });
 
     pageEl.querySelector('#mCreateTagBtn')?.addEventListener('click', () => {
@@ -466,7 +469,7 @@ function showTagActionMenu(pageEl, tagName) {
     const tagInfo = tags.find(t => t.name === tagName);
     const count = tagInfo ? tagInfo.count : 0;
     showActionSheet([
-        { action: 'info', icon: iconImg(folderIcon), label: `标签：${tagName}（${count} 个提示词）`, handler: () => {} },
+        { action: 'info', icon: iconImg(tagIcon), label: `标签：${tagName}（${count} 个提示词）`, handler: () => {} },
         { action: 'rename', icon: iconImg(pencilLineIcon), label: '重命名', handler: () => showRenameTagDialog(pageEl, tagName, count) },
         { action: 'clear', icon: iconImg(trashIcon), label: '清除该标签', danger: true, handler: () => showClearTagConfirm(pageEl, tagName, count) },
     ]);
