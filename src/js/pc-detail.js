@@ -152,7 +152,7 @@ function renderCoverImage(pageEl) {
     return `
         <div class="pc-detail-cover pc-detail-fade-in" id="pcDetailCover">
             ${hasImages ? `
-                <div class="pc-detail-cover-img-wrap" id="pcDetailCoverImgWrap" data-cursor="native"></div>
+                <div class="pc-detail-cover-img-wrap" id="pcDetailCoverImgWrap" data-cursor="media"></div>
                 ${hasMultiple ? `
                     <button class="pc-detail-cover-nav pc-detail-cover-prev" id="pcDetailImgPrev" type="button" aria-label="上一张">${pcIcon('chevronLeft', 'pc-detail-cover-nav-icon')}</button>
                     <button class="pc-detail-cover-nav pc-detail-cover-next" id="pcDetailImgNext" type="button" aria-label="下一张">${pcIcon('chevronRight', 'pc-detail-cover-nav-icon')}</button>

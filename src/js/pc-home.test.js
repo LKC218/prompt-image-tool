@@ -31,7 +31,7 @@ describe('PC 首页新拟态结构', () => {
         expect(pcCss).toContain('.pc-home-category-card:focus-visible');
         expect(pcCss).toContain('.pc-home-page .pc-home-quick-card-import:active');
         expect(pcCss).toContain('.pc-home-page .pc-star-btn:active');
-        expect(pcCss).toContain('min-height: 96px;');
+        expect(pcCss).toContain('min-height: 104px;');
     });
 
     it('为收藏按钮提供持久状态语义、请求锁定和一次性反馈动画', () => {
@@ -50,5 +50,24 @@ describe('PC 首页新拟态结构', () => {
         expect(pcCss).toContain('.pc-home-page .pc-star-btn--favorited::after');
         expect(pcCss).toContain('.pc-home-page .pc-star-btn--unfavorited svg');
         expect(pcCss).toContain('.pc-home-page .pc-star-btn:disabled');
+    });
+
+    it('将最近使用项保持为主题名称主导的精简信息与非占位操作布局', () => {
+        expect(pcHomeJs).toContain('const primaryTag = allTags[0];');
+        expect(pcHomeJs).toContain('pc-recent-meta');
+        expect(pcHomeJs).toContain('<span class="pc-recent-meta-time">${formatRelativeTime(item.updatedAt)}</span>');
+        expect(pcHomeJs).toContain('pc-recent-meta-separator');
+        expect(pcHomeJs).not.toContain('pc-recent-meta-time--solo');
+        expect(pcHomeJs).not.toContain('pc-recent-tag-overflow');
+        expect(pcHomeJs).toContain("if (img.hasAttribute('src')) return;");
+        expect(pcCss).toContain('grid-template-columns: 112px minmax(0, 1fr);');
+        expect(pcCss).toContain('inset: 12px 12px 12px auto;');
+        expect(pcCss).toContain('padding-right: 48px;');
+        expect(pcCss).toContain('.pc-home-page .pc-recent-meta-separator');
+        expect(pcCss).not.toContain('.pc-home-page .pc-recent-meta-time::before');
+        expect(pcCss).toContain('.pc-home-page .pc-more-btn {\n    width: 28px;');
+        expect(pcCss).toContain('min-height: 96px;');
+        expect(pcCss).toContain('.pc-home-page .pc-recent-item:focus-within .pc-more-btn');
+        expect(pcCss).toContain('@media (hover: hover) and (pointer: fine)');
     });
 });

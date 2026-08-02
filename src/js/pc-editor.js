@@ -520,7 +520,7 @@ function renderEditorContent(pageEl) {
                                         const isExisting = idx < getExistingImages().length;
                                         const src = getLocalPreviewSrc(img);
                                         return `
-                                            <div class="pc-editor-image-thumb" data-img-idx="${idx}" data-img-existing="${isExisting}" data-cursor="native" role="button" tabindex="0" aria-label="查看图片预览">
+                                            <div class="pc-editor-image-thumb" data-img-idx="${idx}" data-img-existing="${isExisting}" data-cursor="media" role="button" tabindex="0" aria-label="查看图片预览">
                                                 <img ${src ? `src="${escapeAttr(src)}"` : ''} alt="预览" loading="lazy" data-editor-image-idx="${idx}">
                                                 <button class="pc-editor-image-delete" data-img-idx="${idx}" data-img-existing="${isExisting}" type="button" aria-label="删除图片">${pcIcon('x', 'pc-editor-image-delete-icon')}</button>
                                             </div>

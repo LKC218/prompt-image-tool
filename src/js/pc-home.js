@@ -218,22 +218,24 @@ function renderRecentList(pageEl, promptSets) {
     }
 
     container.innerHTML = recent.map(item => {
-        const tags = getTags(item).slice(0, 3);
+        const allTags = getTags(item);
+        const primaryTag = allTags[0];
         const isFavorite = item.isFavorite === true;
         return `
             <div class="pc-recent-item" data-id="${item.id}" data-cursor="action">
                 ${renderRecentThumb(item)}
                 <div class="pc-recent-info">
-                    <div class="pc-recent-name">${escapeHtml(item.name)}</div>
-                    <div class="pc-recent-tags">
+                    <div class="pc-recent-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+                    <div class="pc-recent-meta">
+                        <span class="pc-recent-meta-time">${formatRelativeTime(item.updatedAt)}</span>
+                        <span class="pc-recent-meta-separator" aria-hidden="true">·</span>
                         <span class="pc-tag-pill pc-tag-default">${escapeHtml(getFolderName(item))}</span>
-                        ${tags.map(t => `<span class="pc-tag-pill ${getPcTagStyleClass(t)}">${escapeHtml(t)}</span>`).join('')}
+                        ${primaryTag ? `<span class="pc-recent-meta-separator" aria-hidden="true">·</span><span class="pc-recent-meta-text">${escapeHtml(primaryTag)}</span>` : ''}
                     </div>
-                    <div class="pc-recent-time">${formatRelativeTime(item.updatedAt)}</div>
                 </div>
                 <div class="pc-recent-actions">
-                    <button type="button" class="pc-star-btn ${isFavorite ? 'pc-starred' : ''}" data-id="${item.id}" aria-pressed="${isFavorite}" aria-label="${isFavorite ? '取消收藏' : '收藏'}" title="${isFavorite ? '取消收藏' : '收藏'}">${ICONS.star}</button>
-                    <button class="pc-more-btn" data-id="${item.id}" aria-label="更多操作" aria-haspopup="menu" aria-expanded="false" title="更多操作"><span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span></button>
+                    <button type="button" class="pc-star-btn ${isFavorite ? 'pc-starred' : ''}" data-id="${item.id}" data-cursor="favorite" aria-pressed="${isFavorite}" aria-label="${isFavorite ? '取消收藏' : '收藏'}" title="${isFavorite ? '取消收藏' : '收藏'}">${ICONS.star}</button>
+                    <button class="pc-more-btn" data-id="${item.id}" data-cursor="menu" aria-label="更多操作" aria-haspopup="menu" aria-expanded="false" title="更多操作"><span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span></button>
                 </div>
             </div>
         `;
@@ -243,11 +245,11 @@ function renderRecentList(pageEl, promptSets) {
 
 function renderRecentThumb(item) {
     if (!item.firstImage) {
-        return `<div class="pc-recent-thumb pc-recent-thumb-default pc-home-inline-icon">${ICONS.image}</div>`;
+        return `<div class="pc-recent-thumb pc-recent-thumb-default pc-home-inline-icon" data-cursor="media">${ICONS.image}</div>`;
     }
     const imageData = JSON.stringify(item.firstImage).replace(/'/g, '&#39;');
     return `
-        <div class="pc-recent-thumb">
+        <div class="pc-recent-thumb" data-cursor="media">
             <img alt="${escapeHtml(item.name || '提示词图片')}" data-first-image='${imageData}'>
         </div>
     `;
@@ -258,7 +260,7 @@ async function loadHomeImages(container) {
     if (imgs.length === 0) return;
     const storage = getStorage();
     imgs.forEach(async (img) => {
-        if (img.src) return;
+        if (img.hasAttribute('src')) return;
         try {
             const imgData = JSON.parse(img.dataset.firstImage || '{}');
             const url = await storage.getImageUrl(imgData);

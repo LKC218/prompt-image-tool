@@ -370,7 +370,7 @@ function renderThumb(item, className) {
     return `
         <div class="${className}${item.firstImage ? '' : ' pc-library-thumb-empty'}">
             ${item.firstImage
-                ? `<img alt="${escapeHtml(item.name || '提示词图片')}" data-first-image='${JSON.stringify(item.firstImage).replace(/'/g, '&#39;')}' data-cursor="native">`
+                ? `<img alt="${escapeHtml(item.name || '提示词图片')}" data-first-image='${JSON.stringify(item.firstImage).replace(/'/g, '&#39;')}' data-cursor="media">`
                 : ICONS.image}
         </div>
     `;
