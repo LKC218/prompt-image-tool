@@ -86,7 +86,7 @@
 
 .pc-category-table-head {
     display: grid;
-    grid-template-columns: minmax(260px, 1.2fr) minmax(160px, 0.7fr) minmax(168px, 0.4fr);
+    grid-template-columns: minmax(0, 1fr) 160px minmax(152px, max-content);
     align-items: center;
     gap: var(--pc-space-lg);
     padding: var(--pc-space-lg) var(--pc-space-2xl);
@@ -146,7 +146,7 @@
 .pc-category-list-item,
 .pc-tag-row {
     display: grid;
-    grid-template-columns: minmax(260px, 1.2fr) minmax(160px, 0.7fr) minmax(168px, 0.4fr);
+    grid-template-columns: minmax(0, 1fr) 160px 96px;
     align-items: center;
     gap: var(--pc-space-lg);
     min-height: 72px;
@@ -189,7 +189,6 @@
 }
 
 .pc-category-icon img,
-.pc-tag-row-icon img,
 .pc-quick-action-icon img {
     width: 24px;
     height: 24px;
@@ -201,47 +200,31 @@
     height: 30px;
 }
 
-.pc-tag-row-icon img {
-    width: 30px;
-    height: 30px;
-}
-
 .pc-tag-row-icon.pc-tag-blue, .pc-tag-row-icon.pc-tag-illustration { background: var(--pc-blue-light); color: var(--pc-blue); }
 .pc-tag-row-icon.pc-tag-pink, .pc-tag-row-icon.pc-tag-japanese { background: var(--pc-pink-light); color: var(--pc-pink); }
 .pc-tag-row-icon.pc-tag-green, .pc-tag-row-icon.pc-tag-scene { background: var(--pc-green-light); color: var(--pc-green); }
 .pc-tag-row-icon.pc-tag-yellow, .pc-tag-row-icon.pc-tag-chinese { background: var(--pc-yellow-light); color: #B8860B; }
 .pc-tag-row-icon.pc-tag-purple, .pc-tag-row-icon.pc-tag-scifi { background: var(--pc-purple-light); color: var(--pc-purple); }
 .pc-tag-row-icon.pc-tag-orange { background: var(--pc-orange-light); color: var(--pc-orange); }
+.pc-tag-row-icon.pc-tag-default { background: var(--pc-surface2); color: var(--pc-text2); }
 
-.pc-tag-row-icon.pc-tag-blue img {
-    filter: brightness(0) saturate(100%) invert(50%) sepia(88%) saturate(1931%) hue-rotate(194deg) brightness(101%) contrast(101%);
+.pc-tag-icon-mask {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    background: currentColor;
+    -webkit-mask: url('../../assets/icons/tag.svg') center / contain no-repeat;
+    mask: url('../../assets/icons/tag.svg') center / contain no-repeat;
 }
 
-.pc-tag-row-icon.pc-tag-pink img {
-    filter: brightness(0) saturate(100%) invert(57%) sepia(88%) saturate(1539%) hue-rotate(304deg) brightness(102%) contrast(101%);
+.pc-tag-empty-icon {
+    color: var(--pc-accent);
 }
 
-.pc-tag-row-icon.pc-tag-green img {
-    filter: brightness(0) saturate(100%) invert(55%) sepia(59%) saturate(584%) hue-rotate(105deg) brightness(91%) contrast(89%);
+.pc-tag-empty-icon .pc-tag-icon-mask {
+    width: 38px;
+    height: 38px;
 }
-
-.pc-tag-row-icon.pc-tag-yellow img {
-    filter: brightness(0) saturate(100%) invert(48%) sepia(85%) saturate(746%) hue-rotate(8deg) brightness(94%) contrast(94%);
-}
-
-.pc-tag-row-icon.pc-tag-purple img {
-    filter: brightness(0) saturate(100%) invert(49%) sepia(89%) saturate(1668%) hue-rotate(224deg) brightness(103%) contrast(101%);
-}
-
-.pc-tag-row-icon.pc-tag-orange img {
-    filter: brightness(0) saturate(100%) invert(58%) sepia(76%) saturate(1485%) hue-rotate(340deg) brightness(101%) contrast(101%);
-}
-
-.pc-tag-row-icon.pc-tag-illustration img { filter: brightness(0) saturate(100%) invert(50%) sepia(88%) saturate(1931%) hue-rotate(194deg) brightness(101%) contrast(101%); }
-.pc-tag-row-icon.pc-tag-japanese img { filter: brightness(0) saturate(100%) invert(57%) sepia(88%) saturate(1539%) hue-rotate(304deg) brightness(102%) contrast(101%); }
-.pc-tag-row-icon.pc-tag-scene img { filter: brightness(0) saturate(100%) invert(55%) sepia(59%) saturate(584%) hue-rotate(105deg) brightness(91%) contrast(89%); }
-.pc-tag-row-icon.pc-tag-chinese img { filter: brightness(0) saturate(100%) invert(48%) sepia(85%) saturate(746%) hue-rotate(8deg) brightness(94%) contrast(94%); }
-.pc-tag-row-icon.pc-tag-scifi img { filter: brightness(0) saturate(100%) invert(49%) sepia(89%) saturate(1668%) hue-rotate(224deg) brightness(103%) contrast(101%); }
 
 .pc-category-item-info,
 .pc-category-item-name {
@@ -258,6 +241,10 @@
 .pc-tag-row-count {
     font: 500 14px/1.4 var(--pc-font-family);
     color: var(--pc-text2);
+}
+
+.pc-tag-row-count {
+    font-variant-numeric: tabular-nums;
 }
 
 .pc-category-item-actions,
@@ -380,25 +367,26 @@
 
 .pc-quick-actions-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
     align-items: center;
     gap: var(--pc-space-2xl);
 }
 
 .pc-quick-actions {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: var(--pc-space-lg);
+    grid-template-columns: repeat(auto-fit, minmax(152px, 1fr));
+    gap: var(--pc-space-md);
 }
 
 .pc-quick-action-btn {
-    display: grid;
-    grid-template-columns: 56px minmax(0, 1fr);
+    display: flex;
     align-items: center;
-    gap: var(--pc-space-md);
-    min-height: 82px;
+    justify-content: center;
+    gap: var(--pc-space-sm);
+    min-width: 0;
+    min-height: 68px;
     padding: var(--pc-space-md);
-    text-align: left;
+    text-align: center;
     border-radius: 14px;
     border: 1px solid transparent;
     box-shadow: none;
@@ -410,8 +398,9 @@
 }
 
 .pc-quick-action-icon {
-    width: 52px;
-    height: 52px;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -419,8 +408,8 @@
 }
 
 .pc-quick-action-icon img {
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     object-fit: contain;
 }
 
@@ -441,9 +430,6 @@
 }
 
 .pc-quick-action-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
     min-width: 0;
 }
 
@@ -460,11 +446,7 @@
 .pc-quick-action-label {
     color: var(--pc-text);
     font: 600 15px/1.35 var(--pc-font-family);
-}
-
-.pc-quick-action-desc {
-    color: var(--pc-text2);
-    font: var(--pc-font-caption);
+    white-space: nowrap;
 }
 
 .pc-quick-tip {

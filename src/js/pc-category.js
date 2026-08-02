@@ -5,11 +5,9 @@ import { aggregateTags, getCustomTags, getPcTagStyleClass, removeCustomTag, save
 import { getFolderColor } from './folder-color.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import categoryFolderIcon from '../../UI设计稿/图标/插画设计/文件夹.png';
-import categoryTagIcon from '../assets/pc/tag-2.png';
 import actionDeleteIcon from '../assets/pc/action-delete.png';
 import actionRenameIcon from '../assets/pc/action-rename.png';
 import plusIcon from '../assets/icons/plus.svg';
-import moreHorizontalIcon from '../assets/icons/more-horizontal.svg';
 import gripVerticalIcon from '../assets/icons/grip-vertical.svg';
 import arrowUpDownIcon from '../assets/icons/arrow-up-down.svg';
 import searchIcon from '../assets/icons/search.svg';
@@ -39,6 +37,10 @@ const FOLDER_COLORS = [
 
 function iconImg(icon, alt = '') {
     return `<img src="${icon}" alt="${escapeHtml(alt)}" aria-hidden="${alt ? 'false' : 'true'}">`;
+}
+
+function tagIconMask(className = '') {
+    return `<span class="pc-tag-icon-mask ${className}" aria-hidden="true"></span>`;
 }
 
 function parseTags(promptSets) {
@@ -165,10 +167,10 @@ function renderCategoriesList(container) {
 
 function renderQuickActions() {
     const actions = [
-        { key: 'sort', icon: arrowUpDownIcon, label: '排序', desc: '调整分类顺序', tone: 'green' },
-        { key: 'batch', icon: editIcon, label: '批量编辑', desc: '批量修改分类信息', tone: 'blue' },
-        { key: 'merge', icon: mergeIcon, label: '合并分类', desc: '合并重复分类', tone: 'purple' },
-        { key: 'cleanup', icon: actionDeleteIcon, label: '删除', desc: '删除空分类', tone: 'red' },
+        { key: 'sort', icon: arrowUpDownIcon, label: '排序', tone: 'green' },
+        { key: 'batch', icon: editIcon, label: '批量编辑', tone: 'blue' },
+        { key: 'merge', icon: mergeIcon, label: '合并分类', tone: 'purple' },
+        { key: 'cleanup', icon: actionDeleteIcon, label: '删除空分类', tone: 'red' },
     ];
 
     return `
@@ -181,7 +183,6 @@ function renderQuickActions() {
                             <span class="pc-quick-action-icon">${iconImg(action.icon)}</span>
                             <span class="pc-quick-action-copy">
                                 <span class="pc-quick-action-label">${action.label}</span>
-                                <span class="pc-quick-action-desc">${action.desc}</span>
                             </span>
                         </button>
                     `).join('')}
@@ -213,9 +214,8 @@ function renderTagsList(container) {
                         <span>新建标签</span>
                     </button>
                     ${allTags.length > 0 ? `
-                        <button class="pc-btn pc-btn-danger-outline pc-btn-sm" id="pcClearAllTags">
-                            <span class="pc-btn-icon">${iconImg(trashIcon)}</span>
-                            <span>清除全部</span>
+                        <button class="pc-icon-btn pc-tag-bulk-menu" id="pcTagBulkMenu" type="button" aria-label="标签批量操作" aria-haspopup="menu" aria-expanded="false" title="标签批量操作">
+                            <span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span>
                         </button>
                     ` : ''}
                 </div>
@@ -230,7 +230,7 @@ function renderTagsList(container) {
             <div class="pc-tag-table-list">
                 ${allTags.length === 0 ? `
                     <div class="pc-empty-state pc-category-empty">
-                        <span class="pc-empty-icon">${iconImg(categoryTagIcon, '标签')}</span>
+                        <span class="pc-empty-icon pc-tag-empty-icon">${tagIconMask()}</span>
                         <span class="pc-empty-text">还没有标签，在编辑提示词时可以添加标签</span>
                     </div>
                 ` : filteredTags.length === 0 ? `
@@ -241,11 +241,11 @@ function renderTagsList(container) {
                 ` : filteredTags.map(tag => `
                     <button class="pc-tag-row pc-tag-clickable" data-tag-name="${escapeHtml(tag.name)}" data-tag-count="${tag.count}">
                         <span class="pc-tag-row-name">
-                            <span class="pc-tag-row-icon ${getPcTagStyleClass(tag.name)}">${iconImg(categoryTagIcon)}</span>
+                            <span class="pc-tag-row-icon ${getPcTagStyleClass(tag.name)}">${tagIconMask()}</span>
                             <span>${escapeHtml(tag.name)}</span>
                         </span>
                         <span class="pc-tag-row-count">${tag.count} 个提示词</span>
-                        <span class="pc-tag-row-actions">${iconImg(moreHorizontalIcon)}</span>
+                        <span class="pc-tag-row-actions"><span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span></span>
                     </button>
                 `).join('')}
             </div>
@@ -325,9 +325,13 @@ function setupCategoryEvents(pageEl) {
             return;
         }
 
-        const clearAllBtn = e.target.closest('#pcClearAllTags');
-        if (clearAllBtn) {
-            showClearAllTagsConfirm(pageEl);
+        const tagBulkMenuBtn = e.target.closest('#pcTagBulkMenu');
+        if (tagBulkMenuBtn) {
+            const rect = tagBulkMenuBtn.getBoundingClientRect();
+            const action = await showContextMenu(rect.right + 8, rect.bottom + 8, [
+                { action: 'clear-all-tags', icon: iconImg(trashIcon), tone: 'delete', label: '清除全部标签', danger: true }
+            ], { anchor: tagBulkMenuBtn, source: 'more' });
+            if (action === 'clear-all-tags') showClearAllTagsConfirm(pageEl);
             return;
         }
 

@@ -8,7 +8,6 @@ import { isPromptImageToolImportStorageError, stagePromptImageToolImport } from 
 import { getFolderColor } from './folder-color.js';
 import { openPromptDetail } from './pc-detail-modal.js';
 import homeFolderIcon from '../assets/pc/home-folder.png';
-import tagIcon from '../assets/pc/tag-2.png';
 
 let homeData = null;
 let homeSearchKeyword = '';
@@ -39,7 +38,7 @@ const ICONS = {
     focus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3"></circle></svg>',
     prompt: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path><path d="M8 10h8"></path><path d="M8 14h5"></path></svg>',
     folder: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path></svg>',
-    tag: assetIcon(tagIcon),
+    tag: '<span class="pc-home-tag-icon" aria-hidden="true"></span>',
     star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path></svg>',
     more: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>',
     plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>',

@@ -1441,6 +1441,15 @@
     object-fit: contain;
 }
 
+.pc-home-page .pc-stat-icon .pc-home-tag-icon {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    background: currentColor;
+    -webkit-mask: url('../../assets/icons/tag.svg') center / contain no-repeat;
+    mask: url('../../assets/icons/tag.svg') center / contain no-repeat;
+}
+
 .pc-home-page .pc-stat-card::before {
     content: '';
     position: absolute;
@@ -1471,9 +1480,6 @@
 .pc-home-page .pc-stat-card-purple::before {
     background: linear-gradient(90deg, transparent, var(--pc-purple), transparent);
     box-shadow: 0 2px 6px color-mix(in srgb, var(--pc-purple) 25%, transparent);
-}
-.pc-home-page .pc-stat-card-purple .pc-stat-icon .pc-home-asset-icon {
-    filter: brightness(0) saturate(100%) invert(49%) sepia(89%) saturate(1668%) hue-rotate(224deg) brightness(103%) contrast(101%);
 }
 .pc-home-page .pc-stat-card-pink .pc-stat-icon,
 .pc-home-page .pc-stat-card-pink .pc-stat-label { color: var(--pc-pink); }
