@@ -113,6 +113,32 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(collapsedUtilityRule).toContain('gap: 8px');
     });
 
+    it('最大化与最小化之间使用分阶段收束过渡', () => {
+        expect(pcCss).toContain('.pc-sidebar-stage.pc-sidebar-is-collapsing .pc-sidebar-logo-copy');
+        expect(pcCss).toContain('transform: translateX(-10px)');
+        expect(pcCss).toContain('transform: translateY(10px) scale(0.96)');
+        expect(pcCss).toContain('transition: width 0.32s cubic-bezier(.2,.8,.2,1)');
+        expect(pcCss).toContain('.pc-sidebar-stage.pc-sidebar-is-expanding');
+    });
+
+    it('侧栏舞台提供两层无交互衬板，并使用错峰位移过渡', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const stage = app.querySelector('#pcSidebarStage');
+        const underlays = stage.querySelectorAll('.pc-sidebar-underlay');
+
+        expect(stage).not.toBeNull();
+        expect(underlays).toHaveLength(2);
+        expect(stage.querySelector('.pc-sidebar-underlay-far').getAttribute('aria-hidden')).toBe('true');
+        expect(stage.querySelector('.pc-sidebar-underlay-near').getAttribute('aria-hidden')).toBe('true');
+        expect(pcCss).toContain('--pc-sidebar-stagger-ease: cubic-bezier(.76, 0, .24, 1)');
+        expect(pcCss).toContain('transform: translateX(-100%)');
+        expect(pcCss).toContain('transition-delay: 0.07s');
+        expect(pcCss).toContain('transition-delay: 0.14s');
+    });
+
     it('点击当前激活导航项时播放一次性动效并在动画结束后清理', async () => {
         const { mount } = await import('./pc-app.js');
         const app = document.getElementById('app');
@@ -257,7 +283,7 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(pcCss).toContain('gap: 8px');
     });
 
-    it('折叠按钮在图标动效结束后更新侧栏状态并持久化', async () => {
+    it('折叠按钮在图标动效结束后保留最小化导航栏并持久化', async () => {
         const { mount } = await import('./pc-app.js');
         const app = document.getElementById('app');
         await mount(app);
@@ -270,12 +296,23 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(toggle.getAttribute('aria-busy')).toBe('true');
         expect(app.classList.contains('pc-sidebar-collapsed')).toBe(false);
 
-        icon.dispatchEvent(new Event('animationend'));
+        const animationEnd = new Event('animationend');
+        Object.defineProperty(animationEnd, 'animationName', { value: 'pc-sidebar-toggle-take-off' });
+        icon.dispatchEvent(animationEnd);
+
+        const stage = app.querySelector('#pcSidebarStage');
 
         expect(app.classList.contains('pc-sidebar-collapsed')).toBe(true);
+        expect(stage.classList.contains('pc-sidebar-is-collapsing')).toBe(true);
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
         expect(toggle.hasAttribute('aria-busy')).toBe(false);
         expect(localStorage.getItem('pc-sidebar-collapsed')).toBe('true');
+
+        const transitionEnd = new Event('transitionend');
+        Object.defineProperty(transitionEnd, 'propertyName', { value: 'width' });
+        stage.dispatchEvent(transitionEnd);
+
+        expect(stage.className).toBe('pc-sidebar-stage');
     });
 
     it('减弱动效模式下折叠按钮立即更新侧栏状态', async () => {

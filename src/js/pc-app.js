@@ -25,6 +25,7 @@ let activeNav = '/';
 let activePage = null;
 let currentAccent = 'sky';
 let isSidebarCollapsed = false;
+let isSidebarStageAnimating = false;
 
 const NAV_ITEMS = [
     { path: '/', icon: navHome, label: '首页' },
@@ -60,6 +61,11 @@ const THEME_TOGGLE_ICONS = {
 const TAB_ROUTES = ['/', '/library', '/category', '/settings'];
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
+const SIDEBAR_STAGE_OPENING_CLASS = 'is-stagger-opening';
+const SIDEBAR_STAGE_CLOSING_CLASS = 'is-stagger-closing';
+const SIDEBAR_STAGE_ACTIVE_CLASS = 'is-stagger-active';
+const SIDEBAR_COLLAPSING_CLASS = 'pc-sidebar-is-collapsing';
+const SIDEBAR_EXPANDING_CLASS = 'pc-sidebar-is-expanding';
 
 const navClickMotionCleanups = new WeakMap();
 let activeThemeTransition = null;
@@ -90,7 +96,10 @@ const CLOCK_NUMBERS = Array.from({ length: 12 }, (_, i) => {
 
 function renderShell() {
     return `
-        <aside class="pc-sidebar" id="pcSidebar">
+        <div class="pc-sidebar-stage" id="pcSidebarStage">
+            <div class="pc-sidebar-underlay pc-sidebar-underlay-far" aria-hidden="true"></div>
+            <div class="pc-sidebar-underlay pc-sidebar-underlay-near" aria-hidden="true"></div>
+            <aside class="pc-sidebar" id="pcSidebar">
             <div class="pc-sidebar-header">
                 <div class="pc-sidebar-header-top">
                     <div class="pc-sidebar-logo">
@@ -118,8 +127,8 @@ function renderShell() {
                 </div>
             </div>
             <nav class="pc-sidebar-nav" id="pcSidebarNav">
-                ${NAV_ITEMS.map(item => `
-                    <button class="pc-nav-item ${item.path === '/' ? 'pc-nav-active' : ''}" data-nav="${item.path}" aria-label="${item.label}" title="${item.label}"${item.path === '/' ? ' aria-current="page"' : ''}>
+                ${NAV_ITEMS.map((item, index) => `
+                    <button class="pc-nav-item ${item.path === '/' ? 'pc-nav-active' : ''}" data-nav="${item.path}" aria-label="${item.label}" title="${item.label}" style="--pc-sidebar-stagger-index:${index}"${item.path === '/' ? ' aria-current="page"' : ''}>
                         <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${item.icon});mask-image:url(${item.icon})"></div>
                         <span class="pc-nav-label">${item.label}</span>
                     </button>
@@ -147,7 +156,8 @@ function renderShell() {
                     </div>
                 </div>
             </div>
-        </aside>
+            </aside>
+        </div>
         <main class="pc-main" id="pcMain"></main>
     `;
 }
@@ -205,7 +215,16 @@ async function mount(el) {
         updateNavHighlight('/editor/');
     }
     createPage(resolveRouteKey(initialPath), initialRoute.params || {}, 'tab');
-    window.requestAnimationFrame(() => showUnreadReleaseNotes());
+    const initialSidebarStage = appEl.querySelector('#pcSidebarStage');
+    window.requestAnimationFrame(() => {
+        showUnreadReleaseNotes();
+        if (!isSidebarCollapsed && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+            playSidebarStageMotion(false, {
+                persist: false,
+                stage: initialSidebarStage,
+            });
+        }
+    });
 }
 
 function readSidebarCollapsedState() {
@@ -241,6 +260,14 @@ function applySidebarState(collapsed, options = {}) {
         } catch (e) {
             console.warn('save sidebar state failed:', e);
         }
+    }
+
+    if (isSidebarCollapsed) {
+        document.getElementById('pcSidebarStage')?.classList.remove(
+            SIDEBAR_STAGE_OPENING_CLASS,
+            SIDEBAR_STAGE_CLOSING_CLASS,
+            SIDEBAR_STAGE_ACTIVE_CLASS,
+        );
     }
 }
 
@@ -369,7 +396,7 @@ function setupSidebarToggle() {
     if (!toggle) return;
 
     toggle.addEventListener('click', () => {
-        if (toggle.classList.contains('is-flying')) return;
+        if (toggle.classList.contains('is-flying') || isSidebarStageAnimating) return;
 
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
             applySidebarState(!isSidebarCollapsed, { persist: true });
@@ -383,17 +410,73 @@ function setupSidebarToggle() {
             return;
         }
         const complete = (event) => {
-            if (event.target !== icon) return;
+            if (event.target !== icon || event.animationName !== 'pc-sidebar-toggle-take-off') return;
             toggle.classList.remove('is-flying');
             toggle.removeAttribute('aria-busy');
             icon.removeEventListener('animationend', complete);
-            applySidebarState(nextCollapsed, { persist: true });
+            playSidebarStageMotion(nextCollapsed);
         };
 
         toggle.classList.add('is-flying');
         toggle.setAttribute('aria-busy', 'true');
         icon.addEventListener('animationend', complete);
     });
+}
+
+function playSidebarStageMotion(nextCollapsed, options = {}) {
+    const stage = options.stage || document.getElementById('pcSidebarStage');
+    const sidebar = stage?.querySelector('#pcSidebar');
+    if (!stage || !sidebar) {
+        applySidebarState(nextCollapsed, { persist: true });
+        return;
+    }
+
+    const opening = !nextCollapsed;
+    const motionClass = opening ? SIDEBAR_STAGE_OPENING_CLASS : SIDEBAR_STAGE_CLOSING_CLASS;
+    isSidebarStageAnimating = true;
+    stage.classList.remove(
+        SIDEBAR_STAGE_OPENING_CLASS,
+        SIDEBAR_STAGE_CLOSING_CLASS,
+        SIDEBAR_STAGE_ACTIVE_CLASS,
+        SIDEBAR_COLLAPSING_CLASS,
+        SIDEBAR_EXPANDING_CLASS,
+    );
+
+    if (opening) {
+        stage.classList.add(SIDEBAR_EXPANDING_CLASS, motionClass);
+        const complete = (event) => {
+            if (event.target !== sidebar || event.propertyName !== 'transform') return;
+            sidebar.removeEventListener('transitionend', complete);
+            sidebar.removeEventListener('transitioncancel', complete);
+            stage.classList.remove(SIDEBAR_STAGE_OPENING_CLASS, SIDEBAR_STAGE_ACTIVE_CLASS, SIDEBAR_EXPANDING_CLASS);
+            isSidebarStageAnimating = false;
+        };
+        sidebar.addEventListener('transitionend', complete);
+        sidebar.addEventListener('transitioncancel', complete);
+        void stage.offsetWidth;
+        applySidebarState(false, { persist: options.persist !== false });
+        window.requestAnimationFrame(() => {
+            if (!stage.isConnected) {
+                isSidebarStageAnimating = false;
+                return;
+            }
+            stage.classList.add(SIDEBAR_STAGE_ACTIVE_CLASS);
+        });
+        return;
+    }
+
+    stage.classList.add(SIDEBAR_COLLAPSING_CLASS);
+    const complete = (event) => {
+        if (event.target !== stage || event.propertyName !== 'width') return;
+        stage.removeEventListener('transitionend', complete);
+        stage.removeEventListener('transitioncancel', complete);
+        stage.classList.remove(SIDEBAR_COLLAPSING_CLASS);
+        isSidebarStageAnimating = false;
+    };
+    stage.addEventListener('transitionend', complete);
+    stage.addEventListener('transitioncancel', complete);
+    void stage.offsetWidth;
+    applySidebarState(true, { persist: true });
 }
 
 function setupKeyboardShortcuts() {

@@ -28,7 +28,7 @@
 
 | 顺序 | 文件 | 职责 |
 |---:|---|---|
-| 01 | `01-foundation-shell.css` | 字体、应用 Token、Canvas 光标容器与 CSS 回退、应用壳、侧边栏和导航；侧栏主导航独立滚动，底部工具区固定 |
+| 01 | `01-foundation-shell.css` | 字体、应用 Token、Canvas 光标容器与 CSS 回退、应用壳、侧边栏和导航；侧栏主导航独立滚动，底部工具区固定，并承载两层衬板与主面板的错峰幕布动效 |
 | 02 | `02-settings-compat.css` | 设置页历史兼容规则 |
 | 03 | `03-shared-components.css` | 侧边栏收起状态、通用布局和基础组件；收起态隐藏导航滚动条并纵向排列底部工具入口 |
 | 04 | `04-settings-page.css` | 完整设置页和主题/存储相关布局 |
@@ -60,6 +60,9 @@
 
 - 新增规则优先归入现有职责最匹配的文件，并保持覆盖关系可解释。
 - 光标 Token、四角结构、层级和 CSS 回退只放在 `01-foundation-shell.css`；目标解析、状态机、几何同步和生命周期由 `pc-cursor.js` 管理，具体约束见 `PC端自定义光标模块.md`。
+- 侧栏由 `pc-sidebar-stage` 包裹主 `pc-sidebar`，其中 `pc-sidebar-underlay-far`、`pc-sidebar-underlay-near` 仅作为无交互视觉衬板；`is-stagger-opening`、`is-stagger-closing`、`is-stagger-active` 控制错峰位移和内容分段进出。主面板及其内容始终位于衬板之上，衬板不得接收指针事件。
+- 侧栏幕布动效使用 `transform` 和透明度，展开顺序为远层、近层、主面板、内容；关闭时内容先退出，再依次退出主面板、近层、远层。`prefers-reduced-motion: reduce` 必须禁用该动效。
+- 侧栏最小化使用 `pc-sidebar-is-collapsing` 与 `pc-sidebar-is-expanding` 作为瞬态阶段类：收起时先隐藏品牌文案、导航标签和时钟，再从展开宽度收束至图标栏；展开时恢复宽度后与幕布入场衔接。阶段类必须在容器宽度过渡结束或取消时清理，最终状态仍只由 `pc-sidebar-collapsed` 维护。
 - 下载记录视觉规则以 `04-settings-page.css` 为唯一正式来源：列表使用单一边框容器与分隔行，空态使用同一容器内的低对比提示面；`02-settings-compat.css` 不得再为该模块追加拟态阴影，避免形成嵌套窗口效果。
 - 设置页其他历史规则与正式规则的覆盖关系未收敛前，不得合并 `02-settings-compat.css` 与 `04-settings-page.css`。
 - 动态弹层依赖全局可用样式，不得随路由延迟加载。
