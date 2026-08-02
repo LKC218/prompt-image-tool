@@ -198,20 +198,75 @@ function bindContextMenuEvents() {
     document.addEventListener('keydown', (e) => {
         const menu = document.getElementById('pcContextMenu');
         if (!menu?.classList.contains('pc-context-active')) return;
-        const buttons = [...menu.querySelectorAll('.pc-context-action')];
+        const panel = document.activeElement.closest?.('.pc-context-panel') || menu.querySelector('.pc-context-panel');
+        const buttons = [...(panel?.querySelectorAll(':scope > .pc-context-action:not([disabled])') || [])];
         const currentIndex = buttons.indexOf(document.activeElement);
         if (e.key === 'Escape') {
             e.preventDefault();
-            hideContextMenu();
+            const parentAction = panel?.dataset.parentAction;
+            if (parentAction) {
+                closeContextSubmenu(menu, parentAction);
+                menu.querySelector(`[data-submenu="${parentAction}"]`)?.focus({ preventScroll: true });
+            } else {
+                hideContextMenu();
+            }
         } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault();
             const direction = e.key === 'ArrowDown' ? 1 : -1;
             buttons[(currentIndex + direction + buttons.length) % buttons.length]?.focus();
+        } else if (e.key === 'ArrowRight' && currentIndex >= 0 && buttons[currentIndex].dataset.submenu) {
+            e.preventDefault();
+            openContextSubmenu(menu, buttons[currentIndex].dataset.submenu, true);
+        } else if (e.key === 'ArrowLeft' && panel?.dataset.parentAction) {
+            e.preventDefault();
+            const parentAction = panel.dataset.parentAction;
+            closeContextSubmenu(menu, parentAction);
+            menu.querySelector(`[data-submenu="${parentAction}"]`)?.focus({ preventScroll: true });
         } else if ((e.key === 'Enter' || e.key === ' ') && currentIndex >= 0) {
             e.preventDefault();
             buttons[currentIndex].click();
         }
     });
+}
+
+function renderContextMenuItems(items, parentAction = '') {
+    return items.map((item, index) => {
+        if (item.divider) return '<div class="pc-context-divider" role="separator"></div>';
+        const tone = item.tone ? ` pc-context-tone-${item.tone}` : '';
+        const submenu = Array.isArray(item.children) && item.children.length > 0;
+        const submenuAttrs = submenu ? ` data-submenu="${item.action}" aria-haspopup="menu" aria-expanded="false"` : '';
+        return `<button type="button" class="pc-context-action${tone} ${item.danger ? 'pc-context-danger' : ''}" role="menuitem" data-action="${item.action || ''}"${submenuAttrs}${item.disabled ? ' disabled' : ''} data-ripple="false" style="--pc-context-index:${index}">
+            <span class="pc-context-label">${item.label}</span>
+            <span class="pc-context-icon${tone}">${item.icon || ''}</span>
+            ${submenu ? '<span class="pc-context-submenu-arrow" aria-hidden="true">›</span>' : ''}
+        </button>`;
+    }).join('');
+}
+
+function renderContextSubmenus(items) {
+    return items.filter(item => Array.isArray(item.children) && item.children.length > 0).map(item => `
+        <div class="pc-context-panel pc-context-submenu" role="menu" data-parent-action="${item.action}" aria-label="${item.label}">
+            ${renderContextMenuItems(item.children, item.action)}
+        </div>
+    `).join('');
+}
+
+function openContextSubmenu(menu, action, focusFirst = false) {
+    const panel = menu.querySelector(`.pc-context-submenu[data-parent-action="${action}"]`);
+    const trigger = menu.querySelector(`[data-submenu="${action}"]`);
+    if (!panel || !trigger) return;
+    menu.querySelectorAll('.pc-context-submenu-active').forEach(item => item.classList.remove('pc-context-submenu-active'));
+    menu.querySelectorAll('[data-submenu][aria-expanded="true"]').forEach(item => item.setAttribute('aria-expanded', 'false'));
+    panel.classList.add('pc-context-submenu-active');
+    trigger.setAttribute('aria-expanded', 'true');
+    if (focusFirst) panel.querySelector('.pc-context-action:not([disabled])')?.focus({ preventScroll: true });
+}
+
+function closeContextSubmenu(menu, action) {
+    const panel = menu.querySelector(`.pc-context-submenu[data-parent-action="${action}"]`);
+    const trigger = menu.querySelector(`[data-submenu="${action}"]`);
+    panel?.classList.remove('pc-context-submenu-active');
+    trigger?.setAttribute('aria-expanded', 'false');
 }
 
 function showContextMenu(x, y, items, options = {}) {
@@ -240,13 +295,7 @@ function showContextMenu(x, y, items, options = {}) {
         contextMenuSession = { anchor, restoreFocusElement, preserveFocus, resolve };
         const open = () => {
             if (!contextMenuSession || contextMenuSession.resolve !== resolve) return;
-            menu.innerHTML = items.filter(item => !item.divider).map((item, index) => {
-                const tone = item.tone ? ` pc-context-tone-${item.tone}` : '';
-                return `<button type="button" class="pc-context-action${tone} ${item.danger ? 'pc-context-danger' : ''}" role="menuitem" data-action="${item.action}" data-ripple="false" style="--pc-context-index:${index}">
-                    <span class="pc-context-label">${item.label}</span>
-                    <span class="pc-context-icon${tone}">${item.icon || ''}</span>
-                </button>`;
-            }).join('');
+            menu.innerHTML = `<div class="pc-context-panel" role="menu">${renderContextMenuItems(items)}</div>${renderContextSubmenus(items)}`;
             menu.style.visibility = 'hidden';
             menu.classList.toggle('pc-context-menu-text-selection', options.variant === 'text-selection');
             menu.classList.add('pc-context-active');
@@ -268,10 +317,19 @@ function showContextMenu(x, y, items, options = {}) {
             };
 
             menu.onclick = (e) => {
-                const action = e.target.closest('.pc-context-action')?.dataset.action;
+                const button = e.target.closest('.pc-context-action');
+                if (button?.dataset.submenu) {
+                    openContextSubmenu(menu, button.dataset.submenu);
+                    return;
+                }
+                const action = button?.dataset.action;
                 if (!action) return;
                 hideContextMenu(action, false);
             }
+            menu.onpointerover = (e) => {
+                const button = e.target.closest('.pc-context-action[data-submenu]');
+                if (button) openContextSubmenu(menu, button.dataset.submenu);
+            };
         };
         if (options.source === 'more' && anchor) {
             prepareMoreButton(anchor);
@@ -299,6 +357,7 @@ function hideContextMenu(result = null, restoreFocus = true) {
     if (menu) {
         menu.classList.remove('pc-context-active', 'pc-context-preserve-focus');
         menu.onpointerdown = null;
+        menu.onpointerover = null;
     }
     clearContextMenuSession(result, restoreFocus);
 }
@@ -527,8 +586,15 @@ async function handleImageViewerDownload(e) {
     if (!imageViewerDownloadTarget.url || download?.disabled) return;
 
     const action = await showContextMenu(e.clientX, e.clientY, [
-        { action: 'original', icon: pcIcon('download'), label: '下载原格式' },
-        { action: 'jpg', icon: pcIcon('download'), label: '导出 JPG' },
+        {
+            action: 'format',
+            icon: pcIcon('download'),
+            label: '下载图片',
+            children: [
+                { action: 'original', icon: pcIcon('download'), label: '下载原格式' },
+                { action: 'jpg', icon: pcIcon('download'), label: '导出 JPG' }
+            ]
+        }
     ]);
     if (!action) return;
     await performImageViewerDownload(action);

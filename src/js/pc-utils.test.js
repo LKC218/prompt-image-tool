@@ -100,6 +100,43 @@ describe('showContextMenu', () => {
         await expect(outsidePromise).resolves.toBeNull();
     });
 
+    it('支持二级菜单的鼠标、键盘进入与逐层关闭', async () => {
+        const actionPromise = showContextMenu(24, 32, [
+            {
+                action: 'move',
+                label: '移动到分类',
+                children: [{ action: 'folder-a', label: '分类 A' }]
+            }
+        ]);
+        const menu = document.getElementById('pcContextMenu');
+        const trigger = menu.querySelector('[data-submenu="move"]');
+        const submenu = menu.querySelector('.pc-context-submenu');
+
+        expect(menu.querySelector('.pc-context-panel')).not.toBeNull();
+        expect(submenu.classList.contains('pc-context-submenu-active')).toBe(false);
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+        expect(submenu.classList.contains('pc-context-submenu-active')).toBe(true);
+        expect(document.activeElement.dataset.action).toBe('folder-a');
+
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+        expect(submenu.classList.contains('pc-context-submenu-active')).toBe(false);
+        expect(document.activeElement).toBe(trigger);
+
+        trigger.click();
+        menu.querySelector('.pc-context-submenu .pc-context-action').click();
+        await expect(actionPromise).resolves.toBe('folder-a');
+    });
+
+    it('渲染菜单分隔线', () => {
+        showContextMenu(24, 32, [
+            { action: 'copy', label: '复制' },
+            { divider: true },
+            { action: 'delete', label: '删除' }
+        ]);
+
+        expect(document.querySelector('.pc-context-divider')).not.toBeNull();
+    });
+
     it('快速切换三点入口时取消上一轮延迟展开', async () => {
         vi.useFakeTimers();
         const firstAnchor = document.createElement('button');
