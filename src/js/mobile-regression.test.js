@@ -225,6 +225,11 @@ describe('移动端页面全功能回归冒烟', () => {
         click('#mQuickCreate', pageEl);
         expect(mobileUtilsMocks.navigate).toHaveBeenCalledWith('/editor/');
 
+        click('.m-category-card[data-folder-id="folder-1"]', pageEl);
+        const actions = mobileUtilsMocks.showActionSheet.mock.calls.at(-1)[0];
+        actions.find(item => item.action === 'view-all').handler();
+        expect(mobileUtilsMocks.navigate).toHaveBeenCalledWith('/library', { folder: 'folder-1' });
+
         click('.m-star-btn[data-id="prompt-1"]', pageEl);
         await flush();
         expect(storage.toggleFavorite).toHaveBeenCalledWith('prompt-1');
@@ -252,7 +257,7 @@ describe('移动端页面全功能回归冒烟', () => {
         expect(button.getAttribute('aria-pressed')).toBe('true');
         expect(button.getAttribute('aria-busy')).toBe('true');
         expect(button.disabled).toBe(true);
-        expect(duplicateRequest).resolves.toBeNull();
+        await expect(duplicateRequest).resolves.toBeNull();
         expect(storage.toggleFavorite).toHaveBeenCalledTimes(1);
 
         resolveToggle({ isFavorite: true });
@@ -394,6 +399,7 @@ describe('移动端页面全功能回归冒烟', () => {
     it('分类与标签页支持分段切换、新建分类和快速操作入口', async () => {
         const pageEl = await mountPage(categoryPage);
 
+        expect(pageEl.querySelector('#mCategoryBack')).toBeNull();
         expect(pageEl.querySelectorAll('.m-category-list-item')).toHaveLength(2);
         click('[data-segment="tag"]', pageEl);
         expect(pageEl.querySelector('#mTagView').style.display).toBe('');

@@ -303,7 +303,7 @@ function showFolderPromptSheet(pageEl, folderId) {
         action: 'view-all',
         icon: mobileIcon('clipboard'),
         label: `查看「${folderName}」全部提示词`,
-        handler: () => navigate('/library?folder=' + folderId)
+        handler: () => navigate('/library', { folder: folderId })
     });
 
     showActionSheet(items);

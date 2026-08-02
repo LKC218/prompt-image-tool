@@ -1,5 +1,5 @@
 import { getStorage } from './storage.js';
-import { showMobileToast, showActionSheet, goBack, iconImg } from './mobile-utils.js';
+import { showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
 import { aggregateTags, getTagStyleClass, saveCustomTag, removeCustomTag } from './tag-utils.js';
 import { getFolderColor as resolveFolderColor } from './folder-color.js';
 import { mobileIcon } from './mobile-icon-assets.js';
@@ -47,7 +47,6 @@ function getFolderColor(folder, idx) {
 function render(params = {}) {
     return `
         <div class="m-top-nav">
-            <button class="m-top-nav-back" id="mCategoryBack" aria-label="返回">${mobileIcon('chevron-left')}</button>
             <span class="m-top-nav-title">分类与标签</span>
         </div>
         <div class="m-page-inner m-category-page">
@@ -201,10 +200,6 @@ function renderTagList(pageEl) {
 }
 
 function setupCategoryEvents(pageEl) {
-    pageEl.querySelector('#mCategoryBack')?.addEventListener('click', () => {
-        goBack();
-    });
-
     pageEl.querySelector('#mSegmentControl')?.addEventListener('click', (e) => {
         const btn = e.target.closest('.m-segment-btn');
         if (!btn) return;
