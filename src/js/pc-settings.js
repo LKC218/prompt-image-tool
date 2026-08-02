@@ -96,7 +96,6 @@ function render(params = {}) {
                 <div class="pc-settings-backup-head">
                     <div class="pc-settings-backup-title-group">
                         <h2 id="pcBackupTitle" class="pc-settings-panel-title">数据备份与恢复</h2>
-                        <p>导入、导出和恢复均在本机完成。</p>
                     </div>
                     <div class="pc-settings-backup-location">
                         <span>导出位置</span>
@@ -186,6 +185,7 @@ async function loadSettingsData(pageEl) {
     try {
         const storage = getStorage();
         const promptSets = await storage.getPromptSets();
+        let businessDataSize;
 
         const countEl = pageEl.querySelector('#pcStoragePromptCount');
         if (countEl) countEl.textContent = promptSets.length;
@@ -193,12 +193,13 @@ async function loadSettingsData(pageEl) {
         try {
             if (storage.estimateStorageSize) {
                 const size = await storage.estimateStorageSize();
+                businessDataSize = size;
                 const sizeEl = pageEl.querySelector('#pcStorageSizeValue');
                 if (sizeEl) sizeEl.textContent = formatBytes(size);
             }
         } catch (e) {}
 
-        await loadStorageEstimate(pageEl);
+        await loadStorageEstimate(pageEl, businessDataSize);
         await loadDataDirectory(pageEl);
         await loadNetworkInfo(pageEl);
     } catch (e) {
@@ -277,7 +278,7 @@ async function loadDataDirectory(pageEl) {
     }
 }
 
-async function loadStorageEstimate(pageEl) {
+async function loadStorageEstimate(pageEl, businessDataSize) {
     const availableEl = pageEl.querySelector('#pcStorageAvailable');
     const totalEl = pageEl.querySelector('#pcStorageTotal');
     const ringEl = pageEl.querySelector('#pcStorageRing');
@@ -293,13 +294,18 @@ async function loadStorageEstimate(pageEl) {
         const estimate = await navigator.storage.estimate();
         const usage = estimate.usage || 0;
         const quota = estimate.quota || 0;
-        const available = Math.max(quota - usage, 0);
-        const percent = quota > 0 ? Math.min(Math.round((usage / quota) * 100), 100) : 0;
+        const progressUsage = Number.isFinite(businessDataSize) ? businessDataSize : usage;
+        const available = Math.max(quota - progressUsage, 0);
+        const usagePercent = quota > 0 ? Math.min((progressUsage / quota) * 100, 100) : 0;
+        const ringPercent = usagePercent > 0 ? Math.max(usagePercent, 1) : 0;
+        const percentLabel = usagePercent > 0 && usagePercent < 1
+            ? '<1%'
+            : `${Math.round(usagePercent)}%`;
 
         if (availableEl) availableEl.textContent = formatBytes(available);
         if (totalEl) totalEl.textContent = quota ? formatBytes(quota) : '-';
-        if (ringEl) ringEl.style.setProperty('--ring-percent', `${percent}%`);
-        if (ringValueEl) ringValueEl.textContent = `${percent}%`;
+        if (ringEl) ringEl.style.setProperty('--ring-percent', `${ringPercent}%`);
+        if (ringValueEl) ringValueEl.textContent = percentLabel;
     } catch (e) {
         if (availableEl) availableEl.textContent = '检测失败';
         if (totalEl) totalEl.textContent = '-';

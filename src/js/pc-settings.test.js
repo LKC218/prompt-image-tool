@@ -12,6 +12,8 @@ const pcUtilsMocks = vi.hoisted(() => ({
     copyToClipboard: vi.fn(),
 }));
 
+const navigatorStorageDescriptor = Object.getOwnPropertyDescriptor(navigator, 'storage');
+
 vi.mock('./storage.js', () => ({
     getStorage: storageMocks.getStorage,
     isCapacitor: false,
@@ -49,14 +51,23 @@ vi.mock('./pc-icon-assets.js', () => ({
     pcIcon: (name, className = '') => `<span class="${className}" data-icon="${name}"></span>`,
 }));
 
-function createStorage() {
+function createStorage(size = 1024) {
     return {
         getPromptSets: vi.fn(async () => [{ id: 'prompt-1' }]),
-        estimateStorageSize: vi.fn(async () => 1024),
+        estimateStorageSize: vi.fn(async () => size),
         getHealth: vi.fn(async () => ({ dataDir: 'C:\\Users\\Tester\\AppData\\Roaming\\PromptImageManager\\data' })),
         getNetworkInfo: vi.fn(async () => ({ ip: '127.0.0.1', port: 8888 })),
         getSyncCapabilities: vi.fn(async () => ({ capabilities: ['pull'] })),
     };
+}
+
+function mockStorageEstimate(usage, quota) {
+    Object.defineProperty(navigator, 'storage', {
+        configurable: true,
+        value: {
+            estimate: vi.fn(async () => ({ usage, quota })),
+        },
+    });
 }
 
 async function mountPage() {
@@ -78,6 +89,11 @@ describe('PC 设置页下载历史', () => {
     afterEach(() => {
         settingsPage.unmount(document.body);
         vi.clearAllMocks();
+        if (navigatorStorageDescriptor) {
+            Object.defineProperty(navigator, 'storage', navigatorStorageDescriptor);
+        } else {
+            delete navigator.storage;
+        }
     });
 
     it('显示历史记录并支持清空', async () => {
@@ -117,5 +133,47 @@ describe('PC 设置页下载历史', () => {
         expect(localStorage.getItem(DOWNLOAD_HISTORY_KEY)).toBeNull();
         expect(pageEl.querySelector('#pcDownloadHistoryCount').textContent).toBe('0');
         expect(pageEl.querySelector('#pcClearDownloadHistory').disabled).toBe(true);
+    });
+
+    it('将非零且低于 1% 的业务数据大小显示为最小可见进度', async () => {
+        storageMocks.getStorage.mockReturnValue(createStorage(50 * 1024 * 1024));
+        mockStorageEstimate(0, 25 * 1024 * 1024 * 1024);
+
+        const pageEl = await mountPage();
+
+        expect(pageEl.querySelector('#pcStorageRingValue').textContent).toBe('<1%');
+        expect(pageEl.querySelector('#pcStorageRing').style.getPropertyValue('--ring-percent')).toBe('1%');
+    });
+
+    it('将零存储占用保持为零进度', async () => {
+        storageMocks.getStorage.mockReturnValue(createStorage(0));
+        mockStorageEstimate(0, 25 * 1024 * 1024 * 1024);
+
+        const pageEl = await mountPage();
+
+        expect(pageEl.querySelector('#pcStorageRingValue').textContent).toBe('0%');
+        expect(pageEl.querySelector('#pcStorageRing').style.getPropertyValue('--ring-percent')).toBe('0%');
+    });
+
+    it('按业务数据大小展示正常进度', async () => {
+        storageMocks.getStorage.mockReturnValue(createStorage(6 * 1024 * 1024 * 1024));
+        mockStorageEstimate(0, 25 * 1024 * 1024 * 1024);
+
+        const pageEl = await mountPage();
+
+        expect(pageEl.querySelector('#pcStorageRingValue').textContent).toBe('24%');
+        expect(pageEl.querySelector('#pcStorageRing').style.getPropertyValue('--ring-percent')).toBe('24%');
+    });
+
+    it('业务数据大小不可用时回退浏览器存储占用', async () => {
+        const storage = createStorage();
+        delete storage.estimateStorageSize;
+        storageMocks.getStorage.mockReturnValue(storage);
+        mockStorageEstimate(6 * 1024 * 1024 * 1024, 25 * 1024 * 1024 * 1024);
+
+        const pageEl = await mountPage();
+
+        expect(pageEl.querySelector('#pcStorageRingValue').textContent).toBe('24%');
+        expect(pageEl.querySelector('#pcStorageRing').style.getPropertyValue('--ring-percent')).toBe('24%');
     });
 });

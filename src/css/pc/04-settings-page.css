@@ -402,7 +402,7 @@
     height: 86px;
     margin: 0;
     position: relative;
-    background: conic-gradient(var(--pc-settings-ring-success) var(--ring-percent, 0%), var(--pc-settings-ring-info) var(--ring-percent, 0%) 75%, var(--pc-settings-ring-track) 0);
+    background: conic-gradient(var(--pc-settings-ring-success) 0 var(--ring-percent, 0%), var(--pc-settings-ring-track) var(--ring-percent, 0%) 100%);
 }
 
 .pc-settings-storage-ring::after {
@@ -471,7 +471,6 @@
     margin-bottom: 0;
 }
 
-.pc-settings-backup-title-group p,
 .pc-settings-backup-location > span {
     margin: 4px 0 0;
     color: var(--pc-text2);
