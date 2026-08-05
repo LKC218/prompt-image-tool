@@ -21,11 +21,18 @@ else:
     print(f"WARNING: Frontend directory not found: {frontend_dir}")
     print("Please run 'npm run build' first!")
 
+# 添加 icon.ico 到打包数据（用于 webview 窗口图标）
+icon_datas = []
+if os.path.exists(icon_path):
+    icon_datas.append((icon_path, '.'))
+else:
+    print(f"WARNING: Icon file not found: {icon_path}")
+
 a = Analysis(
     [os.path.join(SPECPATH, 'app_main.py')],
     pathex=[],
     binaries=[],
-    datas=frontend_datas,
+    datas=frontend_datas + icon_datas,
     hiddenimports=[
         'webview',
         'webview.platforms',

@@ -2079,11 +2079,12 @@ def main():
 
     if HAS_WEBVIEW:
         try:
-            icon_path = os.path.join(
-                os.path.dirname(sys.executable) if getattr(sys, 'frozen', False)
-                else os.path.dirname(os.path.abspath(__file__)),
-                'icon.ico'
-            )
+            # PyInstaller 打包后，资源文件位于 _MEIPASS 临时目录
+            if getattr(sys, 'frozen', False):
+                base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+            else:
+                base_path = os.path.dirname(os.path.abspath(__file__))
+            icon_path = os.path.join(base_path, 'icon.ico')
             write_log(f'Icon path: {icon_path}, exists: {os.path.exists(icon_path)}')
             write_log(f'Creating webview window with URL: {url}')
 

@@ -352,6 +352,29 @@ webview.start(icon=icon_path)
 - 未安装 pythonnet：`pip install pythonnet`（pywebview 在 Windows 上依赖 pythonnet 调用 .NET WinForms）
 - 未安装 WebView2 Runtime：Windows 10/11 通常已预装，旧系统需手动安装
 
+### Q3.1：打包后窗口图标或网页图标丢失
+
+**根因**：PyInstaller 打包后，资源文件位于 `_MEIPASS` 临时目录，而非可执行文件同级目录。
+
+**修复方案**：
+
+1. **PyInstaller 配置**：`build/app.spec` 已将 `icon.ico` 添加到 `datas` 中，确保打包后位于 `_internal/` 目录。
+
+2. **运行时路径查找**：`build/app_main.py` 使用 `sys._MEIPASS` 定位资源文件：
+
+```python
+# PyInstaller 打包后，资源文件位于 _MEIPASS 临时目录
+if getattr(sys, 'frozen', False):
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+else:
+    base_path = os.path.dirname(os.path.abspath(__file__))
+icon_path = os.path.join(base_path, 'icon.ico')
+```
+
+3. **前端资源**：Vite 构建时会给资源添加 hash 后缀（如 `图标-JlA32k4E.svg`），`serve_frontend_file` 方法已正确处理 URL 解码，可正常加载带 hash 的文件名。
+
+**验证**：打包后检查 `build/dist/PromptImageManager/_internal/icon.ico` 是否存在。
+
 ### Q4：PyInstaller 打包报错找不到模块
 
 在 `build/app.spec` 的 `hiddenimports` 列表中添加缺失的模块名。
