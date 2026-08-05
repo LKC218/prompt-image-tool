@@ -30,6 +30,8 @@
 
 - 仅在 `(hover: hover) and (pointer: fine)` 且未启用 `prefers-reduced-motion: reduce` 时初始化。
 - 光标 wrapper 以零尺寸固定定位挂载到 `document.body`，通过 GSAP `x/y` 跟随视口坐标，避免应用容器建立 containing block 时产生偏移。
-- 空闲状态以 `2s` 一圈旋转；命中目标时暂停旋转，四角以 `0.2s` 吸附，并在 ticker 中维持目标内的延迟视差。
-- 鼠标按下时中心点缩放至 `0.7`、外框缩放至 `0.9`；松开后恢复。
-- 当前激活目标由 `ResizeObserver` 监听；滚动时使用 `elementFromPoint()` 校验鼠标下方目标，窗口失焦或鼠标离开应用后立即回收四角。
+- 自定义光标在 `is-custom-active`（进入应用区域）时显示，在 `is-targeting`（命中交互目标）时切换为品牌色；非交互区域保持白色默认光标，避免光标不可见。
+- `getCursorTarget` 增强了对 `.active`、`.selected`、`[aria-current]`、`[aria-selected]` 等状态类元素的检测，确保 stat card 等交互容器被正确识别为 `action` 目标。
+- 空闲状态以 `4s` 一圈旋转；命中目标时暂停旋转，四角以 `0.12s` 吸附，并在 ticker 中通过 `gsap.set` 直接设置维持目标内的延迟视差（消除每帧 tween 创建开销）。
+- 光标跟随使用 `0.05s` + `power2.out` 缓动，确保跟手感；鼠标按下时中心点缩放至 `0.7`、外框缩放至 `0.9`，时长 `0.1s` 保证即时反馈。
+- 当前激活目标由 `ResizeObserver` 监听；滚动事件通过 `requestAnimationFrame` 节流后使用 `elementFromPoint()` 校验鼠标下方目标，窗口失焦或鼠标离开应用后立即回收四角。

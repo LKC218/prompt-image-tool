@@ -49,7 +49,7 @@ function getCursorTarget(target, root) {
         if (CURSOR_STATES.has(state)) return { element: semanticTarget, state };
     }
 
-    const actionTarget = target.closest('button, a[href], [role="button"], [data-ripple], [data-nav], [tabindex]:not([tabindex="-1"])');
+    const actionTarget = target.closest('button, a[href], [role="button"], [data-ripple], [data-nav], [tabindex]:not([tabindex="-1"]), .active, .selected, [aria-current], [aria-selected="true"]');
     if (actionTarget && root.contains(actionTarget)) return { element: actionTarget, state: 'action' };
 
     return window.getComputedStyle(target).cursor === 'pointer' && root.contains(target)
@@ -95,6 +95,16 @@ function initPcCursor(root) {
     let spinTween = null;
     let releaseTimer = null;
     let activeStrength = 0;
+    let scrollRafPending = false;
+
+    function handleScrollThrottled() {
+        if (scrollRafPending) return;
+        scrollRafPending = true;
+        requestAnimationFrame(() => {
+            scrollRafPending = false;
+            handleLayoutChange();
+        });
+    }
 
     function updateTargetRect() {
         if (!currentTarget?.isConnected) {
@@ -114,7 +124,7 @@ function initPcCursor(root) {
         gsap.set(cursor, { rotation: 0 });
         spinTween = gsap.to(cursor, {
             rotation: 360,
-            duration: 2,
+            duration: 4,
             ease: 'none',
             repeat: -1
         });
@@ -207,7 +217,7 @@ function initPcCursor(root) {
             gsap.to(corner, {
                 x: targets[index].x,
                 y: targets[index].y,
-                duration: 0.2,
+                duration: 0.12,
                 ease: 'power2.out',
                 overwrite: 'auto'
             });
@@ -222,13 +232,7 @@ function initPcCursor(root) {
             const currentY = Number(gsap.getProperty(corner, 'y')) || 0;
             const nextX = currentX + (targets[index].x - currentX) * activeStrength;
             const nextY = currentY + (targets[index].y - currentY) * activeStrength;
-            gsap.to(corner, {
-                x: nextX,
-                y: nextY,
-                duration: activeStrength >= 0.99 ? 0.2 : 0.05,
-                ease: 'power1.out',
-                overwrite: 'auto'
-            });
+            gsap.set(corner, { x: nextX, y: nextY });
         });
     }
 
@@ -237,16 +241,15 @@ function initPcCursor(root) {
         pointerY = event.clientY;
         if (!visible) {
             visible = true;
-            cursor.classList.add('is-visible');
             setIdleSpin(true);
         }
         resolveTarget(event.target);
-        gsap.to(cursor, { x: pointerX, y: pointerY, duration: 0.1, ease: 'power3.out', overwrite: 'auto' });
+        gsap.to(cursor, { x: pointerX, y: pointerY, duration: 0.05, ease: 'power2.out', overwrite: 'auto' });
     }
 
     function handlePointerLeave() {
         visible = false;
-        cursor.classList.remove('is-visible', 'is-custom-active');
+        cursor.classList.remove('is-custom-active');
         root.classList.remove('pc-custom-cursor-native');
         setTarget(null);
         spinTween?.pause();
@@ -273,14 +276,14 @@ function initPcCursor(root) {
     function handlePointerDown() {
         if (!visible || !cursor.classList.contains('is-custom-active')) return;
         cursor.classList.add('is-pressed');
-        gsap.to(dot, { scale: 0.7, duration: 0.3, overwrite: 'auto' });
-        gsap.to(cursor, { scale: 0.9, duration: 0.2, overwrite: 'auto' });
+        gsap.to(dot, { scale: 0.7, duration: 0.15, overwrite: 'auto' });
+        gsap.to(cursor, { scale: 0.9, duration: 0.1, overwrite: 'auto' });
     }
 
     function handlePointerUp() {
         cursor.classList.remove('is-pressed');
-        gsap.to(dot, { scale: 1, duration: 0.3, overwrite: 'auto' });
-        gsap.to(cursor, { scale: 1, duration: 0.2, overwrite: 'auto' });
+        gsap.to(dot, { scale: 1, duration: 0.15, overwrite: 'auto' });
+        gsap.to(cursor, { scale: 1, duration: 0.1, overwrite: 'auto' });
     }
 
     function handleClick(event) {
@@ -297,7 +300,7 @@ function initPcCursor(root) {
     root.addEventListener('click', handleClick);
     window.addEventListener('pointerup', handlePointerUp);
     window.addEventListener('blur', handleWindowBlur);
-    window.addEventListener('scroll', handleLayoutChange, true);
+    window.addEventListener('scroll', handleScrollThrottled, true);
     window.addEventListener('resize', handleLayoutChange);
 
     const controller = {
@@ -308,7 +311,7 @@ function initPcCursor(root) {
             root.removeEventListener('click', handleClick);
             window.removeEventListener('pointerup', handlePointerUp);
             window.removeEventListener('blur', handleWindowBlur);
-            window.removeEventListener('scroll', handleLayoutChange, true);
+            window.removeEventListener('scroll', handleScrollThrottled, true);
             window.removeEventListener('resize', handleLayoutChange);
             resizeObserver?.disconnect();
             spinTween?.kill();

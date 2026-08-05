@@ -337,7 +337,7 @@ function renderTableRow(item) {
     const activeClass = item.id === selectedPromptId ? 'pc-library-row-active' : '';
 
     return `
-        <tr class="${activeClass}" data-id="${item.id}" data-cursor="action">
+        <tr class="${activeClass}" data-id="${item.id}">
             <td class="pc-library-prompt-cell">
                 ${renderThumb(item, 'pc-library-thumb')}
                 <div class="pc-library-prompt-copy">

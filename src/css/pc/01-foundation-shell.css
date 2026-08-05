@@ -197,12 +197,8 @@
         transition: opacity 120ms ease-out;
     }
 
-    .pc-custom-cursor.is-visible {
+    .pc-custom-cursor.is-custom-active {
         opacity: 1;
-    }
-
-    .pc-custom-cursor.is-visible:not(.is-custom-active) {
-        opacity: 0;
     }
 
     .pc-custom-cursor-dot,
@@ -281,30 +277,30 @@
     }
 
     .pc-custom-cursor.is-targeting .pc-custom-cursor-dot {
-        background: var(--color-brand-primary);
+        background: var(--color-brand-primary, #2477d4);
     }
 
     .pc-custom-cursor.is-targeting .pc-custom-cursor-glyph {
-        color: var(--color-brand-primary);
+        color: var(--color-brand-primary, #2477d4);
     }
 
     .pc-custom-cursor.is-targeting .pc-custom-cursor-corner {
-        border-color: var(--color-brand-primary);
+        border-color: var(--color-brand-primary, #2477d4);
     }
 
     .pc-custom-cursor.is-selected .pc-custom-cursor-dot {
-        background: var(--color-brand-primary);
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary) 32%, transparent);
+        background: var(--color-brand-primary, #2477d4);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-primary, #2477d4) 32%, transparent);
     }
 
     .pc-custom-cursor.is-selected .pc-custom-cursor-corner {
-        border-color: var(--color-brand-primary);
+        border-color: var(--color-brand-primary, #2477d4);
     }
 
     .pc-custom-cursor.is-media .pc-custom-cursor-corner {
         width: 14px;
         height: 14px;
-        border-color: var(--color-brand-primary);
+        border-color: var(--color-brand-primary, #2477d4);
     }
 
     .pc-custom-cursor.is-favorite .pc-custom-cursor-glyph,
@@ -343,8 +339,8 @@
     }
 
     .pc-custom-cursor.is-loading .pc-custom-cursor-glyph {
-        border: 2px solid color-mix(in srgb, var(--color-brand-primary) 34%, transparent);
-        border-top-color: var(--color-brand-primary);
+        border: 2px solid color-mix(in srgb, var(--color-brand-primary, #2477d4) 34%, transparent);
+        border-top-color: var(--color-brand-primary, #2477d4);
         border-radius: 50%;
         animation: pc-custom-cursor-spin 700ms linear infinite;
     }
@@ -359,16 +355,16 @@
     }
 
     .pc-custom-cursor.is-media.is-selected .pc-custom-cursor-dot {
-        background: color-mix(in srgb, var(--color-brand-primary) 82%, #000);
+        background: color-mix(in srgb, var(--color-brand-primary, #2477d4) 82%, #000);
     }
 
     .pc-custom-cursor.is-media.is-selected .pc-custom-cursor-corner {
-        border-color: color-mix(in srgb, var(--color-brand-primary) 82%, #000);
-        filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-brand-primary) 60%, transparent));
+        border-color: color-mix(in srgb, var(--color-brand-primary, #2477d4) 82%, #000);
+        filter: drop-shadow(0 0 5px color-mix(in srgb, var(--color-brand-primary, #2477d4) 60%, transparent));
     }
 
     .pc-custom-cursor.is-pressed .pc-custom-cursor-corner {
-        border-color: color-mix(in srgb, var(--color-brand-primary) 82%, #000);
+        border-color: color-mix(in srgb, var(--color-brand-primary, #2477d4) 82%, #000);
     }
 
     @keyframes pc-custom-cursor-spin {

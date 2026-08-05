@@ -27,7 +27,7 @@ describe('PC 自定义光标', () => {
         action.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 120, clientY: 80 }));
 
         expect(app.classList.contains('pc-custom-cursor-enabled')).toBe(true);
-        expect(document.querySelector('.pc-custom-cursor.is-visible.is-targeting')).not.toBeNull();
+        expect(document.querySelector('.pc-custom-cursor.is-custom-active.is-targeting')).not.toBeNull();
         expect(document.querySelectorAll('.pc-custom-cursor-corner')).toHaveLength(4);
         expect(action.classList.contains('pc-custom-cursor-target')).toBe(true);
         expect(document.querySelector('.pc-custom-cursor').style.getPropertyValue('--pc-accent')).toBe('');
