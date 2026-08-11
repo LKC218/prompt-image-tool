@@ -577,7 +577,6 @@
 
 .pc-library-table tbody tr {
     cursor: pointer;
-    user-select: all;
 }
 
 .pc-library-table tbody tr:hover td {

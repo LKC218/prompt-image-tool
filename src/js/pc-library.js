@@ -522,6 +522,28 @@ async function loadLibraryImages(container) {
 const CREATE_BTN_ACTING_DURATION = 350;
 
 function setupLibraryEvents(pageEl) {
+    let dragState = null;
+    let justDragged = false;
+
+    function isRowDragInteractive(target) {
+        return target.closest('.pc-library-name-scroll') ||
+               target.closest('.pc-library-thumb img') ||
+               target.closest('.pc-library-icon-btn') ||
+               target.closest('button') ||
+               target.closest('a') ||
+               target.closest('input') ||
+               target.closest('select') ||
+               target.closest('textarea');
+    }
+
+    function selectWholeRow(row) {
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        const range = document.createRange();
+        range.selectNodeContents(row);
+        selection.addRange(range);
+    }
+
     pageEl.querySelector('#pcLibraryCreateBtn')?.addEventListener('click', (e) => {
         const btn = e.currentTarget;
         if (btn.classList.contains('is-acting')) return;
@@ -554,6 +576,13 @@ function setupLibraryEvents(pageEl) {
     });
 
     pageEl.querySelector('#pcLibraryContent')?.addEventListener('click', async (e) => {
+        if (justDragged) {
+            e.preventDefault();
+            e.stopPropagation();
+            justDragged = false;
+            return;
+        }
+
         const previewImg = e.target.closest('.pc-library-preview-cover img');
         if (previewImg && previewImg.src) {
             let imageData = {};
@@ -609,6 +638,44 @@ function setupLibraryEvents(pageEl) {
     pageEl.querySelector('#pcLibraryContent')?.addEventListener('dblclick', (e) => {
         const row = e.target.closest('tr[data-id]');
         if (row && !e.target.closest('button')) e.preventDefault();
+    });
+
+    const libraryContent = pageEl.querySelector('#pcLibraryContent');
+
+    libraryContent?.addEventListener('mousedown', (e) => {
+        const row = e.target.closest('tr[data-id]');
+        if (!row) return;
+        dragState = {
+            row,
+            startX: e.clientX,
+            startY: e.clientY,
+            isInteractive: isRowDragInteractive(e.target),
+            isDragging: false
+        };
+    });
+
+    libraryContent?.addEventListener('mousemove', (e) => {
+        if (!dragState) return;
+        const dx = Math.abs(e.clientX - dragState.startX);
+        const dy = Math.abs(e.clientY - dragState.startY);
+        if (dx > 3 || dy > 3) {
+            dragState.isDragging = true;
+        }
+    });
+
+    libraryContent?.addEventListener('mouseup', (e) => {
+        if (!dragState) return;
+        const { row, isDragging, isInteractive } = dragState;
+        dragState = null;
+        if (isDragging && !isInteractive) {
+            e.preventDefault();
+            e.stopPropagation();
+            justDragged = true;
+            selectWholeRow(row);
+            window.setTimeout(() => {
+                justDragged = false;
+            }, 0);
+        }
     });
 
     pageEl.querySelector('#pcLibraryContent')?.addEventListener('change', (e) => {
