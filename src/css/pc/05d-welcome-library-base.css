@@ -577,7 +577,6 @@
 
 .pc-library-table tbody tr {
     cursor: pointer;
-    user-select: all;
 }
 
 .pc-library-table tbody tr:hover td {
@@ -677,7 +676,6 @@
     height: 100%;
     object-fit: cover;
     display: block;
-    user-select: text;
 }
 
 .pc-library-preview-cover img {
@@ -741,7 +739,6 @@
     font: 800 14px/1.5 var(--pc-font-family);
     white-space: nowrap;
     scrollbar-width: none;
-    user-select: none;
 }
 
 .pc-library-name-scroll::-webkit-scrollbar {
@@ -805,7 +802,6 @@
     color: #A7ABB2;
     cursor: pointer;
     transition: background 0.16s ease-out, color 0.16s ease-out, transform 0.16s ease-out;
-    user-select: text;
 }
 
 .pc-library-table td:nth-child(4),
