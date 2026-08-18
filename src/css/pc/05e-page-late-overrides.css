@@ -2640,6 +2640,23 @@
     color: var(--pc-text2);
 }
 
+.pc-editor-prompt-voice-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    margin-left: 4px;
+    color: var(--pc-accent);
+    opacity: 0.85;
+    transition: opacity var(--pc-neu-transition), transform var(--pc-neu-transition);
+}
+
+.pc-editor-prompt-voice-icon:hover {
+    opacity: 1;
+    transform: scale(1.08);
+}
+
 .pc-editor-prompt-clear {
     background: var(--pc-neu-bg);
     border: none;
@@ -4881,6 +4898,23 @@
     .pc-settings-overview,
     .pc-settings-storage-grid {
         grid-template-columns: 1fr;
+    }
+
+    .pc-settings-list-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        padding-block: 14px;
+    }
+
+    .pc-theme-dots {
+        justify-content: flex-start;
+        min-width: 0;
+    }
+
+    .pc-theme-appearance-select {
+        width: 100%;
+        max-width: none;
     }
 }
 

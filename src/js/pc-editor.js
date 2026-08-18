@@ -5,6 +5,7 @@ import { aggregateTags, getPcTagStyleClass } from './tag-utils.js';
 import { readFileAsDataURL, optimizeImageDataUrl } from './image-utils.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { pcIcon } from './pc-icon-assets.js';
+import { mountAnimatedIcons, unmountAnimatedIcons } from '../react/icons/mount-animated-icons.js';
 import { consumePromptImageToolImport, dataUrlToImportedImage } from './prompt-tool-json-import.js';
 import editorImagePlaceholderIconUrl from '../../UI设计稿/图标/插画设计/图片.png';
 
@@ -424,6 +425,8 @@ async function mount(pageEl, params = {}) {
         if (!importResult.applied) restoreEditorDraft();
         renderEditorContent(pageEl);
         setupEditorEvents(pageEl);
+        mountAnimatedIcons(pageEl);
+        setupVoiceIconPilot(pageEl);
         updateClearAllButtonState();
         if (importResult.applied) {
             showToast(`已预填 prompt-image-tool 导入内容${importResult.imageCount ? `，图片 ${importResult.imageCount} 张` : ''}`);
@@ -540,6 +543,13 @@ function renderEditorContent(pageEl) {
                         <div class="pc-editor-prompt-header">
                             <span class="pc-editor-prompt-label pc-editor-prompt-label-positive">
                                 ${pcIcon('sparkles', 'pc-editor-prompt-label-icon')}<span>正向提示词</span><span class="pc-editor-form-required">*</span>
+                                <span class="pc-editor-prompt-voice-icon"
+                                    data-react-icon="audio-lines"
+                                    data-icon-size="16"
+                                    data-icon-active="true"
+                                    data-icon-hover="true"
+                                    data-icon-label="语音输入"
+                                    aria-hidden="true"></span>
                             </span>
                             <button class="pc-editor-prompt-clear" id="pcClearPositive" type="button" ${!positivePrompt ? 'disabled' : ''}>清空</button>
                         </div>
@@ -732,6 +742,18 @@ function setupEditorEvents(pageEl) {
     setupKeyboardShortcuts(pageEl);
     setupPasteHandler(pageEl);
     setupTextSelectionContextMenu(pageEl);
+}
+
+function setupVoiceIconPilot(pageEl) {
+    const voiceIcon = pageEl.querySelector('.pc-editor-prompt-voice-icon');
+    if (!voiceIcon) return;
+    voiceIcon.style.cursor = 'pointer';
+    voiceIcon.title = '语音输入';
+    if (pageEl._voiceIconClickHandler) {
+        voiceIcon.removeEventListener('click', pageEl._voiceIconClickHandler);
+    }
+    pageEl._voiceIconClickHandler = () => showToast('语音输入功能开发中', 'info');
+    voiceIcon.addEventListener('click', pageEl._voiceIconClickHandler);
 }
 
 function setupImagePreviewEvents(pageEl) {
@@ -1296,6 +1318,7 @@ function escapeAttr(str) {
 }
 
 function unmount(pageEl) {
+    unmountAnimatedIcons(pageEl);
     window.removeEventListener('beforeunload', beforeUnloadHandler);
     if (pageEl._editorPasteHandler) {
         pageEl.removeEventListener('paste', pageEl._editorPasteHandler);

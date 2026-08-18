@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Lines React 组件演示</title>
+</head>
+<body>
+  <div id="audio-lines-demo-root"></div>
+  <script type="module">
+    import React from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { AudioLinesDemo } from './audio-lines-demo.jsx';
+
+    createRoot(document.getElementById('audio-lines-demo-root')).render(React.createElement(AudioLinesDemo));
+  </script>
+</body>
+</html>

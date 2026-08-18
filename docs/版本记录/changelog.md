@@ -1,3 +1,28 @@
+## v2.4.3 (2026-08-18)
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳版本统一升级至 `2.4.3`。
+- Android `versionCode` 从 `16` 递增至 `17`，`versionName` 升级为 `2.4.3`。
+- 安装器壳内嵌核心安装包路径同步为 `PromptImageManager-Setup-2.4.3.exe`。
+- 重新构建 PC NSIS 安装包并复制到 `releases/`。
+
+### 构建产物
+
+| 产物 | 大小 | SHA256 |
+|------|------|--------|
+| `releases/PromptImageManager-Setup-2.4.3.exe` | `30537071` 字节 | `F8B31841891E75AE447BA6B8610691273370293AC373F3BD869E8F7E578FE720` |
+
+### 验证
+
+- 版本配置静态检查：发布相关源码与配置已统一为 `2.4.3`，Android `versionCode` 为 `17`。
+- `npm.cmd run test -- src/js/release-notes.test.js`：通过，4 个测试用例全部通过。
+- `npm.cmd run build`：通过，Vite 生产构建成功。
+- `python -m PyInstaller build/app.spec --workpath build/build --distpath build/dist --clean -y`：通过，生成 PC 可执行文件。
+- `makensis /INPUTCHARSET UTF8 build/installer.nsi`：通过，生成 NSIS 安装包。
+
+---
+
 ## v2.4.2 (2026-07-19)
 
 ### 新增

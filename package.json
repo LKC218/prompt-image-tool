@@ -1,6 +1,6 @@
 {
   "name": "prompt-image-manager",
-  "version": "2.4.2",
+  "version": "2.4.3",
   "description": "生图提示词管理器",
   "type": "module",
   "scripts": {
@@ -32,9 +32,13 @@
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/cli": "^2.11.0",
     "gsap": "^3.15.0",
+    "motion": "^13.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "vite": "^8.0.10"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "jsdom": "^29.1.1",
     "png-to-ico": "^3.0.1",
     "sharp": "^0.34.5",

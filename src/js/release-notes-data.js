@@ -1,5 +1,18 @@
 const RELEASE_NOTES = [
     {
+        version: '2.4.3',
+        date: '2026-08-18',
+        sections: [
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.4.3，并重新构建 PC NSIS 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.4.2',
         date: '2026-07-19',
         sections: [

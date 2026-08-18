@@ -115,6 +115,7 @@
 - `src/js/pc-utils.js`、`src/js/pc-utils.test.js`、`src/js/mobile-app.js`、`src/js/mobile-app-action-sheet.test.js`、`src/js/pc-utils-modal.test.js`、`src/js/release-notes.js`：全局弹层、上下文菜单与更新记录。PC 上下文菜单支持最多两层级联、碰撞翻转、键盘层级导航和焦点归还；移动端将同一 `children` 菜单数据降级为带返回入口的分层动作表。通用弹层统一处理遮罩点击及 Escape 关闭，更新记录使用其打开和关闭接口。
 - `src/js/pc-cursor.js`、`src/js/pc-cursor.test.js`、`src/css/theme-tokens.css`、`src/css/pc/01-foundation-shell.css`：PC 精细指针光标系统。模块提供空闲、操作、媒体、收藏、菜单、复制、拖拽、缩放、加载、禁用和原生光标豁免状态；四角基于目标元素矩形锁定，并在滚动、窗口变化与目标尺寸变化时同步位置；光标直接使用根级品牌令牌，随工作台主题即时同步。具体协议见 `docs/模块说明/PC端自定义光标模块.md`。
 - `src/js/pc-app.js`、`src/js/pc-app-nav-motion.test.js`、`src/css/pc/01-foundation-shell.css`、`src/css/pc/03-shared-components.css`：PC 侧栏壳、收起状态与导航动效。`pc-sidebar-stage` 在主侧栏后叠放两张不接收指针事件的主题衬板，以状态类驱动远层、近层、主面板和内容的错峰展开与反向关闭；收起态仍保留窄图标导航。样式层级与维护规则见 `docs/模块说明/PC端样式模块.md`。
+- `src/react/icons/audio-lines.jsx`、`src/react/icons/audio-lines-demo.jsx`、`src/react/icons/audio-lines-demo.html`：React 动态图标试点。`AudioLines` 使用 Motion 驱动六条独立波形线，支持播放状态、悬停、点击和减少动效控制；演示页独立于主应用，通过 Vite 多页面入口验证组件表现。职责和接入边界见 `docs/模块说明/动态图标组件模块.md`。
 
 - `scripts/build_installer_shell_package.py`、`scripts/build_pc_package.py`、`build/installer.nsi`、`installer-shell/src-tauri/`：Windows 安装器构建与安全卸载链。PC 构建会以 PyInstaller 产物生成 `build/_uninstall_files.nsh`，NSIS 只删除清单内程序文件，保留未知文件和用户数据；旧安装目录数据迁移至用户级归档失败时保留原目录。安装器壳在升级快照失败时中止安装。构建脚本以根目录 `package.json` 的版本为唯一来源，同步安装器壳元数据与 NSIS 核心安装包资源路径；Rust 构建脚本将该版本注入运行时，用于嵌入、查找和释放同版本安装核心；安装器壳图标固定使用 `installer-shell/src-tauri/icons/icon.ico`。详见 `docs/构建方案/PC端安装包构建方案.md`。
 
@@ -281,7 +282,7 @@
 - `version-info.js`：共享版本号模块，统一读取 `index.html` 的 `<meta name="version">` 并为 PC / 移动端设置页提供渲染与挂载能力。PC 端与移动端设置页均不再各自内联读取版本号。
 - `release-notes.js` / `release-notes-data.js`：PC 更新记录模块与结构化版本内容。应用启动时对比当前版本和 `pc-release-notes-last-seen-version`；未读时自动弹出轻拟态版本记录，左侧栏设置入口旁保留可继承状态色的内联云朵箭头手动查看入口与未读提示点。
 - `theme-config.js` / `theme-service.js`：跨端主题配置与运行时服务。前者定义工作台主题、外观合法值和旧键映射；后者迁移 `pc-accent` / `accent`、应用根节点属性、监听系统外观并按绝对时间安排定时切换。
-- `pc-settings.js`：PC 设置页的工作台主题与外观模式选择器；版本号展示委托 `version-info.js`；完整备份默认调用 ZIP v2 原图导出，兼容 JSON 保留为次级入口。
+- `pc-settings.js`：PC 设置页的工作台主题与外观模式选择器；版本号展示委托 `version-info.js`；完整备份默认调用 ZIP v2 原图导出，兼容 JSON 保留为次级入口。外观设置排版由 `src/css/pc/04-settings-page.css` 负责稳定间距、主题色按钮换行和控件宽度保护，`02-settings-compat.css` 负责原生选择器的拟态外壳，`05e-page-late-overrides.css` 负责 760px 容器断点下的上下布局。
 - `mobile-app.js` / `mobile-router.js` / `mobile-settings.js`：移动端入口、内存路由与设置页。路由 History 状态保存同端视图、路径、参数和业务返回栈快照；初始化与 `popstate` 优先恢复合法快照，挂载时按恢复路由同步页面和底部导航状态。设置页复用工作台主题和外观模式配置，版本号展示委托 `version-info.js`。
 - `router-history.test.js`：PC 与移动端 History 快照恢复、浏览器返回协调与无效状态安全回退；路由与启动职责见 `docs/模块说明/路由与启动模块.md`。
 - `theme-tokens.css`：跨端基础语义 Token，负责浅深表面、文字、边框、状态和工作台品牌色映射；PC 设置页通过 `--pc-settings-*` 局部别名、移动设置页通过语义状态与表面 Token 消除深色硬编码和暖棕投影；权威规范见 `docs/设计文档/跨端配色与主题令牌规范.md`。
@@ -323,7 +324,7 @@
 
 
 
-- `pc-editor.js` 编辑器页顶部保存按钮（`.pc-editor-save-btn`）复用 `.pc-create-btn` 通用类，默认态为保存图标 +「保存」，保存中切换为对勾 +「保存中」，`setEditorSavingState()` 同步切换 `.is-acting` / `disabled` / `pc-editor-save-busy`，详见 `docs/设计文档/新建提示词按钮复刻-Uiverse-popular-cat-31.md`。编辑器主体由 `pc-editor.js` 渲染、`pc.css` 中 `.pc-editor-*` 样式承载：主卡和次级操作使用暖白外凸，标题/提示词与图片区使用内凹；图片区空态取消固定最小高度，采用 12px 内边距与 112px 上传入口以消除无效底部留白，已有图片时由缩略图网格自然撑开。顶部不提供返回按钮，分类选择器为原生 `button` 并通过 `aria-haspopup="dialog"` 表达弹窗入口。分类选择器、分类弹窗和添加标签按钮的单色图标仅以 CSS 蒙版渲染，不生成重叠 SVG 图片节点；图标采用语义表面、文字和品牌状态 Token，避免暗色模式出现纯黑或双图标。关闭或选中分类后焦点回到选择器。比例选项包含 `21:9` 并以 `aria-pressed` 同步选中状态；缩略图点击或键盘激活复用 `showImageViewer()`，标题和正负提示词在选区稳定约 180ms 后自动复用 `showContextMenu({ focusMenu: false, referenceRect })` 提供复制、粘贴、删除操作，菜单以真实选区为锚点优先显示在上方，与选区间隔 20px、与视口保留 24px 安全距离；复制、粘贴和删除的悬浮态分别采用青绿、蓝紫、珊瑚红语义色。菜单按钮按下不夺取输入焦点，因此选区持续可见，不再监听右键触发。保存和图片删除保留高对比操作层。规范见 `docs/UI计划/PC端/04-新建编辑提示词.md`。
+- `pc-editor.js` 编辑器页顶部保存按钮（`.pc-editor-save-btn`）复用 `.pc-create-btn` 通用类，默认态为保存图标 +「保存」，保存中切换为对勾 +「保存中」，`setEditorSavingState()` 同步切换 `.is-acting` / `disabled` / `pc-editor-save-busy`，详见 `docs/设计文档/新建提示词按钮复刻-Uiverse-popular-cat-31.md`。编辑器主体由 `pc-editor.js` 渲染、`pc.css` 中 `.pc-editor-*` 样式承载：主卡和次级操作使用暖白外凸，标题/提示词与图片区使用内凹；图片区空态取消固定最小高度，采用 12px 内边距与 112px 上传入口以消除无效底部留白，已有图片时由缩略图网格自然撑开。顶部不提供返回按钮，分类选择器为原生 `button` 并通过 `aria-haspopup="dialog"` 表达弹窗入口。分类选择器、分类弹窗和添加标签按钮的单色图标仅以 CSS 蒙版渲染，不生成重叠 SVG 图片节点；图标采用语义表面、文字和品牌状态 Token，避免暗色模式出现纯黑或双图标。关闭或选中分类后焦点回到选择器。比例选项包含 `21:9` 并以 `aria-pressed` 同步选中状态；缩略图点击或键盘激活复用 `showImageViewer()`，标题和正负提示词在选区稳定约 180ms 后自动复用 `showContextMenu({ focusMenu: false, referenceRect })` 提供复制、粘贴、删除操作，菜单以真实选区为锚点优先显示在上方，与选区间隔 20px、与视口保留 24px 安全距离；复制、粘贴和删除的悬浮态分别采用青绿、蓝紫、珊瑚红语义色。菜单按钮按下不夺取输入焦点，因此选区持续可见，不再监听右键触发。保存和图片删除保留高对比操作层。正向提示词标签旁已试点接入 React 动态图标 `AudioLines`（语音输入入口），通过 `mountAnimatedIcons()` 在页面挂载时渲染、页面卸载时清理 React root，图标颜色继承编辑器语义 Token，点击提示功能开发中。规范见 `docs/UI计划/PC端/04-新建编辑提示词.md`，图标接入细节见 `docs/模块说明/动态图标组件模块.md`。
 
 
 
