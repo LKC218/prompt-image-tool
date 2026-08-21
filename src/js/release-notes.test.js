@@ -73,4 +73,21 @@ describe('更新记录模块', () => {
         syncReleaseNotesUnreadBadge();
         expect(button.classList.contains('pc-release-notes-unread')).toBe(false);
     });
+
+    it('打开弹窗即写入已读，底栏仅保留单个关闭按钮', async () => {
+        const { LAST_SEEN_VERSION_KEY, openReleaseNotes } = await import('./release-notes.js');
+        const rendered = document.createElement('div');
+        pcUtilsMocks.showModal.mockImplementationOnce((html) => {
+            rendered.innerHTML = html;
+            return rendered;
+        });
+
+        openReleaseNotes();
+
+        expect(localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe('2.4.3');
+        expect(rendered.querySelector('[data-release-close]')).toBeTruthy();
+        expect(rendered.innerHTML).not.toContain('稍后查看');
+        expect(rendered.innerHTML).not.toContain('我知道了');
+        expect(rendered.querySelectorAll('[data-release-later], [data-release-acknowledge]').length).toBe(0);
+    });
 });

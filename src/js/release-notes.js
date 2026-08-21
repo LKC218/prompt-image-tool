@@ -1,4 +1,4 @@
-import { closeModal, showModal, showToast } from './pc-utils.js';
+import { closeModal, showModal } from './pc-utils.js';
 import { getVersion } from './version-info.js';
 import { RELEASE_NOTES } from './release-notes-data.js';
 
@@ -81,25 +81,18 @@ function renderReleaseNotes() {
                 `).join('')}
             </div>
             <footer class="pc-release-notes-actions">
-                ${hasUnreadReleaseNotes() ? `
-                    <button class="pc-btn pc-btn-secondary" type="button" data-release-later>稍后查看</button>
-                    <button class="pc-btn pc-btn-primary" type="button" data-release-acknowledge>我知道了</button>
-                ` : '<button class="pc-btn pc-btn-primary" type="button" data-release-close>关闭</button>'}
+                <button class="pc-btn pc-btn-primary" type="button" data-release-close>关闭</button>
             </footer>
         </div>
     `;
 }
 
 function openReleaseNotes() {
+    markCurrentReleaseNotesSeen();
+    syncReleaseNotesUnreadBadge();
     const modal = showModal(renderReleaseNotes());
-    const closeButtons = modal.querySelectorAll('[data-release-close], [data-release-later]');
+    const closeButtons = modal.querySelectorAll('[data-release-close]');
     closeButtons.forEach(button => button.addEventListener('click', closeModal));
-    modal.querySelector('[data-release-acknowledge]')?.addEventListener('click', () => {
-        markCurrentReleaseNotesSeen();
-        syncReleaseNotesUnreadBadge();
-        closeModal();
-        showToast(`已阅读 v${getVersion()} 更新记录`);
-    });
     modal.querySelector('[data-release-close]')?.focus();
     return modal;
 }
