@@ -6,6 +6,7 @@ import appIcon from '../assets/pc/app-icon.png';
 import navHome from '../assets/pc/nav-icons/home.png';
 import navLibrary from '../assets/pc/nav-icons/library.png';
 import navEditor from '../assets/pc/nav-icons/editor.png';
+import navGoals from '../assets/pc/nav-icons/目标计划.png';
 import navCategory from '../assets/pc/nav-icons/category.png';
 import navSettings from '../assets/pc/nav-icons/settings.png';
 import { openReleaseNotes, showUnreadReleaseNotes, syncReleaseNotesUnreadBadge } from './release-notes.js';
@@ -14,6 +15,8 @@ import { render as renderLibrary, mount as mountLibrary, unmount as unmountLibra
 import { render as renderDetail, mount as mountDetail, unmount as unmountDetail } from './pc-detail.js';
 import { render as renderEditor, mount as mountEditor, unmount as unmountEditor } from './pc-editor.js';
 import { render as renderCategory, mount as mountCategory, unmount as unmountCategory } from './pc-category.js';
+import { render as renderGoalProjects, mount as mountGoalProjects, unmount as unmountGoalProjects } from './pc-goal-projects.js';
+import { render as renderGoalDetail, mount as mountGoalDetail, unmount as unmountGoalDetail } from './pc-goal-detail.js';
 import { render as renderSettings, mount as mountSettings, unmount as unmountSettings } from './pc-settings.js';
 import { initRipple } from './ripple.js';
 import { initPcCursor } from './pc-cursor.js';
@@ -31,6 +34,7 @@ const NAV_ITEMS = [
     { path: '/', icon: navHome, label: '首页' },
     { path: '/library', icon: navLibrary, label: '提示词库' },
     { path: '/editor/', icon: navEditor, label: '新建/编辑' },
+    { path: '/goals', icon: navGoals, label: '目标计划' },
     { path: '/category', icon: navCategory, label: '分类与标签' }
 ];
 
@@ -58,7 +62,7 @@ const THEME_TOGGLE_ICONS = {
     `,
 };
 
-const TAB_ROUTES = ['/', '/library', '/category', '/settings'];
+const TAB_ROUTES = ['/', '/library', '/goals', '/category', '/settings'];
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
 const SIDEBAR_STAGE_OPENING_CLASS = 'is-stagger-opening';
@@ -194,6 +198,8 @@ async function mount(el) {
     registerRoute('/detail/:id', { render: renderDetail, mount: mountDetail, unmount: unmountDetail });
     registerRoute('/editor/:id', { render: renderEditor, mount: mountEditor, unmount: unmountEditor });
     registerRoute('/category', { render: renderCategory, mount: mountCategory, unmount: unmountCategory });
+    registerRoute('/goals', { render: renderGoalProjects, mount: mountGoalProjects, unmount: unmountGoalProjects });
+    registerRoute('/goals/:id', { render: renderGoalDetail, mount: mountGoalDetail, unmount: unmountGoalDetail });
     registerRoute('/settings', { render: renderSettings, mount: mountSettings, unmount: unmountSettings });
 
     setupSidebarNav();
@@ -213,6 +219,8 @@ async function mount(el) {
         updateNavHighlight('/library');
     } else if (initialPath.startsWith('/editor')) {
         updateNavHighlight('/editor/');
+    } else if (initialPath.startsWith('/goals')) {
+        updateNavHighlight('/goals');
     }
     createPage(resolveRouteKey(initialPath), initialRoute.params || {}, 'tab');
     const initialSidebarStage = appEl.querySelector('#pcSidebarStage');
@@ -541,6 +549,8 @@ function handleRouteChange(newRoute, oldRoute, direction) {
         updateNavHighlight('/library');
     } else if (path.startsWith('/editor')) {
         updateNavHighlight('/editor/');
+    } else if (path.startsWith('/goals')) {
+        updateNavHighlight('/goals');
     }
 
     createPage(routeKey, newRoute.params || {}, direction);

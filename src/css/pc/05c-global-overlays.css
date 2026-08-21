@@ -51,15 +51,15 @@
 
 .pc-modal {
     box-sizing: border-box;
-    background: var(--pc-surface);
+    background: var(--pc-neu-bg);
     border-radius: 24px;
     padding: 32px;
     width: min(560px, calc(100vw - 48px));
     min-width: min(400px, calc(100vw - 48px));
     max-width: 560px;
-    box-shadow: var(--pc-shadow-lg);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--pc-neu-dark) 50%, transparent);
     transform: scale(0.95);
-    transition: transform 0.25s ease;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .pc-modal *,
@@ -512,7 +512,7 @@
 .pc-modal h3 {
     font: var(--pc-font-h3);
     color: var(--pc-text);
-    margin-bottom: var(--pc-space-lg);
+    margin-bottom: var(--pc-space-xl);
 }
 
 .pc-modal-desc {
@@ -528,6 +528,40 @@
     justify-content: flex-end;
 }
 
+/* 拟态按钮 */
+.pc-modal-actions .pc-btn {
+    background: var(--pc-neu-bg);
+    border: none;
+    color: var(--pc-text2);
+    box-shadow:
+        3px 3px 6px var(--pc-neu-dark),
+        -3px -3px 6px var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, transform 0.15s ease, color 0.15s ease;
+}
+
+.pc-modal-actions .pc-btn:hover {
+    box-shadow:
+        4px 4px 8px var(--pc-neu-dark),
+        -4px -4px 8px var(--pc-neu-light);
+}
+
+.pc-modal-actions .pc-btn:active {
+    box-shadow:
+        inset 2px 2px 4px var(--pc-neu-dark),
+        inset -2px -2px 4px var(--pc-neu-light);
+    transform: translateY(1px);
+}
+
+.pc-modal-actions .pc-btn-primary {
+    color: var(--pc-accent);
+    font-weight: 600;
+}
+
+.pc-modal-actions .pc-btn-danger {
+    color: var(--pc-danger);
+    font-weight: 600;
+}
+
 .pc-modal label {
     display: block;
     font: 500 14px/1.4 var(--pc-font-family);
@@ -541,9 +575,26 @@
     min-width: 0;
 }
 
+/* 拟态输入框 */
 .pc-modal .pc-input,
 .pc-modal .pc-select {
     max-width: 100%;
+    background: var(--pc-neu-bg);
+    border: none;
+    box-shadow:
+        inset 2px 2px 4px var(--pc-neu-dark),
+        inset -2px -2px 4px var(--pc-neu-light);
+    transition: box-shadow 0.2s ease;
+}
+
+.pc-modal .pc-input:focus,
+.pc-modal .pc-select:focus {
+    border: none;
+    outline: none;
+    box-shadow:
+        inset 3px 3px 5px var(--pc-neu-dark),
+        inset -3px -3px 5px var(--pc-neu-light),
+        0 0 0 2px var(--pc-accent-bg);
 }
 
 .pc-modal:has(.pc-release-notes) {
@@ -1257,6 +1308,60 @@
     cursor: default;
     opacity: 0.42;
     transform: none;
+}
+
+.pc-image-viewer-nav {
+    position: absolute;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 999px;
+    background: rgba(20,24,32,0.76);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.28);
+    backdrop-filter: blur(14px);
+}
+
+.pc-image-viewer-nav.is-hidden {
+    display: none;
+}
+
+.pc-image-viewer-nav-prev,
+.pc-image-viewer-nav-next {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.14);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.16s ease, transform 0.16s ease;
+}
+
+.pc-image-viewer-nav-prev:hover,
+.pc-image-viewer-nav-next:hover {
+    background: rgba(255,255,255,0.24);
+    transform: translateY(-1px);
+}
+
+.pc-image-viewer-nav-index {
+    min-width: 46px;
+    color: rgba(255,255,255,0.92);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 32px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
 }
 
 @media (prefers-reduced-motion: reduce) {

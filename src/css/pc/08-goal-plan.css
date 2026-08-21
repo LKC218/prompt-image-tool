@@ -1,0 +1,1117 @@
+/* =========================
+   目标计划（PC）—— 新拟态风格
+   复用 Token：--pc-neu-* / --pc-sidebar-neu-*
+   ========================= */
+
+/* 任务图片小图标：轻凸起圆形按钮 */
+.goal-image-icon {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: var(--pc-radius-full);
+    background: var(--pc-neu-bg);
+    color: var(--pc-text3);
+    cursor: pointer;
+    position: relative;
+    box-shadow:
+        3px 3px 6px var(--pc-neu-dark),
+        -3px -3px 6px var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, color 0.15s, transform 0.15s;
+}
+
+.goal-image-icon:hover {
+    color: var(--pc-accent);
+    box-shadow:
+        4px 4px 8px var(--pc-neu-dark),
+        -4px -4px 8px var(--pc-neu-light);
+}
+
+.goal-image-icon:active {
+    box-shadow:
+        inset 2px 2px 4px var(--pc-neu-dark),
+        inset -2px -2px 4px var(--pc-neu-light);
+    transform: translateY(1px);
+}
+
+.goal-image-icon:focus-visible {
+    outline: var(--td-focus-outline);
+    outline-offset: var(--td-focus-outline-offset);
+}
+
+.goal-image-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.goal-image-icon-count {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    border-radius: 7px;
+    background: var(--pc-accent);
+    color: #fff;
+    font: 700 9px/14px var(--pc-font-family);
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+/* 图片悬浮预览：新拟态大阴影 */
+.goal-image-preview-float {
+    position: fixed;
+    z-index: 9500;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    background: var(--pc-neu-bg);
+    border-radius: var(--pc-radius-md);
+    box-shadow:
+        var(--pc-neu-offset) var(--pc-neu-offset) var(--pc-neu-blur) var(--pc-neu-dark),
+        calc(-1 * var(--pc-neu-offset)) calc(-1 * var(--pc-neu-offset)) var(--pc-neu-blur) var(--pc-neu-light),
+        0 12px 32px rgba(0, 0, 0, 0.08);
+    padding: 4px;
+    max-width: min(520px, calc(100vw - 40px));
+    max-height: min(520px, calc(100vh - 40px));
+}
+
+.goal-image-preview-float.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.goal-image-preview-float img {
+    display: block;
+    max-width: min(512px, calc(100vw - 48px));
+    max-height: min(512px, calc(100vh - 48px));
+    width: auto;
+    height: auto;
+    border-radius: var(--pc-radius-sm);
+    object-fit: contain;
+}
+
+.goal-image-preview-stage {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .goal-image-preview-float {
+        transition: none;
+    }
+}
+
+/* 图片管理弹窗：网格项 */
+.pc-goal-image-manager-body {
+    min-height: 120px;
+    max-height: 360px;
+    overflow-y: auto;
+    margin-bottom: var(--pc-space-xl);
+}
+
+.pc-goal-image-manager-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--pc-space-md);
+    padding: var(--pc-space-2xl) 0;
+    color: var(--pc-text3);
+}
+
+.pc-goal-image-manager-empty .pc-empty-icon img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+}
+
+.pc-goal-image-manager-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--pc-space-md);
+}
+
+.pc-goal-image-manager-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--pc-radius-md);
+    overflow: hidden;
+    background: var(--pc-neu-bg);
+    cursor: zoom-in;
+    box-shadow:
+        5px 5px 10px var(--pc-neu-dark),
+        -5px -5px 10px var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.pc-goal-image-manager-item:hover {
+    box-shadow:
+        7px 7px 14px var(--pc-neu-dark),
+        -7px -7px 14px var(--pc-neu-light);
+}
+
+.pc-goal-image-manager-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.pc-goal-image-manager-delete {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--pc-radius-full);
+    background: var(--pc-neu-bg);
+    color: var(--pc-danger);
+    cursor: pointer;
+    box-shadow:
+        2px 2px 4px var(--pc-neu-dark),
+        -2px -2px 4px var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, transform 0.15s ease, color 0.15s;
+}
+
+.pc-goal-image-manager-delete:hover {
+    color: #fff;
+    background: var(--pc-danger);
+    box-shadow:
+        3px 3px 6px color-mix(in srgb, var(--pc-danger) 35%, transparent),
+        -3px -3px 6px var(--pc-neu-light);
+}
+
+.pc-goal-image-manager-delete:active {
+    box-shadow:
+        inset 2px 2px 4px rgba(0, 0, 0, 0.25),
+        inset -2px -2px 4px rgba(255, 255, 255, 0.25);
+    transform: translateY(1px);
+}
+
+.pc-goal-image-manager-delete:focus-visible {
+    outline: var(--td-focus-outline);
+    outline-offset: var(--td-focus-outline-offset);
+}
+
+.pc-goal-image-manager-delete img {
+    width: 14px;
+    height: 14px;
+    filter: none;
+}
+
+/* =========================
+   PC 目标计划项目列表页
+   ========================= */
+.pc-goal-projects-page {
+    padding: var(--pc-space-lg) 0;
+}
+
+.pc-goal-projects-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--pc-space-xl);
+}
+
+.pc-goal-projects-title {
+    font: var(--pc-font-h3);
+    color: var(--pc-text);
+    margin: 0;
+}
+
+.pc-goal-projects-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--pc-space-lg);
+}
+
+.pc-goal-projects-list .pc-goal-projects-empty {
+    grid-column: 1 / -1;
+}
+
+/* 项目卡片：上图下信息 */
+.pc-goal-project-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--pc-neu-bg);
+    border: none;
+    border-radius: var(--pc-radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    box-shadow:
+        var(--pc-neu-offset) var(--pc-neu-offset) var(--pc-neu-blur) var(--pc-neu-dark),
+        calc(-1 * var(--pc-neu-offset)) calc(-1 * var(--pc-neu-offset)) var(--pc-neu-blur) var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.pc-goal-project-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+        calc(var(--pc-neu-offset) + 4px) calc(var(--pc-neu-offset) + 4px) calc(var(--pc-neu-blur) + 6px) var(--pc-neu-dark),
+        calc(-1 * var(--pc-neu-offset) - 4px) calc(-1 * var(--pc-neu-offset) - 4px) calc(var(--pc-neu-blur) + 6px) var(--pc-neu-light);
+}
+
+.pc-goal-project-card:active {
+    transform: translateY(-1px);
+    box-shadow:
+        inset calc(var(--pc-neu-offset) - 2px) calc(var(--pc-neu-offset) - 2px) calc(var(--pc-neu-blur) - 4px) var(--pc-neu-dark),
+        inset calc(-1 * var(--pc-neu-offset) + 2px) calc(-1 * var(--pc-neu-offset) + 2px) calc(var(--pc-neu-blur) - 4px) var(--pc-neu-light);
+}
+
+.pc-goal-project-cover {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--pc-surface2);
+}
+
+.pc-goal-project-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.pc-goal-project-card:hover .pc-goal-project-cover img {
+    transform: scale(1.05);
+}
+
+.pc-goal-project-cover-gradient {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pc-goal-project-cover-initials {
+    font: 700 32px/1 var(--pc-font-family);
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    letter-spacing: 0.05em;
+}
+
+.pc-goal-project-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pc-space-sm);
+    padding: var(--pc-space-md) var(--pc-space-lg) var(--pc-space-lg);
+    flex: 1;
+}
+
+.pc-goal-project-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--pc-space-sm);
+}
+
+.pc-goal-project-name {
+    font: 600 16px/1.4 var(--pc-font-family);
+    color: var(--pc-text);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.pc-goal-project-meta {
+    font: var(--pc-font-caption);
+    color: var(--pc-text3);
+    display: flex;
+    align-items: center;
+    gap: var(--pc-space-xs);
+    margin: 0;
+}
+
+.pc-goal-project-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: var(--pc-space-sm);
+    margin-top: auto;
+}
+
+/* 项目卡片进度条：内凹槽 */
+.pc-goal-project-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--pc-neu-bg);
+    border-radius: var(--pc-radius-full);
+    box-shadow:
+        inset 2px 2px 4px var(--pc-neu-dark),
+        inset -2px -2px 4px var(--pc-neu-light);
+    overflow: hidden;
+}
+
+.pc-goal-project-progress-fill {
+    height: 100%;
+    background: var(--pc-accent);
+    border-radius: var(--pc-radius-full);
+    transition: width 0.3s ease;
+}
+
+.pc-goal-project-progress-text {
+    font: 600 13px/1 var(--pc-font-family);
+    color: var(--pc-text2);
+    min-width: 36px;
+    text-align: right;
+}
+
+/* 防御性：禁止项目卡片内各文本子元素被单独选中 */
+.pc-goal-project-card,
+.pc-goal-project-card .pc-goal-project-name,
+.pc-goal-project-card .pc-goal-project-meta,
+.pc-goal-project-card .pc-goal-project-progress-text {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* 项目更多按钮：新拟态圆形图标按钮 */
+.pc-goal-project-more {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--pc-radius-full);
+    color: var(--pc-text3);
+    background: var(--pc-neu-bg);
+    cursor: pointer;
+    box-shadow:
+        3px 3px 6px var(--pc-neu-dark),
+        -3px -3px 6px var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, color 0.15s, transform 0.15s;
+}
+
+.pc-goal-project-more:hover {
+    color: var(--pc-text);
+    box-shadow:
+        4px 4px 8px var(--pc-neu-dark),
+        -4px -4px 8px var(--pc-neu-light);
+}
+
+.pc-goal-project-more:active {
+    box-shadow:
+        inset 2px 2px 4px var(--pc-neu-dark),
+        inset -2px -2px 4px var(--pc-neu-light);
+    transform: translateY(1px);
+}
+
+.pc-goal-project-more:focus-visible {
+    outline: var(--td-focus-outline);
+    outline-offset: var(--td-focus-outline-offset);
+}
+
+.pc-goal-project-more img {
+    width: 18px;
+    height: 18px;
+}
+
+.pc-goal-projects-empty .pc-empty-icon img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+}
+
+/* =========================
+   PC 目标计划任务详情页
+   ========================= */
+.pc-goal-detail-page {
+    padding: var(--pc-space-lg) 0;
+}
+
+.pc-goal-detail-header {
+    display: flex;
+    align-items: center;
+    gap: var(--pc-space-md);
+    margin-bottom: var(--pc-space-lg);
+}
+
+/* 返回按钮：新拟态圆形 */
+.pc-goal-detail-back {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--pc-radius-full);
+    background: var(--pc-neu-bg);
+    color: var(--pc-text2);
+    cursor: pointer;
+    box-shadow:
+        var(--pc-neu-offset) var(--pc-neu-offset) var(--pc-neu-blur) var(--pc-neu-dark),
+        calc(-1 * var(--pc-neu-offset)) calc(-1 * var(--pc-neu-offset)) var(--pc-neu-blur) var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, color 0.15s, transform 0.15s;
+}
+
+.pc-goal-detail-back:hover {
+    color: var(--pc-text);
+    box-shadow:
+        calc(var(--pc-neu-offset) + 2px) calc(var(--pc-neu-offset) + 2px) calc(var(--pc-neu-blur) + 4px) var(--pc-neu-dark),
+        calc(-1 * var(--pc-neu-offset) - 2px) calc(-1 * var(--pc-neu-offset) - 2px) calc(var(--pc-neu-blur) + 4px) var(--pc-neu-light);
+}
+
+.pc-goal-detail-back:active {
+    box-shadow:
+        inset calc(var(--pc-neu-offset) - 2px) calc(var(--pc-neu-offset) - 2px) calc(var(--pc-neu-blur) - 4px) var(--pc-neu-dark),
+        inset calc(-1 * var(--pc-neu-offset) + 2px) calc(-1 * var(--pc-neu-offset) + 2px) calc(var(--pc-neu-blur) - 4px) var(--pc-neu-light);
+    transform: translateY(1px);
+}
+
+.pc-goal-detail-back:focus-visible {
+    outline: var(--td-focus-outline);
+    outline-offset: var(--td-focus-outline-offset);
+}
+
+.pc-goal-detail-back img {
+    width: 20px;
+    height: 20px;
+    transform: rotate(90deg);
+}
+
+.pc-goal-detail-title {
+    flex: 1;
+    font: var(--pc-font-h3);
+    color: var(--pc-text);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 添加任务 / 新建项目按钮：渐变主色 + 扁平投影 + hover 上浮 */
+#pcGoalAddTask,
+#pcGoalCreateProject {
+    background: linear-gradient(135deg, var(--pc-accent), var(--pc-accent-strong));
+    border-color: transparent;
+    box-shadow:
+        0 3px 10px color-mix(in srgb, var(--pc-accent) 30%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    padding: 6px 16px;
+    font-weight: 600;
+}
+
+#pcGoalAddTask:hover,
+#pcGoalCreateProject:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        0 5px 14px color-mix(in srgb, var(--pc-accent) 40%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+#pcGoalAddTask:active,
+#pcGoalCreateProject:active {
+    transform: translateY(0);
+    box-shadow:
+        0 2px 8px color-mix(in srgb, var(--pc-accent) 25%, transparent),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+#pcGoalAddTask .pc-btn-icon,
+#pcGoalCreateProject .pc-btn-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#pcGoalAddTask .pc-btn-icon img,
+#pcGoalCreateProject .pc-btn-icon img {
+    width: 100%;
+    height: 100%;
+    filter: brightness(0) invert(1);
+}
+
+/* 详情页进度条容器：内凹槽 */
+.pc-goal-detail-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--pc-space-md);
+    margin-bottom: var(--pc-space-xl);
+    padding: var(--pc-space-md) var(--pc-space-lg);
+    background: var(--pc-neu-bg);
+    border: none;
+    border-radius: var(--pc-radius-md);
+    box-shadow:
+        var(--pc-neu-offset) var(--pc-neu-offset) var(--pc-neu-blur) var(--pc-neu-dark),
+        calc(-1 * var(--pc-neu-offset)) calc(-1 * var(--pc-neu-offset)) var(--pc-neu-blur) var(--pc-neu-light);
+}
+
+.pc-goal-detail-progress-bar {
+    flex: 1;
+    height: 10px;
+    background: var(--pc-neu-bg);
+    border-radius: var(--pc-radius-full);
+    box-shadow:
+        inset 2px 2px 4px var(--pc-neu-dark),
+        inset -2px -2px 4px var(--pc-neu-light);
+    overflow: hidden;
+}
+
+.pc-goal-detail-progress-fill {
+    height: 100%;
+    background: var(--pc-accent);
+    border-radius: var(--pc-radius-full);
+    transition: width 0.3s ease;
+}
+
+.pc-goal-detail-progress-text {
+    font: 500 14px/1 var(--pc-font-family);
+    color: var(--pc-text2);
+    white-space: nowrap;
+}
+
+/* 任务列表 */
+.pc-goal-task-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pc-space-md);
+}
+
+/* 任务项：轻凸起卡片 */
+.pc-goal-task-item {
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--pc-radius-md);
+    background: var(--pc-neu-bg);
+    border: none;
+    overflow: hidden;
+    box-shadow:
+        3px 3px 6px var(--pc-neu-dark),
+        -3px -3px 6px var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, background 0.15s;
+}
+
+.pc-goal-task-item:hover {
+    box-shadow:
+        4px 4px 8px var(--pc-neu-dark),
+        -4px -4px 8px var(--pc-neu-light);
+}
+
+/* 已完成任务：扁平化 */
+.pc-goal-task-item:has(> .pc-goal-task-row .pc-goal-task-check.is-checked) {
+    box-shadow: none;
+    background: var(--pc-surface2);
+}
+
+/* 子任务：扁平分隔 */
+.pc-goal-task-children .pc-goal-task-item {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--pc-neu-dark) 12%, transparent);
+    transition: background 0.15s;
+}
+
+.pc-goal-task-children .pc-goal-task-item:last-child {
+    border-bottom: none;
+}
+
+.pc-goal-task-children .pc-goal-task-item:hover {
+    box-shadow: none;
+    background: color-mix(in srgb, var(--pc-neu-dark) 4%, transparent);
+}
+
+.pc-goal-task-children .pc-goal-task-item:has(> .pc-goal-task-row .pc-goal-task-check.is-checked) {
+    background: transparent;
+    opacity: 0.72;
+}
+
+/* 层级引导线 */
+.pc-goal-task-children {
+    position: relative;
+}
+
+.pc-goal-task-children::before {
+    content: '';
+    position: absolute;
+    left: calc(var(--pc-space-lg) + 24px + var(--task-depth, 0) * 24px + 13px);
+    top: 0;
+    bottom: var(--pc-space-md);
+    width: 1px;
+    background: repeating-linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--pc-text3) 12%, transparent) 0,
+        color-mix(in srgb, var(--pc-text3) 12%, transparent) 4px,
+        transparent 4px,
+        transparent 8px
+    );
+    pointer-events: none;
+}
+
+.pc-goal-task-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--pc-space-sm);
+    padding: var(--pc-space-md) var(--pc-space-lg);
+    padding-left: calc(var(--pc-space-lg) + var(--task-depth, 0) * 24px);
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+/* 防御性：禁止任务行内各文本子元素被单独选中 */
+.pc-goal-task-row .pc-goal-task-title,
+.pc-goal-task-row .pc-goal-task-child-count {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.pc-goal-task-row:hover {
+    background: color-mix(in srgb, var(--pc-neu-dark) 7%, transparent);
+}
+
+/* 拖拽把手：默认隐藏，hover 显示 */
+.pc-goal-task-drag-handle {
+    width: 16px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-right: 4px;
+    border: none;
+    border-radius: var(--pc-radius-sm);
+    background: transparent;
+    color: color-mix(in srgb, var(--pc-text3) 50%, transparent);
+    cursor: grab;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.pc-goal-task-row:hover .pc-goal-task-drag-handle,
+.pc-goal-task-chosen .pc-goal-task-drag-handle,
+.pc-goal-task-drag .pc-goal-task-drag-handle {
+    opacity: 1;
+}
+
+.pc-goal-task-drag-handle:hover {
+    color: var(--pc-text3);
+    background: color-mix(in srgb, var(--pc-neu-dark) 4%, transparent);
+}
+
+.pc-goal-task-drag-handle:active {
+    cursor: grabbing;
+}
+
+.pc-goal-task-drag-handle img {
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+}
+
+/* SortableJS 拖拽状态 */
+.pc-goal-task-ghost {
+    opacity: 0.45;
+    background: var(--pc-surface2);
+    box-shadow: none !important;
+}
+
+.pc-goal-task-chosen {
+    box-shadow:
+        4px 4px 8px var(--pc-neu-dark),
+        -4px -4px 8px var(--pc-neu-light);
+}
+
+.pc-goal-task-drag {
+    opacity: 0.95;
+}
+
+/* 父任务标题强调，子任务标题弱化 */
+.pc-goal-task-item[data-depth="0"] .pc-goal-task-title {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.pc-goal-task-children .pc-goal-task-title {
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--pc-text2);
+}
+
+/* 折叠/展开按钮：新拟态圆形 */
+.pc-goal-task-toggle {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--pc-radius-full);
+    background: var(--pc-neu-bg);
+    color: var(--pc-text3);
+    cursor: pointer;
+    box-shadow:
+        2px 2px 4px var(--pc-neu-dark),
+        -2px -2px 4px var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, transform 0.2s, color 0.15s;
+}
+
+.pc-goal-task-toggle:hover {
+    color: var(--pc-text);
+    box-shadow:
+        3px 3px 6px var(--pc-neu-dark),
+        -3px -3px 6px var(--pc-neu-light);
+}
+
+.pc-goal-task-toggle:active {
+    box-shadow:
+        inset 2px 2px 3px var(--pc-neu-dark),
+        inset -2px -2px 3px var(--pc-neu-light);
+}
+
+.pc-goal-task-toggle:focus-visible {
+    outline: var(--td-focus-outline);
+    outline-offset: var(--td-focus-outline-offset);
+}
+
+.pc-goal-task-toggle img {
+    width: 16px;
+    height: 16px;
+    transform: rotate(-90deg);
+}
+
+.pc-goal-task-item.is-expanded > .pc-goal-task-row .pc-goal-task-toggle img {
+    transform: rotate(0deg);
+}
+
+.pc-goal-task-toggle.is-leaf {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* 任务复选框：未勾选内凹槽，勾选凸起主题色 */
+.pc-goal-task-check {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--pc-radius-sm);
+    background: var(--pc-neu-bg);
+    cursor: pointer;
+    flex-shrink: 0;
+    box-shadow:
+        inset 2px 2px 4px var(--pc-neu-dark),
+        inset -2px -2px 4px var(--pc-neu-light);
+    transition: box-shadow 0.2s ease, background 0.15s;
+}
+
+.pc-goal-task-check:hover {
+    box-shadow:
+        inset 3px 3px 5px var(--pc-neu-dark),
+        inset -3px -3px 5px var(--pc-neu-light);
+}
+
+.pc-goal-task-check.is-indeterminate {
+    background: var(--pc-accent);
+    box-shadow:
+        2px 2px 4px color-mix(in srgb, var(--pc-accent) 35%, transparent),
+        -2px -2px 4px var(--pc-neu-light);
+}
+
+.pc-goal-task-check.is-checked {
+    background: var(--pc-text3);
+    box-shadow: none;
+}
+
+.pc-goal-task-check.is-checked::after {
+    content: '';
+    width: 10px;
+    height: 6px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translateY(-1px);
+}
+
+.pc-goal-task-check.is-indeterminate::after {
+    content: '';
+    width: 10px;
+    height: 2px;
+    background: #fff;
+}
+
+.pc-goal-task-check input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.pc-goal-task-content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--pc-space-sm);
+}
+
+/* 任务优先级色点：行首小圆点 */
+.pc-goal-task-priority {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    align-self: center;
+    border-radius: var(--pc-radius-full);
+    background-color: transparent;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.pc-goal-task-priority[data-priority="high"] {
+    background-color: #EF4444;
+    opacity: 1;
+}
+
+.pc-goal-task-priority[data-priority="medium"] {
+    background-color: #F59E0B;
+    opacity: 1;
+}
+
+.pc-goal-task-priority[data-priority="low"] {
+    background-color: #3B82F6;
+    opacity: 1;
+}
+
+.pc-goal-task-row:has(.pc-goal-task-check.is-checked) .pc-goal-task-priority[data-priority="high"],
+.pc-goal-task-row:has(.pc-goal-task-check.is-checked) .pc-goal-task-priority[data-priority="medium"],
+.pc-goal-task-row:has(.pc-goal-task-check.is-checked) .pc-goal-task-priority[data-priority="low"] {
+    opacity: 0.4;
+}
+
+/* 任务执行中：左侧垂直状态条 */
+.pc-goal-task-row[data-executing="true"]::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 18%;
+    bottom: 18%;
+    width: 3px;
+    background: #22c55e;
+    border-radius: 0 2px 2px 0;
+    opacity: 0.85;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .pc-goal-task-row[data-executing="true"]::before {
+        animation: pc-goal-task-bar-breathe 2s ease-in-out infinite;
+    }
+}
+
+@keyframes pc-goal-task-bar-breathe {
+    0%, 100% {
+        opacity: 0.75;
+        box-shadow: none;
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 6px #22c55e;
+    }
+}
+
+.pc-goal-task-row:has(.pc-goal-task-check.is-checked)[data-executing="true"]::before {
+    opacity: 0.35;
+    box-shadow: none;
+    animation: none;
+}
+
+/* 任务标题：hover 内凹编辑槽 */
+.pc-goal-task-title {
+    font: var(--pc-font-body);
+    color: var(--pc-text);
+    cursor: text;
+    padding: 3px 8px;
+    border-radius: var(--pc-radius-sm);
+    transition: box-shadow 0.2s ease, background 0.15s;
+}
+
+.pc-goal-task-title:hover {
+    background: var(--pc-neu-bg);
+    box-shadow:
+        inset 2px 2px 4px var(--pc-neu-dark),
+        inset -2px -2px 4px var(--pc-neu-light);
+}
+
+.pc-goal-task-item .pc-goal-task-title {
+    text-decoration: none;
+}
+
+.pc-goal-task-check.is-checked ~ .pc-goal-task-content .pc-goal-task-title {
+    color: var(--pc-text3);
+    text-decoration: line-through;
+}
+
+/* 折叠父任务的子任务计数 */
+.pc-goal-task-child-count {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--pc-text3);
+    background: var(--pc-surface2);
+    padding: 3px 8px;
+    border-radius: var(--pc-radius-full);
+    flex-shrink: 0;
+}
+
+/* 任务操作按钮：常驻扁平 */
+.pc-goal-task-action {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--pc-radius-full);
+    color: var(--pc-text3);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    opacity: 1;
+    box-shadow: none;
+    transition: color 0.15s, transform 0.15s, background 0.15s;
+}
+
+.pc-goal-task-action:hover {
+    color: var(--pc-text);
+    background: var(--pc-surface2);
+}
+
+.pc-goal-task-action:active {
+    background: var(--td-bg-color-container-active);
+    transform: translateY(1px);
+}
+
+.pc-goal-task-action:focus-visible {
+    outline: var(--td-focus-outline);
+    outline-offset: var(--td-focus-outline-offset);
+}
+
+.pc-goal-task-action img {
+    width: 16px;
+    height: 16px;
+}
+
+.pc-goal-task-children {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0 0 var(--pc-space-sm) 0;
+}
+
+.pc-goal-tasks-empty .pc-empty-icon img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+}
+
+/* =========================
+   暗色模式回退
+   ========================= */
+:root[data-appearance="dark"] .goal-image-icon,
+:root[data-appearance="dark"] .goal-image-preview-float,
+:root[data-appearance="dark"] .pc-goal-image-manager-item,
+:root[data-appearance="dark"] .pc-goal-image-manager-delete,
+:root[data-appearance="dark"] .pc-goal-project-card,
+:root[data-appearance="dark"] .pc-goal-project-more,
+:root[data-appearance="dark"] .pc-goal-detail-back,
+:root[data-appearance="dark"] .pc-goal-task-item,
+:root[data-appearance="dark"] .pc-goal-task-toggle,
+:root[data-appearance="dark"] .pc-goal-task-action,
+:root[data-appearance="dark"] .pc-goal-task-title:hover {
+    background: var(--color-surface-raised);
+    box-shadow: 0 6px 18px var(--color-shadow-dark);
+}
+
+:root[data-appearance="dark"] .pc-goal-project-card:hover,
+:root[data-appearance="dark"] .pc-goal-image-manager-item:hover,
+:root[data-appearance="dark"] .pc-goal-task-item:hover {
+    box-shadow: 0 10px 24px var(--color-shadow-dark);
+}
+
+:root[data-appearance="dark"] .pc-goal-project-card:active,
+:root[data-appearance="dark"] .pc-goal-detail-back:active,
+:root[data-appearance="dark"] .pc-goal-task-action:active,
+:root[data-appearance="dark"] .pc-goal-project-more:active,
+:root[data-appearance="dark"] .goal-image-icon:active {
+    box-shadow:
+        inset 2px 2px 6px var(--color-shadow-dark),
+        inset -2px -2px 6px rgba(255, 255, 255, 0.04);
+    transform: translateY(1px);
+}
+
+:root[data-appearance="dark"] .pc-goal-project-progress-bar,
+:root[data-appearance="dark"] .pc-goal-detail-progress,
+:root[data-appearance="dark"] .pc-goal-detail-progress-bar,
+:root[data-appearance="dark"] .pc-goal-task-check {
+    background: var(--color-surface-raised);
+    box-shadow:
+        inset 2px 2px 6px var(--color-shadow-dark),
+        inset -2px -2px 6px rgba(255, 255, 255, 0.04);
+}
+
+:root[data-appearance="dark"] .pc-goal-task-check.is-checked,
+:root[data-appearance="dark"] .pc-goal-task-check.is-indeterminate {
+    background: var(--pc-accent);
+    box-shadow: 0 3px 8px color-mix(in srgb, var(--pc-accent) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .goal-image-icon,
+    .goal-image-preview-float,
+    .pc-goal-image-manager-item,
+    .pc-goal-image-manager-delete,
+    .pc-goal-project-card,
+    .pc-goal-project-more,
+    .pc-goal-detail-back,
+    .pc-goal-detail-progress,
+    .pc-goal-task-item,
+    .pc-goal-task-toggle,
+    .pc-goal-task-check,
+    .pc-goal-task-title,
+    .pc-goal-task-action {
+        transition: none !important;
+    }
+
+    .pc-goal-project-card:active,
+    .pc-goal-detail-back:active,
+    .pc-goal-task-action:active,
+    .pc-goal-project-more:active,
+    .goal-image-icon:active,
+    .pc-goal-task-toggle:active {
+        transform: none !important;
+    }
+}

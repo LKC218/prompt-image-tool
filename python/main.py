@@ -131,6 +131,8 @@ BACKUPS_DIR = os.path.join(DATA_DIR, 'backups')
 DATA_FILE = os.path.join(DATA_DIR, 'prompt_sets.json')
 FOLDERS_FILE = os.path.join(DATA_DIR, 'folders.json')
 SYNC_DEVICE_FILE = os.path.join(DATA_DIR, 'sync-device.json')
+GOALS_FILE = os.path.join(DATA_DIR, 'goals.json')
+GOAL_IMAGES_DIR = os.path.join(DATA_DIR, 'goal_images')
 SERVER_PORT = 8888
 EXPORT_SAVE_MODES = {'downloads', 'custom'}
 IMAGE_DOWNLOAD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
@@ -199,6 +201,28 @@ def load_folders():
 
 def save_folders(data):
     save_json_atomic(FOLDERS_FILE, data)
+
+
+def load_goals():
+    if os.path.exists(GOALS_FILE):
+        try:
+            with open(GOALS_FILE, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+            if not content:
+                return {'projects': []}
+            data = json.loads(content)
+            if not isinstance(data, dict):
+                return {'projects': []}
+            if 'projects' not in data:
+                data['projects'] = []
+            return data
+        except (json.JSONDecodeError, IOError):
+            return {'projects': []}
+    return {'projects': []}
+
+
+def save_goals(data):
+    save_json_atomic(GOALS_FILE, data)
 
 
 def load_sync_device():
@@ -283,6 +307,92 @@ def delete_image_file(filename):
             os.remove(filepath)
         except Exception:
             pass
+
+
+def goal_flatten_tasks(tasks, parent_id=''):
+    result = []
+    for task in tasks:
+        item = {k: v for k, v in task.items() if k != 'children'}
+        item['parentId'] = parent_id
+        result.append(item)
+        result.extend(goal_flatten_tasks(task.get('children', []), task['id']))
+    return result
+
+
+def goal_stats_for_project(project):
+    tasks = project.get('tasks', [])
+    flat = goal_flatten_tasks(tasks)
+    total = len(flat)
+    completed = sum(1 for t in flat if t.get('completed'))
+    return {
+        'taskCount': total,
+        'completedCount': completed,
+        'progress': round((completed / total) * 100) if total > 0 else 0,
+    }
+
+
+def goal_ensure_images_dir(project_id):
+    path = os.path.join(GOAL_IMAGES_DIR, project_id)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def goal_get_safe_image_path(project_id, filename):
+    safe_name = os.path.basename(urllib.parse.unquote(filename or ''))
+    if not safe_name:
+        return None
+    return os.path.join(goal_ensure_images_dir(project_id), safe_name)
+
+
+def goal_save_image(project_id, image_id, data_url):
+    try:
+        header, encoded = data_url.split(',', 1)
+        if 'image/png' in header:
+            ext = '.png'
+        elif 'image/jpeg' in header or 'image/jpg' in header:
+            ext = '.jpg'
+        elif 'image/webp' in header:
+            ext = '.webp'
+        elif 'image/gif' in header:
+            ext = '.gif'
+        else:
+            ext = '.png'
+        filename = image_id + ext
+        filepath = goal_get_safe_image_path(project_id, filename)
+        with open(filepath, 'wb') as f:
+            f.write(base64.b64decode(encoded))
+        return os.path.relpath(filepath, DATA_DIR).replace('\\', '/')
+    except Exception as e:
+        print(f"保存目标图片失败: {e}")
+        return None
+
+
+def goal_delete_image_file(project_id, filename):
+    filepath = goal_get_safe_image_path(project_id, filename)
+    if filepath and os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except Exception:
+            pass
+
+
+def goal_cleanup_images(project_id, keep_paths):
+    keep_set = set(keep_paths or [])
+    dir_path = os.path.join(GOAL_IMAGES_DIR, project_id)
+    if not os.path.isdir(dir_path):
+        return
+    for name in os.listdir(dir_path):
+        rel = f'goal_images/{project_id}/{name}'.replace('\\', '/')
+        if rel not in keep_set:
+            try:
+                os.remove(os.path.join(dir_path, name))
+            except Exception:
+                pass
+    try:
+        if not os.listdir(dir_path):
+            os.rmdir(dir_path)
+    except Exception:
+        pass
 
 
 def get_local_ip():
@@ -1357,9 +1467,21 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         elif path.startswith('/api/prompt-set/'):
             set_id = path.split('/api/prompt-set/')[1]
             self.handle_get_prompt_set(set_id)
+        elif path == '/api/goals/projects':
+            self.handle_get_goal_projects()
+        elif path.startswith('/api/goals/projects/'):
+            parts = path.split('/api/goals/projects/')[1].split('/')
+            project_id = parts[0]
+            if len(parts) == 1:
+                self.handle_get_goal_project(project_id)
+            elif len(parts) == 2 and parts[1] == 'tasks':
+                self.handle_get_goal_tasks(project_id)
         elif path.startswith('/api/images/'):
             filename = path.split('/api/images/')[1]
             self.serve_image('images/' + filename)
+        elif path.startswith('/api/goals/images/'):
+            filename = urllib.parse.unquote(path.split('/api/goals/images/')[1])
+            self.serve_image(filename)
         elif path.startswith('/images/'):
             self.serve_image(path[1:])
         else:
@@ -1418,6 +1540,19 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         elif path.startswith('/api/image/'):
             image_id = path.split('/api/image/')[1]
             self.handle_upload_image(image_id)
+        elif path == '/api/goals/projects':
+            self.handle_create_goal_project()
+        elif path.startswith('/api/goals/projects/'):
+            parts = path.split('/api/goals/projects/')[1].split('/')
+            project_id = parts[0]
+            if len(parts) == 1:
+                self.handle_update_goal_project(project_id)
+            elif len(parts) == 2 and parts[1] == 'tasks':
+                self.handle_update_goal_tasks(project_id)
+            elif len(parts) == 3 and parts[1] == 'tasks':
+                self.handle_update_goal_task(project_id, parts[2])
+        elif path == '/api/goals/images/upload':
+            self.handle_upload_goal_image()
         else:
             self.send_error(404)
 
@@ -1435,6 +1570,13 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             parts = path.split('/api/image/')[1].split('/')
             image_file = parts[0]
             self.handle_delete_image(image_file)
+        elif path.startswith('/api/goals/projects/'):
+            parts = path.split('/api/goals/projects/')[1].split('/')
+            project_id = parts[0]
+            if len(parts) == 1:
+                self.handle_delete_goal_project(project_id)
+            elif len(parts) == 3 and parts[1] == 'tasks':
+                self.handle_delete_goal_task(project_id, parts[2])
         else:
             self.send_error(404)
 
@@ -1795,6 +1937,202 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         delete_image_file(image_file)
         self.send_ok()
 
+    def _find_goal_project(self, project_id):
+        goals = load_goals()
+        for p in goals.get('projects', []):
+            if p.get('id') == project_id:
+                return goals, p
+        return goals, None
+
+    def _send_goal_project_summary(self, project):
+        summary = {
+            'id': project.get('id'),
+            'name': project.get('name'),
+            'order': project.get('order', 0),
+            'createdAt': project.get('createdAt'),
+            'updatedAt': project.get('updatedAt'),
+        }
+        summary.update(goal_stats_for_project(project))
+        self.send_json(summary)
+
+    def handle_get_goal_projects(self):
+        goals = load_goals()
+        result = []
+        for p in goals.get('projects', []):
+            item = {
+                'id': p.get('id'),
+                'name': p.get('name'),
+                'order': p.get('order', 0),
+                'createdAt': p.get('createdAt'),
+                'updatedAt': p.get('updatedAt'),
+            }
+            item.update(goal_stats_for_project(p))
+            result.append(item)
+        self.send_json(result)
+
+    def handle_get_goal_project(self, project_id):
+        goals, project = self._find_goal_project(project_id)
+        if not project:
+            self.send_error_json('项目不存在', 404)
+            return
+        self._send_goal_project_summary(project)
+
+    def handle_get_goal_tasks(self, project_id):
+        goals, project = self._find_goal_project(project_id)
+        if not project:
+            self.send_error_json('项目不存在', 404)
+            return
+        self.send_json(project.get('tasks', []))
+
+    def handle_create_goal_project(self):
+        body = self.read_body()
+        name = (body.get('name') or '新项目').strip()
+        if not name:
+            self.send_error_json('项目名称不能为空')
+            return
+        goals = load_goals()
+        now = datetime.now().isoformat()
+        project = {
+            'id': str(uuid.uuid4())[:8],
+            'name': name,
+            'order': len(goals.get('projects', [])),
+            'createdAt': now,
+            'updatedAt': now,
+            'tasks': []
+        }
+        goals['projects'].append(project)
+        save_goals(goals)
+        self._send_goal_project_summary(project)
+
+    def handle_update_goal_project(self, project_id):
+        body = self.read_body()
+        goals, project = self._find_goal_project(project_id)
+        if not project:
+            self.send_error_json('项目不存在', 404)
+            return
+        if 'name' in body:
+            name = str(body['name'] or '').strip()
+            if not name:
+                self.send_error_json('项目名称不能为空')
+                return
+            project['name'] = name
+        if 'order' in body:
+            project['order'] = int(body['order'])
+        project['updatedAt'] = datetime.now().isoformat()
+        save_goals(goals)
+        self._send_goal_project_summary(project)
+
+    def _collect_goal_image_paths(self, tasks):
+        paths = []
+        for task in tasks:
+            for img in task.get('images', []):
+                if img.get('path'):
+                    paths.append(img['path'])
+            paths.extend(self._collect_goal_image_paths(task.get('children', [])))
+        return paths
+
+    def handle_update_goal_tasks(self, project_id):
+        body = self.read_body()
+        goals, project = self._find_goal_project(project_id)
+        if not project:
+            self.send_error_json('项目不存在', 404)
+            return
+        tasks = body.get('tasks', [])
+        if not isinstance(tasks, list):
+            self.send_error_json('tasks 必须是数组')
+            return
+        project['tasks'] = tasks
+        project['updatedAt'] = datetime.now().isoformat()
+        keep_paths = self._collect_goal_image_paths(tasks)
+        goal_cleanup_images(project_id, keep_paths)
+        save_goals(goals)
+        self.send_json(project.get('tasks', []))
+
+    def handle_update_goal_task(self, project_id, task_id):
+        body = self.read_body()
+        goals, project = self._find_goal_project(project_id)
+        if not project:
+            self.send_error_json('项目不存在', 404)
+            return
+
+        def find_and_update(tasks):
+            for task in tasks:
+                if task.get('id') == task_id:
+                    if 'title' in body:
+                        task['title'] = body['title']
+                    if 'completed' in body:
+                        task['completed'] = bool(body['completed'])
+                    if 'order' in body:
+                        task['order'] = int(body['order'])
+                    if 'parentId' in body:
+                        task['parentId'] = body['parentId'] or ''
+                    if 'images' in body:
+                        task['images'] = body['images']
+                    task['updatedAt'] = datetime.now().isoformat()
+                    return True
+                if find_and_update(task.get('children', [])):
+                    return True
+            return False
+
+        if not find_and_update(project.get('tasks', [])):
+            self.send_error_json('任务不存在', 404)
+            return
+        project['updatedAt'] = datetime.now().isoformat()
+        keep_paths = self._collect_goal_image_paths(project.get('tasks', []))
+        goal_cleanup_images(project_id, keep_paths)
+        save_goals(goals)
+        self.send_ok()
+
+    def _find_and_remove_task(self, tasks, task_id):
+        for i, task in enumerate(tasks):
+            if task.get('id') == task_id:
+                return tasks.pop(i)
+            found = self._find_and_remove_task(task.get('children', []), task_id)
+            if found:
+                return found
+        return None
+
+    def handle_delete_goal_project(self, project_id):
+        goals = load_goals()
+        projects = goals.get('projects', [])
+        for i, p in enumerate(projects):
+            if p.get('id') == project_id:
+                goal_cleanup_images(project_id, [])
+                projects.pop(i)
+                save_goals(goals)
+                self.send_ok()
+                return
+        self.send_error_json('项目不存在', 404)
+
+    def handle_delete_goal_task(self, project_id, task_id):
+        goals, project = self._find_goal_project(project_id)
+        if not project:
+            self.send_error_json('项目不存在', 404)
+            return
+        removed = self._find_and_remove_task(project.get('tasks', []), task_id)
+        if not removed:
+            self.send_error_json('任务不存在', 404)
+            return
+        project['updatedAt'] = datetime.now().isoformat()
+        keep_paths = self._collect_goal_image_paths(project.get('tasks', []))
+        goal_cleanup_images(project_id, keep_paths)
+        save_goals(goals)
+        self.send_ok()
+
+    def handle_upload_goal_image(self):
+        body = self.read_body()
+        project_id = body.get('projectId')
+        image_id = body.get('imageId')
+        data_url = body.get('data')
+        if not project_id or not image_id or not data_url:
+            self.send_error_json('缺少参数')
+            return
+        rel_path = goal_save_image(project_id, image_id, data_url)
+        if rel_path:
+            self.send_json({'path': rel_path, 'name': os.path.basename(rel_path)})
+        else:
+            self.send_error_json('保存图片失败')
+
     def handle_sync(self):
         self.send_json(build_sync_payload())
 
@@ -1968,8 +2306,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         })
 
     def serve_image(self, relative_path):
-        filename = relative_path.replace('images/', '', 1)
-        filepath = os.path.join(IMAGES_DIR, filename)
+        filepath = os.path.join(DATA_DIR, relative_path.replace('/', os.sep))
         if os.path.exists(filepath):
             ext = os.path.splitext(filepath)[1].lower()
             content_types = {

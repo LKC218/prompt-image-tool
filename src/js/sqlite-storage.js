@@ -10,6 +10,7 @@ export class SqliteStorage {
         await this.db.execute({
             database: 'prompt_manager',
             statements: `
+                PRAGMA foreign_keys = ON;
                 CREATE TABLE IF NOT EXISTS folders (
                     id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -45,6 +46,37 @@ export class SqliteStorage {
                     note TEXT DEFAULT '',
                     created_at TEXT NOT NULL,
                     FOREIGN KEY (version_id) REFERENCES versions(id) ON DELETE CASCADE
+                );
+                CREATE TABLE IF NOT EXISTS goal_projects (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    cover_image TEXT DEFAULT '',
+                    cover_color TEXT DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS goal_tasks (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    parent_id TEXT DEFAULT '',
+                    title TEXT NOT NULL,
+                    completed INTEGER DEFAULT 0,
+                    sort_order INTEGER DEFAULT 0,
+                    priority TEXT DEFAULT '',
+                    status TEXT DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY (project_id) REFERENCES goal_projects(id) ON DELETE CASCADE,
+                    FOREIGN KEY (parent_id) REFERENCES goal_tasks(id) ON DELETE CASCADE
+                );
+                CREATE TABLE IF NOT EXISTS goal_task_images (
+                    id TEXT PRIMARY KEY,
+                    task_id TEXT NOT NULL,
+                    path TEXT DEFAULT '',
+                    name TEXT DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (task_id) REFERENCES goal_tasks(id) ON DELETE CASCADE
                 );
             `
         });
@@ -107,6 +139,30 @@ export class SqliteStorage {
             await this.db.execute({
                 database: 'prompt_manager',
                 statements: `ALTER TABLE versions ADD COLUMN model TEXT DEFAULT '';`
+            });
+        } catch (e) {}
+        try {
+            await this.db.execute({
+                database: 'prompt_manager',
+                statements: `ALTER TABLE goal_tasks ADD COLUMN priority TEXT DEFAULT '';`
+            });
+        } catch (e) {}
+        try {
+            await this.db.execute({
+                database: 'prompt_manager',
+                statements: `ALTER TABLE goal_tasks ADD COLUMN status TEXT DEFAULT '';`
+            });
+        } catch (e) {}
+        try {
+            await this.db.execute({
+                database: 'prompt_manager',
+                statements: `ALTER TABLE goal_projects ADD COLUMN cover_image TEXT DEFAULT '';`
+            });
+        } catch (e) {}
+        try {
+            await this.db.execute({
+                database: 'prompt_manager',
+                statements: `ALTER TABLE goal_projects ADD COLUMN cover_color TEXT DEFAULT '';`
             });
         } catch (e) {}
     }
@@ -590,6 +646,228 @@ export class SqliteStorage {
             }
         }
         return img.data || img.path || '';
+    }
+
+    async getGoalProjects() {
+        const rows = await this.query('SELECT * FROM goal_projects ORDER BY sort_order, created_at');
+        const result = [];
+        for (const row of rows) {
+            const stats = await this.query(
+                `SELECT
+                    COUNT(*) as total,
+                    SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed
+                 FROM goal_tasks WHERE project_id = ?`,
+                [row.id]
+            );
+            const total = stats[0]?.total || 0;
+            const completed = stats[0]?.completed || 0;
+            result.push({
+                id: row.id,
+                name: row.name,
+                coverImage: row.cover_image || '',
+                coverColor: row.cover_color || '',
+                order: row.sort_order || 0,
+                createdAt: row.created_at,
+                updatedAt: row.updated_at,
+                taskCount: total,
+                completedCount: completed,
+                progress: total > 0 ? Math.round((completed / total) * 100) : 0
+            });
+        }
+        return result;
+    }
+
+    async createGoalProject(name) {
+        const id = this.generateId();
+        const now = new Date().toISOString();
+        const maxOrder = await this.query('SELECT MAX(sort_order) as max_order FROM goal_projects');
+        const sortOrder = (maxOrder[0]?.max_order || 0) + 1;
+        await this.run('INSERT INTO goal_projects (id, name, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?)', [id, name, sortOrder, now, now]);
+        return { id, name, coverImage: '', coverColor: '', order: sortOrder, createdAt: now, updatedAt: now, taskCount: 0, completedCount: 0, progress: 0 };
+    }
+
+    async updateGoalProject(id, data) {
+        const now = new Date().toISOString();
+        if (data.name !== undefined) {
+            await this.run('UPDATE goal_projects SET name = ?, updated_at = ? WHERE id = ?', [data.name, now, id]);
+        }
+        if (data.order !== undefined) {
+            await this.run('UPDATE goal_projects SET sort_order = ?, updated_at = ? WHERE id = ?', [data.order, now, id]);
+        }
+        if (data.coverImage !== undefined) {
+            await this.run('UPDATE goal_projects SET cover_image = ?, updated_at = ? WHERE id = ?', [data.coverImage || '', now, id]);
+        }
+        if (data.coverColor !== undefined) {
+            await this.run('UPDATE goal_projects SET cover_color = ?, updated_at = ? WHERE id = ?', [data.coverColor || '', now, id]);
+        }
+    }
+
+    async deleteGoalProject(id) {
+        await this.cleanupGoalImages(id, []);
+        await this.run('DELETE FROM goal_projects WHERE id = ?', [id]);
+    }
+
+    _flattenGoalTasks(tree, parentId = '') {
+        const result = [];
+        for (const task of tree || []) {
+            result.push({ ...task, parentId });
+            if (task.children && task.children.length > 0) {
+                result.push(...this._flattenGoalTasks(task.children, task.id));
+            }
+        }
+        return result;
+    }
+
+    _collectGoalImagePaths(tasks) {
+        const paths = [];
+        for (const task of tasks || []) {
+            for (const img of task.images || []) {
+                if (img.path) paths.push(img.path);
+            }
+            paths.push(...this._collectGoalImagePaths(task.children));
+        }
+        return paths;
+    }
+
+    async updateGoalTasks(projectId, tasks) {
+        const now = new Date().toISOString();
+        const flat = this._flattenGoalTasks(tasks);
+        const existingRows = await this.query('SELECT id FROM goal_tasks WHERE project_id = ?', [projectId]);
+        const existingIds = new Set(existingRows.map(r => r.id));
+        const newIds = new Set(flat.map(t => t.id));
+
+        for (const id of existingIds) {
+            if (!newIds.has(id)) {
+                await this.run('DELETE FROM goal_task_images WHERE task_id = ?', [id]);
+                await this.run('DELETE FROM goal_tasks WHERE id = ? AND project_id = ?', [id, projectId]);
+            }
+        }
+
+        for (const task of flat) {
+            const parentId = task.parentId || '';
+            if (existingIds.has(task.id)) {
+                await this.run(
+                    'UPDATE goal_tasks SET title = ?, completed = ?, sort_order = ?, priority = ?, status = ?, parent_id = ?, updated_at = ? WHERE id = ? AND project_id = ?',
+                    [task.title, task.completed ? 1 : 0, task.order || 0, task.priority || '', task.status || '', parentId, now, task.id, projectId]
+                );
+            } else {
+                await this.run(
+                    'INSERT INTO goal_tasks (id, project_id, parent_id, title, completed, sort_order, priority, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [task.id, projectId, parentId, task.title, task.completed ? 1 : 0, task.order || 0, task.priority || '', task.status || '', now, now]
+                );
+            }
+        }
+
+        await this.run('UPDATE goal_projects SET updated_at = ? WHERE id = ?', [now, projectId]);
+        await this.cleanupGoalImages(projectId, this._collectGoalImagePaths(tasks));
+    }
+
+    _buildTaskTree(tasks, images, parentId = '') {
+        return tasks
+            .filter(t => (t.parent_id || '') === parentId)
+            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+            .map(t => ({
+                id: t.id,
+                projectId: t.project_id,
+                parentId: t.parent_id || '',
+                title: t.title,
+                completed: !!t.completed,
+                order: t.sort_order || 0,
+                priority: t.priority || '',
+                status: t.status || '',
+                createdAt: t.created_at,
+                updatedAt: t.updated_at,
+                images: images.filter(img => img.task_id === t.id).map(img => ({
+                    id: img.id,
+                    path: img.path || '',
+                    name: img.name || ''
+                })),
+                children: this._buildTaskTree(tasks, images, t.id)
+            }));
+    }
+
+    async getGoalTasks(projectId) {
+        const tasks = await this.query('SELECT * FROM goal_tasks WHERE project_id = ? ORDER BY sort_order, created_at', [projectId]);
+        const images = await this.query('SELECT * FROM goal_task_images WHERE task_id IN (SELECT id FROM goal_tasks WHERE project_id = ?)', [projectId]);
+        return this._buildTaskTree(tasks, images);
+    }
+
+    async createGoalTask(projectId, parentId, title, order) {
+        const id = this.generateId();
+        const now = new Date().toISOString();
+        await this.run('INSERT INTO goal_tasks (id, project_id, parent_id, title, completed, sort_order, priority, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [id, projectId, parentId || '', title, 0, order ?? 0, '', '', now, now]);
+        await this.run('UPDATE goal_projects SET updated_at = ? WHERE id = ?', [now, projectId]);
+        return { id, projectId, parentId: parentId || '', title, completed: false, order: order ?? 0, priority: '', status: '', createdAt: now, updatedAt: now, images: [], children: [] };
+    }
+
+    async updateGoalTask(id, data) {
+        const now = new Date().toISOString();
+        const task = await this.query('SELECT project_id FROM goal_tasks WHERE id = ?', [id]);
+        if (task.length === 0) return;
+        const projectId = task[0].project_id;
+
+        if (data.title !== undefined) {
+            await this.run('UPDATE goal_tasks SET title = ?, updated_at = ? WHERE id = ?', [data.title, now, id]);
+        }
+        if (data.completed !== undefined) {
+            await this.run('UPDATE goal_tasks SET completed = ?, updated_at = ? WHERE id = ?', [data.completed ? 1 : 0, now, id]);
+        }
+        if (data.order !== undefined) {
+            await this.run('UPDATE goal_tasks SET sort_order = ?, updated_at = ? WHERE id = ?', [data.order, now, id]);
+        }
+        if (data.parentId !== undefined) {
+            await this.run('UPDATE goal_tasks SET parent_id = ?, updated_at = ? WHERE id = ?', [data.parentId || '', now, id]);
+        }
+        if (data.priority !== undefined) {
+            await this.run('UPDATE goal_tasks SET priority = ?, updated_at = ? WHERE id = ?', [data.priority || '', now, id]);
+        }
+        if (data.status !== undefined) {
+            await this.run('UPDATE goal_tasks SET status = ?, updated_at = ? WHERE id = ?', [data.status || '', now, id]);
+        }
+        await this.run('UPDATE goal_projects SET updated_at = ? WHERE id = ?', [now, projectId]);
+    }
+
+    async deleteGoalTask(id) {
+        await this.run('DELETE FROM goal_tasks WHERE id = ?', [id]);
+    }
+
+    async addGoalTaskImage(taskId, path, name) {
+        const id = this.generateId();
+        const now = new Date().toISOString();
+        await this.run('INSERT INTO goal_task_images (id, task_id, path, name, created_at) VALUES (?, ?, ?, ?, ?)', [id, taskId, path, name || '', now]);
+        return { id, taskId, path, name: name || '' };
+    }
+
+    async deleteGoalTaskImage(id) {
+        await this.run('DELETE FROM goal_task_images WHERE id = ?', [id]);
+    }
+
+    async getGoalTaskImages(taskId) {
+        const rows = await this.query('SELECT * FROM goal_task_images WHERE task_id = ? ORDER BY created_at', [taskId]);
+        return rows.map(r => ({ id: r.id, taskId: r.task_id, path: r.path || '', name: r.name || '' }));
+    }
+
+    async cleanupGoalImages(projectId, keepPaths = []) {
+        const keepSet = new Set(keepPaths);
+        try {
+            const { Filesystem, Directory } = await import('@capacitor/filesystem');
+            const dirPath = `goal_images/${projectId}`;
+            let entries;
+            try {
+                entries = await Filesystem.readdir({ path: dirPath, directory: Directory.Data });
+            } catch (e) {
+                return;
+            }
+            for (const entry of (entries.files || [])) {
+                const fullPath = `${dirPath}/${entry.name}`;
+                if (!keepSet.has(fullPath)) {
+                    try {
+                        await Filesystem.deleteFile({ path: fullPath, directory: Directory.Data });
+                    } catch (e) {}
+                }
+            }
+        } catch (e) {}
     }
 
     getPlatform() { return 'android'; }

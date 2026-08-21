@@ -21,7 +21,9 @@ const imageViewerState = {
     dragStartX: 0,
     dragStartY: 0,
     startTranslateX: 0,
-    startTranslateY: 0
+    startTranslateY: 0,
+    urls: [],
+    index: 0
 };
 let imageViewerDownloadTarget = { url: '', filename: '', sourceFile: '' };
 
@@ -104,6 +106,34 @@ function showConfirmModal(message, onConfirm) {
     modal.querySelector('#pcModalConfirm').addEventListener('click', () => {
         closeModal();
         onConfirm();
+    });
+}
+
+function showPromptModal(title, defaultValue, onConfirm) {
+    const modal = showModal(`
+        <h3>${escapeHtml(title)}</h3>
+        <div class="pc-modal-input-wrap" style="margin-bottom: var(--pc-space-xl);">
+            <input type="text" class="pc-input" id="pcModalInput" value="${escapeHtml(defaultValue)}" autocomplete="off">
+        </div>
+        <div class="pc-modal-actions">
+            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">取消</button>
+            <button class="pc-btn pc-btn-primary" id="pcModalConfirm">确定</button>
+        </div>
+    `);
+    const input = modal.querySelector('#pcModalInput');
+    input.focus();
+    input.select();
+
+    function confirm() {
+        const value = input.value.trim();
+        closeModal();
+        if (value) onConfirm(value);
+    }
+
+    modal.querySelector('#pcModalCancel').addEventListener('click', closeModal);
+    modal.querySelector('#pcModalConfirm').addEventListener('click', confirm);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') confirm();
     });
 }
 
@@ -395,11 +425,23 @@ function getImageViewerParts() {
 
 function normalizeImageViewerInput(input) {
     if (typeof input === 'string') {
-        return { url: input, filename: '', sourceFile: '' };
+        return { urls: [input], index: 0, url: input, filename: '', sourceFile: '' };
     }
     const image = input?.image || input?.data || {};
+    const singleUrl = input?.src || input?.url || '';
+    if (Array.isArray(input?.urls) && input.urls.length > 0) {
+        return {
+            urls: input.urls,
+            index: clamp(input?.index || 0, 0, input.urls.length - 1),
+            url: input.urls[input?.index || 0] || input.urls[0],
+            filename: input?.filename || image.name || image.file || '',
+            sourceFile: input?.sourceFile || image.file || ''
+        };
+    }
     return {
-        url: input?.src || input?.url || '',
+        urls: singleUrl ? [singleUrl] : [],
+        index: 0,
+        url: singleUrl,
         filename: input?.filename || image.name || image.file || '',
         sourceFile: input?.sourceFile || image.file || ''
     };
@@ -620,6 +662,11 @@ function ensureImageViewer() {
             <div class="pc-image-viewer-stage" id="pcImageViewerStage">
                 <img class="pc-image-viewer-img" id="pcImageViewerImg" alt="图片预览">
             </div>
+            <div class="pc-image-viewer-nav" id="pcImageViewerNav">
+                <button class="pc-image-viewer-nav-prev" type="button" aria-label="上一张">‹</button>
+                <span class="pc-image-viewer-nav-index" id="pcImageViewerNavIndex">1 / 1</span>
+                <button class="pc-image-viewer-nav-next" type="button" aria-label="下一张">›</button>
+            </div>
         `;
         const app = getPcApp();
         if (app) app.appendChild(viewer);
@@ -630,6 +677,8 @@ function ensureImageViewer() {
         const resetBtn = viewer.querySelector('#pcImageViewerReset');
         const downloadBtn = viewer.querySelector('#pcImageViewerDownload');
         const closeBtn = viewer.querySelector('#pcImageViewerClose');
+        const navPrev = viewer.querySelector('.pc-image-viewer-nav-prev');
+        const navNext = viewer.querySelector('.pc-image-viewer-nav-next');
 
         viewer.addEventListener('click', (e) => {
             if (e.target === viewer || e.target === stage) closeImageViewer();
@@ -651,21 +700,74 @@ function ensureImageViewer() {
             e.stopPropagation();
             closeImageViewer();
         });
+        navPrev.addEventListener('click', (e) => {
+            e.stopPropagation();
+            changeImageViewerIndex(-1);
+        });
+        navNext.addEventListener('click', (e) => {
+            e.stopPropagation();
+            changeImageViewerIndex(1);
+        });
+        viewer.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                changeImageViewerIndex(-1);
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                changeImageViewerIndex(1);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                closeImageViewer();
+            }
+        });
     }
 
     return viewer;
 }
 
+function updateImageViewerNav() {
+    const nav = document.getElementById('pcImageViewerNav');
+    const indexEl = document.getElementById('pcImageViewerNavIndex');
+    if (!nav || !indexEl) return;
+    const total = imageViewerState.urls.length;
+    if (total <= 1) {
+        nav.classList.add('is-hidden');
+    } else {
+        nav.classList.remove('is-hidden');
+        indexEl.textContent = `${imageViewerState.index + 1} / ${total}`;
+    }
+}
+
+function changeImageViewerIndex(delta) {
+    const total = imageViewerState.urls.length;
+    if (total <= 1) return;
+    imageViewerState.index = (imageViewerState.index + delta + total) % total;
+    showImageViewerAt(imageViewerState.index);
+}
+
+function showImageViewerAt(index) {
+    const img = document.getElementById('pcImageViewerImg');
+    const url = imageViewerState.urls[index];
+    if (!img || !url) return;
+    imageViewerState.index = index;
+    imageViewerDownloadTarget.url = url;
+    resetImageViewerTransform();
+    img.src = url;
+    updateImageViewerNav();
+}
+
 function showImageViewer(input) {
     const target = normalizeImageViewerInput(input);
-    if (!target.url) return;
+    if (!target.urls || target.urls.length === 0) return;
     const viewer = ensureImageViewer();
-    const img = document.getElementById('pcImageViewerImg');
-    imageViewerDownloadTarget = target;
-    if (img) {
-        resetImageViewerTransform();
-        img.src = target.url;
-    }
+    imageViewerState.urls = target.urls;
+    imageViewerState.index = target.index || 0;
+    imageViewerDownloadTarget = {
+        url: target.url,
+        filename: target.filename,
+        sourceFile: target.sourceFile
+    };
+    showImageViewerAt(imageViewerState.index);
     viewer.classList.add('pc-image-viewer-active');
     viewer.focus({ preventScroll: true });
 }
@@ -675,6 +777,8 @@ function closeImageViewer() {
     if (!viewer) return;
     viewer.classList.remove('pc-image-viewer-active');
     imageViewerDownloadTarget = { url: '', filename: '', sourceFile: '' };
+    imageViewerState.urls = [];
+    imageViewerState.index = 0;
     resetImageViewerTransform();
 }
 
@@ -754,6 +858,7 @@ export {
     showModal,
     closeModal,
     showConfirmModal,
+    showPromptModal,
     showContextMenu,
     hideContextMenu,
     setContextMenuTargetId,

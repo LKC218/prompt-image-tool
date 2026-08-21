@@ -4807,3 +4807,77 @@
     border-color: var(--color-border-subtle);
     box-shadow: 0 18px 42px var(--color-shadow-dark);
 }
+
+.mobile-app .goal-image-icon {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: var(--m-radius-sm);
+    background: transparent;
+    color: var(--m-text3);
+    position: relative;
+}
+
+.mobile-app .goal-image-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.mobile-app .goal-image-icon-count {
+    position: absolute;
+    top: -2px;
+    right: -3px;
+    min-width: 10px;
+    height: 10px;
+    padding: 0 2px;
+    border-radius: 5px;
+    background: var(--m-accent);
+    color: #fff;
+    font: 700 8px/10px var(--m-font-family);
+    text-align: center;
+}
+
+.mobile-app .goal-image-preview-float {
+    position: fixed;
+    z-index: 10001;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    background: var(--m-surface);
+    border-radius: var(--m-radius-md);
+    box-shadow: var(--m-shadow-lg);
+    padding: 4px;
+    max-width: 260px;
+    max-height: 260px;
+}
+
+.mobile-app .goal-image-preview-float.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.mobile-app .goal-image-preview-float img {
+    display: block;
+    max-width: 252px;
+    max-height: 252px;
+    width: auto;
+    height: auto;
+    border-radius: var(--m-radius-sm);
+    object-fit: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mobile-app .goal-image-preview-float {
+        transition: none;
+    }
+}

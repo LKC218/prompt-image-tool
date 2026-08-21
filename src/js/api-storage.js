@@ -181,5 +181,50 @@ export class ApiStorage {
         return img.data || '';
     }
 
+    async getGoalProjects() {
+        return this.api('GET', '/goals/projects');
+    }
+
+    async getGoalProject(id) {
+        return this.api('GET', `/goals/projects/${id}`);
+    }
+
+    async getGoalTasks(projectId) {
+        return this.api('GET', `/goals/projects/${projectId}/tasks`);
+    }
+
+    async createGoalProject(name) {
+        return this.api('POST', '/goals/projects', { name });
+    }
+
+    async updateGoalProject(id, data) {
+        return this.api('POST', `/goals/projects/${id}`, data);
+    }
+
+    async deleteGoalProject(id) {
+        return this.api('DELETE', `/goals/projects/${id}`);
+    }
+
+    async updateGoalTasks(projectId, tasks) {
+        return this.api('POST', `/goals/projects/${projectId}/tasks`, { tasks });
+    }
+
+    async updateGoalTask(projectId, taskId, data) {
+        return this.api('POST', `/goals/projects/${projectId}/tasks/${taskId}`, data);
+    }
+
+    async deleteGoalTask(projectId, taskId) {
+        return this.api('DELETE', `/goals/projects/${projectId}/tasks/${taskId}`);
+    }
+
+    async uploadGoalImage(projectId, imageId, dataUrl) {
+        return this.api('POST', '/goals/images/upload', { projectId, imageId, data: dataUrl });
+    }
+
+    getGoalImageUrl(path) {
+        if (!path) return '';
+        return `${this.baseUrl}/api/goals/images/${path.split('/').map(encodeURIComponent).join('/')}`;
+    }
+
     getPlatform() { return 'pc'; }
 }
