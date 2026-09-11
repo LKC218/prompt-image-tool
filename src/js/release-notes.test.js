@@ -17,7 +17,7 @@ describe('更新记录模块', () => {
     beforeEach(() => {
         vi.resetModules();
         localStorage.clear();
-        document.head.innerHTML = '<meta name="version" content="2.4.3">';
+        document.head.innerHTML = '<meta name="version" content="2.5.0">';
         document.body.innerHTML = '<button data-release-notes></button>';
         pcUtilsMocks.closeModal.mockClear();
         pcUtilsMocks.showModal.mockClear();
@@ -68,7 +68,7 @@ describe('更新记录模块', () => {
         const button = document.querySelector('[data-release-notes]');
 
         expect(markCurrentReleaseNotesSeen()).toBe(true);
-        expect(localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe('2.4.3');
+        expect(localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe('2.5.0');
         expect(hasUnreadReleaseNotes()).toBe(false);
         syncReleaseNotesUnreadBadge();
         expect(button.classList.contains('pc-release-notes-unread')).toBe(false);
@@ -84,7 +84,7 @@ describe('更新记录模块', () => {
 
         openReleaseNotes();
 
-        expect(localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe('2.4.3');
+        expect(localStorage.getItem(LAST_SEEN_VERSION_KEY)).toBe('2.5.0');
         expect(rendered.querySelector('[data-release-close]')).toBeTruthy();
         expect(rendered.innerHTML).not.toContain('稍后查看');
         expect(rendered.innerHTML).not.toContain('我知道了');

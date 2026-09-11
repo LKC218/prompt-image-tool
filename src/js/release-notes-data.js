@@ -1,5 +1,33 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.0',
+        date: '2026-08-22',
+        sections: [
+            {
+                title: '新增',
+                tone: 'pink',
+                items: [
+                    '新增目标计划清单模块，支持工程列表、父子任务层级与任务图片管理。',
+                    '目标计划数据由后端统一存储，PC 与移动端可同步访问。'
+                ]
+            },
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '打开更新记录弹窗即标记当前版本已读，底栏仅保留关闭按钮。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.0，Android versionCode 递增至 18。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.4.3',
         date: '2026-08-18',
         sections: [

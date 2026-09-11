@@ -221,6 +221,10 @@ python scripts/build_installer_shell_package.py
 | `/api/sync/images/{name}` | `handle_sync_image` | 同步图片 |
 | `/api/network-info` | `handle_network_info` | 网络信息 |
 | `/api/images/{name}` | `serve_image` | 通过 `/api/images/` 前缀访问图片 |
+| `/api/goals/projects` | `handle_get_goal_projects` | 目标计划工程列表（含任务统计） |
+| `/api/goals/projects/{id}` | `handle_get_goal_project` | 单个目标计划工程摘要 |
+| `/api/goals/projects/{id}/tasks` | `handle_get_goal_tasks` | 工程任务树 |
+| `/api/goals/images/{path}` | `serve_image` | 目标计划任务图片（`goal_images/` 相对路径） |
 | `/images/{name}` | `serve_image` | 通过 `/images/` 前缀访问图片 |
 
 ### 6.2 POST 路由
@@ -239,6 +243,11 @@ python scripts/build_installer_shell_package.py
 | `/api/folders/reorder` | `handle_reorder_folders` | 文件夹排序 |
 | `/api/folder/{id}` | `handle_update_folder` | 更新文件夹 |
 | `/api/prompt-set/{id}/image` | `handle_upload_image` | 上传图片 |
+| `/api/goals/projects` | `handle_create_goal_project` | 创建目标计划工程 |
+| `/api/goals/projects/{id}` | `handle_update_goal_project` | 更新工程名称/排序 |
+| `/api/goals/projects/{id}/tasks` | `handle_update_goal_tasks` | 整体替换工程任务树 |
+| `/api/goals/projects/{id}/tasks/{taskId}` | `handle_update_goal_task` | 更新单个任务（标题/完成/排序/父子/图片） |
+| `/api/goals/images/upload` | `handle_upload_goal_image` | 上传目标计划任务图片（Base64） |
 
 ### 6.3 DELETE 路由
 
@@ -246,6 +255,8 @@ python scripts/build_installer_shell_package.py
 |------|----------|------|
 | `/api/prompt-set/{id}` | `handle_delete_prompt_set` | 删除提示词集合 |
 | `/api/folder/{id}` | `handle_delete_folder` | 删除文件夹 |
+| `/api/goals/projects/{id}` | `handle_delete_goal_project` | 删除目标计划工程（含图片清理） |
+| `/api/goals/projects/{id}/tasks/{taskId}` | `handle_delete_goal_task` | 删除单个任务（含孤儿图片清理） |
 
 ### 6.4 数据字段对照
 
@@ -296,6 +307,10 @@ pause
 ### 7.3 错误日志
 
 如果 pywebview 启动失败，会在 exe 同级目录生成 `webview_error.log`，包含完整的异常堆栈。
+
+### 7.4 安装探针
+
+构建完成后可运行 `python build\probe_install.py` 对 PyInstaller 产物做安装探针验证：以隔离数据目录（`PROMPT_IMAGE_TOOL_DATA_DIR`）启动 `build\dist\PromptImageManager\PromptImageManager.exe`，从 `app.log` 解析实际端口后依次验证 `/api/health`、goal API 全链路（建工程 → 写任务树 → 上传图片 → 更新任务 → 删除清理）与 `goals.json` 落盘，最后输出安装包大小与 SHA256。发布前建议执行一次。
 
 ---
 
