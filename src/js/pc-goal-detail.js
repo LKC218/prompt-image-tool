@@ -11,10 +11,13 @@ import {
     importGoalImage,
     getGoalImageUrl,
     compressToWebp,
+    getGoalThumbUrl,
+    releaseGoalThumbUrls,
     TASK_PRIORITIES,
     getTaskPriorityLabel,
     TASK_STATUS_EXECUTING,
-    isTaskExecuting
+    isTaskExecuting,
+    sortTasksByCompletion
 } from './goal-utils.js';
 import Sortable from 'sortablejs';
 import plusIcon from '../assets/icons/plus.svg';
@@ -85,6 +88,7 @@ function unmount(pageEl) {
         previewCleanup = null;
     }
     closeGoalImagePreview();
+    releaseGoalThumbUrls();
     pageElRef = null;
     projectId = null;
 }
@@ -373,6 +377,7 @@ function toggleTask(id, checked) {
     }
 
     syncParentCompletion(tasks);
+    tasks = sortTasksByCompletion(tasks);
     renderTasks();
     saveTasks();
 }
@@ -391,6 +396,7 @@ async function addTask() {
         };
         tasks.push(newTask);
         expandedIds.add(newTask.id);
+        tasks = sortTasksByCompletion(tasks);
         renderTasks();
         await saveTasks();
     });
@@ -415,6 +421,7 @@ async function addChildTask(parentId) {
         expandedIds.add(parentId);
         expandedIds.add(newTask.id);
         syncParentCompletion(tasks);
+        tasks = sortTasksByCompletion(tasks);
         renderTasks();
         await saveTasks();
     });
@@ -454,6 +461,7 @@ async function deleteTask(id) {
     showConfirmModal('确定删除这个任务吗？子任务也会被一并删除。', async () => {
         tasks = removeTaskFromList(tasks, id);
         syncParentCompletion(tasks);
+        tasks = sortTasksByCompletion(tasks);
         renderTasks();
         await saveTasks();
     });
@@ -499,6 +507,7 @@ function copyTask(id) {
 
     if (copyRecursively(tasks)) {
         syncParentCompletion(tasks);
+        tasks = sortTasksByCompletion(tasks);
         renderTasks();
         saveTasks();
         showToast('任务复制成功');
@@ -649,8 +658,12 @@ function showTaskImageManager(id) {
     if (!task) return;
 
     const storage = getStorage();
+    const BATCH_SIZE = 20;
+    let renderedCount = 0;
+    let appendObserver = null;
 
     function renderManagerContent() {
+        renderedCount = 0;
         const images = task.images || [];
         const emptyState = images.length === 0 ? `
             <div class="pc-goal-image-manager-empty">
@@ -660,17 +673,7 @@ function showTaskImageManager(id) {
         ` : '';
         const grid = images.length > 0 ? `
             <div class="pc-goal-image-manager-grid">
-                ${images.map((img, index) => {
-                    const url = img.data || getGoalImageUrl(storage, img.path);
-                    return `
-                        <div class="pc-goal-image-manager-item" data-index="${index}">
-                            <img src="${url}" alt="任务图片" loading="lazy">
-                            <button class="pc-goal-image-manager-delete" type="button" aria-label="删除图片" data-index="${index}">
-                                ${iconImg(deleteIcon)}
-                            </button>
-                        </div>
-                    `;
-                }).join('')}
+                ${renderImageBatch()}
             </div>
         ` : '';
         return `
@@ -686,15 +689,75 @@ function showTaskImageManager(id) {
         `;
     }
 
+    // 渲染一批图片项，返回 HTML（img 只放 data-src，进入视口后异步替换缩略图）
+    function renderImageBatch() {
+        const images = task.images || [];
+        const end = Math.min(renderedCount + BATCH_SIZE, images.length);
+        const parts = [];
+        for (; renderedCount < end; renderedCount++) {
+            const index = renderedCount;
+            const url = images[index].data || getGoalImageUrl(storage, images[index].path);
+            parts.push(`
+                <div class="pc-goal-image-manager-item" data-index="${index}">
+                    <img data-src="${url}" alt="任务图片" decoding="async">
+                    <button class="pc-goal-image-manager-delete" type="button" aria-label="删除图片" data-index="${index}">
+                        ${iconImg(deleteIcon)}
+                    </button>
+                </div>
+            `);
+        }
+        if (end < images.length) {
+            parts.push('<div class="pc-goal-image-manager-sentinel"></div>');
+        }
+        return parts.join('');
+    }
+
+    // 对网格内未加载的 img 惰性替换缩略图；滚动到底部 sentinel 时追加下一批
+    function observeGridImages(modalEl) {
+        if (appendObserver) {
+            appendObserver.disconnect();
+            appendObserver = null;
+        }
+        const grid = modalEl.querySelector('.pc-goal-image-manager-grid');
+        if (!grid) return;
+
+        const io = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+                const img = entry.target;
+                io.unobserve(img);
+                getGoalThumbUrl(img.dataset.src).then((thumb) => {
+                    if (img.isConnected) img.src = thumb;
+                });
+            }
+        }, { root: modalEl.querySelector('.pc-goal-image-manager-body'), rootMargin: '200px' });
+        grid.querySelectorAll('img[data-src]').forEach(img => io.observe(img));
+
+        const sentinel = grid.querySelector('.pc-goal-image-manager-sentinel');
+        if (sentinel) {
+            appendObserver = new IntersectionObserver((entries) => {
+                if (!entries.some(e => e.isIntersecting)) return;
+                appendObserver.disconnect();
+                appendObserver = null;
+                sentinel.remove();
+                sentinel.insertAdjacentHTML('beforebegin', renderImageBatch());
+                observeGridImages(modalEl);
+            }, { root: modalEl.querySelector('.pc-goal-image-manager-body') });
+            appendObserver.observe(sentinel);
+        }
+    }
+
     const modal = showModal(renderManagerContent());
 
     async function refresh() {
         modal.innerHTML = renderManagerContent();
         bindManagerEvents();
+        observeGridImages(modal);
     }
 
     imageManagerCurrent = { taskId: id, refresh };
     observeImageManagerClose();
+    observeGridImages(modal);
 
     function bindManagerEvents() {
         modal.querySelector('#pcGoalImageManagerClose')?.addEventListener('click', closeModal);
@@ -722,7 +785,7 @@ function showTaskImageManager(id) {
                 });
             });
         });
-        modal.querySelectorAll('.pc-goal-image-manager-item img').forEach(img => {
+        modal.querySelectorAll('.pc-goal-image-manager-item > img').forEach(img => {
             img.addEventListener('click', () => {
                 const item = img.closest('.pc-goal-image-manager-item');
                 const index = Number(item?.dataset.index || 0);

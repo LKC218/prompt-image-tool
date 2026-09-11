@@ -4854,7 +4854,7 @@
     transform: translateY(4px);
     transition: opacity 0.15s ease, transform 0.15s ease;
     background: var(--m-surface);
-    border-radius: var(--m-radius-md);
+    border-radius: var(--m-radius-lg);
     box-shadow: var(--m-shadow-lg);
     padding: 4px;
     max-width: 260px;
@@ -4866,14 +4866,22 @@
     transform: translateY(0);
 }
 
+.mobile-app .goal-image-preview-stage {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+    overflow: hidden;
+    border-radius: var(--m-radius-lg);
+}
+
 .mobile-app .goal-image-preview-float img {
     display: block;
     max-width: 252px;
     max-height: 252px;
     width: auto;
     height: auto;
-    border-radius: var(--m-radius-sm);
     object-fit: contain;
+    border-radius: var(--m-radius-md);
 }
 
 @media (prefers-reduced-motion: reduce) {

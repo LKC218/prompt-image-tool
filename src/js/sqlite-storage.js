@@ -648,6 +648,42 @@ export class SqliteStorage {
         return img.data || img.path || '';
     }
 
+    async _calcGoalImageStats(projectId) {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const dirPath = `goal_images/${projectId}`;
+
+        async function walk(currentPath) {
+            let count = 0;
+            let bytes = 0;
+            let entries;
+            try {
+                entries = await Filesystem.readdir({ path: currentPath, directory: Directory.Data });
+            } catch (e) {
+                return { count, bytes };
+            }
+            for (const entry of (entries.files || [])) {
+                const fullPath = `${currentPath}/${entry.name}`;
+                if (entry.type === 'directory') {
+                    const sub = await walk(fullPath);
+                    count += sub.count;
+                    bytes += sub.bytes;
+                } else {
+                    try {
+                        const stat = await Filesystem.stat({ path: fullPath, directory: Directory.Data });
+                        if (stat.size) {
+                            bytes += stat.size;
+                            count++;
+                        }
+                    } catch (e) {}
+                }
+            }
+            return { count, bytes };
+        }
+
+        const result = await walk(dirPath);
+        return { imageCount: result.count, imageBytes: result.bytes };
+    }
+
     async getGoalProjects() {
         const rows = await this.query('SELECT * FROM goal_projects ORDER BY sort_order, created_at');
         const result = [];
@@ -661,6 +697,7 @@ export class SqliteStorage {
             );
             const total = stats[0]?.total || 0;
             const completed = stats[0]?.completed || 0;
+            const imageStats = await this._calcGoalImageStats(row.id);
             result.push({
                 id: row.id,
                 name: row.name,
@@ -671,7 +708,9 @@ export class SqliteStorage {
                 updatedAt: row.updated_at,
                 taskCount: total,
                 completedCount: completed,
-                progress: total > 0 ? Math.round((completed / total) * 100) : 0
+                progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+                imageCount: imageStats.imageCount,
+                imageBytes: imageStats.imageBytes
             });
         }
         return result;

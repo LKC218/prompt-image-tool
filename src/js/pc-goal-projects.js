@@ -7,7 +7,8 @@ import {
     getGoalImageUrl,
     getProjectInitials,
     generateProjectCoverGradient,
-    importGoalProjectCover
+    importGoalProjectCover,
+    formatBytes
 } from './goal-utils.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import plusIcon from '../assets/icons/plus.svg';
@@ -100,13 +101,15 @@ function renderList() {
             <div class="pc-goal-project-cover">${coverHtml}</div>
             <div class="pc-goal-project-body">
                 <div class="pc-goal-project-header">
-                    <h3 class="pc-goal-project-name">${escapeHtml(p.name)}</h3>
+                    <h3 class="pc-goal-project-name" title="${escapeHtml(p.name)}"><span>${escapeHtml(p.name)}</span></h3>
                     <button class="pc-icon-btn pc-goal-project-more" type="button" aria-label="更多操作" data-project-id="${escapeHtml(p.id)}">
                         ${iconImg(moreIcon)}
                     </button>
                 </div>
                 <div class="pc-goal-project-meta">
                     <span>${p.taskCount} 个任务</span>
+                    <span>·</span>
+                    <span>${formatBytes(p.imageBytes || 0)}</span>
                     <span>·</span>
                     <span>更新于 ${formatDate(p.updatedAt)}</span>
                 </div>
@@ -119,6 +122,29 @@ function renderList() {
             </div>
         </div>
     `}).join('');
+
+    setupProjectNameMarquee(container);
+}
+
+// 项目名称溢出时启动往返滚动（复用提示词库名称滚动模式）
+function setupProjectNameMarquee(container) {
+    if (!container || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
+
+    container.querySelectorAll('.pc-goal-project-name').forEach((name, index) => {
+        name.classList.remove('is-overflow');
+        name.style.removeProperty('--pc-goal-name-shift');
+        name.style.removeProperty('--pc-goal-name-duration');
+        name.style.removeProperty('--pc-goal-name-delay');
+
+        const distance = name.scrollWidth - name.clientWidth;
+        if (distance <= 1) return;
+
+        const duration = Math.min(14, Math.max(8, 7 + distance / 35));
+        name.style.setProperty('--pc-goal-name-shift', `-${distance}px`);
+        name.style.setProperty('--pc-goal-name-duration', `${duration.toFixed(2)}s`);
+        name.style.setProperty('--pc-goal-name-delay', `${(0.8 + (index % 5) * 0.14).toFixed(2)}s`);
+        name.classList.add('is-overflow');
+    });
 }
 
 function setupEvents(pageEl) {

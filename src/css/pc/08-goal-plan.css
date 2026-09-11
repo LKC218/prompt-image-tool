@@ -76,7 +76,7 @@
     transform: translateY(4px);
     transition: opacity 0.15s ease, transform 0.15s ease;
     background: var(--pc-neu-bg);
-    border-radius: var(--pc-radius-md);
+    border-radius: var(--pc-radius-lg) !important;
     box-shadow:
         var(--pc-neu-offset) var(--pc-neu-offset) var(--pc-neu-blur) var(--pc-neu-dark),
         calc(-1 * var(--pc-neu-offset)) calc(-1 * var(--pc-neu-offset)) var(--pc-neu-blur) var(--pc-neu-light),
@@ -91,20 +91,22 @@
     transform: translateY(0);
 }
 
+.goal-image-preview-stage {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+    overflow: hidden;
+    border-radius: var(--pc-radius-lg) !important;
+}
+
 .goal-image-preview-float img {
     display: block;
     max-width: min(512px, calc(100vw - 48px));
     max-height: min(512px, calc(100vh - 48px));
     width: auto;
     height: auto;
-    border-radius: var(--pc-radius-sm);
     object-fit: contain;
-}
-
-.goal-image-preview-stage {
-    position: relative;
-    display: inline-block;
-    line-height: 0;
+    border-radius: var(--pc-radius-md) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -167,6 +169,20 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    aspect-ratio: 1;
+    background: var(--pc-neu-bg);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.pc-goal-image-manager-item img[src] {
+    opacity: 1;
+}
+
+/* 分批加载哨兵：占位于网格末尾 */
+.pc-goal-image-manager-sentinel {
+    grid-column: 1 / -1;
+    height: 1px;
 }
 
 .pc-goal-image-manager-delete {
@@ -332,10 +348,45 @@
     color: var(--pc-text);
     margin: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
     white-space: nowrap;
     flex: 1;
     min-width: 0;
+}
+
+/* 项目名称溢出时的往返滚动（复用提示词库名称滚动模式） */
+.pc-goal-project-name span {
+    display: inline-block;
+    min-width: max-content;
+}
+
+.pc-goal-project-name.is-overflow span {
+    will-change: transform;
+    animation: pc-goal-name-marquee var(--pc-goal-name-duration) linear var(--pc-goal-name-delay) infinite alternate;
+}
+
+.pc-goal-project-name.is-overflow:hover span,
+.pc-goal-project-name.is-overflow:focus-visible span {
+    animation-play-state: paused;
+}
+
+@keyframes pc-goal-name-marquee {
+    0%, 12% {
+        transform: translateX(0);
+    }
+
+    48%, 60% {
+        transform: translateX(var(--pc-goal-name-shift));
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-goal-project-name.is-overflow span {
+        animation: none;
+    }
 }
 
 .pc-goal-project-meta {
@@ -343,6 +394,7 @@
     color: var(--pc-text3);
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: var(--pc-space-xs);
     margin: 0;
 }

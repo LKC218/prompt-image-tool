@@ -76,8 +76,37 @@ export function buildTaskTree(flat, parentId = '') {
         });
 }
 
+/**
+ * 按完成状态对任务列表排序：未完成的任务在前，已完成的任务在后。
+ * 同组内保持原有 order 相对顺序；递归处理子任务并更新 order 字段。
+ */
+export function sortTasksByCompletion(list) {
+    if (!Array.isArray(list)) return list;
+    const sorted = [...list].sort((a, b) => {
+        const aCompleted = a.completed ? 1 : 0;
+        const bCompleted = b.completed ? 1 : 0;
+        if (aCompleted !== bCompleted) return aCompleted - bCompleted;
+        return (a.order || 0) - (b.order || 0);
+    });
+    sorted.forEach((task, index) => {
+        task.order = index;
+        if (task.children && task.children.length > 0) {
+            task.children = sortTasksByCompletion(task.children);
+        }
+    });
+    return sorted;
+}
+
 export function generateGoalId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
+export function formatBytes(bytes) {
+    const n = typeof bytes === 'number' ? bytes : 0;
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 export async function compressToWebp(dataUrl, options = {}) {
@@ -109,6 +138,55 @@ export async function compressToWebp(dataUrl, options = {}) {
         img.onerror = () => resolve(dataUrl);
         img.src = dataUrl;
     });
+}
+
+// 缩略图缓存：url -> Promise<blobUrl>
+const goalThumbCache = new Map();
+const GOAL_THUMB_WIDTH = 320;
+
+function createGoalThumb(sourceUrl) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            try {
+                let { width, height } = img;
+                if (width > GOAL_THUMB_WIDTH) {
+                    height = Math.round((height * GOAL_THUMB_WIDTH) / width);
+                    width = GOAL_THUMB_WIDTH;
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                canvas.toBlob((blob) => {
+                    resolve(blob ? URL.createObjectURL(blob) : sourceUrl);
+                }, 'image/webp', 0.75);
+            } catch (_) {
+                resolve(sourceUrl);
+            }
+        };
+        img.onerror = () => resolve(sourceUrl);
+        img.src = sourceUrl;
+    });
+}
+
+export async function getGoalThumbUrl(sourceUrl) {
+    if (!sourceUrl) return sourceUrl;
+    if (!goalThumbCache.has(sourceUrl)) {
+        goalThumbCache.set(sourceUrl, createGoalThumb(sourceUrl));
+    }
+    return goalThumbCache.get(sourceUrl);
+}
+
+// 释放全部缩略图 Blob URL（页面卸载时调用）
+export function releaseGoalThumbUrls() {
+    for (const promise of goalThumbCache.values()) {
+        promise.then((url) => {
+            if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+        });
+    }
+    goalThumbCache.clear();
 }
 
 export function getImageMimeType(dataUrl = '') {
