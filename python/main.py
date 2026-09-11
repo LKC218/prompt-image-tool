@@ -331,6 +331,23 @@ def goal_stats_for_project(project):
     }
 
 
+def goal_image_stats_for_project(project_id):
+    dir_path = os.path.join(GOAL_IMAGES_DIR, project_id)
+    if not os.path.isdir(dir_path):
+        return {'imageCount': 0, 'imageBytes': 0}
+    count = 0
+    total = 0
+    for root, dirs, files in os.walk(dir_path):
+        for name in files:
+            filepath = os.path.join(root, name)
+            try:
+                total += os.path.getsize(filepath)
+                count += 1
+            except Exception:
+                pass
+    return {'imageCount': count, 'imageBytes': total}
+
+
 def goal_ensure_images_dir(project_id):
     path = os.path.join(GOAL_IMAGES_DIR, project_id)
     os.makedirs(path, exist_ok=True)
@@ -1953,6 +1970,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             'updatedAt': project.get('updatedAt'),
         }
         summary.update(goal_stats_for_project(project))
+        summary.update(goal_image_stats_for_project(project.get('id')))
         self.send_json(summary)
 
     def handle_get_goal_projects(self):
@@ -1967,6 +1985,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
                 'updatedAt': p.get('updatedAt'),
             }
             item.update(goal_stats_for_project(p))
+            item.update(goal_image_stats_for_project(p.get('id')))
             result.append(item)
         self.send_json(result)
 
