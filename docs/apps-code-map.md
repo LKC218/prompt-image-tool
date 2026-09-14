@@ -27,7 +27,7 @@
 | `src-tauri/` | Tauri PC 壳 |
 | `android/` | Capacitor Android 工程 |
 | `installer-shell/` | Tauri 自定义安装器壳 |
-| `scripts/` | 构建、开发、维护脚本；`capture_readme_previews.py` 用于重拍 README 预览图（输出到 `docs/assets/readme/`） |
+| `scripts/` | 构建、开发、维护脚本；`capture_readme_previews.py` 重拍 README 预览图；`verify-*.mjs` 为本地功能核验脚本 |
 | `build/` | PyInstaller / NSIS 打包配置与中间产物（安装包不入 Git） |
 | `releases/` | 本地发布产物落点（不入 Git） |
 | `docs/` | 技术 / 设计 / 计划 / 模块 / 版本文档 |

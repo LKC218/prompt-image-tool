@@ -12,7 +12,7 @@ import time
 import urllib.request
 
 EXE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dist', 'PromptImageManager', 'PromptImageManager.exe')
-SETUP = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'PromptImageManager-Setup-2.5.0.exe')
+SETUP = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'PromptImageManager-Setup-2.5.1.exe')
 PORT = 8888
 
 # 1x1 透明 PNG
@@ -132,7 +132,7 @@ def main():
     # 产物信息
     size = os.path.getsize(SETUP)
     sha = hashlib.sha256(open(SETUP, 'rb').read()).hexdigest()
-    print(f'\n[产物] PromptImageManager-Setup-2.5.0.exe')
+    print(f'\n[产物] PromptImageManager-Setup-2.5.1.exe')
     print(f'  大小: {size:,} 字节 ({size / 1024 / 1024:.1f} MB)')
     print(f'  SHA256: {sha}')
     print('\n安装探针全部通过')

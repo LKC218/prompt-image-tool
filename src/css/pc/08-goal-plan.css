@@ -251,6 +251,16 @@
     margin: 0;
 }
 
+.pc-goal-projects-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--pc-space-sm);
+}
+
+.pc-goal-project-sort {
+    flex-shrink: 0;
+}
+
 .pc-goal-projects-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

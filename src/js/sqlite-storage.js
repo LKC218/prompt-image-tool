@@ -890,6 +890,10 @@ export class SqliteStorage {
     async cleanupGoalImages(projectId, keepPaths = []) {
         const keepSet = new Set(keepPaths);
         try {
+            const rows = await this.query('SELECT cover_image FROM goal_projects WHERE id = ?', [projectId]);
+            if (rows[0]?.cover_image) keepSet.add(rows[0].cover_image);
+        } catch (e) { /* ignore */ }
+        try {
             const { Filesystem, Directory } = await import('@capacitor/filesystem');
             const dirPath = `goal_images/${projectId}`;
             let entries;
@@ -899,6 +903,8 @@ export class SqliteStorage {
                 return;
             }
             for (const entry of (entries.files || [])) {
+                // 跳过 cover 子目录
+                if (entry.type === 'directory' || entry.name === 'cover') continue;
                 const fullPath = `${dirPath}/${entry.name}`;
                 if (!keepSet.has(fullPath)) {
                     try {

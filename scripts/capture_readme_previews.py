@@ -16,7 +16,7 @@ MOBILE_BASE = "http://127.0.0.1:5173/?ui=mobile"
 
 def dismiss_release_notes(page) -> None:
     try:
-        page.evaluate("localStorage.setItem('pc-release-notes-last-seen-version', '2.5.0')")
+        page.evaluate("localStorage.setItem('pc-release-notes-last-seen-version', '2.5.1')")
     except Exception:
         pass
     close = page.locator('[data-release-close], .pc-release-notes-actions button').first

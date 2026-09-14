@@ -399,10 +399,14 @@ def goal_cleanup_images(project_id, keep_paths):
     if not os.path.isdir(dir_path):
         return
     for name in os.listdir(dir_path):
+        full = os.path.join(dir_path, name)
+        # 跳过 cover 子目录，封面文件单独存放
+        if os.path.isdir(full):
+            continue
         rel = f'goal_images/{project_id}/{name}'.replace('\\', '/')
         if rel not in keep_set:
             try:
-                os.remove(os.path.join(dir_path, name))
+                os.remove(full)
             except Exception:
                 pass
     try:
@@ -1966,6 +1970,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             'id': project.get('id'),
             'name': project.get('name'),
             'order': project.get('order', 0),
+            'coverImage': project.get('coverImage', ''),
+            'coverColor': project.get('coverColor', ''),
             'createdAt': project.get('createdAt'),
             'updatedAt': project.get('updatedAt'),
         }
@@ -1981,6 +1987,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
                 'id': p.get('id'),
                 'name': p.get('name'),
                 'order': p.get('order', 0),
+                'coverImage': p.get('coverImage', ''),
+                'coverColor': p.get('coverColor', ''),
                 'createdAt': p.get('createdAt'),
                 'updatedAt': p.get('updatedAt'),
             }
@@ -2037,12 +2045,18 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             project['name'] = name
         if 'order' in body:
             project['order'] = int(body['order'])
+        if 'coverImage' in body:
+            project['coverImage'] = str(body['coverImage'] or '')
+        if 'coverColor' in body:
+            project['coverColor'] = str(body['coverColor'] or '')
         project['updatedAt'] = datetime.now().isoformat()
         save_goals(goals)
         self._send_goal_project_summary(project)
 
-    def _collect_goal_image_paths(self, tasks):
+    def _collect_goal_image_paths(self, tasks, project=None):
         paths = []
+        if project and project.get('coverImage'):
+            paths.append(project['coverImage'])
         for task in tasks:
             for img in task.get('images', []):
                 if img.get('path'):
@@ -2062,7 +2076,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             return
         project['tasks'] = tasks
         project['updatedAt'] = datetime.now().isoformat()
-        keep_paths = self._collect_goal_image_paths(tasks)
+        keep_paths = self._collect_goal_image_paths(tasks, project)
         goal_cleanup_images(project_id, keep_paths)
         save_goals(goals)
         self.send_json(project.get('tasks', []))
@@ -2097,7 +2111,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error_json('任务不存在', 404)
             return
         project['updatedAt'] = datetime.now().isoformat()
-        keep_paths = self._collect_goal_image_paths(project.get('tasks', []))
+        keep_paths = self._collect_goal_image_paths(project.get('tasks', []), project)
         goal_cleanup_images(project_id, keep_paths)
         save_goals(goals)
         self.send_ok()
@@ -2133,7 +2147,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error_json('任务不存在', 404)
             return
         project['updatedAt'] = datetime.now().isoformat()
-        keep_paths = self._collect_goal_image_paths(project.get('tasks', []))
+        keep_paths = self._collect_goal_image_paths(project.get('tasks', []), project)
         goal_cleanup_images(project_id, keep_paths)
         save_goals(goals)
         self.send_ok()

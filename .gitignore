@@ -9,6 +9,7 @@ __pycache__/
 *.egg-info/
 *.log
 .playwright-cli/
+scripts/.verify-out/
 
 jdk-*/
 android-sdk/

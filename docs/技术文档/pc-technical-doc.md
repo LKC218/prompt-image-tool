@@ -112,14 +112,16 @@ Tauri 启动
 | 配置项 | 值 | 说明 |
 |--------|-----|------|
 | 窗口标题 | 生图提示词管理器 | - |
-| 窗口尺寸 | 1200 × 800 | 默认大小 |
-| 最小尺寸 | 800 × 600 | - |
+| 窗口尺寸 | 1600 × 900 | 默认大小（Tauri 与 Python 壳已对齐） |
+| 最小尺寸 | 1024 × 576 | - |
 | 窗口居中 | 是 | - |
 | 可调整大小 | 是 | - |
 | 打包格式 | NSIS | Windows 安装程序 |
 | 资源包含 | `../../python/*` | Python 后端脚本 |
 | WebView 安装 | 下载引导程序 | 首次运行自动下载 |
 | 应用 ID | `com.promptimagemanager.app` | - |
+
+> 注意：项目存在两条桌面壳链路。Tauri 读 `src-tauri/tauri.conf.json`；Python/pywebview 安装包读 `build/app_main.py` 的 `webview.create_window()`。改默认窗口尺寸时两边必须同步。
 
 ### 权限配置（capabilities/default.json）
 

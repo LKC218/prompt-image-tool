@@ -1,5 +1,40 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.1',
+        date: '2026-09-14',
+        sections: [
+            {
+                title: '新增',
+                tone: 'pink',
+                items: [
+                    '目标计划项目支持多维排序：默认顺序、按名称、按创建时间、按更新时间、按进度、按存储大小。'
+                ]
+            },
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '目标计划封面加载失败时自动回退为首字母渐变，避免裂图。',
+                    'PC 端默认窗口尺寸调整为 1600×900。'
+                ]
+            },
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    '目标计划封面清理时跳过 cover 子目录与封面文件，避免误删封面。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.1，Android versionCode 递增至 19。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.0',
         date: '2026-08-22',
         sections: [

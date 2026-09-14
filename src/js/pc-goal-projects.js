@@ -17,10 +17,61 @@ import imageIcon from '../assets/icons/image.svg';
 import renameIcon from '../assets/icons/pencil-line.svg';
 import copyIcon from '../assets/icons/copy.svg';
 import deleteIcon from '../assets/icons/trash-2.svg';
+import sortIcon from '../assets/icons/arrow-up-down.svg';
+import checkIcon from '../assets/icons/check.svg';
 import rabbitTip from '../assets/mobile/mascots/rabbit-tip.png';
+
+const PROJECT_SORT_KEY = 'pc-goal-project-sort';
+const PROJECT_SORT_OPTIONS = [
+    { key: 'default', label: '默认顺序' },
+    { key: 'name', label: '按名称' },
+    { key: 'createdAt', label: '按创建时间' },
+    { key: 'updatedAt', label: '按更新时间' },
+    { key: 'progress', label: '按进度' },
+    { key: 'imageBytes', label: '按存储大小' }
+];
 
 let projects = [];
 let pageElRef = null;
+let currentSort = loadProjectSort();
+
+function loadProjectSort() {
+    try {
+        const saved = localStorage.getItem(PROJECT_SORT_KEY);
+        return PROJECT_SORT_OPTIONS.some(o => o.key === saved) ? saved : 'default';
+    } catch (_) {
+        return 'default';
+    }
+}
+
+function saveProjectSort(key) {
+    currentSort = key;
+    try {
+        localStorage.setItem(PROJECT_SORT_KEY, key);
+    } catch (_) { /* ignore */ }
+}
+
+function applyProjectSort(list) {
+    const sorted = [...list];
+    switch (currentSort) {
+        case 'name':
+            return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-CN'));
+        case 'createdAt':
+            return sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        case 'updatedAt':
+            return sorted.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+        case 'progress':
+            return sorted.sort((a, b) => (b.progress || 0) - (a.progress || 0));
+        case 'imageBytes':
+            return sorted.sort((a, b) => (b.imageBytes || 0) - (a.imageBytes || 0));
+        default:
+            return sorted.sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
+}
+
+function getSortLabel() {
+    return PROJECT_SORT_OPTIONS.find(o => o.key === currentSort)?.label || '默认顺序';
+}
 
 function iconImg(icon, alt = '') {
     return `<img src="${icon}" alt="${escapeHtml(alt)}" aria-hidden="${alt ? 'false' : 'true'}">`;
@@ -45,10 +96,15 @@ function render(params = {}) {
         <div class="pc-goal-projects-page">
             <div class="pc-goal-projects-header">
                 <h2 class="pc-goal-projects-title">我的项目</h2>
-                <button class="pc-btn pc-btn-primary pc-btn-sm" id="pcGoalCreateProject">
-                    <span class="pc-btn-icon">${iconImg(plusIcon)}</span>
-                    <span>新建项目</span>
-                </button>
+                <div class="pc-goal-projects-actions">
+                    <button class="pc-icon-btn pc-goal-project-sort" id="pcGoalProjectSort" type="button" aria-label="项目排序" aria-haspopup="menu" aria-expanded="false" title="排序：${escapeHtml(getSortLabel())}">
+                        ${iconImg(sortIcon)}
+                    </button>
+                    <button class="pc-btn pc-btn-primary pc-btn-sm" id="pcGoalCreateProject">
+                        <span class="pc-btn-icon">${iconImg(plusIcon)}</span>
+                        <span>新建项目</span>
+                    </button>
+                </div>
             </div>
             <div id="pcGoalProjectList" class="pc-goal-projects-list"></div>
         </div>
@@ -91,14 +147,16 @@ function renderList() {
     }
 
     const storage = getStorage();
-    const sorted = [...projects].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const sorted = applyProjectSort(projects);
     container.innerHTML = sorted.map(p => {
+        const gradient = generateProjectCoverGradient(p.name);
+        const initials = escapeHtml(getProjectInitials(p.name));
         const coverHtml = p.coverImage
-            ? `<img src="${getGoalImageUrl(storage, p.coverImage)}" alt="" loading="lazy">`
-            : `<div class="pc-goal-project-cover-gradient" style="background: ${generateProjectCoverGradient(p.name)}"><span class="pc-goal-project-cover-initials">${escapeHtml(getProjectInitials(p.name))}</span></div>`;
+            ? `<img src="${getGoalImageUrl(storage, p.coverImage)}" alt="" loading="lazy" data-goal-cover-fallback data-name="${escapeHtml(p.name)}">`
+            : `<div class="pc-goal-project-cover-gradient" style="background: ${gradient}"><span class="pc-goal-project-cover-initials">${initials}</span></div>`;
         return `
         <div class="pc-goal-project-card" data-project-id="${escapeHtml(p.id)}">
-            <div class="pc-goal-project-cover">${coverHtml}</div>
+            <div class="pc-goal-project-cover" data-gradient="${gradient}" data-initials="${initials}">${coverHtml}</div>
             <div class="pc-goal-project-body">
                 <div class="pc-goal-project-header">
                     <h3 class="pc-goal-project-name" title="${escapeHtml(p.name)}"><span>${escapeHtml(p.name)}</span></h3>
@@ -124,6 +182,20 @@ function renderList() {
     `}).join('');
 
     setupProjectNameMarquee(container);
+    setupCoverFallback(container);
+}
+
+// 封面加载失败时回退为首字母渐变，避免裂图
+function setupCoverFallback(container) {
+    container.querySelectorAll('img[data-goal-cover-fallback]').forEach(img => {
+        img.addEventListener('error', () => {
+            const wrap = img.closest('.pc-goal-project-cover');
+            if (!wrap) return;
+            const gradient = wrap.dataset.gradient || generateProjectCoverGradient(img.dataset.name || '');
+            const initials = wrap.dataset.initials || escapeHtml(getProjectInitials(img.dataset.name || ''));
+            wrap.innerHTML = `<div class="pc-goal-project-cover-gradient" style="background: ${gradient}"><span class="pc-goal-project-cover-initials">${initials}</span></div>`;
+        }, { once: true });
+    });
 }
 
 // 项目名称溢出时启动往返滚动（复用提示词库名称滚动模式）
@@ -149,6 +221,10 @@ function setupProjectNameMarquee(container) {
 
 function setupEvents(pageEl) {
     pageEl.querySelector('#pcGoalCreateProject')?.addEventListener('click', createProject);
+    pageEl.querySelector('#pcGoalProjectSort')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showSortMenu(e.currentTarget);
+    });
 
     pageEl.querySelector('#pcGoalProjectList')?.addEventListener('click', (e) => {
         const card = e.target.closest('.pc-goal-project-card');
@@ -275,6 +351,26 @@ async function setProjectCover(id) {
         reader.readAsDataURL(file);
     };
     input.click();
+}
+
+async function showSortMenu(anchorEl) {
+    if (!anchorEl) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const items = PROJECT_SORT_OPTIONS.map(opt => ({
+        action: `sort:${opt.key}`,
+        label: opt.label,
+        icon: opt.key === currentSort ? iconImg(checkIcon) : ''
+    }));
+    const action = await showContextMenu(rect.left, rect.bottom + 8, items, {
+        anchor: anchorEl,
+        source: 'more'
+    });
+    if (!action?.startsWith('sort:')) return;
+    const nextKey = action.slice(5);
+    if (nextKey === currentSort) return;
+    saveProjectSort(nextKey);
+    anchorEl.title = `排序：${getSortLabel()}`;
+    renderList();
 }
 
 async function showProjectMenu(id, anchorEl) {
