@@ -74,3 +74,10 @@ build/_*.txt
 build/_*.py
 docs/*.bak
 debug-*.md
+tmp-*.log
+tmp-*.err.log
+task_plan.md
+# 防止命令参数误写成文件名（如 afecrlf=false diff -- docs --stat）
+afecrlf*
+*--stat
+.pytest_cache/
