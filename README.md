@@ -5,51 +5,55 @@
 </p>
 
 <p align="center">
-  <strong>面向 AI 生图工作流的本地提示词与图片管理工具</strong>
+  <strong>本地优先的 AI 提示词管家</strong>
 </p>
 
 <p align="center">
-  管理提示词、参考图片、分类标签和版本记录，支持 Windows 桌面端与 Android 端在局域网内同步数据。
+  管提示词、参考图、分类标签和版本历史；PC 与 Android 在局域网内同步，数据留在自己手里。
 </p>
 
 <p align="center">
   <a href="https://github.com/LKC218/prompt-image-tool/releases">
     <img alt="Release" src="https://img.shields.io/github/v/release/LKC218/prompt-image-tool?label=release">
   </a>
-  <img alt="Version" src="https://img.shields.io/badge/version-v2.5.0-5B8CFF">
   <img alt="Platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Android%20%7C%20Web-28C76F">
   <img alt="Local first" src="https://img.shields.io/badge/data-local%20first-F59E0B">
 </p>
 
+## 下载
+
+普通用户直接下载发布版，无需安装 Python 或前端依赖。
+
+- [GitHub Releases](https://github.com/LKC218/prompt-image-tool/releases)
+- Windows：`PromptImageManager-Setup-版本号.exe`
+- Android：`PromptImageManager-v版本号-Android.apk`
+
+> Android 首次安装如被拦截，请在系统设置中允许安装未知来源应用。
+
 ## 界面预览
 
-| PC 端首页 | 移动端首页 |
+| PC 首页 | 提示词库 |
 | --- | --- |
-| <img src="docs/assets/readme/preview-pc.png" alt="PC 端首页预览"> | <img src="docs/assets/readme/preview-mobile.png" alt="移动端首页预览" width="260"> |
+| <img src="docs/assets/readme/preview-pc.png" alt="PC 端首页"> | <img src="docs/assets/readme/preview-library.png" alt="PC 端提示词库"> |
+
+| 目标计划 | 移动端首页 |
+| --- | --- |
+| <img src="docs/assets/readme/preview-goals.png" alt="PC 端目标计划"> | <img src="docs/assets/readme/preview-mobile.png" alt="移动端首页" width="260"> |
 
 ## 核心功能
 
 | 能力 | 说明 |
 | --- | --- |
-| 提示词库 | 保存、搜索、编辑和复用正向提示词、反向提示词与创作参数 |
-| 分类与标签 | 使用分类、颜色和标签整理不同项目、风格、场景和用途 |
+| 提示词库 | 保存、搜索、编辑和复用正向 / 反向提示词与创作参数 |
+| 分类与标签 | 用分类、颜色和标签整理项目、风格、场景和用途 |
 | 图片管理 | 为提示词绑定封面图、参考图和本地图片资源 |
-| 版本记录 | 保留提示词修改历史，并在 PC 端侧栏提供应用版本更新记录与未读提示 |
-| 数据备份 | 支持本地数据导入、导出、备份和迁移 |
-| 局域网同步 | 支持 PC 与 Android 拉取、回传和双向同步 |
-| 跨端发布 | 提供 Windows 安装包、Android 安装包和 Web 开发运行方式 |
+| 版本记录 | 保留修改历史；PC 支持详情弹窗与双提示词对比阅读 |
+| 目标计划 | 项目 → 任务两级清单，支持父子任务、优先级和任务图片 |
+| 数据备份 | 本地导入、导出、备份与迁移 |
+| 局域网同步 | PC 与 Android 拉取、回传和双向同步 |
+| 跨端发布 | Windows 安装包、Android 安装包、Web 开发运行 |
 
-## 下载
-
-普通用户建议直接下载发布版，无需手动安装 Python 或前端依赖。
-
-- [前往 GitHub Releases 下载](https://github.com/LKC218/prompt-image-tool/releases)
-- Windows：下载 `PromptImageManager-Setup-版本号.exe`
-- Android：下载 `PromptImageManager-v版本号-Android.apk`
-
-Android 首次安装时，如果系统拦截 APK，请在系统设置中允许当前浏览器或文件管理器安装未知来源应用。
-
-## 快速开始
+## 快速开始（开发）
 
 本地开发服务器：
 
@@ -64,37 +68,28 @@ python scripts\start_dev_server.py
 npm run dev
 ```
 
-PC 独立安装包构建：
-
-```powershell
-python scripts\build_pc_package.py
-```
-
-Android 安装包构建：
-
-```powershell
-python scripts\build_android_package.py
-```
-
-PC 与 Android 发布包一键构建：
-
-```powershell
-python scripts\build_release_packages.py
-```
-
 Windows 一键启动：
 
 - 双击 [`一键启动-服务器和网页.bat`](./一键启动-%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%92%8C%E7%BD%91%E9%A1%B5.bat)
 
 ## 局域网同步
 
-提示词管家支持同一局域网内的 PC 与 Android 数据互通：
+- Android 从 PC 拉取数据、回传数据，或双向同步。
+- PC 默认端口 `8888`，占用时回退 `8889-8897`。
+- 移动端支持 `IP`、`IP:端口`、`http://IP:端口` 三种写法。
 
-- Android 从 PC 拉取提示词数据。
-- Android 回传数据到 PC。
-- 双端执行双向同步。
-- PC 默认优先使用 `8888` 端口，占用时顺序回退到 `8889-8897`。
-- 移动端支持 `IP`、`IP:端口` 和 `http://IP:端口` 三种连接写法。
+## 构建
+
+```powershell
+# PC 安装包
+python scripts\build_pc_package.py
+
+# Android 安装包
+python scripts\build_android_package.py
+
+# 双端发布包
+python scripts\build_release_packages.py
+```
 
 ## 目录说明
 
@@ -105,7 +100,7 @@ Windows 一键启动：
 | `src-tauri/` | Tauri 桌面端工程 |
 | `android/` | Capacitor Android 原生工程 |
 | `installer-shell/` | Tauri 自定义安装器壳工程 |
-| `scripts/` | 构建、维护和发布脚本 |
+| `scripts/` | 构建、维护、发布脚本与 README 预览截图脚本 |
 | `docs/` | 技术文档、设计文档、计划文档和测试记录 |
 | `releases/` | 本地发布产物落点，安装包不提交到 Git |
 
@@ -125,10 +120,10 @@ Windows 一键启动：
 - 源码、配置、文档和必要静态资源进入 Git。
 - 安装包、构建缓存、运行时数据、备份文件和本地私有配置不进入 Git。
 - `python/data/` 只保留 `.gitkeep`，真实提示词数据、备份和图片由 `.gitignore` 排除。
-- 发布安装包请使用本地 `releases/` 产物或 GitHub Releases，不直接提交到仓库历史。
+- 发布安装包使用本地 `releases/` 产物或 GitHub Releases，不直接提交到仓库历史。
 
 ## 数据与隐私
 
-项目优先采用本地数据存储。局域网同步只在用户指定的网络环境中使用，写入类同步接口包含配对令牌校验。提交代码前请确认没有把个人数据、备份文件、访问令牌或本地路径写入仓库。
+项目优先本地存储。局域网同步仅在用户指定网络环境使用，写入类同步接口含配对令牌校验。提交代码前请确认未将个人数据、备份、令牌或本地路径写入仓库。
 
-Windows 的默认数据目录为 `%APPDATA%\PromptImageManager\data`。可访问 `http://127.0.0.1:8888/api/health`，或运行本地开发服务器时查看控制台中的“数据目录”确认实际位置。需要隔离测试数据时，设置 `PROMPT_IMAGE_TOOL_DATA_DIR` 为单独目录。
+Windows 默认数据目录：`%APPDATA%\PromptImageManager\data`。可访问 `http://127.0.0.1:8888/api/health`，或查看开发服务器控制台中的「数据目录」。隔离测试数据可设置 `PROMPT_IMAGE_TOOL_DATA_DIR`。
