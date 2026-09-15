@@ -53,6 +53,7 @@ build/debug_output.txt
 build/stderr.log
 build/_uninstall_files.nsh
 debug-backups/
+output/
 .dbg/
 
 .DS_Store

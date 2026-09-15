@@ -77,7 +77,7 @@
 | `pc-category.js` | `/category` | 文件夹与标签管理 |
 | `pc-goal-projects.js` | `/goals` | 目标计划项目列表 |
 | `pc-goal-detail.js` | `/goals/:id` | 任务树、进度、任务图片 |
-| `pc-settings.js` | `/settings` | 外观、备份、同步、下载历史 |
+| `pc-settings.js` | `/settings` | 外观、备份、同步、下载历史、检查更新 |
 
 ### 3.4 移动页面模块
 
@@ -109,7 +109,8 @@
 | `src/css/pc/07-theme-toggle.css` | 主题切换 |
 | `src/css/pc/08-goal-plan.css` | 目标计划 |
 | `src/css/mobile.css` | 移动端样式入口 |
-| `src/js/theme-config.js` / `theme-service.js` | 主题合法值与运行时应用 |
+| `src/js/version-info.js` | 版本号读取与展示 |
+| `src/js/auto-updater.js` | PC 应用内更新：检查 / 下载 / 安装（HTTP API） |
 | `src/js/pc-utils.js` / `mobile-utils.js` | 端侧 Toast/Modal/ActionSheet |
 | `src/js/pc-cursor.js` | PC 自定义圆环光标 |
 | `src/js/ripple.js` | 涟漪 |
@@ -128,6 +129,7 @@
 | 路径 | 职责 |
 | --- | --- |
 | `python/main.py` | 开发用 HTTP API + 静态资源 |
+| `python/auto_update.py` | 更新检查/下载/静默安装模块（`build/auto_update.py` 同步副本） |
 | `build/app_main.py` | PyInstaller 独立包入口 |
 | `build/installer.nsi` | NSIS 安装脚本 |
 | `src-tauri/` | PC 窗口、拉起 Python |
@@ -164,6 +166,7 @@
 - [PC端提示词详情弹窗模块](模块说明/PC端提示词详情弹窗模块.md)
 - [动态图标组件模块](模块说明/动态图标组件模块.md)
 - [版本号模块](模块说明/版本号模块.md)
+- [应用内自动更新模块](模块说明/应用内自动更新模块.md)
 
 ---
 

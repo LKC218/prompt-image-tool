@@ -88,6 +88,48 @@ function Get-FileSha256([string]$Path) {
     return (Get-FileHash $Path -Algorithm SHA256).Hash
 }
 
+function New-LatestJson([string]$Root, [string]$Ver, [System.Collections.IEnumerable]$AssetMetas, [string]$Repo) {
+    $setup = $null
+    foreach ($meta in $AssetMetas) {
+        if ($meta.Name -like ("*Setup-{0}.exe" -f $Ver) -and $meta.Name -notlike "*Shell*") {
+            $setup = $meta
+            break
+        }
+    }
+    if (-not $setup) {
+        foreach ($meta in $AssetMetas) {
+            if ($meta.Name -like "*Setup*.exe" -and $meta.Name -notlike "*Shell*") {
+                $setup = $meta
+                break
+            }
+        }
+    }
+    if (-not $setup) {
+        Write-Warn2 "No core Setup exe found; skip latest.json"
+        return $null
+    }
+
+    $downloadUrl = "https://github.com/{0}/releases/download/v{1}/{2}" -f $Repo, $Ver, $setup.Name
+    $payload = [ordered]@{
+        version   = $Ver
+        pub_date  = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd")
+        notes     = "PromptImageManager v$Ver"
+        platform  = "windows-x86_64"
+        url       = $downloadUrl
+        sha256    = $setup.Sha256.ToLowerInvariant()
+    }
+    $json = $payload | ConvertTo-Json -Depth 4
+    $outPath = Join-Path $Root "releases\latest.json"
+    $releaseDir = Join-Path $Root "releases"
+    if (-not (Test-Path $releaseDir)) {
+        New-Item -ItemType Directory -Path $releaseDir | Out-Null
+    }
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+    [System.IO.File]::WriteAllText($outPath, $json + "`n", $utf8NoBom)
+    Write-Ok ("latest.json -> {0}" -f $downloadUrl)
+    return $outPath
+}
+
 function Get-GitHubToken {
     if ($env:GH_TOKEN) { return $env:GH_TOKEN }
     if ($env:GITHUB_TOKEN) { return $env:GITHUB_TOKEN }
@@ -185,6 +227,19 @@ foreach ($path in $assetPaths) {
         Sha256 = $sha
     }
     Write-Ok ("{0}  {1} bytes  SHA256={2}" -f $item.Name, $item.Length, $sha)
+}
+
+Write-Step "Generate latest.json for in-app updater"
+$latestJsonPath = New-LatestJson -Root $root -Ver $ver -AssetMetas $assetMeta -Repo $Repo
+if ($latestJsonPath) {
+    $latestItem = Get-Item $latestJsonPath
+    $assetMeta += [pscustomobject]@{
+        Path = $latestItem.FullName
+        Name = $latestItem.Name
+        Size = $latestItem.Length
+        Sha256 = (Get-FileSha256 $latestItem.FullName)
+    }
+    Write-Ok ("Attached {0}" -f $latestItem.Name)
 }
 
 if (-not $SkipReadme) {

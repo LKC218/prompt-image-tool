@@ -10,6 +10,7 @@ import navGoals from '../assets/pc/nav-icons/目标计划.png';
 import navCategory from '../assets/pc/nav-icons/category.png';
 import navSettings from '../assets/pc/nav-icons/settings.png';
 import { openReleaseNotes, showUnreadReleaseNotes, syncReleaseNotesUnreadBadge } from './release-notes.js';
+import { runStartupUpdateCheck } from './auto-updater.js';
 import { render as renderHome, mount as mountHome, unmount as unmountHome } from './pc-home.js';
 import { render as renderLibrary, mount as mountLibrary, unmount as unmountLibrary } from './pc-library.js';
 import { render as renderDetail, mount as mountDetail, unmount as unmountDetail } from './pc-detail.js';
@@ -232,6 +233,9 @@ async function mount(el) {
                 stage: initialSidebarStage,
             });
         }
+        setTimeout(() => {
+            runStartupUpdateCheck().catch(() => {});
+        }, 2500);
     });
 }
 

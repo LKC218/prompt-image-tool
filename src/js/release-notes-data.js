@@ -1,5 +1,26 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.3',
+        date: '2026-09-15',
+        sections: [
+            {
+                title: '新增',
+                tone: 'pink',
+                items: [
+                    'PC 端应用内自动更新：启动静默检查新版本，设置页可手动检查。',
+                    '确认更新后自动下载安装包并校验完整性，静默安装后退出应用。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.3；发版脚本自动生成 latest.json 更新元数据。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.2',
         date: '2026-09-15',
         sections: [

@@ -1,3 +1,26 @@
+## v2.5.3 (2026-09-15)
+
+> 记录依据：`v2.5.2` 发布提交 `0cc1bf2` 之后的工作区功能改动。
+
+### 新增
+
+- **应用内自动更新（PC）**：启动静默检查 GitHub Releases 的 `latest.json`；设置页支持「检查更新」；确认后下载安装包、校验 SHA256，并以 NSIS `/S` 静默覆盖安装后退出应用。
+- **更新元数据发布链路**：`publish_release.ps1` 发版时自动生成并上传 `latest.json`（含 version / url / sha256）。
+
+### 版本与打包
+
+- 主应用、PC Tauri、NSIS 安装器和安装器壳版本已统一升级至 `2.5.3`。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.3.exe`：35,367,872 字节（33.7 MB），SHA256 `3E090980FD4C1F09E1692896DD3E1831361A53473B02F55FF6727B3E947B5532`
+
+### 验证
+
+- `pytest python/tests/test_auto_update.py`：通过，3 个用例。
+- `vitest run src/js/auto-updater.test.js src/js/pc-settings.test.js`：通过，7 个用例。
+- 产物检查：内置前端版本 meta 为 `2.5.3`。
+
+---
+
 ## v2.5.2 (2026-09-15)
 
 > 记录依据：`v2.5.1` 发布提交 `615c908` 之后的工作区优化改动。

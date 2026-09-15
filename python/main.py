@@ -16,6 +16,18 @@ import shutil
 import zipfile
 from datetime import datetime
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from auto_update import (
+        check_update,
+        download_installer,
+        exit_app_after_install,
+        run_installer,
+    )
+    HAS_AUTO_UPDATE = True
+except ImportError:
+    HAS_AUTO_UPDATE = False
+
 
 def find_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -1468,6 +1480,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
 
         if path == '/api/health':
             self.handle_health()
+        elif path == '/api/update/check':
+            self.handle_update_check()
         elif path == '/api/sync':
             self.handle_sync()
         elif path.startswith('/api/sync/images/'):
@@ -1514,6 +1528,10 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
 
         if path == '/api/prompt-sets':
             self.handle_create_prompt_set()
+        elif path == '/api/update/download':
+            self.handle_update_download()
+        elif path == '/api/update/install':
+            self.handle_update_install()
         elif path == '/api/folders':
             self.handle_create_folder()
         elif path == '/api/folders/reorder':
@@ -1628,6 +1646,44 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         payload = get_sync_capabilities()
         payload['dataDir'] = DATA_DIR
         self.send_json(payload)
+
+    def handle_update_check(self):
+        if not HAS_AUTO_UPDATE:
+            self.send_error_json('自动更新模块不可用', 500)
+            return
+        try:
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            local = (query.get('localVersion') or [None])[0]
+            result = check_update(local)
+            self.send_json(result)
+        except Exception as error:
+            self.send_error_json(str(error), 502)
+
+    def handle_update_download(self):
+        if not HAS_AUTO_UPDATE:
+            self.send_error_json('自动更新模块不可用', 500)
+            return
+        try:
+            body = self.read_body()
+            url = str(body.get('url') or '').strip()
+            sha256 = str(body.get('sha256') or '').strip()
+            result = download_installer(url, sha256)
+            self.send_json(result)
+        except Exception as error:
+            self.send_error_json(str(error), 400)
+
+    def handle_update_install(self):
+        if not HAS_AUTO_UPDATE:
+            self.send_error_json('自动更新模块不可用', 500)
+            return
+        try:
+            body = self.read_body()
+            path = str(body.get('path') or '').strip()
+            result = run_installer(path)
+            self.send_json(result)
+            threading.Timer(0.3, exit_app_after_install).start()
+        except Exception as error:
+            self.send_error_json(str(error), 400)
 
     def handle_sync_capabilities(self):
         info = get_sync_capabilities()

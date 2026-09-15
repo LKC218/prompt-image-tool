@@ -7,6 +7,7 @@ import { buildExportSuccessMessage, exportBackup, exportZipBackup, getErrorMessa
 import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel, getDownloadHistoryMethodLabel } from './download-history.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { renderVersionInfo } from './version-info.js';
+import { runManualUpdateCheck } from './auto-updater.js';
 import {
     isPromptImageToolImportStorageError,
     normalizeChatGptVaultConversationImport,
@@ -88,6 +89,7 @@ function render(params = {}) {
                         <span id="pcStorageType">本地存储</span>
                         <span class="pc-settings-data-dir" id="pcDataDirValue" title="">数据目录检测中</span>
                         ${renderVersionInfo({ tag: 'span', className: 'pc-version-info', label: '' })}
+                        <button class="pc-settings-check-update" type="button" id="pcCheckUpdateBtn">检查更新</button>
                     </div>
                 </section>
             </div>
@@ -451,6 +453,16 @@ function setupSettingsEvents(pageEl) {
             renderDownloadHistory(pageEl);
             showToast('图片下载记录已清空');
         });
+    });
+
+    pageEl.querySelector('#pcCheckUpdateBtn')?.addEventListener('click', async () => {
+        const btn = pageEl.querySelector('#pcCheckUpdateBtn');
+        if (btn) btn.disabled = true;
+        try {
+            await runManualUpdateCheck();
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     });
 }
 

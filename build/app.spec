@@ -30,7 +30,7 @@ else:
 
 a = Analysis(
     [os.path.join(SPECPATH, 'app_main.py')],
-    pathex=[],
+    pathex=[SPECPATH, os.path.join(project_root, 'python')],
     binaries=[],
     datas=frontend_datas + icon_datas,
     hiddenimports=[
@@ -40,6 +40,7 @@ a = Analysis(
         'webview.platforms.cef',
         'clr_loader',
         'pythonnet',
+        'auto_update',
     ],
     hookspath=[],
     hooksconfig={},
