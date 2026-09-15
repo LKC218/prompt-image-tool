@@ -1,0 +1,181 @@
+/* PC 俄罗斯方块小游戏页 */
+
+.pc-tetris-page {
+    padding: 8px 4px 24px;
+}
+
+.pc-tetris-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.pc-tetris-board-wrap {
+    position: relative;
+    border-radius: 18px;
+    padding: 12px;
+    background: var(--color-surface-raised, #f4f6fa);
+    box-shadow:
+        8px 8px 18px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.4)),
+        -8px -8px 18px var(--color-shadow-highlight, #ffffff);
+}
+
+.pc-tetris-board {
+    display: block;
+    width: min(320px, 70vw);
+    height: auto;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--pc-sidebar-bg, #eef2f7) 70%, white);
+    box-shadow: inset 2px 2px 6px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.35));
+}
+
+.pc-tetris-overlay {
+    position: absolute;
+    inset: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-surface-subtle, #eef2f7) 82%, transparent);
+    backdrop-filter: blur(4px);
+}
+
+.pc-tetris-overlay[hidden] {
+    display: none !important;
+}
+
+.pc-tetris-overlay-card {
+    text-align: center;
+    padding: 20px 24px;
+    border-radius: 16px;
+    background: var(--color-surface-raised, #fff);
+    box-shadow: var(--pc-sidebar-neu-shadow, 4px 4px 10px rgba(174, 174, 192, 0.4));
+}
+
+.pc-tetris-overlay-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--color-text-primary, #1f2937);
+}
+
+.pc-tetris-overlay-desc {
+    font-size: 13px;
+    color: var(--color-text-secondary, #6b7280);
+    margin-bottom: 16px;
+}
+
+.pc-tetris-overlay-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.pc-tetris-side {
+    width: min(240px, 90vw);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.pc-tetris-panel {
+    border-radius: 16px;
+    padding: 14px;
+    background: var(--color-surface-raised, #fff);
+    box-shadow:
+        5px 5px 12px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.35)),
+        -5px -5px 12px var(--color-shadow-highlight, #fff);
+}
+
+.pc-tetris-label {
+    font-size: 12px;
+    color: var(--color-text-secondary, #6b7280);
+    margin-bottom: 8px;
+}
+
+.pc-tetris-next {
+    display: block;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+}
+
+.pc-tetris-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+}
+
+.pc-tetris-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pc-tetris-stat span {
+    font-size: 12px;
+    color: var(--color-text-secondary, #6b7280);
+}
+
+.pc-tetris-stat strong {
+    font-size: 20px;
+    color: var(--color-text-primary, #1f2937);
+    font-variant-numeric: tabular-nums;
+}
+
+.pc-tetris-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.pc-tetris-btn {
+    appearance: none;
+    border: none;
+    cursor: pointer;
+    min-height: 40px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-primary, #1f2937);
+    background: var(--color-surface-raised, #f5f7fb);
+    box-shadow:
+        3px 3px 8px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.35)),
+        -3px -3px 8px var(--color-shadow-highlight, #fff);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pc-tetris-btn:hover {
+    transform: translateY(-1px);
+}
+
+.pc-tetris-btn:active {
+    box-shadow: inset 2px 2px 6px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.35));
+    transform: translateY(0);
+}
+
+.pc-tetris-btn-primary {
+    background: color-mix(in srgb, var(--pc-accent, #3b82f6) 18%, white);
+    color: var(--pc-accent, #2563eb);
+}
+
+.pc-tetris-hint {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text-secondary, #6b7280);
+}
+
+@media (max-width: 720px) {
+    .pc-tetris-layout {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .pc-tetris-side {
+        width: min(320px, 92vw);
+    }
+}

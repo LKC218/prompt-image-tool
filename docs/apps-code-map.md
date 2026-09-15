@@ -49,7 +49,7 @@
 | `src/js/pc-router.js` | PC 路由（`history.pushState`） |
 | `src/js/mobile-router.js` | 移动路由 |
 
-**PC 路由**：`/`、`/library`、`/detail/:id`、`/editor/:id`、`/category`、`/goals`、`/goals/:id`、`/settings`
+**PC 路由**：`/`、`/library`、`/detail/:id`、`/editor/:id`、`/category`、`/goals`、`/goals/:id`、`/tetris`、`/settings`
 
 **移动路由**：`/`、`/library`、`/detail/:id`、`/editor/:id`、`/category`、`/settings`（暂无目标计划）
 
@@ -77,6 +77,7 @@
 | `pc-category.js` | `/category` | 文件夹与标签管理 |
 | `pc-goal-projects.js` | `/goals` | 目标计划项目列表 |
 | `pc-goal-detail.js` | `/goals/:id` | 任务树、进度、任务图片 |
+| `pc-tetris.js` | `/tetris` | 俄罗斯方块小游戏页（Canvas、键盘与按钮） |
 | `pc-settings.js` | `/settings` | 外观、备份、同步、下载历史、检查更新 |
 
 ### 3.4 移动页面模块
@@ -108,6 +109,8 @@
 | `src/css/pc/06-responsive-overrides.css` | 响应式 |
 | `src/css/pc/07-theme-toggle.css` | 主题切换 |
 | `src/css/pc/08-goal-plan.css` | 目标计划 |
+| `src/css/pc/09-tetris.css` | 俄罗斯方块小游戏页 |
+| `src/js/tetris-core.js` | 俄罗斯方块纯逻辑（棋盘/旋转/消行/计分） |
 | `src/css/mobile.css` | 移动端样式入口 |
 | `src/js/version-info.js` | 版本号读取与展示 |
 | `src/js/auto-updater.js` | PC 应用内更新：检查 / 下载 / 安装（HTTP API） |

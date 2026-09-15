@@ -8,9 +8,10 @@ import navLibrary from '../assets/pc/nav-icons/library.png';
 import navEditor from '../assets/pc/nav-icons/editor.png';
 import navGoals from '../assets/pc/nav-icons/目标计划.png';
 import navCategory from '../assets/pc/nav-icons/category.png';
+import navTetris from '../assets/pc/nav-icons/tetris.png';
 import navSettings from '../assets/pc/nav-icons/settings.png';
 import { openReleaseNotes, showUnreadReleaseNotes, syncReleaseNotesUnreadBadge } from './release-notes.js';
-import { runStartupUpdateCheck } from './auto-updater.js';
+import { runStartupUpdateCheck, runManualUpdateCheck } from './auto-updater.js';
 import { render as renderHome, mount as mountHome, unmount as unmountHome } from './pc-home.js';
 import { render as renderLibrary, mount as mountLibrary, unmount as unmountLibrary } from './pc-library.js';
 import { render as renderDetail, mount as mountDetail, unmount as unmountDetail } from './pc-detail.js';
@@ -18,6 +19,7 @@ import { render as renderEditor, mount as mountEditor, unmount as unmountEditor 
 import { render as renderCategory, mount as mountCategory, unmount as unmountCategory } from './pc-category.js';
 import { render as renderGoalProjects, mount as mountGoalProjects, unmount as unmountGoalProjects } from './pc-goal-projects.js';
 import { render as renderGoalDetail, mount as mountGoalDetail, unmount as unmountGoalDetail } from './pc-goal-detail.js';
+import { render as renderTetris, mount as mountTetris, unmount as unmountTetris } from './pc-tetris.js';
 import { render as renderSettings, mount as mountSettings, unmount as unmountSettings } from './pc-settings.js';
 import { initRipple } from './ripple.js';
 import { initPcCursor } from './pc-cursor.js';
@@ -36,16 +38,25 @@ const NAV_ITEMS = [
     { path: '/library', icon: navLibrary, label: '提示词库' },
     { path: '/editor/', icon: navEditor, label: '新建/编辑' },
     { path: '/goals', icon: navGoals, label: '目标计划' },
-    { path: '/category', icon: navCategory, label: '分类与标签' }
+    { path: '/category', icon: navCategory, label: '分类与标签' },
+    { path: '/tetris', icon: navTetris, label: '俄罗斯方块' }
 ];
 
 const SETTINGS_NAV_ITEM = { path: '/settings', icon: navSettings, label: '设置' };
 
 const RELEASE_NOTES_ICON = `
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M6.5 18.5H6a4 4 0 0 1-.6-7.96A6.75 6.75 0 0 1 18.3 9a4.75 4.75 0 0 1-.8 9.5H17"></path>
-        <path d="m8.5 12 3.5-3.5 3.5 3.5"></path>
-        <path d="M12 8.5v7"></path>
+        <path d="M8 7h12M8 12h12M8 17h8"></path>
+        <path d="M4 7h.01M4 12h.01M4 17h.01"></path>
+    </svg>
+`;
+
+const CHECK_UPDATE_ICON = `
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 4v10"></path>
+        <path d="m8 10 4 4 4-4"></path>
+        <path d="M5 18h14"></path>
+        <path d="M7 21h10"></path>
     </svg>
 `;
 
@@ -63,7 +74,7 @@ const THEME_TOGGLE_ICONS = {
     `,
 };
 
-const TAB_ROUTES = ['/', '/library', '/goals', '/category', '/settings'];
+const TAB_ROUTES = ['/', '/library', '/goals', '/category', '/tetris', '/settings'];
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
 const SIDEBAR_STAGE_OPENING_CLASS = 'is-stagger-opening';
@@ -145,6 +156,10 @@ function renderShell() {
                         <span class="pc-release-notes-nav-icon" aria-hidden="true">${RELEASE_NOTES_ICON}</span>
                         <span class="pc-release-notes-nav-badge" aria-hidden="true"></span>
                     </button>
+                    <button class="pc-nav-item pc-sidebar-utility-item pc-sidebar-check-update-item" type="button" data-check-update data-ripple="false" aria-label="检查更新" title="检查更新">
+                        <span class="pc-check-update-nav-icon" aria-hidden="true">${CHECK_UPDATE_ICON}</span>
+                        <span class="pc-check-update-nav-badge" aria-hidden="true" hidden></span>
+                    </button>
                     ${renderThemeToggle()}
                     <button class="pc-nav-item pc-sidebar-settings-item" type="button" data-nav="${SETTINGS_NAV_ITEM.path}" data-ripple="false" aria-label="${SETTINGS_NAV_ITEM.label}" title="${SETTINGS_NAV_ITEM.label}">
                         <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${SETTINGS_NAV_ITEM.icon});mask-image:url(${SETTINGS_NAV_ITEM.icon})"></div>
@@ -201,6 +216,7 @@ async function mount(el) {
     registerRoute('/category', { render: renderCategory, mount: mountCategory, unmount: unmountCategory });
     registerRoute('/goals', { render: renderGoalProjects, mount: mountGoalProjects, unmount: unmountGoalProjects });
     registerRoute('/goals/:id', { render: renderGoalDetail, mount: mountGoalDetail, unmount: unmountGoalDetail });
+    registerRoute('/tetris', { render: renderTetris, mount: mountTetris, unmount: unmountTetris });
     registerRoute('/settings', { render: renderSettings, mount: mountSettings, unmount: unmountSettings });
 
     setupSidebarNav();
@@ -310,6 +326,13 @@ function setupSidebarNav() {
         if (!item) return;
         if (item.hasAttribute('data-release-notes')) {
             openReleaseNotes();
+            return;
+        }
+        if (item.hasAttribute('data-check-update')) {
+            item.disabled = true;
+            runManualUpdateCheck().finally(() => {
+                item.disabled = false;
+            });
             return;
         }
         playNavIconClickMotion(item);
