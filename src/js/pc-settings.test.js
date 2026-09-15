@@ -51,6 +51,14 @@ vi.mock('./pc-icon-assets.js', () => ({
     pcIcon: (name, className = '') => `<span class="${className}" data-icon="${name}"></span>`,
 }));
 
+const autoUpdaterMocks = vi.hoisted(() => ({
+    runManualUpdateCheck: vi.fn(async () => ({ success: true, hasUpdate: false })),
+}));
+
+vi.mock('./auto-updater.js', () => ({
+    runManualUpdateCheck: autoUpdaterMocks.runManualUpdateCheck,
+}));
+
 function createStorage(size = 1024) {
     return {
         getPromptSets: vi.fn(async () => [{ id: 'prompt-1' }]),
@@ -175,5 +183,39 @@ describe('PC 设置页下载历史', () => {
 
         expect(pageEl.querySelector('#pcStorageRingValue').textContent).toBe('24%');
         expect(pageEl.querySelector('#pcStorageRing').style.getPropertyValue('--ring-percent')).toBe('24%');
+    });
+});
+
+describe('PC 设置页软件更新卡片', () => {
+    beforeEach(() => {
+        storageMocks.getStorage.mockReturnValue(createStorage());
+        document.body.innerHTML = '<div id="pcApp"></div>';
+        localStorage.clear();
+        autoUpdaterMocks.runManualUpdateCheck.mockClear();
+    });
+
+    afterEach(() => {
+        settingsPage.unmount(document.body);
+        vi.clearAllMocks();
+        if (navigatorStorageDescriptor) {
+            Object.defineProperty(navigator, 'storage', navigatorStorageDescriptor);
+        } else {
+            delete navigator.storage;
+        }
+    });
+
+    it('渲染独立更新卡片并可点击检查', async () => {
+        const pageEl = await mountPage();
+        const panel = pageEl.querySelector('.pc-settings-update-panel');
+        const btn = pageEl.querySelector('#pcCheckUpdateBtn');
+
+        expect(panel).toBeTruthy();
+        expect(panel.querySelector('#pcUpdateTitle').textContent).toBe('软件更新');
+        expect(btn).toBeTruthy();
+        expect(pageEl.querySelector('.pc-settings-meta-row #pcCheckUpdateBtn')).toBeNull();
+
+        btn.click();
+        await Promise.resolve();
+        expect(autoUpdaterMocks.runManualUpdateCheck).toHaveBeenCalled();
     });
 });

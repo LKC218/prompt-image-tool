@@ -117,7 +117,8 @@
 | `src/js/plane-war-core.js` | 飞机大战纯逻辑（生成/碰撞/计分/tick） |
 | `src/css/mobile.css` | 移动端样式入口 |
 | `src/js/version-info.js` | 版本号读取与展示 |
-| `src/js/auto-updater.js` | PC 应用内更新：检查 / 下载 / 安装（HTTP API） |
+| `src/js/auto-updater.js` | PC 应用内更新：检查 / 启动下载 / 轮询进度 / 取消 / 安装 |
+| `src/js/update-progress-modal.js` | 阶段式更新进度弹窗（百分比、阶段列表、取消/重试） |
 | `src/js/pc-utils.js` / `mobile-utils.js` | 端侧 Toast/Modal/ActionSheet |
 | `src/js/pc-cursor.js` | PC 自定义圆环光标 |
 | `src/js/ripple.js` | 涟漪 |
@@ -136,7 +137,7 @@
 | 路径 | 职责 |
 | --- | --- |
 | `python/main.py` | 开发用 HTTP API + 静态资源 |
-| `python/auto_update.py` | 更新检查/下载/静默安装模块（`build/auto_update.py` 同步副本） |
+| `python/auto_update.py` | 更新检查/异步下载 Job/静默安装模块（`build/auto_update.py` 同步副本） |
 | `build/app_main.py` | PyInstaller 独立包入口 |
 | `build/installer.nsi` | NSIS 安装脚本 |
 | `src-tauri/` | PC 窗口、拉起 Python |

@@ -1,6 +1,6 @@
 .pc-theme-toggle {
     box-sizing: border-box;
-    flex: 0 0 96px;
+    flex: 0 0 auto;
     width: 96px;
     min-width: 96px;
     height: 48px;
@@ -103,29 +103,19 @@
 
 .pc-sidebar-utility-nav {
     display: flex;
+    flex-direction: row;
     flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
-    gap: 8px;
-    padding: 0 var(--pc-space-md);
-}
-
-.pc-sidebar-release-notes-item {
-    order: 1;
-}
-
-.pc-sidebar-settings-item {
-    order: 3;
-}
-
-.pc-theme-toggle {
-    order: 2;
+    gap: 10px;
+    padding: 0 var(--pc-space-sm);
 }
 
 .pc-app.pc-sidebar-collapsed .pc-theme-toggle {
-    flex: 0 0 48px;
+    flex: 0 0 auto;
     width: 48px;
     min-width: 48px;
+    height: 48px;
 }
 
 .pc-app.pc-sidebar-collapsed .pc-theme-toggle-orbit {

@@ -89,10 +89,28 @@ function render(params = {}) {
                         <span id="pcStorageType">本地存储</span>
                         <span class="pc-settings-data-dir" id="pcDataDirValue" title="">数据目录检测中</span>
                         ${renderVersionInfo({ tag: 'span', className: 'pc-version-info', label: '' })}
-                        <button class="pc-settings-check-update" type="button" id="pcCheckUpdateBtn">检查更新</button>
                     </div>
                 </section>
             </div>
+
+            <section class="pc-settings-panel pc-settings-update-panel" aria-labelledby="pcUpdateTitle">
+                <div class="pc-settings-update-head">
+                    <div class="pc-settings-update-title-group">
+                        <h2 id="pcUpdateTitle" class="pc-settings-panel-title">软件更新</h2>
+                        <p class="pc-settings-update-desc">启动时会自动检查新版本，也可手动立即检查。</p>
+                    </div>
+                    <div class="pc-settings-update-version">
+                        <span class="pc-settings-update-version-label">当前版本</span>
+                        ${renderVersionInfo({ tag: 'span', className: 'pc-settings-update-version-value', label: '' })}
+                    </div>
+                </div>
+                <div class="pc-settings-update-actions">
+                    <button class="pc-btn pc-btn-primary pc-settings-update-btn" type="button" id="pcCheckUpdateBtn">
+                        检查更新
+                    </button>
+                    <span class="pc-settings-update-hint" id="pcUpdateStatusHint">上次检查：启动后自动进行</span>
+                </div>
+            </section>
 
             <section class="pc-settings-panel pc-settings-backup-panel" aria-labelledby="pcBackupTitle">
                 <div class="pc-settings-backup-head">
@@ -457,9 +475,14 @@ function setupSettingsEvents(pageEl) {
 
     pageEl.querySelector('#pcCheckUpdateBtn')?.addEventListener('click', async () => {
         const btn = pageEl.querySelector('#pcCheckUpdateBtn');
+        const hint = pageEl.querySelector('#pcUpdateStatusHint');
         if (btn) btn.disabled = true;
+        if (hint) hint.textContent = '正在检查更新…';
         try {
             await runManualUpdateCheck();
+            if (hint) {
+                hint.textContent = `已检查 · ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+            }
         } finally {
             if (btn) btn.disabled = false;
         }

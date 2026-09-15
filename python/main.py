@@ -19,10 +19,12 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     from auto_update import (
+        cancel_download_job,
         check_update,
-        download_installer,
         exit_app_after_install,
+        get_download_job,
         run_installer,
+        start_download_job,
     )
     HAS_AUTO_UPDATE = True
 except ImportError:
@@ -1482,6 +1484,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_health()
         elif path == '/api/update/check':
             self.handle_update_check()
+        elif path == '/api/update/progress':
+            self.handle_update_progress()
         elif path == '/api/sync':
             self.handle_sync()
         elif path.startswith('/api/sync/images/'):
@@ -1530,6 +1534,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_create_prompt_set()
         elif path == '/api/update/download':
             self.handle_update_download()
+        elif path == '/api/update/download/cancel':
+            self.handle_update_download_cancel()
         elif path == '/api/update/install':
             self.handle_update_install()
         elif path == '/api/folders':
@@ -1667,8 +1673,36 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             body = self.read_body()
             url = str(body.get('url') or '').strip()
             sha256 = str(body.get('sha256') or '').strip()
-            result = download_installer(url, sha256)
+            result = start_download_job(url, sha256)
             self.send_json(result)
+        except Exception as error:
+            self.send_error_json(str(error), 400)
+
+    def handle_update_progress(self):
+        if not HAS_AUTO_UPDATE:
+            self.send_error_json('自动更新模块不可用', 500)
+            return
+        try:
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            job_id = (query.get('jobId') or [''])[0]
+            result = get_download_job(job_id)
+            self.send_json(result)
+        except KeyError as error:
+            self.send_error_json(str(error), 404)
+        except Exception as error:
+            self.send_error_json(str(error), 400)
+
+    def handle_update_download_cancel(self):
+        if not HAS_AUTO_UPDATE:
+            self.send_error_json('自动更新模块不可用', 500)
+            return
+        try:
+            body = self.read_body()
+            job_id = str(body.get('jobId') or '').strip()
+            result = cancel_download_job(job_id)
+            self.send_json(result)
+        except KeyError as error:
+            self.send_error_json(str(error), 404)
         except Exception as error:
             self.send_error_json(str(error), 400)
 

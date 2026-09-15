@@ -1,10 +1,16 @@
 import { getVersion } from './version-info.js';
 import { showToast, showConfirmModal, escapeHtml } from './pc-utils.js';
+import { openUpdateProgressModal } from './update-progress-modal.js';
 
 const CHECK_URL = '/api/update/check';
 const DOWNLOAD_URL = '/api/update/download';
+const CANCEL_URL = '/api/update/download/cancel';
+const PROGRESS_URL = '/api/update/progress';
 const INSTALL_URL = '/api/update/install';
 const LAST_SKIP_KEY = 'pc-update-skip-version';
+const POLL_INTERVAL_MS = 250;
+
+const TERMINAL_PHASES = new Set(['ready', 'failed', 'cancelled']);
 
 async function readJson(response) {
     const data = await response.json().catch(() => ({}));
@@ -42,7 +48,7 @@ export async function checkForUpdate({ silent = false, localVersion } = {}) {
     }
 }
 
-export async function downloadUpdateInstaller(latest) {
+export async function startDownloadUpdate(latest) {
     if (!latest?.url || !latest?.sha256) {
         throw new Error('更新元数据不完整');
     }
@@ -52,6 +58,45 @@ export async function downloadUpdateInstaller(latest) {
         body: JSON.stringify({ url: latest.url, sha256: latest.sha256 }),
     });
     return readJson(response);
+}
+
+export async function fetchUpdateProgress(jobId) {
+    if (!jobId) {
+        throw new Error('缺少下载任务 ID');
+    }
+    const response = await fetch(`${PROGRESS_URL}?jobId=${encodeURIComponent(jobId)}`, {
+        method: 'GET',
+    });
+    return readJson(response);
+}
+
+export async function cancelUpdateDownload(jobId) {
+    if (!jobId) {
+        throw new Error('缺少下载任务 ID');
+    }
+    const response = await fetch(CANCEL_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId }),
+    });
+    return readJson(response);
+}
+
+export async function pollUpdateProgress(jobId, { onUpdate, intervalMs = POLL_INTERVAL_MS, signal } = {}) {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        if (signal?.aborted) {
+            const error = new Error('已停止轮询');
+            error.name = 'AbortError';
+            throw error;
+        }
+        const progress = await fetchUpdateProgress(jobId);
+        onUpdate?.(progress);
+        if (TERMINAL_PHASES.has(progress.phase)) {
+            return progress;
+        }
+        await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
 }
 
 export async function installDownloadedUpdate(installerPath) {
@@ -98,14 +143,72 @@ export async function promptAndInstallUpdate(latest) {
         return { updated: false, skipped: true };
     }
 
-    showToast('正在下载更新，请稍候…', 'info');
+    return runUpdateWithProgressModal(latest);
+}
+
+export async function runUpdateWithProgressModal(latest, { existingModal } = {}) {
+    let modal = existingModal;
+    let cancelled = false;
+    let controller = null;
+    let currentJobId = '';
+
+    const ensureModal = () => {
+        if (modal && modal.isActive()) return modal;
+        modal = openUpdateProgressModal({
+            onCancel: async () => {
+                cancelled = true;
+                if (currentJobId) {
+                    try {
+                        await cancelUpdateDownload(currentJobId);
+                    } catch {
+                        // ignore
+                    }
+                }
+                controller?.abort();
+            },
+            onRetry: () => {
+                controller?.abort();
+                runUpdateWithProgressModal(latest, { existingModal: modal });
+            },
+        });
+        return modal;
+    };
+
+    ensureModal();
+
     try {
-        const download = await downloadUpdateInstaller(latest);
-        showToast('下载完成，正在启动安装…');
-        await installDownloadedUpdate(download.path);
+        const started = await startDownloadUpdate(latest);
+        currentJobId = started.jobId;
+        controller = new AbortController();
+
+        const progress = await pollUpdateProgress(currentJobId, {
+            signal: controller.signal,
+            onUpdate: (payload) => modal?.setProgress(payload),
+        });
+
+        if (cancelled || progress.phase === 'cancelled') {
+            modal?.setProgress({ ...progress, phase: 'cancelled' });
+            return { updated: false, cancelled: true };
+        }
+
+        if (progress.phase === 'failed') {
+            modal?.setProgress(progress);
+            showToast(`更新失败：${progress.error || '未知错误'}`, 'error');
+            return { updated: false, error: progress.error };
+        }
+
+        modal?.setProgress({ ...progress, phase: 'installing' });
+        await installDownloadedUpdate(progress.path);
+        modal?.setProgress({ ...progress, phase: 'ready' });
         showToast('安装程序已启动，应用即将退出');
+        setTimeout(() => modal?.close(), 1200);
         return { updated: true };
     } catch (error) {
+        if (error?.name === 'AbortError' || cancelled) {
+            modal?.setProgress({ phase: 'cancelled', percent: 0 });
+            return { updated: false, cancelled: true };
+        }
+        modal?.setProgress({ phase: 'failed', error: error.message });
         showToast(`更新失败：${error.message}`, 'error');
         return { updated: false, error: error.message };
     }

@@ -1371,3 +1371,198 @@
         transition: none;
     }
 }
+
+.pc-update-progress-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10020;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--pc-space-xl);
+    background: var(--color-overlay-backdrop-soft);
+    -webkit-backdrop-filter: blur(10px) saturate(0.82);
+    backdrop-filter: blur(10px) saturate(0.82);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.pc-update-progress-overlay.pc-update-progress-active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.pc-update-progress-modal {
+    width: min(440px, 100%);
+    padding: 28px 28px 22px;
+    border-radius: var(--pc-radius-lg, 16px);
+    background: var(--pc-surface, #fff);
+    color: var(--pc-text);
+    box-shadow: var(--pc-shadow-lg, 0 16px 40px rgba(15, 23, 42, 0.16));
+}
+
+.pc-update-progress-modal h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.pc-update-progress-desc {
+    margin: 0 0 18px;
+    color: var(--pc-text2);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 1.5em;
+}
+
+.pc-update-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pc-update-progress-bar {
+    position: relative;
+    flex: 1;
+    height: 8px;
+    overflow: hidden;
+    border-radius: var(--pc-radius-full, 999px);
+    background: var(--pc-surface2);
+}
+
+.pc-update-progress-fill {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: var(--pc-accent);
+    transition: width 0.25s ease;
+}
+
+.pc-update-progress-indeterminate {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 36%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent, var(--pc-accent), transparent);
+    animation: pc-update-progress-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes pc-update-progress-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(320%); }
+}
+
+.pc-update-progress-percent {
+    min-width: 42px;
+    text-align: right;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--pc-text1, var(--pc-text));
+}
+
+.pc-update-progress-meta {
+    margin: 10px 0 0;
+    color: var(--pc-text3);
+    font-size: 12px;
+    min-height: 1.2em;
+    font-variant-numeric: tabular-nums;
+}
+
+.pc-update-stage-list {
+    list-style: none;
+    margin: 18px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.pc-update-stage-list li {
+    display: grid;
+    grid-template-columns: 12px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--pc-text2);
+}
+
+.pc-update-stage-list li strong {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--pc-text3);
+}
+
+.pc-update-stage-list li.done {
+    color: var(--pc-text);
+}
+
+.pc-update-stage-list li.done strong {
+    color: var(--pc-green, #22c55e);
+}
+
+.pc-update-stage-list li.active {
+    color: var(--pc-text);
+    font-weight: 600;
+}
+
+.pc-update-stage-list li.active strong {
+    color: var(--pc-accent);
+}
+
+.pc-update-stage-list .stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pc-surface2);
+    box-shadow: inset 0 0 0 1px var(--pc-border, rgba(15, 23, 42, 0.08));
+}
+
+.pc-update-stage-list li.done .stage-dot {
+    background: var(--pc-green, #22c55e);
+    box-shadow: none;
+}
+
+.pc-update-stage-list li.active .stage-dot {
+    background: var(--pc-accent);
+    box-shadow: none;
+    animation: pc-update-stage-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pc-update-stage-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}
+
+.pc-update-progress-error {
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: var(--pc-radius-sm, 10px);
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--pc-danger, #ef4444);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.pc-update-progress-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-update-progress-indeterminate,
+    .pc-update-stage-list li.active .stage-dot {
+        animation: none;
+    }
+}
+
+:root[data-appearance="dark"] .pc-update-progress-modal {
+    background: var(--pc-surface);
+}
+
+:root[data-appearance="dark"] .pc-update-progress-overlay {
+    background: rgba(0, 0, 0, 0.45);
+}
+

@@ -964,11 +964,13 @@
 
 .pc-sidebar-utility-nav {
     display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
-    gap: var(--pc-space-md);
-    padding: 0 var(--pc-space-md);
-    margin-bottom: var(--pc-space-lg);
+    gap: 10px;
+    padding: 0 var(--pc-space-sm);
+    margin-bottom: var(--pc-space-md);
 }
 
 .pc-sidebar-utility-item,
@@ -983,6 +985,13 @@
     gap: 0;
     padding: 0;
     border-radius: var(--pc-sidebar-item-radius);
+    transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.pc-sidebar-utility-item:hover,
+.pc-sidebar-settings-item:hover {
+    background: color-mix(in srgb, var(--pc-surface2) 86%, var(--pc-accent));
+    color: var(--pc-text1);
 }
 
 .pc-sidebar-release-notes-item {
@@ -1015,6 +1024,59 @@
 .pc-nav-item:not(.pc-nav-active):hover .pc-release-notes-nav-icon,
 .pc-nav-item:not(.pc-nav-active):focus-visible .pc-release-notes-nav-icon {
     transform: scale(var(--pc-sidebar-nav-icon-press-scale));
+}
+
+.pc-sidebar-check-update-item {
+    position: relative;
+    color: var(--pc-text3);
+}
+
+.pc-sidebar-check-update-item:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.pc-check-update-nav-icon {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+    position: relative;
+    z-index: 1;
+    color: inherit;
+    transform-origin: 50% 50%;
+    transition: color var(--td-motion-standard) var(--td-motion-easing), transform var(--td-motion-standard) var(--td-motion-easing-emphasized);
+}
+
+.pc-check-update-nav-icon svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pc-nav-item:not(.pc-nav-active):hover .pc-check-update-nav-icon,
+.pc-nav-item:not(.pc-nav-active):focus-visible .pc-check-update-nav-icon {
+    transform: scale(var(--pc-sidebar-nav-icon-press-scale));
+}
+
+.pc-check-update-nav-badge {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pc-accent, #4f8cff);
+    box-shadow: 0 0 0 2px var(--pc-sidebar-bg, rgba(255, 255, 255, 0.9));
+    z-index: 2;
+}
+
+.pc-check-update-nav-badge[hidden] {
+    display: none;
 }
 
 .pc-nav-item.pc-nav-clicking .pc-release-notes-nav-icon {
