@@ -3,7 +3,7 @@ feature: pc-tetris-minigame
 status: delivered
 updated: 2026-09-16
 branch: feature/tetris-game
-commits: 7b864cb..HEAD
+commits: 7b864cb..6c8a70a
 ---
 
 # PC 俄罗斯方块小游戏
