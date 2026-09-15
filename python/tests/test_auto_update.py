@@ -238,6 +238,7 @@ def test_meta_candidate_urls_default_order():
     assert urls[0].startswith("https://github.com/")
     assert any("ghproxy.net" in u for u in urls)
     assert any("jsdelivr" in u for u in urls)
+    assert any("t=" in u for u in urls if "jsdelivr" in u)
     assert _meta_candidate_urls("https://example.com/latest.json") == ["https://example.com/latest.json"]
 
 

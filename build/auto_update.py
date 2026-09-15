@@ -22,7 +22,6 @@ UPDATE_META_URL = (
 # 国内网络访问 GitHub 常见 SSL/EOF 中断，按优先级回退
 UPDATE_META_FALLBACK_URLS = (
     f"https://ghproxy.net/https://github.com/{REPO_SLUG}/releases/latest/download/latest.json",
-    f"https://cdn.jsdelivr.net/gh/{REPO_SLUG}@main/releases/latest.json",
 )
 DOWNLOAD_MIRROR_PREFIXES = (
     "https://ghproxy.net/",
@@ -119,7 +118,16 @@ def _http_get_bytes(url: str, timeout: int | float = HTTP_TIMEOUT) -> bytes:
 def _meta_candidate_urls(explicit: str | None = None) -> list[str]:
     if explicit and explicit.strip():
         return [explicit.strip()]
-    return [UPDATE_META_URL, *UPDATE_META_FALLBACK_URLS]
+    # jsDelivr 对 @main 有 CDN 缓存，加时间戳避免读到过期 latest.json
+    jsdelivr = (
+        f"https://cdn.jsdelivr.net/gh/{REPO_SLUG}@main/releases/latest.json"
+        f"?t={int(time.time())}"
+    )
+    return [
+        UPDATE_META_URL,
+        UPDATE_META_FALLBACK_URLS[0],
+        jsdelivr,
+    ]
 
 
 def _parse_latest_meta(raw: bytes) -> dict[str, Any]:
