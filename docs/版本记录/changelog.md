@@ -1,3 +1,26 @@
+## v2.5.6 (2026-09-16)
+
+> 记录依据：`v2.5.5` 发布后用户反馈「检查更新失败 [SSL: UNEXPECTED_EOF_WHILE_READING]」。
+
+### 修复
+
+- **检查更新网络加固**：每个候选 URL 最多重试 3 次；直连 GitHub 失败后回退 `ghproxy.net` 与 jsDelivr（`@main/releases/latest.json`）。
+- **安装包下载镜像回退**：GitHub Release 直连失败时自动尝试 `ghproxy.net` 前缀镜像。
+- **错误文案**：SSL/EOF/超时/DNS 失败转为可读中文说明。
+
+### 版本与打包
+
+- 主应用、PC Tauri、NSIS 安装器和安装器壳版本已统一升级至 `2.5.6`。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.6.exe`：35,636,349 字节（34.0 MB），SHA256 `D704D7B0B55549E9517E02E09C1479DF2AA7BAC5AFC3E16F0D8CA2ACA4A6C52C`
+
+### 验证
+
+- `python -m pytest python/tests`：通过，68 个用例（含镜像回退与友好错误）。
+- 真实网络：直连 GitHub 失败时 `fetch_latest_meta()` 成功回退并读到 v2.5.5 元数据。
+
+---
+
 ## v2.5.5 (2026-09-16)
 
 > 记录依据：`v2.5.4` 发布提交 `028aed6` 之后的应用内更新进度可视化改动。

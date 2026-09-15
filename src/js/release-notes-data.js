@@ -1,5 +1,27 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.6',
+        date: '2026-09-16',
+        sections: [
+            {
+                title: '修复',
+                tone: 'pink',
+                items: [
+                    '修复检查更新时访问 GitHub 的 SSL/EOF 中断：增加自动重试与镜像回退。',
+                    '安装包下载在 GitHub 直连失败时自动尝试可用镜像地址。',
+                    '网络失败提示改为可读中文说明，便于判断是网络问题还是版本问题。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.6；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.5',
         date: '2026-09-16',
         sections: [

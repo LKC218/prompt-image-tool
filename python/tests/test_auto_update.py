@@ -1,9 +1,11 @@
 import hashlib
 import http.server
+import json
 import os
 import sys
 import threading
 import time
+import urllib.error
 import urllib.parse
 
 import pytest
@@ -12,8 +14,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "python")
 
 from auto_update import (
     DownloadCancelled,
+    _download_url_candidates,
+    _friendly_network_error,
+    _meta_candidate_urls,
     cancel_download_job,
     download_installer,
+    fetch_latest_meta,
     get_download_job,
     is_remote_newer,
     parse_version_tuple,
@@ -225,3 +231,58 @@ def test_download_installer_should_cancel_callback(tmp_path):
 def test_get_download_job_unknown():
     with pytest.raises(KeyError):
         get_download_job("missing-job")
+
+
+def test_meta_candidate_urls_default_order():
+    urls = _meta_candidate_urls(None)
+    assert urls[0].startswith("https://github.com/")
+    assert any("ghproxy.net" in u for u in urls)
+    assert any("jsdelivr" in u for u in urls)
+    assert _meta_candidate_urls("https://example.com/latest.json") == ["https://example.com/latest.json"]
+
+
+def test_download_url_candidates_github_mirror():
+    candidates = _download_url_candidates(
+        "https://github.com/LKC218/prompt-image-tool/releases/download/v2.5.5/a.exe"
+    )
+    assert candidates[0].startswith("https://github.com/")
+    assert any(c.startswith("https://ghproxy.net/") for c in candidates)
+    assert len(candidates) == len(set(candidates))
+
+
+def test_friendly_network_error_ssl():
+    msg = _friendly_network_error(
+        Exception("<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred>")
+    )
+    assert "SSL" in msg
+    assert "重试" in msg
+
+
+def test_fetch_latest_meta_fallback_when_direct_fails(monkeypatch):
+    payload = json.dumps({
+        "version": "2.5.5",
+        "url": "https://example.com/a.exe",
+        "sha256": "ab" * 32,
+    }).encode("utf-8")
+    calls = []
+
+    def fake_http_get(url, timeout=15):
+        calls.append(url)
+        if "github.com" in url and "ghproxy" not in url:
+            raise urllib.error.URLError("[SSL: UNEXPECTED_EOF_WHILE_READING]")
+        return payload
+
+    monkeypatch.setattr("auto_update._http_get_bytes", fake_http_get)
+    meta = fetch_latest_meta()
+    assert meta["version"] == "2.5.5"
+    assert len(calls) >= 2
+
+
+def test_fetch_latest_meta_all_fail_raises_friendly(monkeypatch):
+    def fake_http_get(url, timeout=15):
+        raise urllib.error.URLError("[SSL: UNEXPECTED_EOF_WHILE_READING] EOF")
+
+    monkeypatch.setattr("auto_update._http_get_bytes", fake_http_get)
+    with pytest.raises(RuntimeError) as exc:
+        fetch_latest_meta()
+    assert "SSL" in str(exc.value)

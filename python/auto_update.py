@@ -15,12 +15,23 @@ import urllib.request
 import uuid
 from typing import Any, Callable
 
+REPO_SLUG = "LKC218/prompt-image-tool"
 UPDATE_META_URL = (
     "https://github.com/LKC218/prompt-image-tool/releases/latest/download/latest.json"
+)
+# 国内网络访问 GitHub 常见 SSL/EOF 中断，按优先级回退
+UPDATE_META_FALLBACK_URLS = (
+    f"https://ghproxy.net/https://github.com/{REPO_SLUG}/releases/latest/download/latest.json",
+    f"https://cdn.jsdelivr.net/gh/{REPO_SLUG}@main/releases/latest.json",
+)
+DOWNLOAD_MIRROR_PREFIXES = (
+    "https://ghproxy.net/",
 )
 HTTP_TIMEOUT = 15
 DOWNLOAD_CHUNK = 1024 * 256
 USER_AGENT = "PromptImageManager-Updater/1.0"
+NETWORK_RETRY_ATTEMPTS = 3
+NETWORK_RETRY_BACKOFF = 0.8
 
 JOB_PHASES_ACTIVE = frozenset({"pending", "downloading", "verifying"})
 _jobs_lock = threading.Lock()
@@ -69,11 +80,49 @@ def read_local_app_version(frontend_dir: str | None = None) -> str:
     return "0.0.0"
 
 
-def fetch_latest_meta(url: str | None = None) -> dict[str, Any]:
-    target = (url or UPDATE_META_URL).strip()
-    request = urllib.request.Request(target, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT) as response:
-        raw = response.read()
+def _friendly_network_error(error: BaseException) -> str:
+    text = str(error)
+    lowered = text.lower()
+    if "unexpected_eof" in lowered or "eof occurred" in lowered or "ssl" in lowered:
+        return "无法安全连接更新服务器（网络中断或 SSL 握手失败），请检查网络后重试"
+    if "timed out" in lowered or "timeout" in lowered:
+        return "连接更新服务器超时，请检查网络后重试"
+    if "name or service not known" in lowered or "getaddrinfo" in lowered:
+        return "无法解析更新服务器地址，请检查网络或 DNS"
+    return f"检查更新失败：{text}"
+
+
+def _build_request(url: str) -> urllib.request.Request:
+    return urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json, text/plain, */*",
+            "Cache-Control": "no-cache",
+        },
+    )
+
+
+def _http_get_bytes(url: str, timeout: int | float = HTTP_TIMEOUT) -> bytes:
+    last_error: BaseException | None = None
+    for attempt in range(NETWORK_RETRY_ATTEMPTS):
+        try:
+            with urllib.request.urlopen(_build_request(url), timeout=timeout) as response:
+                return response.read()
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            last_error = error
+            if attempt < NETWORK_RETRY_ATTEMPTS - 1:
+                time.sleep(NETWORK_RETRY_BACKOFF * (attempt + 1))
+    raise last_error if last_error else RuntimeError("网络请求失败")
+
+
+def _meta_candidate_urls(explicit: str | None = None) -> list[str]:
+    if explicit and explicit.strip():
+        return [explicit.strip()]
+    return [UPDATE_META_URL, *UPDATE_META_FALLBACK_URLS]
+
+
+def _parse_latest_meta(raw: bytes) -> dict[str, Any]:
     data = json.loads(raw.decode("utf-8"))
     if not isinstance(data, dict):
         raise ValueError("latest.json 格式无效")
@@ -86,6 +135,41 @@ def fetch_latest_meta(url: str | None = None) -> dict[str, Any]:
     data["url"] = download_url
     data["sha256"] = sha256
     return data
+
+
+def fetch_latest_meta(url: str | None = None) -> dict[str, Any]:
+    candidates = _meta_candidate_urls(url)
+    last_error: BaseException | None = None
+    for target in candidates:
+        try:
+            raw = _http_get_bytes(target)
+            return _parse_latest_meta(raw)
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError, json.JSONDecodeError) as error:
+            last_error = error
+            continue
+    if last_error is None:
+        raise RuntimeError("更新元数据请求失败")
+    if isinstance(last_error, (urllib.error.URLError, TimeoutError, OSError)):
+        raise RuntimeError(_friendly_network_error(last_error)) from last_error
+    raise RuntimeError(f"检查更新失败：{last_error}") from last_error
+
+
+def _download_url_candidates(url: str) -> list[str]:
+    url = (url or "").strip()
+    if not url:
+        return []
+    candidates = [url]
+    if url.startswith("https://github.com/") or url.startswith("http://github.com/"):
+        for prefix in DOWNLOAD_MIRROR_PREFIXES:
+            candidates.append(f"{prefix}{url}")
+    # 去重且保持顺序
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for item in candidates:
+        if item not in seen:
+            seen.add(item)
+            ordered.append(item)
+    return ordered
 
 
 def check_update(local_version: str | None = None) -> dict[str, Any]:
@@ -200,7 +284,6 @@ def download_installer(
         raise ValueError("url 与 sha256 必填")
 
     target = _resolve_target_path(url, dest_path)
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     digest = hashlib.sha256()
     downloaded = 0
     total_size = 0
@@ -261,8 +344,28 @@ def download_installer(
         raise request_cancelled_error()
 
     report("downloading", 0)
+    open_error: BaseException | None = None
+    response = None
+    for candidate in _download_url_candidates(url):
+        if job_id and _job_cancel_requested(job_id):
+            raise request_cancelled_error()
+        try:
+            response = urllib.request.urlopen(_build_request(candidate), timeout=60)
+            break
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            open_error = error
+            continue
+    if response is None:
+        message = _friendly_network_error(open_error) if open_error else "无法连接下载地址"
+        if job_id:
+            try:
+                _patch_job(job_id, phase="failed", error=message, path="")
+            except KeyError:
+                pass
+        raise RuntimeError(message)
+
     try:
-        with urllib.request.urlopen(request, timeout=60) as response, open(target, "wb") as handle:
+        with response, open(target, "wb") as handle:
             content_length = response.headers.get("Content-Length") if response.headers else None
             try:
                 total_size = int(content_length) if content_length else 0
@@ -296,8 +399,10 @@ def download_installer(
     except DownloadCancelled:
         _remove_file_quiet(target)
         raise
-    except Exception:
+    except Exception as error:
         _remove_file_quiet(target)
+        if isinstance(error, (urllib.error.URLError, TimeoutError, OSError)):
+            raise RuntimeError(_friendly_network_error(error)) from error
         raise
 
     report("verifying", 100 if total_size == 0 else (downloaded / max(total_size, 1)) * 100)
