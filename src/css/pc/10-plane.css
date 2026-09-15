@@ -1,0 +1,175 @@
+/* 摸鱼时间游戏中心 + 飞机大战 */
+
+.pc-games-page {
+    padding: 8px 4px 24px;
+}
+
+.pc-games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+    max-width: 960px;
+}
+
+.pc-games-card {
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--color-surface-raised, #fff);
+    box-shadow:
+        6px 6px 14px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.35)),
+        -6px -6px 14px var(--color-shadow-highlight, #fff);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pc-games-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        8px 8px 18px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.4)),
+        -8px -8px 18px var(--color-shadow-highlight, #fff);
+}
+
+.pc-games-card-cover {
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pc-games-card-mark {
+    font-size: 48px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    letter-spacing: 2px;
+}
+
+.pc-games-card-body {
+    padding: 14px 16px 16px;
+}
+
+.pc-games-card-title {
+    margin: 0 0 6px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--color-text-primary, #1f2937);
+}
+
+.pc-games-card-summary {
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-text-secondary, #6b7280);
+    min-height: 40px;
+}
+
+.pc-games-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--color-text-secondary, #8b95a5);
+    margin-bottom: 12px;
+}
+
+.pc-games-card-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.pc-plane-page {
+    padding: 8px 4px 24px;
+}
+
+.pc-plane-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.pc-plane-board-wrap {
+    position: relative;
+    border-radius: 18px;
+    padding: 12px;
+    background: var(--color-surface-raised, #f4f6fa);
+    box-shadow:
+        8px 8px 18px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.4)),
+        -8px -8px 18px var(--color-shadow-highlight, #ffffff);
+}
+
+.pc-plane-board {
+    display: block;
+    width: min(320px, 78vw);
+    height: auto;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
+.pc-plane-overlay {
+    position: absolute;
+    inset: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: color-mix(in srgb, #0f172a 55%, transparent);
+    backdrop-filter: blur(4px);
+}
+
+.pc-plane-overlay[hidden] {
+    display: none !important;
+}
+
+.pc-plane-overlay-card {
+    text-align: center;
+    padding: 20px 24px;
+    border-radius: 16px;
+    background: var(--color-surface-raised, #fff);
+    box-shadow: var(--pc-sidebar-neu-shadow, 4px 4px 10px rgba(174, 174, 192, 0.4));
+}
+
+.pc-plane-overlay-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--color-text-primary, #1f2937);
+}
+
+.pc-plane-overlay-desc {
+    font-size: 13px;
+    color: var(--color-text-secondary, #6b7280);
+    margin-bottom: 16px;
+}
+
+.pc-plane-overlay-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.pc-plane-side {
+    width: min(240px, 90vw);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.pc-plane-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+@media (max-width: 720px) {
+    .pc-plane-layout {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .pc-plane-side {
+        width: min(320px, 92vw);
+    }
+}

@@ -8,7 +8,7 @@ import navLibrary from '../assets/pc/nav-icons/library.png';
 import navEditor from '../assets/pc/nav-icons/editor.png';
 import navGoals from '../assets/pc/nav-icons/目标计划.png';
 import navCategory from '../assets/pc/nav-icons/category.png';
-import navTetris from '../assets/pc/nav-icons/tetris.png';
+import navGames from '../assets/pc/nav-icons/games.png';
 import navSettings from '../assets/pc/nav-icons/settings.png';
 import { openReleaseNotes, showUnreadReleaseNotes, syncReleaseNotesUnreadBadge } from './release-notes.js';
 import { runStartupUpdateCheck, runManualUpdateCheck } from './auto-updater.js';
@@ -20,6 +20,8 @@ import { render as renderCategory, mount as mountCategory, unmount as unmountCat
 import { render as renderGoalProjects, mount as mountGoalProjects, unmount as unmountGoalProjects } from './pc-goal-projects.js';
 import { render as renderGoalDetail, mount as mountGoalDetail, unmount as unmountGoalDetail } from './pc-goal-detail.js';
 import { render as renderTetris, mount as mountTetris, unmount as unmountTetris } from './pc-tetris.js';
+import { render as renderGamesHub, mount as mountGamesHub, unmount as unmountGamesHub } from './pc-games-hub.js';
+import { render as renderPlane, mount as mountPlane, unmount as unmountPlane } from './pc-plane.js';
 import { render as renderSettings, mount as mountSettings, unmount as unmountSettings } from './pc-settings.js';
 import { initRipple } from './ripple.js';
 import { initPcCursor } from './pc-cursor.js';
@@ -39,7 +41,7 @@ const NAV_ITEMS = [
     { path: '/editor/', icon: navEditor, label: '新建/编辑' },
     { path: '/goals', icon: navGoals, label: '目标计划' },
     { path: '/category', icon: navCategory, label: '分类与标签' },
-    { path: '/tetris', icon: navTetris, label: '俄罗斯方块' }
+    { path: '/games', icon: navGames, label: '摸鱼时间' }
 ];
 
 const SETTINGS_NAV_ITEM = { path: '/settings', icon: navSettings, label: '设置' };
@@ -74,7 +76,7 @@ const THEME_TOGGLE_ICONS = {
     `,
 };
 
-const TAB_ROUTES = ['/', '/library', '/goals', '/category', '/tetris', '/settings'];
+const TAB_ROUTES = ['/', '/library', '/goals', '/category', '/games', '/settings'];
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
 const SIDEBAR_STAGE_OPENING_CLASS = 'is-stagger-opening';
@@ -216,7 +218,9 @@ async function mount(el) {
     registerRoute('/category', { render: renderCategory, mount: mountCategory, unmount: unmountCategory });
     registerRoute('/goals', { render: renderGoalProjects, mount: mountGoalProjects, unmount: unmountGoalProjects });
     registerRoute('/goals/:id', { render: renderGoalDetail, mount: mountGoalDetail, unmount: unmountGoalDetail });
+    registerRoute('/games', { render: renderGamesHub, mount: mountGamesHub, unmount: unmountGamesHub });
     registerRoute('/tetris', { render: renderTetris, mount: mountTetris, unmount: unmountTetris });
+    registerRoute('/plane', { render: renderPlane, mount: mountPlane, unmount: unmountPlane });
     registerRoute('/settings', { render: renderSettings, mount: mountSettings, unmount: unmountSettings });
 
     setupSidebarNav();
@@ -238,6 +242,8 @@ async function mount(el) {
         updateNavHighlight('/editor/');
     } else if (initialPath.startsWith('/goals')) {
         updateNavHighlight('/goals');
+    } else if (initialPath === '/tetris' || initialPath === '/plane') {
+        updateNavHighlight('/games');
     }
     createPage(resolveRouteKey(initialPath), initialRoute.params || {}, 'tab');
     const initialSidebarStage = appEl.querySelector('#pcSidebarStage');
@@ -540,7 +546,8 @@ function updateNavHighlight(path) {
         const navPath = item.dataset.nav;
         const isActive = navPath === path
             || (path.startsWith('/detail') && navPath === '/library')
-            || (path.startsWith('/editor') && navPath === '/editor/');
+            || (path.startsWith('/editor') && navPath === '/editor/')
+            || ((path === '/tetris' || path === '/plane') && navPath === '/games');
 
         item.classList.toggle('pc-nav-active', isActive);
         if (isActive) {
@@ -578,6 +585,8 @@ function handleRouteChange(newRoute, oldRoute, direction) {
         updateNavHighlight('/editor/');
     } else if (path.startsWith('/goals')) {
         updateNavHighlight('/goals');
+    } else if (path === '/tetris' || path === '/plane') {
+        updateNavHighlight('/games');
     }
 
     createPage(routeKey, newRoute.params || {}, direction);
