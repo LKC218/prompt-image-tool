@@ -10,6 +10,14 @@ import {
     tryFire,
 } from './plane-war-core.js';
 import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
+import playerSprite from '../assets/pc/games/plane/player.png';
+import enemyBasicSprite from '../assets/pc/games/plane/enemy-basic.png';
+import enemyFastSprite from '../assets/pc/games/plane/enemy-fast.png';
+import enemyHeavySprite from '../assets/pc/games/plane/enemy-heavy.png';
+import bulletPlayerSprite from '../assets/pc/games/plane/bullet-player.png';
+import bulletEnemySprite from '../assets/pc/games/plane/bullet-enemy.png';
+import explosionSprite from '../assets/pc/games/plane/fx-explosion.png';
+import thrusterSprite from '../assets/pc/games/plane/fx-thruster.png';
 
 const KEYS = {
     left: false,
@@ -18,6 +26,38 @@ const KEYS = {
     down: false,
     fire: false,
 };
+
+const SPRITE_SRC = {
+    player: playerSprite,
+    basic: enemyBasicSprite,
+    fast: enemyFastSprite,
+    heavy: enemyHeavySprite,
+    bulletPlayer: bulletPlayerSprite,
+    bulletEnemy: bulletEnemySprite,
+    explosion: explosionSprite,
+    thruster: thrusterSprite,
+};
+
+const spriteImages = {};
+
+function loadSprites() {
+    Object.entries(SPRITE_SRC).forEach(([key, src]) => {
+        if (spriteImages[key]?.complete && spriteImages[key].naturalWidth) return;
+        const img = new Image();
+        img.src = src;
+        spriteImages[key] = img;
+    });
+}
+
+function drawSprite(c, img, x, y, w, h, flipY = false) {
+    if (!img || !img.complete || !img.naturalWidth) return false;
+    c.save();
+    c.translate(x, y);
+    if (flipY) c.rotate(Math.PI);
+    c.drawImage(img, -w / 2, -h / 2, w, h);
+    c.restore();
+    return true;
+}
 
 let state = null;
 let pageEl = null;
@@ -116,24 +156,40 @@ function syncOverlay() {
 
 function drawShip(c, p) {
     c.save();
-    c.translate(p.x, p.y);
     if (p.invincible > 0 && Math.floor(p.invincible * 10) % 2 === 0) {
         c.globalAlpha = 0.35;
     }
-    c.fillStyle = '#38bdf8';
-    c.beginPath();
-    c.moveTo(0, -p.h / 2);
-    c.lineTo(p.w / 2, p.h / 2);
-    c.lineTo(0, p.h / 4);
-    c.lineTo(-p.w / 2, p.h / 2);
-    c.closePath();
-    c.fill();
-    c.fillStyle = '#e0f2fe';
-    c.fillRect(-3, -2, 6, 10);
+    const w = p.w * 1.7;
+    const h = p.h * 1.7;
+    if (!drawSprite(c, spriteImages.player, p.x, p.y, w, h, false)) {
+        c.translate(p.x, p.y);
+        c.fillStyle = '#38bdf8';
+        c.beginPath();
+        c.moveTo(0, -p.h / 2);
+        c.lineTo(p.w / 2, p.h / 2);
+        c.lineTo(0, p.h / 4);
+        c.lineTo(-p.w / 2, p.h / 2);
+        c.closePath();
+        c.fill();
+        c.fillStyle = '#e0f2fe';
+        c.fillRect(-3, -2, 6, 10);
+    }
     c.restore();
 }
 
 function drawEnemy(c, e) {
+    const w = e.w * 1.6;
+    const h = e.h * 1.6;
+    // 素材机头朝上，敌方需朝下
+    if (drawSprite(c, spriteImages[e.type] || spriteImages.basic, e.x, e.y, w, h, true)) {
+        if (e.maxHp > 1) {
+            c.fillStyle = 'rgba(255,255,255,0.45)';
+            c.fillRect(e.x - e.w / 2, e.y - e.h / 2 - 5, e.w, 3);
+            c.fillStyle = '#86efac';
+            c.fillRect(e.x - e.w / 2, e.y - e.h / 2 - 5, e.w * (e.hp / e.maxHp), 3);
+        }
+        return;
+    }
     const colors = { basic: '#fb7185', fast: '#fbbf24', heavy: '#a78bfa' };
     c.fillStyle = colors[e.type] || '#fb7185';
     c.beginPath();
@@ -161,14 +217,21 @@ function draw() {
         ctx.fillRect(x, y, 2, 2);
     }
     state.bullets.forEach((b) => {
-        ctx.fillStyle = '#fef08a';
-        ctx.fillRect(b.x - b.w / 2, b.y - b.h / 2, b.w, b.h);
+        const bw = Math.max(10, b.w * 2.2);
+        const bh = Math.max(16, b.h * 1.4);
+        if (!drawSprite(ctx, spriteImages.bulletPlayer, b.x, b.y, bw, bh, false)) {
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(b.x - b.w / 2, b.y - b.h / 2, b.w, b.h);
+        }
     });
     state.enemies.forEach((e) => drawEnemy(ctx, e));
     state.particles.forEach((p) => {
         ctx.globalAlpha = Math.max(0, p.life / 0.35);
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, 3, 3);
+        const size = 18 + (1 - p.life / 0.35) * 22;
+        if (!drawSprite(ctx, spriteImages.explosion, p.x, p.y, size, size, false)) {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, 3, 3);
+        }
         ctx.globalAlpha = 1;
     });
     drawShip(ctx, state.player);
@@ -340,6 +403,7 @@ function mount(el) {
     state = createGameState();
     state.highScore = Math.max(state.highScore || 0, readHighScore());
     lastTs = performance.now();
+    loadSprites();
     bindInput();
     updateHud();
     syncOverlay();
