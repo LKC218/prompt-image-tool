@@ -27,8 +27,8 @@
 普通用户直接下载发布版，无需安装 Python 或前端依赖。
 
 - [GitHub Releases](https://github.com/LKC218/prompt-image-tool/releases/latest)
-- Windows：`PromptImageManager-Setup-2.5.4.exe`
-- Android：`PromptImageManager-v2.5.4-Android.apk`（若该版本未附带 APK，请继续使用 Release 页中可用的最新 Android 包）
+- Windows：`PromptImageManager-Setup-2.5.5.exe`
+- Android：`PromptImageManager-v2.5.5-Android.apk`（若该版本未附带 APK，请继续使用 Release 页中可用的最新 Android 包）
 
 > Android 首次安装如被拦截，请在系统设置中允许安装未知来源应用。
 
