@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
   One-click release for PromptImageManager:
@@ -130,6 +130,46 @@ function New-LatestJson([string]$Root, [string]$Ver, [System.Collections.IEnumer
     return $outPath
 }
 
+function Get-ReleaseHighlights([string]$Root, [string]$Ver) {
+    $path = Join-Path $Root "src\js\release-notes-data.js"
+    if (-not (Test-Path $path)) {
+        return @()
+    }
+    $text = Get-Content $path -Raw -Encoding UTF8
+    $escaped = [regex]::Escape($Ver)
+    $blockPattern = "(?s)\{\s*version:\s*'$escaped'.*?(?=\{\s*version:\s*'|\]\s*;\s*$)"
+    $m = [regex]::Match($text, $blockPattern)
+    if (-not $m.Success) {
+        return @()
+    }
+    $block = $m.Value
+    $highlights = @()
+    # 逐 section 解析：title + items，跳过「发布」
+    $sectionPattern = "(?s)\{\s*title:\s*'([^']+)'.*?items:\s*\[(.*?)\]\s*,?\s*\}"
+    $sections = [regex]::Matches($block, $sectionPattern)
+    foreach ($sec in $sections) {
+        $title = $sec.Groups[1].Value
+        if ($title -eq '发布') {
+            continue
+        }
+        $itemsRaw = $sec.Groups[2].Value
+        $itemMatches = [regex]::Matches($itemsRaw, "'((?:\\'|[^'])*)'")
+        foreach ($im in $itemMatches) {
+            $item = $im.Groups[1].Value -replace "\\'", "'"
+            $item = ($item -replace '\s+', ' ').Trim()
+            if ($item) {
+                $highlights += $item
+            }
+        }
+    }
+    $max = 8
+    if ($highlights.Count -gt $max) {
+        $highlights = $highlights[0..($max - 1)]
+        $highlights += "… 更多变更见仓库内 docs/版本记录/changelog.md。"
+    }
+    return $highlights
+}
+
 function Get-GitHubToken {
     if ($env:GH_TOKEN) { return $env:GH_TOKEN }
     if ($env:GITHUB_TOKEN) { return $env:GITHUB_TOKEN }
@@ -209,6 +249,29 @@ $root = Get-RepoRoot
 Set-Location $root
 $ver = Get-AppVersion $root
 Write-Step ("Target version v{0}" -f $ver)
+
+# 版本一致性：package.json / meta[name=version] / RELEASE_NOTES 首项
+$pkg = Get-Content (Join-Path $root "package.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$metaHtml = Get-Content (Join-Path $root "src/index.html") -Raw -Encoding UTF8
+$metaMatch = [regex]::Match($metaHtml, 'name="version"\s+content="([^"]+)"')
+$notesPath = Join-Path $root "src/js/release-notes-data.js"
+$notesText = Get-Content $notesPath -Raw -Encoding UTF8
+$notesFirst = [regex]::Match($notesText, "version:\s*'([^']+)'")
+
+$mismatches = @()
+if ([string]$pkg.version -ne $ver) {
+    $mismatches += ("package.json={0}" -f $pkg.version)
+}
+if ($metaMatch.Success -and $metaMatch.Groups[1].Value -ne $ver) {
+    $mismatches += ("index.html meta={0}" -f $metaMatch.Groups[1].Value)
+}
+if ($notesFirst.Success -and $notesFirst.Groups[1].Value -ne $ver) {
+    $mismatches += ("RELEASE_NOTES 首项={0}" -f $notesFirst.Groups[1].Value)
+}
+if ($mismatches.Count -gt 0) {
+    throw ("Version mismatch for v{0}: {1}" -f $ver, ($mismatches -join "; "))
+}
+Write-Ok "Version consistency: package.json / meta / RELEASE_NOTES aligned"
 
 $assetPaths = Find-Assets -Root $root -Ver $ver
 if ($assetPaths.Count -eq 0) {
@@ -336,6 +399,22 @@ if (-not $SkipRelease) {
                 $rows += $row
             }
             $table = $rows -join "`n"
+
+            $highlights = Get-ReleaseHighlights -Root $root -Ver $ver
+            $highlightsMd = ""
+            if ($highlights.Count -gt 0) {
+                $bulletLines = @()
+                foreach ($h in $highlights) {
+                    $bulletLines += ("- {0}" -f $h)
+                }
+                $highlightsMd = @"
+
+### Highlights
+
+$($bulletLines -join "`n")
+"@
+            }
+
             $notes = @"
 ## PromptImageManager v$ver
 
@@ -344,6 +423,7 @@ if (-not $SkipRelease) {
 | Asset | Size | SHA256 |
 | --- | ---: | --- |
 $table
+$highlightsMd
 
 > Full changelog: ``docs/版本记录/changelog.md`` in this repository.
 "@

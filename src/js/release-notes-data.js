@@ -5,7 +5,7 @@ const RELEASE_NOTES = [
         sections: [
             {
                 title: '修复',
-                tone: 'pink',
+                tone: 'yellow',
                 items: [
                     '修复检查更新时访问 GitHub 的 SSL/EOF 中断：增加自动重试与镜像回退。',
                     '安装包下载在 GitHub 直连失败时自动尝试可用镜像地址。',
@@ -75,7 +75,7 @@ const RELEASE_NOTES = [
             },
             {
                 title: '修复',
-                tone: 'pink',
+                tone: 'yellow',
                 items: [
                     '飞机大战敌机贴图朝向修正，取消错误的 180° 翻转。'
                 ]
@@ -267,7 +267,7 @@ const RELEASE_NOTES = [
             },
             {
                 title: '发布',
-                tone: 'blue',
+                tone: 'yellow',
                 items: [
                     '完成桌面端、Android、安装器与应用内版本信息同步。'
                 ]
