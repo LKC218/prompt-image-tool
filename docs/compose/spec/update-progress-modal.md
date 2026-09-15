@@ -1,14 +1,20 @@
 ---
 feature: update-progress-modal
-status: in-progress
+status: delivered
 updated: 2026-09-16
 branch: feature/update-progress
-commits: 
+commits: 028aed6..2a9d5c7
 ---
 
 # 应用内更新阶段式进度弹窗
 
 ## Report
+
+**What was built** — PC 应用内更新改为异步下载 Job：`POST /api/update/download` 立即返回 `jobId`，前端每 250ms 轮询 `GET /api/update/progress`。确认更新后打开阶段式模态进度弹窗（下载百分比/字节/速度、校验完整性、启动安装），下载中可取消、失败可重试；启动静默更新、设置页「软件更新」卡片、侧边栏「检查更新」共用同一弹窗。取消会请求后端 Job 并在 chunk 循环内清理未完成临时文件。`python/` 与 `build/` 双副本已同步。
+
+**Verification** — `python -m pytest python/tests -q`：63 passed；`npm test`：270 passed（含 auto-updater 10、进度弹窗 DOM/逻辑）；`npm run build`：vite 生产构建成功。独立审查首裁 fail（重试后 cancel 闭包旧 job），修复后复审 pass-with-minor。
+
+**Journey log** — 1) 沙箱禁止 `git worktree add`，改在主仓从 `feature/tetris-game` HEAD 开 `feature/update-progress`（`main` 停在 v2.5.0，不能作基）。2) 设置页「软件更新」独立卡片为工作区既有未提交增量，并入本特性一并提交。3) 复用 modal 实例时业务状态必须挂调用方 session，不能靠闭包捕获旧 jobId。4) Windows 下取消删临时文件须等 `with` 句柄关闭后再 `os.remove`。5) 取消若发生在 `startDownloadUpdate` 返回前，需在拿到 jobId 后立刻补发 cancel。
 
 ## [S1] Problem
 
@@ -119,9 +125,9 @@ cancel_download_job(job_id: str) -> dict
 
 ## Tasks
 
-- [ ] T1: `auto_update.py` 下载 Job（进度/取消/阶段）并同步 `build/auto_update.py` — acceptance: pytest 覆盖 job 创建、进度更新、取消删除临时文件、校验失败 (covers: S2)
-- [ ] T2: `main.py` / `app_main.py` 增加 progress 与 cancel 路由，download 改为异步返回 jobId — acceptance: 路由可返回 jobId 并查询 progress；缺参/未知 job 报错 (covers: S2; depends: T1)
-- [ ] T3: `auto-updater.js` 异步下载 + 轮询 + 取消封装 — acceptance: 单测覆盖 start/poll 终态/取消；promptAndInstallUpdate 不再阻塞在单次 download POST (covers: S2; depends: T2)
-- [ ] T4: 阶段式进度弹窗组件与样式 — acceptance: 弹窗展示进度条/百分比/字节/三阶段；下载中可取消，失败可重试 (covers: S2; depends: T3)
-- [ ] T5: 接入启动静默更新、设置页、侧边栏入口 — acceptance: 三入口确认后均走进度弹窗；设置页卡片与 hint 正常 (covers: S2; depends: T4)
-- [ ] T6: 文档同步 `docs/apps-code-map.md` 与 `docs/模块说明/应用内自动更新模块.md` — acceptance: 接口表与源码位置含 progress/cancel 与弹窗模块 (covers: S2; depends: T5)
+- [x] T1: `auto_update.py` 下载 Job（进度/取消/阶段）并同步 `build/auto_update.py` — acceptance: pytest 覆盖 job 创建、进度更新、取消删除临时文件、校验失败 (covers: S2)
+- [x] T2: `main.py` / `app_main.py` 增加 progress 与 cancel 路由，download 改为异步返回 jobId — acceptance: 路由可返回 jobId 并查询 progress；缺参/未知 job 报错 (covers: S2; depends: T1)
+- [x] T3: `auto-updater.js` 异步下载 + 轮询 + 取消封装 — acceptance: 单测覆盖 start/poll 终态/取消；promptAndInstallUpdate 不再阻塞在单次 download POST (covers: S2; depends: T2)
+- [x] T4: 阶段式进度弹窗组件与样式 — acceptance: 弹窗展示进度条/百分比/字节/三阶段；下载中可取消，失败可重试 (covers: S2; depends: T3)
+- [x] T5: 接入启动静默更新、设置页、侧边栏入口 — acceptance: 三入口确认后均走进度弹窗；设置页卡片与 hint 正常 (covers: S2; depends: T4)
+- [x] T6: 文档同步 `docs/apps-code-map.md` 与 `docs/模块说明/应用内自动更新模块.md` — acceptance: 接口表与源码位置含 progress/cancel 与弹窗模块 (covers: S2; depends: T5)
