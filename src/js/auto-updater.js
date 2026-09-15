@@ -184,6 +184,15 @@ export async function runUpdateWithProgressModal(latest) {
             modal.setProgress({ phase: 'pending', percent: 0 });
             const started = await startDownloadUpdate(latest);
             session.currentJobId = started.jobId;
+            if (session.cancelled) {
+                try {
+                    await cancelUpdateDownload(session.currentJobId);
+                } catch {
+                    // ignore
+                }
+                modal.setProgress({ phase: 'cancelled', percent: 0 });
+                return { updated: false, cancelled: true };
+            }
             session.controller = new AbortController();
 
             const progress = await pollUpdateProgress(session.currentJobId, {
