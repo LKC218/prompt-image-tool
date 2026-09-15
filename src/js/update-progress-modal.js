@@ -151,6 +151,7 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
     function destroy() {
         if (!active) return;
         active = false;
+        document.removeEventListener('keydown', onKeydown, true);
         overlay.classList.remove('pc-update-progress-active');
         setTimeout(() => overlay.remove(), 200);
     }

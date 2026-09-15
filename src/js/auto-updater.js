@@ -146,72 +146,80 @@ export async function promptAndInstallUpdate(latest) {
     return runUpdateWithProgressModal(latest);
 }
 
-export async function runUpdateWithProgressModal(latest, { existingModal } = {}) {
-    let modal = existingModal;
-    let cancelled = false;
-    let controller = null;
-    let currentJobId = '';
-
-    const ensureModal = () => {
-        if (modal && modal.isActive()) return modal;
-        modal = openUpdateProgressModal({
-            onCancel: async () => {
-                cancelled = true;
-                if (currentJobId) {
-                    try {
-                        await cancelUpdateDownload(currentJobId);
-                    } catch {
-                        // ignore
-                    }
-                }
-                controller?.abort();
-            },
-            onRetry: () => {
-                controller?.abort();
-                runUpdateWithProgressModal(latest, { existingModal: modal });
-            },
-        });
-        return modal;
+export async function runUpdateWithProgressModal(latest) {
+    const session = {
+        cancelled: false,
+        controller: null,
+        currentJobId: '',
     };
 
-    ensureModal();
+    const cancelActiveDownload = async () => {
+        session.cancelled = true;
+        if (session.currentJobId) {
+            try {
+                await cancelUpdateDownload(session.currentJobId);
+            } catch {
+                // ignore
+            }
+        }
+        session.controller?.abort();
+    };
 
-    try {
-        const started = await startDownloadUpdate(latest);
-        currentJobId = started.jobId;
-        controller = new AbortController();
+    const modal = openUpdateProgressModal({
+        onCancel: cancelActiveDownload,
+        onRetry: () => {
+            session.controller?.abort();
+            session.cancelled = false;
+            session.currentJobId = '';
+            session.controller = null;
+            runUpdateSession();
+        },
+    });
 
-        const progress = await pollUpdateProgress(currentJobId, {
-            signal: controller.signal,
-            onUpdate: (payload) => modal?.setProgress(payload),
-        });
-
-        if (cancelled || progress.phase === 'cancelled') {
-            modal?.setProgress({ ...progress, phase: 'cancelled' });
+    async function runUpdateSession() {
+        if (session.cancelled || !modal.isActive()) {
             return { updated: false, cancelled: true };
         }
+        try {
+            modal.setProgress({ phase: 'pending', percent: 0 });
+            const started = await startDownloadUpdate(latest);
+            session.currentJobId = started.jobId;
+            session.controller = new AbortController();
 
-        if (progress.phase === 'failed') {
-            modal?.setProgress(progress);
-            showToast(`更新失败：${progress.error || '未知错误'}`, 'error');
-            return { updated: false, error: progress.error };
-        }
+            const progress = await pollUpdateProgress(session.currentJobId, {
+                signal: session.controller.signal,
+                onUpdate: (payload) => modal.setProgress(payload),
+            });
 
-        modal?.setProgress({ ...progress, phase: 'installing' });
-        await installDownloadedUpdate(progress.path);
-        modal?.setProgress({ ...progress, phase: 'ready' });
-        showToast('安装程序已启动，应用即将退出');
-        setTimeout(() => modal?.close(), 1200);
-        return { updated: true };
-    } catch (error) {
-        if (error?.name === 'AbortError' || cancelled) {
-            modal?.setProgress({ phase: 'cancelled', percent: 0 });
-            return { updated: false, cancelled: true };
+            if (session.cancelled || progress.phase === 'cancelled') {
+                modal.setProgress({ ...progress, phase: 'cancelled' });
+                return { updated: false, cancelled: true };
+            }
+
+            if (progress.phase === 'failed') {
+                modal.setProgress(progress);
+                showToast(`更新失败：${progress.error || '未知错误'}`, 'error');
+                return { updated: false, error: progress.error };
+            }
+
+            modal.setProgress({ ...progress, phase: 'installing' });
+            await installDownloadedUpdate(progress.path);
+            modal.setProgress({ ...progress, phase: 'ready' });
+            showToast('安装程序已启动，应用即将退出');
+            setTimeout(() => modal.close(), 1200);
+            return { updated: true };
+        } catch (error) {
+            if (error?.name === 'AbortError' || session.cancelled) {
+                modal.setProgress({ phase: 'cancelled', percent: 0 });
+                return { updated: false, cancelled: true };
+            }
+            modal.setProgress({ phase: 'failed', error: error.message });
+            showToast(`更新失败：${error.message}`, 'error');
+            return { updated: false, error: error.message };
         }
-        modal?.setProgress({ phase: 'failed', error: error.message });
-        showToast(`更新失败：${error.message}`, 'error');
-        return { updated: false, error: error.message };
     }
+
+    return runUpdateSession();
 }
 
 export async function runStartupUpdateCheck() {

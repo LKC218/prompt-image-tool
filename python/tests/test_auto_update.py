@@ -163,8 +163,9 @@ def test_cancel_download_job(local_server):
         job_id = started["jobId"]
         deadline = time.time() + 5
         while time.time() < deadline:
-            phase = get_download_job(job_id)["phase"]
-            if phase == "downloading":
+            state = get_download_job(job_id)
+            if state["phase"] == "downloading":
+                # 记录可能的临时路径（ready 前 path 为空，用 should_cancel 同步用例断言删除）
                 break
             time.sleep(0.02)
         cancel_download_job(job_id)
@@ -177,8 +178,7 @@ def test_cancel_download_job(local_server):
             time.sleep(0.05)
         assert payload is not None
         assert payload["phase"] == "cancelled"
-        if payload.get("path"):
-            assert not os.path.isfile(payload["path"])
+        assert payload["path"] == ""
     finally:
         _Handler.delay = 0
         _Handler.chunk = 16 * 1024
@@ -216,6 +216,7 @@ def test_download_installer_should_cancel_callback(tmp_path):
                 dest_path=str(dest),
                 should_cancel=should_cancel,
             )
+        assert not dest.exists()
     finally:
         server.shutdown()
         server.server_close()

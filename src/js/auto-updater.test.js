@@ -98,6 +98,77 @@ describe('download job client', () => {
     it('fetchUpdateProgress 缺少 jobId 时报错', async () => {
         await expect(fetchUpdateProgress('')).rejects.toThrow('缺少下载任务 ID');
     });
+
+    it('重试后取消会请求当前 job（session 状态共享）', async () => {
+        // 模拟：第一次 job 失败，重试拿到 job-b，取消应 POST job-b
+        const cancelBodies = [];
+        let call = 0;
+        fetch.mockImplementation(async (url, options) => {
+            const body = options?.body ? JSON.parse(options.body) : null;
+            if (url === '/api/update/download') {
+                call += 1;
+                return {
+                    ok: true,
+                    json: async () => ({ success: true, jobId: call === 1 ? 'job-a' : 'job-b' }),
+                };
+            }
+            if (String(url).startsWith('/api/update/progress')) {
+                const jobId = new URLSearchParams(String(url).split('?')[1] || '').get('jobId');
+                if (jobId === 'job-a') {
+                    return {
+                        ok: true,
+                        json: async () => ({
+                            success: true,
+                            jobId,
+                            phase: 'failed',
+                            percent: 10,
+                            error: '网络中断',
+                        }),
+                    };
+                }
+                // job-b 持续 downloading，便于触发取消
+                return {
+                    ok: true,
+                    json: async () => ({
+                        success: true,
+                        jobId,
+                        phase: 'downloading',
+                        percent: 20,
+                        downloaded: 1,
+                        total: 10,
+                        speed: 1,
+                    }),
+                };
+            }
+            if (url === '/api/update/download/cancel') {
+                cancelBodies.push(body?.jobId);
+                return {
+                    ok: true,
+                    json: async () => ({ success: true, jobId: body?.jobId, phase: 'downloading' }),
+                };
+            }
+            return { ok: false, status: 404, json: async () => ({ success: false, error: 'no' }) };
+        });
+
+        const { runUpdateWithProgressModal } = await import('./auto-updater.js');
+        const latest = { version: '2.6.0', url: 'https://example.com/a.exe', sha256: 'abc' };
+
+        // 首次失败
+        const first = await runUpdateWithProgressModal(latest);
+        expect(first.updated).toBe(false);
+        expect(first.error).toContain('网络中断');
+
+        // 点击重试按钮
+        document.getElementById('pcUpdateProgressRetryBtn')?.click();
+
+        // 等待第二次下载进入轮询，然后点取消
+        await new Promise((r) => setTimeout(r, 50));
+        document.getElementById('pcUpdateProgressCancelBtn')?.click();
+        await new Promise((r) => setTimeout(r, 350));
+
+        expect(cancelBodies).toContain('job-b');
+        document.getElementById('pcUpdateProgressCloseBtn')?.click();
+    });
 });
 
 describe('update progress modal', () => {

@@ -147,6 +147,14 @@ def _create_job(url: str, sha256: str) -> dict[str, Any]:
         "updatedAt": _now_ms(),
     }
     with _jobs_lock:
+        terminal = [
+            existing_id
+            for existing_id, existing in _jobs.items()
+            if existing.get("phase") not in JOB_PHASES_ACTIVE
+        ]
+        # 仅保留最近若干终态任务，避免会话内无限增长
+        for drop_id in terminal[:-5]:
+            _jobs.pop(drop_id, None)
         for existing_id, existing in list(_jobs.items()):
             if existing.get("phase") in JOB_PHASES_ACTIVE and existing_id != job_id:
                 existing["cancelRequested"] = True
