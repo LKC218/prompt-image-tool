@@ -3,7 +3,7 @@ feature: pc-games-hub-plane
 status: delivered
 updated: 2026-09-16
 branch: feature/tetris-game
-commits: 1e921b2..HEAD
+commits: 1e921b2..73eb66b
 ---
 
 # 摸鱼时间游戏中心与飞机大战
