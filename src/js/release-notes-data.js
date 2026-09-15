@@ -1,5 +1,27 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.2',
+        date: '2026-09-15',
+        sections: [
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    'PC 自定义光标重构为品牌色圆环：空闲细环、悬停柔光放大、按下略缩，更轻更跟手。',
+                    '移除四角取景框、空闲自转与语义图标，降低视觉噪音并减少每帧布局开销。',
+                    '输入框与可编辑区域继续使用原生光标，禁用/加载态以透明度区分。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.2，Android versionCode 递增至 20。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.1',
         date: '2026-09-14',
         sections: [

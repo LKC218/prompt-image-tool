@@ -2292,7 +2292,7 @@ dependencies = [
 
 [[package]]
 name = "prompt_image_manager_installer_shell"
-version = "2.5.1"
+version = "2.5.2"
 dependencies = [
  "serde",
  "tauri",
@@ -3142,7 +3142,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-fs"
-version = "2.5.1"
+version = "2.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7ecc274121aca0c036a2b42d1cbe83d368d348f54e0bb8a735c2b1548e8f371"
 dependencies = [

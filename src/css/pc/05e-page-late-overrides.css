@@ -429,13 +429,13 @@
 
 .pc-picker-list-icon::before,
 .pc-select-card-icon::before {
-    -webkit-mask-image: url('../assets/icons/folder.svg');
-    mask-image: url('../assets/icons/folder.svg');
+    -webkit-mask-image: url('../../assets/icons/folder.svg');
+    mask-image: url('../../assets/icons/folder.svg');
 }
 
 .pc-picker-list-icon--folder-open::before {
-    -webkit-mask-image: url('../assets/icons/folder-open.svg');
-    mask-image: url('../assets/icons/folder-open.svg');
+    -webkit-mask-image: url('../../assets/icons/folder-open.svg');
+    mask-image: url('../../assets/icons/folder-open.svg');
 }
 
 .pc-picker-list-icon {
@@ -449,15 +449,15 @@
 .pc-picker-list-check::before {
     width: 16px;
     height: 16px;
-    -webkit-mask-image: url('../assets/icons/check.svg');
-    mask-image: url('../assets/icons/check.svg');
+    -webkit-mask-image: url('../../assets/icons/check.svg');
+    mask-image: url('../../assets/icons/check.svg');
 }
 
 .pc-select-card-arrow::before {
     width: 16px;
     height: 16px;
-    -webkit-mask-image: url('../assets/icons/pc/chevron-right.svg');
-    mask-image: url('../assets/icons/pc/chevron-right.svg');
+    -webkit-mask-image: url('../../assets/icons/pc/chevron-right.svg');
+    mask-image: url('../../assets/icons/pc/chevron-right.svg');
 }
 
 .pc-picker-list-check {
@@ -584,8 +584,8 @@
     width: 16px;
     height: 16px;
     background: currentColor;
-    -webkit-mask: url('../assets/icons/pc/x.svg') center / contain no-repeat;
-    mask: url('../assets/icons/pc/x.svg') center / contain no-repeat;
+    -webkit-mask: url('../../assets/icons/pc/x.svg') center / contain no-repeat;
+    mask: url('../../assets/icons/pc/x.svg') center / contain no-repeat;
 }
 
 .pc-image-import-area {
@@ -2074,8 +2074,8 @@
     width: 32px;
     height: 32px;
     background: var(--pc-home-category-color);
-    -webkit-mask: url('../assets/pc/home-folder.png') center / contain no-repeat;
-    mask: url('../assets/pc/home-folder.png') center / contain no-repeat;
+    -webkit-mask: url('../../assets/pc/home-folder.png') center / contain no-repeat;
+    mask: url('../../assets/pc/home-folder.png') center / contain no-repeat;
 }
 
 .pc-home-category-copy {
@@ -2816,8 +2816,8 @@
     display: block;
     flex: 0 0 13px;
     background: currentColor;
-    -webkit-mask: url('../assets/icons/plus.svg') center / contain no-repeat;
-    mask: url('../assets/icons/plus.svg') center / contain no-repeat;
+    -webkit-mask: url('../../assets/icons/plus.svg') center / contain no-repeat;
+    mask: url('../../assets/icons/plus.svg') center / contain no-repeat;
 }
 
 .pc-editor-add-tag-btn:hover {

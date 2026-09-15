@@ -27,7 +27,8 @@
 | `src-tauri/` | Tauri PC 壳 |
 | `android/` | Capacitor Android 工程 |
 | `installer-shell/` | Tauri 自定义安装器壳 |
-| `scripts/` | 构建、开发、维护脚本；`capture_readme_previews.py` 重拍 README 预览图；`verify-*.mjs` 为本地功能核验脚本 |
+| `scripts/` | 构建、开发、维护脚本；`publish_release.ps1` 一键发布；`capture_readme_previews.py` 重拍 README 预览图；`verify-*.mjs` 为本地功能核验脚本 |
+| `.mimocode/skills/release-publish/` | 项目技能：一键发布安装包并更新首页 README 版本信息 |
 | `build/` | PyInstaller / NSIS 打包配置与中间产物（安装包不入 Git） |
 | `releases/` | 本地发布产物落点（不入 Git） |
 | `docs/` | 技术 / 设计 / 计划 / 模块 / 版本文档 |
@@ -110,7 +111,7 @@
 | `src/css/mobile.css` | 移动端样式入口 |
 | `src/js/theme-config.js` / `theme-service.js` | 主题合法值与运行时应用 |
 | `src/js/pc-utils.js` / `mobile-utils.js` | 端侧 Toast/Modal/ActionSheet |
-| `src/js/pc-cursor.js` | PC 自定义光标 |
+| `src/js/pc-cursor.js` | PC 自定义圆环光标 |
 | `src/js/ripple.js` | 涟漪 |
 | `src/js/goal-utils.js` / `goal-image-preview.js` | 目标计划共享工具 |
 

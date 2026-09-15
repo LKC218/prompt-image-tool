@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('PC 自定义光标', () => {
+describe('PC 自定义圆环光标', () => {
     beforeEach(() => {
         vi.resetModules();
-        document.body.innerHTML = '<main id="app"><button id="action" type="button">操作</button><button id="selected-action" class="selected" type="button">已选操作</button><input id="input"><div id="canvas" data-cursor="media">画布</div><div id="selected-canvas" class="selected" data-cursor="media">已选画布</div><div id="recent" class="pc-recent-item" data-cursor="action">最近使用<button id="favorite" data-cursor="favorite">收藏</button><button id="menu" data-cursor="menu">更多</button></div><div id="pointer-card" style="cursor:pointer">指针卡片</div><div id="native-card" data-cursor="native" style="cursor:pointer">原生卡片</div><button id="loading" aria-busy="true">加载中</button><button id="disabled" disabled>禁用</button></main>';
+        document.body.innerHTML = '<main id="app"><button id="action" type="button">操作</button><input id="input"><div id="pointer-card" style="cursor:pointer">指针卡片</div><div id="native-card" data-cursor="native" style="cursor:pointer">原生卡片</div><button id="loading" aria-busy="true">加载中</button><button id="disabled" disabled>禁用</button><div id="legacy-media" data-cursor="media">媒体</div></main>';
         window.matchMedia = vi.fn((query) => ({
             matches: query === '(hover: hover) and (pointer: fine)',
             addEventListener: vi.fn(),
@@ -18,7 +18,7 @@ describe('PC 自定义光标', () => {
         vi.restoreAllMocks();
     });
 
-    it('在精细指针设备创建四角锁定层，并在按钮悬停时进入操作状态', async () => {
+    it('在精细指针设备创建单节点圆环，按钮悬停进入 hover 状态', async () => {
         const { initPcCursor } = await import('./pc-cursor.js');
         const app = document.getElementById('app');
         const action = document.getElementById('action');
@@ -27,18 +27,18 @@ describe('PC 自定义光标', () => {
         action.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 120, clientY: 80 }));
 
         expect(app.classList.contains('pc-custom-cursor-enabled')).toBe(true);
-        expect(document.querySelector('.pc-custom-cursor.is-custom-active.is-targeting')).not.toBeNull();
-        expect(document.querySelectorAll('.pc-custom-cursor-corner')).toHaveLength(4);
-        expect(action.classList.contains('pc-custom-cursor-target')).toBe(true);
-        expect(document.querySelector('.pc-custom-cursor').style.getPropertyValue('--pc-accent')).toBe('');
-        expect(document.querySelector('.pc-custom-cursor').style.getPropertyValue('--pc-accent-light')).toBe('');
-        expect(document.querySelector('.pc-custom-cursor').style.getPropertyValue('--pc-accent-strong')).toBe('');
+        const cursor = document.querySelector('.pc-custom-cursor');
+        expect(cursor).not.toBeNull();
+        expect(cursor.children).toHaveLength(0);
+        expect(cursor.classList.contains('is-custom-active')).toBe(true);
+        expect(cursor.classList.contains('is-hover')).toBe(true);
+        expect(cursor.classList.contains('is-pressed')).toBe(false);
 
         controller.destroy();
         expect(document.querySelector('.pc-custom-cursor')).toBeNull();
     });
 
-    it('文本输入区域保留原生插入光标，不进入目标锁定状态', async () => {
+    it('文本输入区域保留原生光标', async () => {
         const { initPcCursor } = await import('./pc-cursor.js');
         const app = document.getElementById('app');
         const input = document.getElementById('input');
@@ -46,58 +46,28 @@ describe('PC 自定义光标', () => {
 
         input.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 80, clientY: 40 }));
 
-        expect(document.querySelector('.pc-custom-cursor.is-targeting')).toBeNull();
-        expect(input.classList.contains('pc-custom-cursor-target')).toBe(false);
+        expect(app.classList.contains('pc-custom-cursor-native')).toBe(true);
+        expect(document.querySelector('.pc-custom-cursor.is-custom-active')).toBeNull();
         controller.destroy();
     });
 
-    it('最近使用卡片的显式 pointer 光标会被自定义光标接管', async () => {
+    it('普通 pointer 容器自动进入 hover，native 标记优先保留原生', async () => {
         const { initPcCursor } = await import('./pc-cursor.js');
         const app = document.getElementById('app');
-        const recent = document.getElementById('recent');
+        const pointerCard = document.getElementById('pointer-card');
+        const nativeCard = document.getElementById('native-card');
         const controller = initPcCursor(app);
 
-        recent.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 60, clientY: 40 }));
+        pointerCard.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 60, clientY: 40 }));
+        expect(document.querySelector('.pc-custom-cursor.is-hover')).not.toBeNull();
 
-        expect(recent.classList.contains('pc-custom-cursor-target')).toBe(true);
-        expect(document.querySelector('.pc-custom-cursor.is-targeting')).not.toBeNull();
+        nativeCard.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 80, clientY: 40 }));
+        expect(app.classList.contains('pc-custom-cursor-native')).toBe(true);
+        expect(document.querySelector('.pc-custom-cursor.is-custom-active')).toBeNull();
         controller.destroy();
     });
 
-    it('媒体标记优先进入媒体锁定状态', async () => {
-        const { initPcCursor } = await import('./pc-cursor.js');
-        const app = document.getElementById('app');
-        const canvas = document.getElementById('canvas');
-        const controller = initPcCursor(app);
-
-        canvas.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100, clientY: 60 }));
-
-        expect(canvas.classList.contains('pc-custom-cursor-target')).toBe(true);
-        expect(canvas.classList.contains('pc-custom-cursor-media-target')).toBe(true);
-        expect(document.querySelector('.pc-custom-cursor.is-targeting.is-media')).not.toBeNull();
-        controller.destroy();
-    });
-
-    it('卡片子控件以专属语义接管四角定位框', async () => {
-        const { initPcCursor } = await import('./pc-cursor.js');
-        const app = document.getElementById('app');
-        const recent = document.getElementById('recent');
-        const favorite = document.getElementById('favorite');
-        const menu = document.getElementById('menu');
-        const controller = initPcCursor(app);
-
-        favorite.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100, clientY: 40 }));
-        expect(favorite.classList.contains('pc-custom-cursor-target')).toBe(true);
-        expect(recent.classList.contains('pc-custom-cursor-target')).toBe(false);
-        expect(document.querySelector('.pc-custom-cursor.is-favorite')).not.toBeNull();
-
-        menu.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 120, clientY: 40 }));
-        expect(menu.classList.contains('pc-custom-cursor-target')).toBe(true);
-        expect(document.querySelector('.pc-custom-cursor.is-menu')).not.toBeNull();
-        controller.destroy();
-    });
-
-    it('加载和禁用控件使用专属自定义光标状态', async () => {
+    it('加载和禁用控件使用对应光标状态', async () => {
         const { initPcCursor } = await import('./pc-cursor.js');
         const app = document.getElementById('app');
         const loading = document.getElementById('loading');
@@ -105,31 +75,14 @@ describe('PC 自定义光标', () => {
         const controller = initPcCursor(app);
 
         loading.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 100, clientY: 40 }));
-        expect(loading.classList.contains('pc-custom-cursor-target')).toBe(true);
         expect(document.querySelector('.pc-custom-cursor.is-loading')).not.toBeNull();
 
         disabled.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 120, clientY: 40 }));
-        expect(disabled.classList.contains('pc-custom-cursor-target')).toBe(true);
         expect(document.querySelector('.pc-custom-cursor.is-disabled')).not.toBeNull();
         controller.destroy();
     });
 
-    it('已选中操作与媒体目标使用选中颜色状态', async () => {
-        const { initPcCursor } = await import('./pc-cursor.js');
-        const app = document.getElementById('app');
-        const selectedAction = document.getElementById('selected-action');
-        const selectedCanvas = document.getElementById('selected-canvas');
-        const controller = initPcCursor(app);
-
-        selectedAction.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 90, clientY: 40 }));
-        expect(document.querySelector('.pc-custom-cursor.is-targeting.is-selected')).not.toBeNull();
-
-        selectedCanvas.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 110, clientY: 60 }));
-        expect(document.querySelector('.pc-custom-cursor.is-targeting.is-media.is-selected')).not.toBeNull();
-        controller.destroy();
-    });
-
-    it('按住与释放操作目标会切换光标按压状态', async () => {
+    it('按住与释放操作目标会切换按压状态', async () => {
         const { initPcCursor } = await import('./pc-cursor.js');
         const app = document.getElementById('app');
         const action = document.getElementById('action');
@@ -144,19 +97,15 @@ describe('PC 自定义光标', () => {
         controller.destroy();
     });
 
-    it('普通 pointer 容器自动接管，native 标记优先保留原生语义', async () => {
+    it('遗留 data-cursor 语义标记仍按可点目标处理', async () => {
         const { initPcCursor } = await import('./pc-cursor.js');
         const app = document.getElementById('app');
-        const pointerCard = document.getElementById('pointer-card');
-        const nativeCard = document.getElementById('native-card');
+        const legacyMedia = document.getElementById('legacy-media');
         const controller = initPcCursor(app);
 
-        pointerCard.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 60, clientY: 40 }));
-        expect(pointerCard.classList.contains('pc-custom-cursor-target')).toBe(true);
-
-        nativeCard.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 80, clientY: 40 }));
-        expect(nativeCard.classList.contains('pc-custom-cursor-target')).toBe(false);
-        expect(document.querySelector('.pc-custom-cursor.is-custom-active')).toBeNull();
+        legacyMedia.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 90, clientY: 50 }));
+        expect(document.querySelector('.pc-custom-cursor.is-hover')).not.toBeNull();
+        expect(document.querySelector('.pc-custom-cursor.is-media')).toBeNull();
         controller.destroy();
     });
 

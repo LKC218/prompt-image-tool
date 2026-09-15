@@ -59,7 +59,7 @@
 ## 维护说明
 
 - 新增规则优先归入现有职责最匹配的文件，并保持覆盖关系可解释。
-- 光标 Token、四角结构、层级和 CSS 回退只放在 `01-foundation-shell.css`；目标解析、状态机、几何同步和生命周期由 `pc-cursor.js` 管理，具体约束见 `PC端自定义光标模块.md`。
+- 光标 Token、圆环结构、层级和 CSS 回退只放在 `01-foundation-shell.css`；目标解析、状态机、跟随动画和生命周期由 `pc-cursor.js` 管理，具体约束见 `PC端自定义光标模块.md`。
 - 侧栏由 `pc-sidebar-stage` 包裹主 `pc-sidebar`，其中 `pc-sidebar-underlay-far`、`pc-sidebar-underlay-near` 仅作为无交互视觉衬板；`is-stagger-opening`、`is-stagger-closing`、`is-stagger-active` 控制错峰位移和内容分段进出。主面板及其内容始终位于衬板之上，衬板不得接收指针事件。
 - 侧栏幕布动效使用 `transform` 和透明度，展开顺序为远层、近层、主面板、内容；关闭时内容先退出，再依次退出主面板、近层、远层。`prefers-reduced-motion: reduce` 必须禁用该动效。
 - 侧栏最小化使用 `pc-sidebar-is-collapsing` 与 `pc-sidebar-is-expanding` 作为瞬态阶段类：收起时先隐藏品牌文案、导航标签和时钟，再从展开宽度收束至图标栏；展开时恢复宽度后与幕布入场衔接。阶段类必须在容器宽度过渡结束或取消时清理，最终状态仍只由 `pc-sidebar-collapsed` 维护。
