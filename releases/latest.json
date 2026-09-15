@@ -1,8 +1,8 @@
 {
-    "version":  "2.5.3",
+    "version":  "2.5.4",
     "pub_date":  "2026-09-15",
-    "notes":  "PromptImageManager v2.5.3",
+    "notes":  "PromptImageManager v2.5.4",
     "platform":  "windows-x86_64",
-    "url":  "https://github.com/LKC218/prompt-image-tool/releases/download/v2.5.3/PromptImageManager-Setup-2.5.3.exe",
-    "sha256":  "3e090980fd4c1f09e1692896dd3e1831361a53473b02f55ff6727b3e947b5532"
+    "url":  "https://github.com/LKC218/prompt-image-tool/releases/download/v2.5.4/PromptImageManager-Setup-2.5.4.exe",
+    "sha256":  "c93d55131180167df71434ba3b6ccc6b3f0378505bc226cdcbabb33fc0a30413"
 }
