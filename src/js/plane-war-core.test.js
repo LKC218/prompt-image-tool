@@ -7,6 +7,7 @@ import {
     createPlayer,
     movePlayer,
     rectsOverlap,
+    setPlayerPosition,
     spawnEnemy,
     tick,
     togglePause,
@@ -34,6 +35,16 @@ describe('plane-war-core', () => {
         expect(left.player.x).toBe(state.player.w / 2);
         const right = movePlayer(state, 1, 0, 5);
         expect(right.player.x).toBe(FIELD_W - state.player.w / 2);
+    });
+
+    it('指针定位限制在底部活动区', () => {
+        const state = createGameState(() => 0.5);
+        const top = setPlayerPosition(state, FIELD_W / 2, 0);
+        expect(top.player.y).toBe(FIELD_H * 0.55);
+        const far = setPlayerPosition(state, FIELD_W + 50, FIELD_H);
+        expect(far.player.x).toBe(FIELD_W - state.player.w / 2);
+        const mid = setPlayerPosition(state, 100, FIELD_H - 40);
+        expect(mid.player.x).toBe(100);
     });
 
     it('射击生成子弹并进入冷却', () => {

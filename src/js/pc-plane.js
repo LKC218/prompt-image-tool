@@ -4,6 +4,7 @@ import {
     createGameState,
     movePlayer,
     readHighScore,
+    setPlayerPosition,
     tick,
     togglePause,
     tryFire,
@@ -26,6 +27,11 @@ let rafId = 0;
 let lastTs = 0;
 let onKeyDown = null;
 let onKeyUp = null;
+let onPointerMove = null;
+let onPointerDown = null;
+let onPointerUp = null;
+let onPointerLeave = null;
+let pointerActive = false;
 
 function render() {
     return `
@@ -63,7 +69,7 @@ function render() {
                         <button type="button" class="pc-tetris-btn" data-plane-action="pause">暂停</button>
                         <button type="button" class="pc-tetris-btn" data-plane-action="restart">重开</button>
                     </div>
-                    <p class="pc-tetris-hint">键盘：← → / ↑ ↓ 移动 · Space 射击 · P/Esc 暂停 · R 重开</p>
+                    <p class="pc-tetris-hint">鼠标/触控：在战场滑动移动 · 按住或点击射击<br>键盘：← → / ↑ ↓ 移动 · Space 射击 · P/Esc 暂停 · R 重开</p>
                 </aside>
             </div>
         </div>
@@ -197,6 +203,15 @@ function handleAction(action) {
     updateHud();
 }
 
+function eventToField(e) {
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const x = ((e.clientX - rect.left) / rect.width) * FIELD_W;
+    const y = ((e.clientY - rect.top) / rect.height) * FIELD_H;
+    return { x, y };
+}
+
 function bindInput() {
     onKeyDown = (e) => {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -216,6 +231,8 @@ function bindInput() {
         } else if (key === 'r' || key === 'R') {
             if (!e.repeat) handleAction('restart');
         }
+        // 键盘接管后退出指针跟随，避免抢控制
+        if (key.startsWith('Arrow')) pointerActive = false;
     };
     onKeyUp = (e) => {
         const key = e.key;
@@ -227,6 +244,44 @@ function bindInput() {
     };
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('keyup', onKeyUp);
+
+    if (canvas) {
+        onPointerMove = (e) => {
+            if (!state || state.status !== 'playing') return;
+            const pos = eventToField(e);
+            if (!pos) return;
+            pointerActive = true;
+            state = setPlayerPosition(state, pos.x, pos.y);
+            if (e.buttons > 0 || e.pointerType === 'touch') {
+                state = tryFire(state, 0, true);
+            }
+        };
+        onPointerDown = (e) => {
+            if (!state) return;
+            if (e.button != null && e.button !== 0) return;
+            e.preventDefault();
+            const pos = eventToField(e);
+            if (pos) {
+                pointerActive = true;
+                state = setPlayerPosition(state, pos.x, pos.y);
+            }
+            KEYS.fire = true;
+            state = tryFire(state, 0.2, false);
+        };
+        onPointerUp = () => {
+            KEYS.fire = false;
+        };
+        onPointerLeave = () => {
+            KEYS.fire = false;
+        };
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerdown', onPointerDown);
+        canvas.addEventListener('pointerup', onPointerUp);
+        canvas.addEventListener('pointercancel', onPointerUp);
+        canvas.addEventListener('pointerleave', onPointerLeave);
+        canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
     pageEl.querySelectorAll('[data-plane-action]').forEach((btn) => {
         btn.addEventListener('click', () => handleAction(btn.dataset.planeAction));
     });
@@ -235,8 +290,22 @@ function bindInput() {
 function unbindInput() {
     if (onKeyDown) document.removeEventListener('keydown', onKeyDown);
     if (onKeyUp) document.removeEventListener('keyup', onKeyUp);
+    if (canvas) {
+        if (onPointerMove) canvas.removeEventListener('pointermove', onPointerMove);
+        if (onPointerDown) canvas.removeEventListener('pointerdown', onPointerDown);
+        if (onPointerUp) {
+            canvas.removeEventListener('pointerup', onPointerUp);
+            canvas.removeEventListener('pointercancel', onPointerUp);
+        }
+        if (onPointerLeave) canvas.removeEventListener('pointerleave', onPointerLeave);
+    }
     onKeyDown = null;
     onKeyUp = null;
+    onPointerMove = null;
+    onPointerDown = null;
+    onPointerUp = null;
+    onPointerLeave = null;
+    pointerActive = false;
     KEYS.left = KEYS.right = KEYS.up = KEYS.down = KEYS.fire = false;
 }
 
@@ -251,7 +320,10 @@ function loop(ts) {
     }
     const dx = (KEYS.right ? 1 : 0) - (KEYS.left ? 1 : 0);
     const dy = (KEYS.down ? 1 : 0) - (KEYS.up ? 1 : 0);
-    state = movePlayer(state, dx, dy, dt);
+    if (dx || dy) {
+        pointerActive = false;
+        state = movePlayer(state, dx, dy, dt);
+    }
     // auto-fire while holding space or always light auto for casual play
     state = tryFire(state, dt, true);
     if (KEYS.fire) state = tryFire(state, 0, true);

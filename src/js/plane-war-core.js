@@ -123,6 +123,20 @@ export function movePlayer(state, dx, dy, dt = 1 / 60) {
     return next;
 }
 
+/** 指针/触控直接定位（仍限制在底部活动区） */
+export function setPlayerPosition(state, x, y) {
+    if (state.status !== 'playing') return state;
+    const p = state.player;
+    return {
+        ...state,
+        player: {
+            ...p,
+            x: clamp(x, p.w / 2, FIELD_W - p.w / 2),
+            y: clamp(y, FIELD_H * 0.55, FIELD_H - p.h / 2 - 8),
+        },
+    };
+}
+
 export function tryFire(state, dt = 1 / 60, auto = true) {
     if (state.status !== 'playing') return state;
     const p = state.player;
