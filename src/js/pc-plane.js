@@ -180,8 +180,8 @@ function drawShip(c, p) {
 function drawEnemy(c, e) {
     const w = e.w * 1.6;
     const h = e.h * 1.6;
-    // 素材机头朝上，敌方需朝下
-    if (drawSprite(c, spriteImages[e.type] || spriteImages.basic, e.x, e.y, w, h, true)) {
+    // 新素材机头已朝下，不再旋转
+    if (drawSprite(c, spriteImages[e.type] || spriteImages.basic, e.x, e.y, w, h, false)) {
         if (e.maxHp > 1) {
             c.fillStyle = 'rgba(255,255,255,0.45)';
             c.fillRect(e.x - e.w / 2, e.y - e.h / 2 - 5, e.w, 3);
