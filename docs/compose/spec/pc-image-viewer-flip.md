@@ -3,7 +3,7 @@ feature: pc-image-viewer-flip
 status: delivered
 updated: 2026-09-17
 branch: feature/plant-idle-game
-commits: 
+commits: 2dd0561..fd4dce9
 ---
 
 # PC 图片查看器重构 + GSAP Flip 转场
