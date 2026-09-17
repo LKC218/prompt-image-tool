@@ -22,8 +22,9 @@
 
 ### 版本与打包
 
-- 主应用、PC Tauri 版本已统一升级至 `2.5.7`。
-- 安装包产物信息以打包完成后 changelog 校正为准。
+- 主应用、PC Tauri、NSIS 安装器版本已统一升级至 `2.5.7`。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.7.exe`：39,385,197 字节（37.6 MB），SHA256 `7C134B46C026D9047A2B240BCA54D5E3903E84D51F383E25B6AC7E9A2FA53AB9`
 
 ### 验证
 
