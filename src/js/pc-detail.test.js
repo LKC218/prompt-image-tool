@@ -127,6 +127,7 @@ describe('pc-detail image preview', () => {
             src: expect.stringContaining('third.webp'),
             filename: 'third.webp',
             image: expect.objectContaining({ id: 'image-3' }),
+            sourceEl: pageEl.querySelector('#pcDetailCoverImgWrap img'),
         }));
     });
 
