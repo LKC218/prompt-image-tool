@@ -1,5 +1,5 @@
 !define APPNAME "PromptImageManager"
-!define APPVERSION "2.5.6"
+!define APPVERSION "2.5.7"
 !define APPEXE "PromptImageManager.exe"
 !define LEGACYDATA "$APPDATA\${APPNAME}\legacy-install-data"
 
