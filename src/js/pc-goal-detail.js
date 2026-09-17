@@ -249,11 +249,11 @@ function bindImagePreviews(container) {
             if (img.data) return img.data;
             return getGoalImageUrl(storage, img.path);
         },
-        onOpenViewer: (task, index) => {
+        onOpenViewer: (task, index, sourceEl) => {
             const img = task.images?.[index];
             if (!img) return;
             const url = img.data || getGoalImageUrl(storage, img.path);
-            if (url) showImageViewer(url);
+            if (url) showImageViewer({ src: url, sourceEl });
         }
     });
 }
@@ -791,7 +791,7 @@ function showTaskImageManager(id) {
                 const index = Number(item?.dataset.index || 0);
                 const urls = task.images.map(img => img.data || getGoalImageUrl(storage, img.path)).filter(Boolean);
                 if (urls.length > 0) {
-                    showImageViewer({ urls, index });
+                    showImageViewer({ urls, index, sourceEl: img });
                 }
             });
         });

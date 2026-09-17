@@ -146,11 +146,16 @@ export function mountGoalImageIcons(container, options = {}) {
         activePreview = createPreviewElement(url, {
             onClickImage: (e) => {
                 e.stopPropagation();
-                hidePreview();
+                const sourceEl = e.target;
+                // Open first so FLIP can measure while the floating node is still attached
                 if (onOpenViewer) {
-                    onOpenViewer(task, index);
+                    onOpenViewer(task, index, sourceEl);
+                    hidePreview();
                 } else if (onClick) {
-                    onClick(task, index);
+                    onClick(task, index, sourceEl);
+                    hidePreview();
+                } else {
+                    hidePreview();
                 }
             },
             onLoad: () => {

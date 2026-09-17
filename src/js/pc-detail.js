@@ -496,6 +496,7 @@ function setupEvents(pageEl) {
                 src: image.url,
                 filename: image.name || promptSet.name || 'preview',
                 image: image.data,
+                sourceEl: pageEl.querySelector('#pcDetailCoverImgWrap img'),
             });
         }
     });

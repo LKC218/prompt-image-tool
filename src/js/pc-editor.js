@@ -819,7 +819,8 @@ async function openEditorImageViewer(thumb) {
     showImageViewer({
         src,
         filename: getImportedImageName(image),
-        image
+        image,
+        sourceEl: thumb.querySelector('img')
     });
 }
 

@@ -1,6 +1,4 @@
-import { pcIcon } from './pc-icon-assets.js';
-import { getStorage } from './storage.js';
-import { downloadImage } from './image-download-utils.js';
+export { openImageViewer as showImageViewer, closeImageViewer, isOpen as isImageViewerOpen } from './pc-image-viewer.js';
 
 let contextMenuTargetId = null;
 let folderContextMenuTargetId = null;
@@ -8,24 +6,6 @@ let contextMenuSession = null;
 let contextMenuOpenTimer = null;
 let contextMenuEventsBound = false;
 let modalKeyboardEventsBound = false;
-const IMAGE_VIEWER_MIN_SCALE = 1;
-const IMAGE_VIEWER_MAX_SCALE = 5;
-const IMAGE_VIEWER_WHEEL_STEP = 1.12;
-const IMAGE_VIEWER_DOUBLE_CLICK_SCALE = 2;
-const imageViewerState = {
-    scale: 1,
-    translateX: 0,
-    translateY: 0,
-    isDragging: false,
-    pointerId: null,
-    dragStartX: 0,
-    dragStartY: 0,
-    startTranslateX: 0,
-    startTranslateY: 0,
-    urls: [],
-    index: 0
-};
-let imageViewerDownloadTarget = { url: '', filename: '', sourceFile: '' };
 
 function getPcApp() {
     return document.getElementById('pcApp');
@@ -95,11 +75,11 @@ function closeModal() {
 
 function showConfirmModal(message, onConfirm) {
     const modal = showModal(`
-        <h3>确认操作</h3>
+        <h3>纭鎿嶄綔</h3>
         <p class="pc-modal-desc">${message}</p>
         <div class="pc-modal-actions">
-            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">取消</button>
-            <button class="pc-btn pc-btn-danger" id="pcModalConfirm">确定</button>
+            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">鍙栨秷</button>
+            <button class="pc-btn pc-btn-danger" id="pcModalConfirm">纭畾</button>
         </div>
     `);
     modal.querySelector('#pcModalCancel').addEventListener('click', closeModal);
@@ -116,8 +96,8 @@ function showPromptModal(title, defaultValue, onConfirm) {
             <input type="text" class="pc-input" id="pcModalInput" value="${escapeHtml(defaultValue)}" autocomplete="off">
         </div>
         <div class="pc-modal-actions">
-            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">取消</button>
-            <button class="pc-btn pc-btn-primary" id="pcModalConfirm">确定</button>
+            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">鍙栨秷</button>
+            <button class="pc-btn pc-btn-primary" id="pcModalConfirm">纭畾</button>
         </div>
     `);
     const input = modal.querySelector('#pcModalInput');
@@ -268,7 +248,7 @@ function renderContextMenuItems(items, parentAction = '') {
         return `<button type="button" class="pc-context-action${tone} ${item.danger ? 'pc-context-danger' : ''}" role="menuitem" data-action="${item.action || ''}"${submenuAttrs}${item.disabled ? ' disabled' : ''} data-ripple="false" style="--pc-context-index:${index}">
             <span class="pc-context-label">${item.label}</span>
             <span class="pc-context-icon${tone}">${item.icon || ''}</span>
-            ${submenu ? '<span class="pc-context-submenu-arrow" aria-hidden="true">›</span>' : ''}
+            ${submenu ? '<span class="pc-context-submenu-arrow" aria-hidden="true">鈥?/span>' : ''}
         </button>`;
     }).join('');
 }
@@ -408,379 +388,6 @@ function getFolderContextMenuTargetId() {
     return folderContextMenuTargetId;
 }
 
-function clamp(value, min, max) {
-    return Math.min(Math.max(value, min), max);
-}
-
-function getImageViewerParts() {
-    return {
-        viewer: document.getElementById('pcImageViewer'),
-        stage: document.getElementById('pcImageViewerStage'),
-        img: document.getElementById('pcImageViewerImg'),
-        zoom: document.getElementById('pcImageViewerZoom'),
-        reset: document.getElementById('pcImageViewerReset'),
-        download: document.getElementById('pcImageViewerDownload')
-    };
-}
-
-function normalizeImageViewerInput(input) {
-    if (typeof input === 'string') {
-        return { urls: [input], index: 0, url: input, filename: '', sourceFile: '' };
-    }
-    const image = input?.image || input?.data || {};
-    const singleUrl = input?.src || input?.url || '';
-    if (Array.isArray(input?.urls) && input.urls.length > 0) {
-        return {
-            urls: input.urls,
-            index: clamp(input?.index || 0, 0, input.urls.length - 1),
-            url: input.urls[input?.index || 0] || input.urls[0],
-            filename: input?.filename || image.name || image.file || '',
-            sourceFile: input?.sourceFile || image.file || ''
-        };
-    }
-    return {
-        urls: singleUrl ? [singleUrl] : [],
-        index: 0,
-        url: singleUrl,
-        filename: input?.filename || image.name || image.file || '',
-        sourceFile: input?.sourceFile || image.file || ''
-    };
-}
-
-function getImageViewerStorage() {
-    try {
-        return getStorage();
-    } catch (e) {
-        return null;
-    }
-}
-
-function getImageViewerTranslateLimit() {
-    const { stage, img } = getImageViewerParts();
-    if (!stage || !img) return { x: 0, y: 0 };
-
-    const stageRect = stage.getBoundingClientRect();
-    const scaledWidth = img.offsetWidth * imageViewerState.scale;
-    const scaledHeight = img.offsetHeight * imageViewerState.scale;
-
-    return {
-        x: scaledWidth > stageRect.width ? (scaledWidth - stageRect.width) / 2 + 32 : 0,
-        y: scaledHeight > stageRect.height ? (scaledHeight - stageRect.height) / 2 + 32 : 0
-    };
-}
-
-function clampImageViewerTranslate() {
-    if (imageViewerState.scale <= IMAGE_VIEWER_MIN_SCALE) {
-        imageViewerState.translateX = 0;
-        imageViewerState.translateY = 0;
-        return;
-    }
-
-    const limit = getImageViewerTranslateLimit();
-    imageViewerState.translateX = clamp(imageViewerState.translateX, -limit.x, limit.x);
-    imageViewerState.translateY = clamp(imageViewerState.translateY, -limit.y, limit.y);
-}
-
-function applyImageViewerTransform() {
-    const { viewer, img, zoom, reset } = getImageViewerParts();
-    if (!viewer || !img) return;
-
-    clampImageViewerTranslate();
-    img.style.transform = `translate(${imageViewerState.translateX}px, ${imageViewerState.translateY}px) scale(${imageViewerState.scale})`;
-    img.classList.toggle('pc-image-viewer-img-dragging', imageViewerState.isDragging);
-    viewer.classList.toggle('pc-image-viewer-zoomed', imageViewerState.scale > IMAGE_VIEWER_MIN_SCALE);
-
-    if (zoom) zoom.textContent = `${Math.round(imageViewerState.scale * 100)}%`;
-    if (reset) reset.disabled = imageViewerState.scale <= IMAGE_VIEWER_MIN_SCALE;
-}
-
-function resetImageViewerTransform() {
-    imageViewerState.scale = IMAGE_VIEWER_MIN_SCALE;
-    imageViewerState.translateX = 0;
-    imageViewerState.translateY = 0;
-    imageViewerState.isDragging = false;
-    imageViewerState.pointerId = null;
-    applyImageViewerTransform();
-}
-
-function zoomImageViewerAt(clientX, clientY, nextScale) {
-    const { stage } = getImageViewerParts();
-    if (!stage) return;
-
-    const previousScale = imageViewerState.scale;
-    const scale = clamp(nextScale, IMAGE_VIEWER_MIN_SCALE, IMAGE_VIEWER_MAX_SCALE);
-    if (Math.abs(scale - previousScale) < 0.001) return;
-
-    if (scale <= IMAGE_VIEWER_MIN_SCALE) {
-        resetImageViewerTransform();
-        return;
-    }
-
-    const stageRect = stage.getBoundingClientRect();
-    const pointerX = clientX - stageRect.left - stageRect.width / 2;
-    const pointerY = clientY - stageRect.top - stageRect.height / 2;
-    const ratio = scale / previousScale;
-
-    imageViewerState.scale = scale;
-    imageViewerState.translateX = pointerX - (pointerX - imageViewerState.translateX) * ratio;
-    imageViewerState.translateY = pointerY - (pointerY - imageViewerState.translateY) * ratio;
-    applyImageViewerTransform();
-}
-
-function handleImageViewerWheel(e) {
-    e.preventDefault();
-    const direction = e.deltaY < 0 ? 1 : -1;
-    const factor = direction > 0 ? IMAGE_VIEWER_WHEEL_STEP : 1 / IMAGE_VIEWER_WHEEL_STEP;
-    zoomImageViewerAt(e.clientX, e.clientY, imageViewerState.scale * factor);
-}
-
-function handleImageViewerPointerDown(e) {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    if (imageViewerState.scale <= IMAGE_VIEWER_MIN_SCALE) return;
-
-    e.preventDefault();
-    e.stopPropagation();
-
-    imageViewerState.isDragging = true;
-    imageViewerState.pointerId = e.pointerId;
-    imageViewerState.dragStartX = e.clientX;
-    imageViewerState.dragStartY = e.clientY;
-    imageViewerState.startTranslateX = imageViewerState.translateX;
-    imageViewerState.startTranslateY = imageViewerState.translateY;
-
-    e.currentTarget.setPointerCapture(e.pointerId);
-    applyImageViewerTransform();
-}
-
-function handleImageViewerPointerMove(e) {
-    if (!imageViewerState.isDragging || imageViewerState.pointerId !== e.pointerId) return;
-
-    const deltaX = e.clientX - imageViewerState.dragStartX;
-    const deltaY = e.clientY - imageViewerState.dragStartY;
-    imageViewerState.translateX = imageViewerState.startTranslateX + deltaX;
-    imageViewerState.translateY = imageViewerState.startTranslateY + deltaY;
-    applyImageViewerTransform();
-}
-
-function stopImageViewerDrag(e) {
-    if (!imageViewerState.isDragging) return;
-    if (e && imageViewerState.pointerId === e.pointerId && e.currentTarget.hasPointerCapture(e.pointerId)) {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-
-    imageViewerState.isDragging = false;
-    imageViewerState.pointerId = null;
-    applyImageViewerTransform();
-}
-
-function handleImageViewerDblClick(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (imageViewerState.scale > IMAGE_VIEWER_MIN_SCALE) {
-        resetImageViewerTransform();
-        return;
-    }
-
-    zoomImageViewerAt(e.clientX, e.clientY, IMAGE_VIEWER_DOUBLE_CLICK_SCALE);
-}
-
-async function performImageViewerDownload(format = 'original') {
-    const { download } = getImageViewerParts();
-    if (!imageViewerDownloadTarget.url || download?.disabled) return;
-
-    if (download) download.disabled = true;
-    try {
-        const isJpgExport = format === 'jpg';
-        const result = await downloadImage({
-            url: imageViewerDownloadTarget.url,
-            filename: imageViewerDownloadTarget.filename || 'preview.png',
-            sourceFile: imageViewerDownloadTarget.sourceFile,
-            storage: getImageViewerStorage(),
-            preferFilePicker: true,
-            preferBackend: true,
-            format,
-            historyContext: {
-                platform: 'pc',
-                source: isJpgExport ? '图片查看器-JPG导出' : '图片查看器',
-                title: imageViewerDownloadTarget.filename || (isJpgExport ? '预览图片.jpg' : '预览图片'),
-            },
-        });
-        if (result?.canceled) {
-            showToast('已取消下载', 'warning');
-        } else if (result?.success) {
-            const location = result.locationLabel || result.path || result.directory || '所选位置';
-            showToast(isJpgExport ? `JPG 已导出到${location}` : `图片已保存到${location}`, 'success');
-        }
-    } catch (error) {
-        console.error('download image failed:', error);
-        showToast(format === 'jpg' ? 'JPG 导出失败' : '图片下载失败', 'error');
-    } finally {
-        if (download) download.disabled = false;
-    }
-}
-
-async function handleImageViewerDownload(e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const { download } = getImageViewerParts();
-    if (!imageViewerDownloadTarget.url || download?.disabled) return;
-
-    const action = await showContextMenu(e.clientX, e.clientY, [
-        {
-            action: 'format',
-            icon: pcIcon('download'),
-            label: '下载图片',
-            children: [
-                { action: 'original', icon: pcIcon('download'), label: '下载原格式' },
-                { action: 'jpg', icon: pcIcon('download'), label: '导出 JPG' }
-            ]
-        }
-    ]);
-    if (!action) return;
-    await performImageViewerDownload(action);
-}
-
-function ensureImageViewer() {
-    let viewer = document.getElementById('pcImageViewer');
-    if (!viewer) {
-        viewer = document.createElement('div');
-        viewer.className = 'pc-image-viewer';
-        viewer.id = 'pcImageViewer';
-        viewer.setAttribute('role', 'dialog');
-        viewer.setAttribute('aria-modal', 'true');
-        viewer.setAttribute('aria-label', '图片查看器');
-        viewer.tabIndex = -1;
-        viewer.innerHTML = `
-            <div class="pc-image-viewer-toolbar" aria-label="图片查看工具">
-                <span class="pc-image-viewer-zoom" id="pcImageViewerZoom">100%</span>
-                <button class="pc-image-viewer-tool" id="pcImageViewerReset" type="button" title="复位" aria-label="复位图片">${pcIcon('rotateCcw', 'pc-image-viewer-tool-icon')}</button>
-                <button class="pc-image-viewer-tool" id="pcImageViewerDownload" type="button" title="下载图片" aria-label="下载当前图片">${pcIcon('download', 'pc-image-viewer-tool-icon')}</button>
-                <button class="pc-image-viewer-tool" id="pcImageViewerClose" type="button" title="关闭" aria-label="关闭图片查看器">${pcIcon('x', 'pc-image-viewer-tool-icon')}</button>
-            </div>
-            <div class="pc-image-viewer-stage" id="pcImageViewerStage">
-                <img class="pc-image-viewer-img" id="pcImageViewerImg" alt="图片预览">
-            </div>
-            <div class="pc-image-viewer-nav" id="pcImageViewerNav">
-                <button class="pc-image-viewer-nav-prev" type="button" aria-label="上一张">‹</button>
-                <span class="pc-image-viewer-nav-index" id="pcImageViewerNavIndex">1 / 1</span>
-                <button class="pc-image-viewer-nav-next" type="button" aria-label="下一张">›</button>
-            </div>
-        `;
-        const app = getPcApp();
-        if (app) app.appendChild(viewer);
-        else document.body.appendChild(viewer);
-
-        const stage = viewer.querySelector('#pcImageViewerStage');
-        const img = viewer.querySelector('#pcImageViewerImg');
-        const resetBtn = viewer.querySelector('#pcImageViewerReset');
-        const downloadBtn = viewer.querySelector('#pcImageViewerDownload');
-        const closeBtn = viewer.querySelector('#pcImageViewerClose');
-        const navPrev = viewer.querySelector('.pc-image-viewer-nav-prev');
-        const navNext = viewer.querySelector('.pc-image-viewer-nav-next');
-
-        viewer.addEventListener('click', (e) => {
-            if (e.target === viewer || e.target === stage) closeImageViewer();
-        });
-        stage.addEventListener('wheel', handleImageViewerWheel, { passive: false });
-        img.addEventListener('click', (e) => e.stopPropagation());
-        img.addEventListener('dblclick', handleImageViewerDblClick);
-        img.addEventListener('pointerdown', handleImageViewerPointerDown);
-        img.addEventListener('pointermove', handleImageViewerPointerMove);
-        img.addEventListener('pointerup', stopImageViewerDrag);
-        img.addEventListener('pointercancel', stopImageViewerDrag);
-        img.addEventListener('load', resetImageViewerTransform);
-        resetBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            resetImageViewerTransform();
-        });
-        downloadBtn.addEventListener('click', handleImageViewerDownload);
-        closeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeImageViewer();
-        });
-        navPrev.addEventListener('click', (e) => {
-            e.stopPropagation();
-            changeImageViewerIndex(-1);
-        });
-        navNext.addEventListener('click', (e) => {
-            e.stopPropagation();
-            changeImageViewerIndex(1);
-        });
-        viewer.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                changeImageViewerIndex(-1);
-            } else if (e.key === 'ArrowRight') {
-                e.preventDefault();
-                changeImageViewerIndex(1);
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                closeImageViewer();
-            }
-        });
-    }
-
-    return viewer;
-}
-
-function updateImageViewerNav() {
-    const nav = document.getElementById('pcImageViewerNav');
-    const indexEl = document.getElementById('pcImageViewerNavIndex');
-    if (!nav || !indexEl) return;
-    const total = imageViewerState.urls.length;
-    if (total <= 1) {
-        nav.classList.add('is-hidden');
-    } else {
-        nav.classList.remove('is-hidden');
-        indexEl.textContent = `${imageViewerState.index + 1} / ${total}`;
-    }
-}
-
-function changeImageViewerIndex(delta) {
-    const total = imageViewerState.urls.length;
-    if (total <= 1) return;
-    imageViewerState.index = (imageViewerState.index + delta + total) % total;
-    showImageViewerAt(imageViewerState.index);
-}
-
-function showImageViewerAt(index) {
-    const img = document.getElementById('pcImageViewerImg');
-    const url = imageViewerState.urls[index];
-    if (!img || !url) return;
-    imageViewerState.index = index;
-    imageViewerDownloadTarget.url = url;
-    resetImageViewerTransform();
-    img.src = url;
-    updateImageViewerNav();
-}
-
-function showImageViewer(input) {
-    const target = normalizeImageViewerInput(input);
-    if (!target.urls || target.urls.length === 0) return;
-    const viewer = ensureImageViewer();
-    imageViewerState.urls = target.urls;
-    imageViewerState.index = target.index || 0;
-    imageViewerDownloadTarget = {
-        url: target.url,
-        filename: target.filename,
-        sourceFile: target.sourceFile
-    };
-    showImageViewerAt(imageViewerState.index);
-    viewer.classList.add('pc-image-viewer-active');
-    viewer.focus({ preventScroll: true });
-}
-
-function closeImageViewer() {
-    const viewer = document.getElementById('pcImageViewer');
-    if (!viewer) return;
-    viewer.classList.remove('pc-image-viewer-active');
-    imageViewerDownloadTarget = { url: '', filename: '', sourceFile: '' };
-    imageViewerState.urls = [];
-    imageViewerState.index = 0;
-    resetImageViewerTransform();
-}
 
 async function copyToClipboard(text) {
     if (!text) {
@@ -865,8 +472,6 @@ export {
     getContextMenuTargetId,
     setFolderContextMenuTargetId,
     getFolderContextMenuTargetId,
-    showImageViewer,
-    closeImageViewer,
     copyToClipboard,
     escapeHtml,
     formatRelativeTime,

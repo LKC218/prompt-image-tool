@@ -564,6 +564,7 @@ function setupLibraryEvents(pageEl) {
                 src: previewImg.src,
                 filename: imageData.name || previewImg.alt || 'preview',
                 image: imageData,
+                sourceEl: previewImg,
             });
             return;
         }

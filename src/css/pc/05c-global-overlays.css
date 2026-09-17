@@ -1208,6 +1208,14 @@
     pointer-events: auto;
 }
 
+.pc-image-viewer.pc-image-viewer-flipping .pc-image-viewer-img {
+    transition: none;
+}
+
+.pc-image-viewer.pc-image-viewer-flipping {
+    cursor: default;
+}
+
 .pc-image-viewer-stage {
     position: absolute;
     inset: 0;
