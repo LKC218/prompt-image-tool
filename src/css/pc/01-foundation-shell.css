@@ -233,6 +233,26 @@
         border-color: color-mix(in srgb, var(--color-brand-primary, #2477d4) 45%, transparent);
         background: color-mix(in srgb, var(--color-brand-primary, #2477d4) 10%, transparent);
     }
+
+    /* 植物小游戏：园艺指针皮肤 */
+    .pc-custom-cursor.is-plant {
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 0;
+        background-color: transparent;
+        background-image: var(--pc-plant-cursor-img, none);
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        filter: drop-shadow(0 1px 2px rgb(20 42 64 / 25%));
+        opacity: 1;
+    }
+
+    .pc-custom-cursor.is-plant.is-pressed {
+        width: 30px;
+        height: 30px;
+    }
 }
 
 .pc-sidebar-stage {

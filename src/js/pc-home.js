@@ -8,9 +8,12 @@ import { isPromptImageToolImportStorageError, stagePromptImageToolImport } from 
 import { getFolderColor } from './folder-color.js';
 import { openPromptDetail } from './pc-detail-modal.js';
 import homeFolderIcon from '../assets/pc/home-folder.png';
+import { createPlantTracker } from './plant-tracker.js';
+import { destroyPlantView, mountPlantView, updatePlantView } from './plant-view.js';
 
 let homeData = null;
 let homeSearchKeyword = '';
+let plantTracker = null;
 
 function setFavoriteButtonState(button, isFavorite) {
     button.classList.toggle('pc-starred', isFavorite);
@@ -52,7 +55,8 @@ function render(params = {}) {
         <section class="pc-home-page">
             ${renderPcWelcomeBanner({
                 className: 'pc-welcome-banner-home',
-                decorationsHtml: renderPcWelcomeWalkAnimation({ variant: 'home' })
+                decorationsHtml: renderPcWelcomeWalkAnimation({ variant: 'home' }),
+                overlayHtml: '<div class="pc-plant-anchor" id="pcPlantAnchor"></div>'
             })}
 
             <div class="pc-home-search-bar" id="pcHomeSearch">
@@ -143,6 +147,29 @@ function renderStatCard(className, icon, label, valueId) {
 async function mount(pageEl, params = {}) {
     await loadHomeData(pageEl);
     setupHomeEvents(pageEl);
+    setupPlant(pageEl);
+}
+
+function setupPlant(pageEl) {
+    const host = pageEl.querySelector('#pcPlantAnchor');
+    if (!host) return;
+    destroyPlantView();
+    if (plantTracker) {
+        plantTracker.stop();
+        plantTracker = null;
+    }
+    let apiStorage = null;
+    try {
+        apiStorage = getStorage();
+    } catch {
+        apiStorage = null;
+    }
+    plantTracker = createPlantTracker({
+        onChange: (payload) => updatePlantView(payload),
+        apiStorage,
+    });
+    mountPlantView(host, plantTracker);
+    plantTracker.start();
 }
 
 async function loadHomeData(pageEl) {
@@ -441,6 +468,11 @@ function getJsonImportErrorMessage(err) {
 }
 
 function unmount(pageEl) {
+    if (plantTracker) {
+        plantTracker.stop();
+        plantTracker = null;
+    }
+    destroyPlantView();
     homeData = null;
     homeSearchKeyword = '';
 }

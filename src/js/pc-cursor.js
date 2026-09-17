@@ -6,6 +6,10 @@ const NATIVE_CURSOR_VALUES = new Set([
     'col-resize', 'row-resize', 'ew-resize', 'ns-resize', 'nwse-resize', 'nesw-resize'
 ]);
 
+const PLANT_CURSOR_SKINS = new Set([
+    'plant-leaf', 'plant-water', 'plant-fertilize', 'plant-bug', 'plant-shovel',
+]);
+
 function supportsCustomCursor() {
     return window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches
         && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
@@ -29,6 +33,13 @@ function getCursorState(target, root) {
 
     const loadingTarget = target.closest('[aria-busy="true"], [data-cursor="loading"]');
     if (loadingTarget && root.contains(loadingTarget)) return 'loading';
+
+    // 园艺光标皮肤（植物小游戏）
+    const plantTarget = target.closest('[data-cursor]');
+    if (plantTarget && root.contains(plantTarget)) {
+        const plantSkin = plantTarget.dataset.cursor;
+        if (PLANT_CURSOR_SKINS.has(plantSkin)) return plantSkin;
+    }
 
     const actionTarget = target.closest(
         'button, a[href], [role="button"], [data-ripple], [data-nav], [tabindex]:not([tabindex="-1"]), .active, .selected, [aria-current], [aria-selected="true"], [data-cursor]'
@@ -66,7 +77,18 @@ function initPcCursor(root) {
         if (currentState === nextState) return;
         currentState = nextState;
 
-        cursor.classList.toggle('is-hover', nextState === 'hover');
+        const isPlant = typeof nextState === 'string' && PLANT_CURSOR_SKINS.has(nextState);
+        cursor.classList.toggle('is-plant', isPlant);
+        if (isPlant) {
+            const skin = nextState.replace(/^plant-/, '');
+            cursor.dataset.plantSkin = skin;
+            cursor.style.setProperty('--pc-plant-cursor-img', `var(--pc-plant-cursor-${skin})`);
+        } else {
+            delete cursor.dataset.plantSkin;
+            cursor.style.removeProperty('--pc-plant-cursor-img');
+        }
+
+        cursor.classList.toggle('is-hover', !isPlant && nextState === 'hover');
         cursor.classList.toggle('is-disabled', nextState === 'disabled');
         cursor.classList.toggle('is-loading', nextState === 'loading');
     }
@@ -93,7 +115,9 @@ function initPcCursor(root) {
 
     function handlePointerLeave() {
         visible = false;
-        cursor.classList.remove('is-custom-active', 'is-hover', 'is-disabled', 'is-loading', 'is-pressed');
+        cursor.classList.remove('is-custom-active', 'is-hover', 'is-disabled', 'is-loading', 'is-pressed', 'is-plant');
+        delete cursor.dataset.plantSkin;
+        cursor.style.removeProperty('--pc-plant-cursor-img');
         root.classList.remove('pc-custom-cursor-native');
         currentState = null;
     }

@@ -157,6 +157,7 @@ FOLDERS_FILE = os.path.join(DATA_DIR, 'folders.json')
 SYNC_DEVICE_FILE = os.path.join(DATA_DIR, 'sync-device.json')
 GOALS_FILE = os.path.join(DATA_DIR, 'goals.json')
 GOAL_IMAGES_DIR = os.path.join(DATA_DIR, 'goal_images')
+PLANT_FILE = os.path.join(DATA_DIR, 'plant.json')
 FRONTEND_DIR = get_frontend_dir()
 SERVER_HOST = '127.0.0.1'
 SERVER_PORT = 8888
@@ -259,6 +260,28 @@ def load_goals():
 
 def save_goals(data):
     save_json_atomic(GOALS_FILE, data)
+
+
+def load_plant():
+    if not os.path.exists(PLANT_FILE):
+        return None
+    try:
+        with open(PLANT_FILE, 'r', encoding='utf-8') as f:
+            content = f.read().strip()
+        if not content:
+            return None
+        data = json.loads(content)
+        if not isinstance(data, dict):
+            return None
+        return data
+    except (json.JSONDecodeError, IOError):
+        return None
+
+
+def save_plant(payload):
+    if not isinstance(payload, dict):
+        raise ValueError('plant payload must be object')
+    save_json_atomic(PLANT_FILE, payload)
 
 
 def load_sync_device():
@@ -534,6 +557,7 @@ def build_backup_payload():
         },
         'folders': load_folders(),
         'prompt_sets': prompt_sets,
+        'plant': load_plant(),
     }
 
 
@@ -1435,6 +1459,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_get_prompt_set(set_id)
         elif path == '/api/goals/projects':
             self.handle_get_goal_projects()
+        elif path == '/api/plant':
+            self.handle_get_plant()
         elif path.startswith('/api/goals/projects/'):
             parts = path.split('/api/goals/projects/')[1].split('/')
             project_id = parts[0]
@@ -1518,6 +1544,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_upload_image(image_id)
         elif path == '/api/goals/projects':
             self.handle_create_goal_project()
+        elif path == '/api/plant':
+            self.handle_save_plant()
         elif path.startswith('/api/goals/projects/'):
             parts = path.split('/api/goals/projects/')[1].split('/')
             project_id = parts[0]
@@ -2044,6 +2072,34 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             result.append(item)
         self.send_json(result)
 
+    def handle_get_plant(self):
+        data = load_plant()
+        if data is None:
+            self.send_json({'plant': None})
+            return
+        self.send_json(data)
+
+    def handle_save_plant(self):
+        body = self.read_body()
+        if not isinstance(body, dict):
+            self.send_error_json('plant payload must be object', 400)
+            return
+        plant = body.get('plant')
+        if plant is not None and not isinstance(plant, dict):
+            self.send_error_json('plant must be object', 400)
+            return
+        payload = {
+            'schemaVersion': int(body.get('schemaVersion') or 1),
+            'plant': plant,
+            'updatedAt': body.get('updatedAt') or datetime.now().isoformat(),
+        }
+        try:
+            save_plant(payload)
+        except Exception as e:
+            self.send_error_json(f'植物档保存失败：{e}', 500)
+            return
+        self.send_json(payload)
+
     def handle_get_goal_project(self, project_id):
         goals, project = self._find_goal_project(project_id)
         if not project:
@@ -2351,11 +2407,26 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
                     updated += 1
                     count += 1
         save_data(data)
+        plant_restored = False
+        if isinstance(body, dict) and isinstance(body.get('plant'), dict) and body['plant'].get('plant') is not None:
+            try:
+                plant_payload = body['plant']
+                if 'schemaVersion' not in plant_payload:
+                    plant_payload = {
+                        'schemaVersion': 1,
+                        'plant': plant_payload.get('plant'),
+                        'updatedAt': datetime.now().isoformat(),
+                    }
+                save_plant(plant_payload)
+                plant_restored = True
+            except Exception:
+                plant_restored = False
         self.send_json({
             'imported': count,
             'added': added,
             'updated': updated,
             'imagesRestored': restored_images,
+            'plantRestored': plant_restored,
         })
 
     def handle_sync_import(self):

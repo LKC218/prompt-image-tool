@@ -1,0 +1,631 @@
+/* 首页挂机种植物 — 仅挂在 welcome banner overlay 槽内 */
+
+.pc-welcome-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.pc-plant-anchor {
+    position: absolute;
+    left: clamp(300px, 36%, 440px);
+    bottom: 6px;
+    width: 100px;
+    height: 110px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.pc-plant-slot {
+    position: relative;
+    width: 100px;
+    height: 110px;
+    pointer-events: auto;
+    cursor: var(--pc-cursor-leaf, pointer);
+}
+
+.pc-plant-trigger {
+    display: block;
+    width: 100px;
+    height: 110px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: var(--pc-cursor-leaf, pointer);
+    border-radius: 12px;
+}
+
+/* 压过全局 pc-custom-cursor 的 cursor: none/auto !important */
+@media (hover: hover) and (pointer: fine) {
+    .pc-app.pc-custom-cursor-enabled.pc-custom-cursor-native .pc-plant-slot,
+    .pc-app.pc-custom-cursor-enabled .pc-plant-slot[data-cursor="native"],
+    .pc-app.pc-custom-cursor-enabled.pc-custom-cursor-native .pc-plant-trigger,
+    .pc-app.pc-custom-cursor-enabled .pc-plant-trigger[data-cursor="native"] {
+        cursor: var(--pc-cursor-leaf, pointer) !important;
+    }
+
+    .pc-app.pc-custom-cursor-enabled.pc-custom-cursor-native .pc-plant-care-btn[data-plant-care="watered"],
+    .pc-app.pc-custom-cursor-enabled .pc-plant-care-btn[data-plant-care="watered"] {
+        cursor: var(--pc-cursor-water, pointer) !important;
+    }
+
+    .pc-app.pc-custom-cursor-enabled.pc-custom-cursor-native .pc-plant-care-btn[data-plant-care="fertilized"],
+    .pc-app.pc-custom-cursor-enabled .pc-plant-care-btn[data-plant-care="fertilized"] {
+        cursor: var(--pc-cursor-fertilize, pointer) !important;
+    }
+
+    .pc-app.pc-custom-cursor-enabled.pc-custom-cursor-native .pc-plant-care-btn[data-plant-care="deugged"],
+    .pc-app.pc-custom-cursor-enabled .pc-plant-care-btn[data-plant-care="deugged"] {
+        cursor: var(--pc-cursor-bug, pointer) !important;
+    }
+
+    .pc-app.pc-custom-cursor-enabled.pc-custom-cursor-native .pc-plant-care-btn:disabled,
+    .pc-app.pc-custom-cursor-enabled .pc-plant-care-btn:disabled {
+        cursor: default !important;
+    }
+
+    .pc-app.pc-custom-cursor-enabled.pc-custom-cursor-native .pc-plant-fx-btn,
+    .pc-app.pc-custom-cursor-enabled .pc-plant-fx-btn {
+        cursor: var(--pc-cursor-bug, pointer) !important;
+    }
+
+    .pc-app.pc-custom-cursor-enabled.pc-custom-cursor-native .pc-plant-shovel,
+    .pc-app.pc-custom-cursor-enabled .pc-plant-shovel {
+        cursor: var(--pc-cursor-shovel, pointer) !important;
+    }
+}
+
+.pc-plant-trigger:focus-visible {
+    outline: 2px solid var(--color-brand-primary);
+    outline-offset: 2px;
+}
+
+.pc-plant-svg {
+    display: block;
+    width: 100px;
+    height: 110px;
+    overflow: visible;
+    filter: drop-shadow(0 3px 6px rgb(40 80 110 / 14%));
+}
+
+/* GPT 素材渲染 — 30 天轮回：阶段整图 + 日装饰 */
+.pc-plant-art {
+    position: relative;
+    width: 100px;
+    height: 110px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    transform: scale(var(--plant-scale, 1)) rotate(var(--plant-tilt, 0deg));
+    transform-origin: bottom center;
+    animation: pc-plant-sway 3.2s ease-in-out infinite;
+    will-change: transform;
+}
+
+.pc-plant-stage-img {
+    display: block;
+    max-width: 100px;
+    max-height: 110px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: bottom center;
+    filter: drop-shadow(0 3px 6px rgb(40 80 110 / 14%));
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.pc-plant-art--10-bloom-full .pc-plant-stage-img,
+.pc-plant-art--09-bloom .pc-plant-stage-img {
+    filter: drop-shadow(0 0 8px rgb(255 180 120 / 20%)) drop-shadow(0 3px 6px rgb(40 80 110 / 14%));
+}
+
+.pc-plant-art--11-wilt .pc-plant-stage-img,
+.pc-plant-art--12-dead .pc-plant-stage-img {
+    filter: drop-shadow(0 3px 6px rgb(80 60 30 / 16%)) saturate(0.92);
+}
+
+/* 日装饰 */
+.pc-plant-fx {
+    position: absolute;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    z-index: 2;
+}
+
+.pc-plant-fx--dew {
+    width: 12px;
+    filter: drop-shadow(0 1px 2px rgb(80 140 200 / 35%));
+}
+
+.pc-plant-fx--fly {
+    width: 18px;
+    animation: pc-plant-fly 2.8s ease-in-out infinite;
+}
+
+@keyframes pc-plant-fly {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-3px) rotate(5deg); }
+}
+
+.pc-plant-fx-btn {
+    position: absolute;
+    z-index: 3;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: var(--pc-cursor-bug, pointer);
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+}
+
+.pc-plant-fx--bug img {
+    display: block;
+    width: 16px;
+    filter: drop-shadow(0 1px 2px rgb(40 80 110 / 20%));
+    animation: pc-plant-bug-wiggle 1.6s ease-in-out infinite;
+}
+
+@keyframes pc-plant-bug-wiggle {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+}
+
+.pc-plant-fx--flower {
+    width: 14px;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 1px 2px rgb(40 80 110 / 12%));
+}
+
+.pc-plant-fx--fall {
+    width: 14px;
+    animation: pc-plant-fall 3.2s ease-in infinite;
+}
+
+.pc-plant-fx--fall-0 { left: 58%; top: 30%; }
+.pc-plant-fx--fall-1 { left: 30%; top: 40%; animation-delay: 1.2s; }
+
+@keyframes pc-plant-fall {
+    0% { opacity: 0; transform: translateY(0) rotate(0deg); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(36px) rotate(120deg); }
+}
+
+/* 养护一次性特效 */
+.pc-plant-fx-burst {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.pc-plant-burst-drop {
+    position: absolute;
+    width: 10px;
+    height: auto;
+    animation: pc-fx-drop 0.75s ease-in forwards;
+}
+
+.pc-plant-burst-drop-0 { left: 36%; top: 8%; animation-delay: 0s; }
+.pc-plant-burst-drop-1 { left: 52%; top: 4%; animation-delay: 0.08s; width: 8px; }
+.pc-plant-burst-drop-2 { left: 44%; top: 12%; animation-delay: 0.16s; width: 9px; }
+.pc-plant-burst-drop-3 { left: 62%; top: 6%; animation-delay: 0.24s; width: 7px; }
+
+@keyframes pc-fx-drop {
+    0% { opacity: 0; transform: translateY(0) scale(0.7); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(48px) scale(1); }
+}
+
+.pc-plant-burst-spark {
+    position: absolute;
+    width: 14px;
+    animation: pc-fx-spark 0.85s ease-out forwards;
+}
+
+.pc-plant-burst-spark-0 { left: 42%; bottom: 18%; }
+.pc-plant-burst-spark-1 { left: 56%; bottom: 22%; animation-delay: 0.12s; width: 11px; }
+.pc-plant-burst-spark-2 { left: 48%; bottom: 28%; animation-delay: 0.22s; width: 12px; }
+
+@keyframes pc-fx-spark {
+    0% { opacity: 0; transform: scale(0.3) translateY(4px); }
+    35% { opacity: 1; transform: scale(1.1) translateY(-2px); }
+    100% { opacity: 0; transform: scale(0.5) translateY(-14px); }
+}
+
+.pc-plant-burst-dust {
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    width: 56px;
+    transform: translateX(-50%);
+    animation: pc-fx-dust 0.65s ease-out forwards;
+}
+
+@keyframes pc-fx-dust {
+    0% { opacity: 0; transform: translateX(-50%) scale(0.5); }
+    25% { opacity: 0.9; }
+    100% { opacity: 0; transform: translateX(-50%) scale(1.25); }
+}
+
+.pc-plant-art.is-wet .pc-plant-stage-img {
+    animation: pc-fx-wet 1.2s ease-out;
+}
+
+@keyframes pc-fx-wet {
+    0%, 100% { filter: drop-shadow(0 3px 6px rgb(40 80 110 / 14%)); }
+    30% { filter: drop-shadow(0 3px 6px rgb(40 80 110 / 14%)) brightness(1.08) saturate(1.05); }
+}
+
+.pc-plant-art.is-fed .pc-plant-stage-img {
+    animation: pc-fx-fed 1.2s ease-out;
+}
+
+@keyframes pc-fx-fed {
+    0%, 100% { filter: drop-shadow(0 3px 6px rgb(40 80 110 / 14%)); }
+    35% { filter: drop-shadow(0 0 6px rgb(255 220 120 / 45%)) saturate(1.08); }
+}
+
+.pc-plant-fx--bug.is-clearing {
+    animation: pc-fx-bug-out 0.45s ease-in forwards;
+}
+
+@keyframes pc-fx-bug-out {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+}
+
+.pc-plant-art.is-digging .pc-plant-stage-img {
+    animation: pc-fx-dig 0.55s ease-in forwards;
+}
+
+@keyframes pc-fx-dig {
+    0% { transform: scale(1, 1); opacity: 1; }
+    70% { transform: scale(1.05, 0.7) translateY(8px); opacity: 0.7; }
+    100% { transform: scale(0.9, 0.35) translateY(16px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-plant-burst-drop,
+    .pc-plant-burst-spark,
+    .pc-plant-burst-dust,
+    .pc-plant-fx--bug.is-clearing,
+    .pc-plant-art.is-wet .pc-plant-stage-img,
+    .pc-plant-art.is-fed .pc-plant-stage-img,
+    .pc-plant-art.is-digging .pc-plant-stage-img {
+        animation: none !important;
+    }
+}
+
+/* 铲除 */
+.pc-plant-shovel {
+    position: absolute;
+    left: 50%;
+    bottom: -2px;
+    transform: translateX(-50%);
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px 2px 3px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 999px;
+    background: var(--color-surface-floating);
+    box-shadow: var(--color-shadow-control-soft);
+    color: var(--color-text-primary);
+    font: 600 10px/1 var(--pc-font-family, system-ui, sans-serif);
+    cursor: var(--pc-cursor-shovel, pointer);
+    pointer-events: auto;
+}
+
+.pc-plant-shovel.is-prominent {
+    background: var(--color-brand-primary, #2477d4);
+    border-color: transparent;
+    color: #fff;
+    padding: 3px 8px 3px 4px;
+    animation: pc-plant-shovel-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pc-plant-shovel-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgb(36 119 212 / 35%); }
+    50% { box-shadow: 0 0 0 6px rgb(36 119 212 / 0%); }
+}
+
+.pc-plant-slot.is-ready-shovel .pc-plant-stage-img {
+    filter: drop-shadow(0 0 6px rgb(36 119 212 / 28%)) drop-shadow(0 3px 6px rgb(40 80 110 / 14%));
+}
+
+/* 天数徽章 */
+.pc-plant-day-badge {
+    position: absolute;
+    left: 2px;
+    bottom: 2px;
+    z-index: 5;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgb(30 43 58 / 55%);
+    color: #fff;
+    font: 600 10px/1.2 var(--pc-font-family, system-ui, sans-serif);
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+}
+
+.pc-plant-day-badge-day {
+    font-size: 12px;
+}
+
+.pc-plant-day-badge-total {
+    opacity: 0.75;
+    font-weight: 500;
+}
+
+/* 离线轻提示 */
+.pc-plant-offline-hint {
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    transform: translateX(-50%);
+    z-index: 5;
+    padding: 1px 6px;
+    border-radius: 6px;
+    background: rgb(184 117 8 / 78%);
+    color: #fff;
+    font: 500 9px/1.3 var(--pc-font-family, system-ui, sans-serif);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.pc-plant-offline-hint[hidden] {
+    display: none !important;
+}
+
+.pc-plant-shovel img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+}
+
+.pc-plant-shovel:hover {
+    background: var(--color-brand-subtle);
+    border-color: var(--color-brand-decoration);
+}
+
+/* 进入 / 呼吸 / 摇摆 */
+.pc-plant-art.is-entering {
+    animation:
+        pc-plant-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both,
+        pc-plant-sway 3.2s ease-in-out 0.28s infinite;
+}
+
+@keyframes pc-plant-enter {
+    0% { opacity: 0; transform: scale(calc(var(--plant-scale, 1) * 0.94)) rotate(var(--plant-tilt, 0deg)) translateY(4px); }
+    100% { opacity: 1; transform: scale(var(--plant-scale, 1)) rotate(var(--plant-tilt, 0deg)) translateY(0); }
+}
+
+.pc-plant-art.is-breathe {
+    animation:
+        pc-plant-breathe 0.32s cubic-bezier(0.22, 1.4, 0.36, 1),
+        pc-plant-sway 3.2s ease-in-out 0.32s infinite;
+}
+
+@keyframes pc-plant-breathe {
+    0% { transform: scale(var(--plant-scale, 1)) rotate(var(--plant-tilt, 0deg)); }
+    40% { transform: scale(calc(var(--plant-scale, 1) * 1.04)) rotate(var(--plant-tilt, 0deg)); }
+    100% { transform: scale(var(--plant-scale, 1)) rotate(var(--plant-tilt, 0deg)); }
+}
+
+@keyframes pc-plant-sway {
+    0%, 100% {
+        transform: scale(var(--plant-scale, 1)) rotate(calc(var(--plant-tilt, 0deg) - 0.5deg));
+    }
+    50% {
+        transform: scale(var(--plant-scale, 1)) rotate(calc(var(--plant-tilt, 0deg) + 0.5deg));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-plant-art,
+    .pc-plant-art.is-entering,
+    .pc-plant-art.is-breathe,
+    .pc-plant-fx--fly,
+    .pc-plant-fx--fall,
+    .pc-plant-fx--bug img {
+        animation: none !important;
+    }
+}
+
+/* 养护气泡 — 展开在植物右侧，优先于测试条 */
+.pc-plant-care-bubble {
+    position: absolute;
+    left: 108px;
+    bottom: 36px;
+    display: flex;
+    gap: 5px;
+    padding: 7px;
+    border-radius: 14px;
+    background: var(--color-surface-floating);
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: var(--color-shadow-control-soft);
+    z-index: 8;
+    white-space: nowrap;
+}
+
+.pc-plant-care-bubble[hidden] {
+    display: none !important;
+}
+
+.pc-plant-care-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 44px;
+    padding: 6px 8px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 10px;
+    background: var(--color-surface-control);
+    color: var(--color-text-primary);
+    cursor: var(--pc-cursor-leaf, pointer);
+    font: 500 11px/1.2 var(--pc-font-family, system-ui, sans-serif);
+}
+
+.pc-plant-care-btn[data-plant-care="watered"] {
+    cursor: var(--pc-cursor-water, pointer);
+}
+
+.pc-plant-care-btn[data-plant-care="fertilized"] {
+    cursor: var(--pc-cursor-fertilize, pointer);
+}
+
+.pc-plant-care-btn[data-plant-care="deugged"] {
+    cursor: var(--pc-cursor-bug, pointer);
+}
+
+.pc-plant-care-btn:disabled,
+.pc-plant-care-btn.is-done {
+    cursor: default;
+}
+
+.pc-plant-care-btn:hover:not(:disabled) {
+    background: var(--color-brand-subtle);
+    border-color: var(--color-brand-decoration);
+}
+
+.pc-plant-care-btn.is-done,
+.pc-plant-care-btn:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.pc-plant-care-icon {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+}
+
+.pc-plant-care-icon svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Debug：默认收起为「测」小钮，避免挡住养护 */
+.pc-plant-dev-wrap {
+    position: absolute;
+    left: 108px;
+    bottom: 2px;
+    z-index: 6;
+    pointer-events: auto;
+}
+
+.pc-plant-dev-wrap.is-open {
+    z-index: 7;
+}
+
+.pc-plant-dev-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 18px;
+    padding: 0 6px;
+    border: 1px solid rgb(255 255 255 / 22%);
+    border-radius: 999px;
+    background: rgb(30 43 58 / 62%);
+    color: #F5F8FC;
+    font: 600 10px/1 var(--pc-font-family, system-ui, sans-serif);
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+}
+
+.pc-plant-dev-wrap.is-open .pc-plant-dev-toggle {
+    background: rgb(36 119 212 / 78%);
+}
+
+.pc-plant-dev {
+    position: absolute;
+    left: 0;
+    bottom: 22px;
+    width: max-content;
+    max-width: 280px;
+    padding: 5px 7px;
+    border-radius: 10px;
+    background: rgb(30 43 58 / 78%);
+    color: #F5F8FC;
+    border: 1px solid rgb(255 255 255 / 14%);
+    font: 500 10px/1.35 var(--pc-font-family, system-ui, sans-serif);
+    pointer-events: auto;
+    backdrop-filter: blur(6px);
+}
+
+.pc-plant-dev[hidden] {
+    display: none !important;
+}
+
+.pc-plant-dev-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    align-items: center;
+}
+
+.pc-plant-dev-sep {
+    width: 1px;
+    height: 10px;
+    background: rgb(255 255 255 / 20%);
+    margin: 0 2px;
+}
+
+.pc-plant-dev-row button {
+    border: 1px solid rgb(255 255 255 / 22%);
+    background: rgb(255 255 255 / 10%);
+    color: inherit;
+    border-radius: 5px;
+    padding: 1px 5px;
+    cursor: pointer;
+    font: inherit;
+}
+
+.pc-plant-dev-row button.is-active,
+.pc-plant-dev-row button:hover {
+    background: rgb(255 255 255 / 24%);
+}
+
+.pc-plant-dev-stat {
+    margin-top: 3px;
+    opacity: 0.8;
+    font-size: 9px;
+}
+
+/* 深色模式 */
+:root[data-appearance="dark"] .pc-plant-care-bubble {
+    background: var(--color-surface-floating);
+}
+
+:root[data-appearance="dark"] .pc-plant-shovel {
+    background: var(--color-surface-floating);
+}
+
+/* 窄横幅时略微左移，避免压到像素狗/柯基 */
+@media (max-width: 1200px) {
+    .pc-plant-anchor {
+        left: clamp(240px, 30%, 360px);
+    }
+}
+
+@media (max-width: 900px) {
+    .pc-plant-anchor {
+        display: none;
+    }
+}

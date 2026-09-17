@@ -28,6 +28,7 @@ function renderPcWelcomeBanner(options = {}) {
         className = '',
         leadingHtml = '',
         decorationsHtml = '',
+        overlayHtml = '',
         actionsHtml = '',
         actionsPlacement = 'beforeMascot',
         mascotAlt = '柯基'
@@ -52,6 +53,7 @@ function renderPcWelcomeBanner(options = {}) {
                     ${actionsPlacement === 'afterMascot' ? actions : ''}
                 </div>
             </div>
+            ${overlayHtml ? `<div class="pc-welcome-overlay">${overlayHtml}</div>` : ''}
         </div>
     `;
 }

@@ -1,6 +1,7 @@
 import { getStorage, isCapacitor } from './storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showConfirmModal, escapeHtml, formatBytes, copyToClipboard } from './pc-utils.js';
+import { resetPlant } from './plant-persist.js';
 import { APPEARANCE_PREFERENCES, WORKBENCH_THEMES } from './theme-config.js';
 import { getThemeState, setAppearancePreference, setWorkbenchTheme } from './theme-service.js';
 import { buildExportSuccessMessage, exportBackup, exportZipBackup, getErrorMessage } from './backup-utils.js';
@@ -156,7 +157,8 @@ function render(params = {}) {
                 </div>
                 <div class="pc-settings-backup-footer">
                     <button class="pc-btn pc-btn-secondary pc-btn-sm" type="button" data-settings-action="export-json">导出兼容 JSON</button>
-                    <p class="pc-settings-backup-hint">完整备份使用 ZIP 保存原图；兼容 JSON 适用于旧版本和少量图片。选择自定义位置时会打开保存位置选择窗口。</p>
+                    <button class="pc-btn pc-btn-danger-outline pc-btn-sm" type="button" data-settings-action="reset-plant">重置挂机植物</button>
+                    <p class="pc-settings-backup-hint">完整备份使用 ZIP 保存原图；兼容 JSON 适用于旧版本和少量图片。选择自定义位置时会打开保存位置选择窗口。「重置挂机植物」仅清空首页植物进度，不影响提示词。</p>
                 </div>
             </section>
 
@@ -442,6 +444,19 @@ function setupSettingsEvents(pageEl) {
             }
             if (action === 'import-chatgpt-vault') {
                 handleChatGptVaultImport(pageEl);
+                return;
+            }
+            if (action === 'reset-plant') {
+                showConfirmModal('确定重置挂机植物吗？将回到第 1 天，不影响提示词数据。', async () => {
+                    try {
+                        let apiStorage = null;
+                        try { apiStorage = getStorage(); } catch { apiStorage = null; }
+                        await resetPlant(apiStorage);
+                        showToast('挂机植物已重置为第 1 天');
+                    } catch (e) {
+                        showToast(getErrorMessage(e) || '重置植物失败', 'error');
+                    }
+                });
             }
         });
     });

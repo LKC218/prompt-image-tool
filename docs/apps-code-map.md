@@ -69,7 +69,7 @@
 
 | 文件 | 路由 | 职责 |
 | --- | --- | --- |
-| `pc-home.js` | `/` | 统计卡、最近使用、收藏分类、欢迎区 |
+| `pc-home.js` | `/` | 统计卡、最近使用、收藏分类、欢迎区、挂机植物启停 |
 | `pc-library.js` | `/library` | 搜索过滤、表格 + 预览、分页 |
 | `pc-detail.js` | `/detail/:id` | 版本、图片画廊、复制提示词 |
 | `pc-detail-modal.js` | — | 库内详情弹窗 |
@@ -113,8 +113,14 @@
 | `src/css/pc/08-goal-plan.css` | 目标计划 |
 | `src/css/pc/09-tetris.css` | 俄罗斯方块小游戏页 |
 | `src/css/pc/10-plane.css` | 摸鱼中心与飞机大战 |
+| `src/css/pc/11-plant.css` | 首页挂机种植物（横幅槽/养护气泡/debug） |
 | `src/js/tetris-core.js` | 俄罗斯方块纯逻辑（棋盘/旋转/消行/计分） |
 | `src/js/plane-war-core.js` | 飞机大战纯逻辑（生成/碰撞/计分/tick） |
+| `src/js/plant-core.js` | 挂机种植物纯逻辑（30 天轮回/养护/铲除/debug） |
+| `src/js/plant-persist.js` | 植物档 API/localStorage 双写与迁移 |
+| `src/js/plant-tracker.js` | 植物计时生命周期（visibility/心跳/存档） |
+| `src/js/plant-view.js` | 植物素材/SVG 渲染与养护 UI |
+| `src/assets/pc/plant/` | 镜面草四阶段图 + 单叶精灵 |
 | `src/css/mobile.css` | 移动端样式入口 |
 | `src/js/version-info.js` | 版本号读取与展示 |
 | `src/js/auto-updater.js` | PC 应用内更新：检查 / 启动下载 / 轮询进度 / 取消 / 安装 |
@@ -178,6 +184,7 @@
 - [应用内自动更新模块](模块说明/应用内自动更新模块.md)
 - [俄罗斯方块小游戏模块](模块说明/俄罗斯方块小游戏模块.md)
 - [摸鱼时间游戏中心模块](模块说明/摸鱼时间游戏中心模块.md)
+- [首页挂机种植物模块](模块说明/首页挂机种植物模块.md)
 
 ---
 

@@ -185,6 +185,14 @@ export class ApiStorage {
         return this.api('GET', '/goals/projects');
     }
 
+    async getPlant() {
+        return this.api('GET', '/plant');
+    }
+
+    async savePlant(payload) {
+        return this.api('POST', '/plant', payload);
+    }
+
     async getGoalProject(id) {
         return this.api('GET', `/goals/projects/${id}`);
     }

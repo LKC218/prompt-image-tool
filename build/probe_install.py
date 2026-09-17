@@ -119,6 +119,34 @@ def main():
         # 9. 数据落盘
         goals_file = os.path.join(data_dir, 'data', 'goals.json')
         checks.append(('goals.json 落盘且为空库', os.path.exists(goals_file) and json.load(open(goals_file, encoding='utf-8')) == {'projects': []}))
+
+        # 10. 挂机植物档：GET 空 → POST → GET 一致 → plant.json 落盘
+        status, body = api('GET', '/api/plant')
+        checks.append(('GET /api/plant 初始为空', status == 200 and (body.get('plant') is None)))
+        plant_payload = {
+            'schemaVersion': 1,
+            'plant': {
+                'cycleStartAt': 1700000000000,
+                'todayKey': '2026-01-01',
+                'care': {'watered': True, 'fertilized': False, 'deugged': False},
+                'activeDays': 2,
+                'totalCycles': 1,
+            },
+            'updatedAt': '2026-01-01T00:00:00',
+        }
+        status, body = api('POST', '/api/plant', plant_payload)
+        checks.append(('POST /api/plant 写入', status == 200 and body.get('plant', {}).get('care', {}).get('watered') is True))
+        status, body = api('GET', '/api/plant')
+        checks.append(('GET /api/plant 回读一致', body.get('plant', {}).get('totalCycles') == 1))
+        plant_file = os.path.join(data_dir, 'data', 'plant.json')
+        plant_ok = os.path.exists(plant_file)
+        if plant_ok:
+            plant_ok = json.load(open(plant_file, encoding='utf-8')).get('plant', {}).get('care', {}).get('watered') is True
+        checks.append(('plant.json 落盘', plant_ok))
+
+        # 11. 备份导出包含 plant
+        status, body = api('GET', '/api/export')
+        checks.append(('GET /api/export 含 plant', status == 200 and isinstance(body.get('plant'), dict)))
     finally:
         proc.kill()
         proc.wait(timeout=10)
