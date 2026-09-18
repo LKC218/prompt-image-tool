@@ -183,7 +183,7 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
             } else if (phase === 'installing') {
                 statusEl.textContent = '正在启动安装程序…';
             } else if (phase === 'ready') {
-                statusEl.textContent = '安装程序已启动，应用即将退出';
+                statusEl.textContent = '安装程序已启动，应用即将退出并自动重启';
             } else if (phase === 'failed') {
                 statusEl.textContent = '更新失败';
             } else if (phase === 'cancelled') {

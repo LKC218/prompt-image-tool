@@ -12,11 +12,14 @@ import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "python"))
 
+import auto_update
 from auto_update import (
+    APP_EXE_NAME,
     DownloadCancelled,
     _download_url_candidates,
     _friendly_network_error,
     _meta_candidate_urls,
+    build_relaunch_helper_script_text,
     cancel_download_job,
     download_installer,
     fetch_latest_meta,
@@ -25,6 +28,9 @@ from auto_update import (
     parse_version_tuple,
     read_local_app_version,
     reset_download_jobs_for_tests,
+    resolve_install_dir,
+    run_installer,
+    spawn_relaunch_helper,
     start_download_job,
 )
 
@@ -287,3 +293,188 @@ def test_fetch_latest_meta_all_fail_raises_friendly(monkeypatch):
     with pytest.raises(RuntimeError) as exc:
         fetch_latest_meta()
     assert "SSL" in str(exc.value)
+
+
+def test_resolve_install_dir_prefers_frozen_exe_dir(monkeypatch, tmp_path):
+    install_dir = tmp_path / "PromptImageManager"
+    install_dir.mkdir()
+    exe = install_dir / "PromptImageManager.exe"
+    exe.write_bytes(b"stub")
+
+    monkeypatch.setattr("auto_update.sys.frozen", True, raising=False)
+    monkeypatch.setattr("auto_update.sys.executable", str(exe))
+    assert resolve_install_dir() == str(install_dir)
+
+
+def test_resolve_install_dir_fallback_local_appdata(monkeypatch, tmp_path):
+    monkeypatch.setattr("auto_update.sys.frozen", False, raising=False)
+    monkeypatch.setattr("auto_update._read_install_dir_from_registry", lambda: None)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    resolved = resolve_install_dir()
+    assert resolved == os.path.join(str(tmp_path), "PromptImageManager")
+
+
+def test_resolve_install_dir_prefers_registry_over_local_appdata(monkeypatch, tmp_path):
+    reg_dir = tmp_path / "FromRegistry"
+    reg_dir.mkdir()
+    monkeypatch.setattr("auto_update.sys.frozen", False, raising=False)
+    monkeypatch.setattr(
+        "auto_update._read_install_dir_from_registry",
+        lambda: str(reg_dir),
+    )
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "LocalAppData"))
+    assert resolve_install_dir() == str(reg_dir)
+
+
+def test_build_relaunch_helper_script_contains_contract():
+    text = build_relaunch_helper_script_text()
+    assert "InstallerPid" in text
+    assert "TargetExe" in text
+    assert "ExpectedVersion" in text
+    assert "SettleSec" in text
+    assert "Start-Process" in text
+    assert "frontend\\index.html" in text or "frontend/index.html" in text
+    assert "_internal" in text
+
+
+def test_run_installer_dev_skips_helper(monkeypatch, tmp_path):
+    setup = tmp_path / "PromptImageManager-Setup.exe"
+    setup.write_bytes(b"mz")
+    monkeypatch.setattr("auto_update._should_auto_restart", lambda: False)
+    monkeypatch.setattr("auto_update.time.sleep", lambda *_: None)
+
+    calls = []
+
+    class _Proc:
+        pid = 4242
+
+    def fake_popen(cmd, **kwargs):
+        calls.append({"cmd": list(cmd), "kwargs": kwargs})
+        return _Proc()
+
+    monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
+    result = run_installer(str(setup), expected_version="2.5.9")
+    assert result["success"] is True
+    assert result["autoRestart"] is False
+    assert result["helperSpawned"] is False
+    assert result["installDir"] == ""
+    assert calls[0]["cmd"][0] == str(setup)
+    assert "/S" in calls[0]["cmd"]
+    assert not any(str(item).startswith("/D=") for item in calls[0]["cmd"])
+    assert len(calls) == 1
+
+
+def test_run_installer_frozen_windows_spawns_helper(monkeypatch, tmp_path):
+    setup = tmp_path / "PromptImageManager-Setup-2.5.9.exe"
+    setup.write_bytes(b"mz")
+    install_dir = tmp_path / "AppLocal" / "PromptImageManager"
+    install_dir.mkdir(parents=True)
+    target_exe = install_dir / APP_EXE_NAME
+    target_exe.write_bytes(b"stub")
+
+    monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
+    monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(install_dir))
+    monkeypatch.setattr("auto_update.time.sleep", lambda *_: None)
+
+    calls = []
+
+    class _Proc:
+        pid = 9911
+
+    def fake_popen(cmd, **kwargs):
+        calls.append({"cmd": list(cmd), "kwargs": kwargs})
+        return _Proc()
+
+    monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
+    result = run_installer(str(setup), expected_version="2.5.9")
+    assert result["success"] is True
+    assert result["autoRestart"] is True
+    assert result["helperSpawned"] is True
+    assert result["installDir"] == str(install_dir)
+    assert result["targetExe"] == str(target_exe)
+    assert result["installerPid"] == 9911
+
+    installer_cmd = calls[0]["cmd"]
+    assert installer_cmd[0] == str(setup)
+    assert "/S" in installer_cmd
+    assert f"/D={install_dir}" in installer_cmd
+
+    helper_cmd = calls[1]["cmd"]
+    assert helper_cmd[0] == "powershell"
+    assert "-InstallerPid" in helper_cmd
+    assert "9911" in helper_cmd
+    assert str(target_exe) in helper_cmd
+    assert "2.5.9" in helper_cmd
+    assert calls[1]["kwargs"].get("close_fds") is True
+
+
+def test_run_installer_helper_failure_still_succeeds(monkeypatch, tmp_path):
+    setup = tmp_path / "setup.exe"
+    setup.write_bytes(b"mz")
+    install_dir = tmp_path / "inst"
+    install_dir.mkdir()
+
+    monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
+    monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(install_dir))
+    monkeypatch.setattr("auto_update.time.sleep", lambda *_: None)
+
+    class _Proc:
+        pid = 7
+
+    monkeypatch.setattr(
+        "auto_update.subprocess.Popen",
+        lambda *args, **kwargs: _Proc(),
+    )
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("helper blocked")
+
+    monkeypatch.setattr("auto_update.spawn_relaunch_helper", boom)
+    result = run_installer(str(setup))
+    assert result["success"] is True
+    assert result["autoRestart"] is True
+    assert result["helperSpawned"] is False
+
+
+def test_spawn_relaunch_helper_invokes_powershell(monkeypatch, tmp_path):
+    script = tmp_path / "helper.ps1"
+    script.write_text("# helper", encoding="utf-8")
+    seen = {}
+
+    class _Proc:
+        pid = 55
+
+    def fake_popen(cmd, **kwargs):
+        seen["cmd"] = list(cmd)
+        seen["kwargs"] = kwargs
+        return _Proc()
+
+    monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
+    result = spawn_relaunch_helper(
+        55,
+        r"C:\Apps\PromptImageManager\PromptImageManager.exe",
+        "2.5.9",
+        script_path=str(script),
+    )
+    assert result["success"] is True
+    assert result["helperPath"] == str(script)
+    assert seen["cmd"][0] == "powershell"
+    assert str(script) in seen["cmd"]
+    assert "2.5.9" in seen["cmd"]
+    assert "-SettleSec" in seen["cmd"]
+    assert seen["kwargs"].get("close_fds") is True
+    if os.name == "nt":
+        assert seen["kwargs"].get("creationflags") == auto_update._HELPER_CREATIONFLAGS
+
+
+def test_spawn_relaunch_helper_cleans_script_on_popen_failure(monkeypatch, tmp_path):
+    script = tmp_path / "helper-fail.ps1"
+    script.write_text("# helper", encoding="utf-8")
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("popen failed")
+
+    monkeypatch.setattr("auto_update.subprocess.Popen", boom)
+    with pytest.raises(RuntimeError):
+        spawn_relaunch_helper(1, r"C:\x\PromptImageManager.exe", script_path=str(script))
+    assert not script.exists()

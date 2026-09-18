@@ -1672,7 +1672,9 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         try:
             body = self.read_body()
             path = str(body.get('path') or '').strip()
-            result = run_installer(path)
+            expected_raw = body.get('expectedVersion') or body.get('expected_version') or ''
+            expected_version = str(expected_raw).strip() or None
+            result = run_installer(path, expected_version=expected_version)
             self.send_json(result)
             threading.Timer(0.3, exit_app_after_install).start()
         except Exception as error:

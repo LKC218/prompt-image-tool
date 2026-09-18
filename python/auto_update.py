@@ -36,6 +36,56 @@ JOB_PHASES_ACTIVE = frozenset({"pending", "downloading", "verifying"})
 _jobs_lock = threading.Lock()
 _jobs: dict[str, dict[str, Any]] = {}
 
+APP_EXE_NAME = "PromptImageManager.exe"
+REGISTRY_APP_KEY = r"Software\PromptImageManager"
+HELPER_DEFAULT_TIMEOUT_SEC = 900
+HELPER_SETTLE_SEC = 2
+# DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
+_HELPER_CREATIONFLAGS = 0x00000008 | 0x00000200 | 0x08000000
+
+RELAUNCH_HELPER_SCRIPT = r"""param(
+  [Parameter(Mandatory=$true)][int]$InstallerPid,
+  [Parameter(Mandatory=$true)][string]$TargetExe,
+  [string]$ExpectedVersion = "",
+  [int]$TimeoutSec = 900,
+  [int]$SettleSec = 2
+)
+$deadline = (Get-Date).AddSeconds($TimeoutSec)
+while ((Get-Date) -lt $deadline) {
+  $proc = Get-Process -Id $InstallerPid -ErrorAction SilentlyContinue
+  if (-not $proc) { break }
+  Start-Sleep -Milliseconds 500
+}
+if ($SettleSec -gt 0) { Start-Sleep -Seconds $SettleSec }
+if (-not (Test-Path -LiteralPath $TargetExe)) { exit 0 }
+$exeDir = Split-Path -Parent $TargetExe
+if ($ExpectedVersion -ne "") {
+  $candidates = @(
+    (Join-Path $exeDir 'frontend\index.html'),
+    (Join-Path $exeDir '_internal\frontend\index.html')
+  )
+  $readAny = $false
+  $matched = $false
+  foreach ($htmlPath in $candidates) {
+    if (-not (Test-Path -LiteralPath $htmlPath)) { continue }
+    try {
+      $html = Get-Content -LiteralPath $htmlPath -Raw -Encoding UTF8
+      if ($null -eq $html) { $html = '' }
+      if ($html.Length -gt 8000) { $html = $html.Substring(0, 8000) }
+      if ($html -match '(?i)name=["'']version["'']\s+content=["'']([^"'']+)["'']') {
+        $readAny = $true
+        $found = [string]$Matches[1]
+        $found = $found.Trim()
+        if ($found -eq $ExpectedVersion.Trim()) { $matched = $true }
+      }
+    } catch {}
+  }
+  if ($readAny -and -not $matched) { exit 0 }
+}
+Start-Process -FilePath $TargetExe -WorkingDirectory $exeDir
+try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}
+"""
+
 
 def parse_version_tuple(version: str) -> tuple[int, ...]:
     parts = re.findall(r"\d+", str(version or ""))
@@ -508,23 +558,152 @@ def reset_download_jobs_for_tests() -> None:
         _jobs.clear()
 
 
-def run_installer(installer_path: str) -> dict[str, Any]:
+def _should_auto_restart() -> bool:
+    return os.name == "nt" and bool(getattr(sys, "frozen", False))
+
+
+def _read_install_dir_from_registry() -> str | None:
+    if os.name != "nt":
+        return None
+    try:
+        import winreg
+    except ImportError:
+        return None
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, REGISTRY_APP_KEY) as key:
+            value, _ = winreg.QueryValueEx(key, "InstallDir")
+        candidate = str(value or "").strip()
+        if candidate and os.path.isdir(candidate):
+            return candidate
+    except OSError:
+        return None
+    return None
+
+
+def resolve_install_dir() -> str:
+    if getattr(sys, "frozen", False):
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+        if exe_dir and os.path.isdir(exe_dir):
+            return exe_dir
+    from_registry = _read_install_dir_from_registry()
+    if from_registry:
+        return from_registry
+    base = (
+        os.environ.get("LOCALAPPDATA")
+        or os.environ.get("APPDATA")
+        or tempfile.gettempdir()
+    )
+    return os.path.join(os.path.abspath(os.path.expandvars(base)), "PromptImageManager")
+
+
+def build_relaunch_helper_script_text() -> str:
+    return RELAUNCH_HELPER_SCRIPT
+
+
+def write_relaunch_helper_script(directory: str | None = None) -> str:
+    directory = directory or tempfile.gettempdir()
+    os.makedirs(directory, exist_ok=True)
+    path = os.path.join(
+        directory,
+        f"prompt-image-update-relaunch-{uuid.uuid4().hex[:8]}.ps1",
+    )
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(RELAUNCH_HELPER_SCRIPT)
+    return path
+
+
+def spawn_relaunch_helper(
+    installer_pid: int,
+    target_exe: str,
+    expected_version: str | None = None,
+    *,
+    timeout_sec: int = HELPER_DEFAULT_TIMEOUT_SEC,
+    settle_sec: int = HELPER_SETTLE_SEC,
+    script_path: str | None = None,
+) -> dict[str, Any]:
+    helper_script = script_path or write_relaunch_helper_script()
+    args = [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        helper_script,
+        "-InstallerPid",
+        str(int(installer_pid)),
+        "-TargetExe",
+        str(target_exe),
+        "-ExpectedVersion",
+        str(expected_version or ""),
+        "-TimeoutSec",
+        str(int(timeout_sec)),
+        "-SettleSec",
+        str(int(settle_sec)),
+    ]
+    creationflags = _HELPER_CREATIONFLAGS if os.name == "nt" else 0
+    try:
+        subprocess.Popen(
+            args,
+            close_fds=True,
+            creationflags=creationflags,
+            cwd=os.path.dirname(helper_script) or None,
+        )
+    except Exception:
+        _remove_file_quiet(helper_script)
+        raise
+    return {"success": True, "helperPath": helper_script}
+
+
+def run_installer(
+    installer_path: str,
+    *,
+    expected_version: str | None = None,
+) -> dict[str, Any]:
     path = (installer_path or "").strip()
     if not path or not os.path.isfile(path):
         raise FileNotFoundError("安装包不存在")
+
+    auto_restart = _should_auto_restart()
+    install_dir = resolve_install_dir() if auto_restart else ""
+    target_exe = os.path.join(install_dir, APP_EXE_NAME) if install_dir else ""
+
+    cmd = [path, "/S"]
+    if install_dir:
+        cmd.append(f"/D={install_dir}")
 
     creationflags = 0
     if os.name == "nt":
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
 
-    subprocess.Popen(
-        [path, "/S"],
+    proc = subprocess.Popen(
+        cmd,
         cwd=os.path.dirname(path) or None,
         close_fds=True,
         creationflags=creationflags,
     )
     time.sleep(0.8)
-    return {"success": True, "message": "installer launched"}
+
+    helper_spawned = False
+    if auto_restart:
+        try:
+            spawn_relaunch_helper(
+                getattr(proc, "pid", 0),
+                target_exe,
+                expected_version,
+            )
+            helper_spawned = True
+        except Exception:
+            helper_spawned = False
+
+    return {
+        "success": True,
+        "message": "installer launched",
+        "installerPid": getattr(proc, "pid", None),
+        "installDir": install_dir,
+        "targetExe": target_exe,
+        "helperSpawned": helper_spawned,
+        "autoRestart": auto_restart,
+    }
 
 
 def exit_app_after_install() -> None:

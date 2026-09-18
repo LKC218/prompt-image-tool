@@ -23,7 +23,7 @@ async function readJson(response) {
 function confirmUpdate(version) {
     return new Promise((resolve) => {
         showConfirmModal(
-            `当前版本 v${escapeHtml(getVersion())}，可更新到 v${escapeHtml(version)}。是否下载并安装？安装完成后应用会自动退出。`,
+            `当前版本 v${escapeHtml(getVersion())}，可更新到 v${escapeHtml(version)}。是否下载并安装？安装完成后应用会自动退出，并尝试重启进入新版本。`,
             () => resolve(true)
         );
         const cancel = document.getElementById('pcModalCancel');
@@ -104,14 +104,15 @@ export async function pollUpdateProgress(jobId, { onUpdate, intervalMs = POLL_IN
     }
 }
 
-export async function installDownloadedUpdate(installerPath) {
+export async function installDownloadedUpdate(installerPath, options = {}) {
     if (!installerPath) {
         throw new Error('缺少安装包路径');
     }
+    const expectedVersion = String(options?.expectedVersion || options?.version || '').trim();
     const response = await fetch(INSTALL_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: installerPath }),
+        body: JSON.stringify({ path: installerPath, expectedVersion }),
     });
     return readJson(response);
 }
@@ -217,9 +218,9 @@ export async function runUpdateWithProgressModal(latest) {
             }
 
             modal.setProgress({ ...progress, phase: 'installing' });
-            await installDownloadedUpdate(progress.path);
+            await installDownloadedUpdate(progress.path, { expectedVersion: latest?.version });
             modal.setProgress({ ...progress, phase: 'ready' });
-            showToast('安装程序已启动，应用即将退出');
+            showToast('安装程序已启动，完成后将自动重启进入新版本');
             setTimeout(() => modal.close(), 1200);
             return { updated: true };
         } catch (error) {
