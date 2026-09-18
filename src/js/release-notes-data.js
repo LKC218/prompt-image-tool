@@ -1,7 +1,7 @@
 const RELEASE_NOTES = [
     {
         version: '2.5.9',
-        date: '2026-09-20',
+        date: '2026-09-18',
         sections: [
             {
                 title: '新增',
