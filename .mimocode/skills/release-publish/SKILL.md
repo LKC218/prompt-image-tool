@@ -59,15 +59,15 @@ Agent 行为约定：
 - 生成 `releases/latest.json`（应用内自动更新元数据）并随 Release 上传
 - 更新 `README.md` 下载区（当前最新版本、Setup 文件名、Android 提示）
 - 版本一致性校验：`package.json` / `meta[name=version]` / `RELEASE_NOTES` 首项不一致时中止
-- GitHub Release 正文自动生成：Downloads 表 + 从 `release-notes-data.js` 抽取的 Highlights（跳过「发布」节，最多 8 条）
+- GitHub Release 正文自动生成：Downloads 表 + 与弹窗同源的完整分节（新增/优化/修复/发布，无条目整节省略）
 - `git add/commit/push` 当前分支，并快进推送 `main`
 - 用 `gh` 创建 `vX.Y.Z` Release（已存在则补传附件）
 
 ## 脚本不覆盖（需要 Agent 额外做）
 
 - 构建安装包（`build_pc_package.py` / `build_android_package.py` / 安装器壳）
-- 修改 `changelog.md` 正文（仅当哈希与产物不一致时校正）；章节词表见 [版本发布与更新记录维护指南](../../docs/版本发布与更新记录维护指南.md)
-- 手工改写 GitHub Release Highlights（禁止；以弹窗数据为源）
+- 修改 `changelog.md` 正文（仅当哈希与产物不一致时校正）；**更新说明格式以 [更新记录规范](../../docs/版本记录/更新记录规范.md) 为准**
+- 手工改写 GitHub Release 更新说明分节（禁止；以弹窗数据为源；历史回填可用 `scripts/backfill_release_notes.py`）
 - 重拍 README 预览图（需要时用 `scripts/capture_readme_previews.py`）
 
 ## 触发示例

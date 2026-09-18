@@ -9,9 +9,19 @@
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 18px;
     max-width: 960px;
+    perspective: 1000px;
 }
 
+/* 游戏卡片：与目标计划共用 --pc-card-tilt-* 3D 视差 */
 .pc-games-card {
+    --pc-card-lift: 0px;
+    --pc-card-tilt-rx: 0deg;
+    --pc-card-tilt-ry: 0deg;
+    --pc-card-tilt-px: 0px;
+    --pc-card-tilt-py: 0px;
+    --pc-card-tilt-mx: 50%;
+    --pc-card-tilt-my: 50%;
+    --pc-card-cover-scale: 1;
     border-radius: 18px;
     overflow: hidden;
     background: var(--color-surface-raised, #fff);
@@ -19,21 +29,67 @@
         6px 6px 14px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.35)),
         -6px -6px 14px var(--color-shadow-highlight, #fff);
     cursor: pointer;
+    transform-style: preserve-3d;
+    transform:
+        translateY(var(--pc-card-lift))
+        rotateX(var(--pc-card-tilt-rx))
+        rotateY(var(--pc-card-tilt-ry));
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.pc-games-card:hover {
-    transform: translateY(-2px);
+.pc-games-card:hover,
+.pc-games-card.is-tilting {
+    --pc-card-lift: -2px;
+    --pc-card-cover-scale: 1.05;
     box-shadow:
         8px 8px 18px var(--color-shadow-neu-dark, rgba(174, 174, 192, 0.4)),
         -8px -8px 18px var(--color-shadow-highlight, #fff);
 }
 
+.pc-games-card.is-tilting {
+    will-change: transform;
+    z-index: 1;
+    transition: box-shadow 0.15s ease, transform 0.05s linear;
+}
+
 .pc-games-card-cover {
+    position: relative;
     height: 140px;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    transform:
+        translate3d(var(--pc-card-tilt-px), var(--pc-card-tilt-py), 0)
+        scale(var(--pc-card-cover-scale));
+    transition: transform 0.25s ease;
+}
+
+.pc-games-card.is-tilting .pc-games-card-cover {
+    transition: none;
+}
+
+.pc-games-card-cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(
+        circle at var(--pc-card-tilt-mx) var(--pc-card-tilt-my),
+        rgba(255, 255, 255, 0.4) 0%,
+        rgba(255, 255, 255, 0.1) 28%,
+        transparent 55%
+    );
+    opacity: 0;
+    transform: translateZ(28px);
+    transition: opacity 0.2s ease;
+}
+
+.pc-games-card.is-tilting .pc-games-card-cover::after {
+    opacity: 1;
+    transition: none;
 }
 
 .pc-games-card-mark {
@@ -42,6 +98,7 @@
     color: rgba(255, 255, 255, 0.92);
     text-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
     letter-spacing: 2px;
+    transform: translateZ(24px);
 }
 
 .pc-games-card-body {
@@ -75,6 +132,27 @@
 .pc-games-card-actions {
     display: flex;
     justify-content: flex-end;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-games-card,
+    .pc-games-card:hover,
+    .pc-games-card.is-tilting,
+    .pc-games-card-cover,
+    .pc-games-card-mark,
+    .pc-games-card-cover::after {
+        transform: none !important;
+        --pc-card-lift: 0px !important;
+        --pc-card-tilt-rx: 0deg !important;
+        --pc-card-tilt-ry: 0deg !important;
+        --pc-card-tilt-px: 0px !important;
+        --pc-card-tilt-py: 0px !important;
+        --pc-card-cover-scale: 1 !important;
+    }
+
+    .pc-games-card-cover::after {
+        opacity: 0 !important;
+    }
 }
 
 .pc-plane-page {

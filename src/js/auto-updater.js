@@ -57,7 +57,12 @@ export async function startDownloadUpdate(latest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: latest.url, sha256: latest.sha256 }),
     });
-    return readJson(response);
+    const data = await readJson(response);
+    const jobId = data?.jobId || data?.job_id || data?.id || '';
+    if (!jobId) {
+        throw new Error('下载任务未创建，请检查本地后端是否为最新，或前往 GitHub 手动下载安装包');
+    }
+    return { ...data, jobId };
 }
 
 export async function fetchUpdateProgress(jobId) {

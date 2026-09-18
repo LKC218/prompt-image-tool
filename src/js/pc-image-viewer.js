@@ -8,9 +8,12 @@ const IMAGE_VIEWER_MIN_SCALE = 1;
 const IMAGE_VIEWER_MAX_SCALE = 5;
 const IMAGE_VIEWER_WHEEL_STEP = 1.12;
 const IMAGE_VIEWER_DOUBLE_CLICK_SCALE = 2;
-const OPEN_DURATION = 0.32;
-const CLOSE_DURATION = 0.28;
-const SHELL_DURATION = 0.14;
+const OPEN_DURATION = 0.42;
+const CLOSE_DURATION = 0.32;
+const SHELL_DURATION = 0.16;
+const SHELL_FADE_DELAY = 0.14;
+const OPEN_EASE = 'expo.out';
+const CLOSE_EASE = 'power3.in';
 
 const imageViewerState = {
     scale: 1,
@@ -435,35 +438,73 @@ function hideSourceEl(el) {
     hiddenSourceEl = el;
 }
 
-function setShellVisible(viewer, visible) {
+function setShellVisible(viewer, visible, { immediate = false } = {}) {
     const toolbar = viewer.querySelector('.pc-image-viewer-toolbar');
     const nav = viewer.querySelector('.pc-image-viewer-nav');
     const targets = [toolbar, nav].filter(Boolean);
     if (!targets.length) return;
-    if (prefersReducedMotion()) {
+    if (prefersReducedMotion() || immediate) {
         gsap.set(targets, { autoAlpha: visible ? 1 : 0 });
         return;
     }
     gsap.to(targets, {
         autoAlpha: visible ? 1 : 0,
         duration: SHELL_DURATION,
+        delay: visible ? SHELL_FADE_DELAY : 0,
         overwrite: 'auto',
         ease: 'power2.out'
     });
 }
 
-function computeFlipInvert(sourceImg, targetImg) {
-    const sourceRect = sourceImg.getBoundingClientRect();
-    const targetRect = targetImg.getBoundingClientRect();
-    if (!sourceRect.width || !sourceRect.height || !targetRect.width || !targetRect.height) {
+/** object-fit 后的真实可见内容盒（cover 裁切 / contain 留白） */
+function getVisualRect(img) {
+    const rect = img.getBoundingClientRect();
+    const nw = img.naturalWidth || 0;
+    const nh = img.naturalHeight || 0;
+    if (!rect.width || !rect.height) {
+        return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, centerX: rect.left + rect.width / 2, centerY: rect.top + rect.height / 2 };
+    }
+    if (!nw || !nh) {
+        return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, centerX: rect.left + rect.width / 2, centerY: rect.top + rect.height / 2 };
+    }
+    const fit = getComputedStyle(img).objectFit || 'contain';
+    const scale = fit === 'cover'
+        ? Math.max(rect.width / nw, rect.height / nh)
+        : Math.min(rect.width / nw, rect.height / nh);
+    const width = nw * scale;
+    const height = nh * scale;
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    return {
+        left: centerX - width / 2,
+        top: centerY - height / 2,
+        width,
+        height,
+        centerX,
+        centerY
+    };
+}
+
+function readBorderRadius(el, fallback = 12) {
+    if (!el) return fallback;
+    const value = parseFloat(getComputedStyle(el).borderRadius);
+    return Number.isFinite(value) ? value : fallback;
+}
+
+/** 中心对齐的等比 FLIP（避免 scaleX/scaleY 拉变形） */
+function computeFlipInvert(sourceImg, targetImg, sourceEl) {
+    const source = getVisualRect(sourceImg);
+    const target = getVisualRect(targetImg);
+    if (!source.width || !source.height || !target.width || !target.height) {
         return null;
     }
     return {
-        x: sourceRect.left - targetRect.left,
-        y: sourceRect.top - targetRect.top,
-        scaleX: sourceRect.width / targetRect.width,
-        scaleY: sourceRect.height / targetRect.height,
-        transformOrigin: '0 0'
+        x: source.centerX - target.centerX,
+        y: source.centerY - target.centerY,
+        scale: source.width / target.width,
+        fromRadius: readBorderRadius(sourceEl || sourceImg, 12),
+        toRadius: readBorderRadius(targetImg, 12),
+        transformOrigin: '50% 50%'
     };
 }
 
@@ -492,7 +533,7 @@ async function playOpenFlip({ viewer, img, sourceEl }) {
     if (!canFlip) {
         imageViewerState.openedWithFlip = false;
         gsap.set(img, { autoAlpha: 1 });
-        setShellVisible(viewer, true);
+        setShellVisible(viewer, true, { immediate: true });
         return;
     }
 
@@ -500,11 +541,11 @@ async function playOpenFlip({ viewer, img, sourceEl }) {
     viewer.classList.add('pc-image-viewer-flipping');
     hideSourceEl(sourceEl);
     gsap.set(img, { autoAlpha: 0 });
-    setShellVisible(viewer, false);
+    setShellVisible(viewer, false, { immediate: true });
 
     void img.offsetWidth;
     resetImageViewerTransform();
-    const invert = computeFlipInvert(sourceImg, img);
+    const invert = computeFlipInvert(sourceImg, img, sourceEl);
     if (!invert || session !== flipSession) {
         settleViewerChrome({ viewer, img });
         return;
@@ -515,18 +556,21 @@ async function playOpenFlip({ viewer, img, sourceEl }) {
         transformOrigin: invert.transformOrigin,
         x: invert.x,
         y: invert.y,
-        scaleX: invert.scaleX,
-        scaleY: invert.scaleY
+        scale: invert.scale,
+        borderRadius: invert.fromRadius
     });
+
+    // 壳层略晚于图片起飞再淡入
+    setShellVisible(viewer, true);
 
     await new Promise((resolve) => {
         activeTween = gsap.to(img, {
             x: 0,
             y: 0,
-            scaleX: 1,
-            scaleY: 1,
+            scale: 1,
+            borderRadius: invert.toRadius,
             duration: OPEN_DURATION,
-            ease: 'power3.out',
+            ease: OPEN_EASE,
             overwrite: 'auto',
             onComplete: resolve,
             onInterrupt: resolve
@@ -536,9 +580,9 @@ async function playOpenFlip({ viewer, img, sourceEl }) {
 
     if (session !== flipSession) return;
 
-    gsap.set(img, { clearProps: 'transform,transformOrigin,opacity,visibility' });
+    gsap.set(img, { clearProps: 'transform,transformOrigin,opacity,visibility,borderRadius' });
     applyImageViewerTransform();
-    setShellVisible(viewer, true);
+    setShellVisible(viewer, true, { immediate: true });
     restoreSourceElVisibility();
     flipSourceEl = sourceEl;
     imageViewerState.isAnimating = false;
@@ -557,26 +601,27 @@ async function playCloseFlip({ viewer, img, sourceEl }) {
     imageViewerState.isAnimating = true;
     viewer.classList.add('pc-image-viewer-flipping');
     hideSourceEl(sourceEl);
-    setShellVisible(viewer, false);
+    setShellVisible(viewer, false, { immediate: true });
 
-    const sourceRect = sourceImg.getBoundingClientRect();
-    const targetRect = img.getBoundingClientRect();
-    if (!sourceRect.width || !targetRect.width) {
+    void img.offsetWidth;
+    const invert = computeFlipInvert(sourceImg, img, sourceEl);
+    if (!invert) {
+        gsap.set(img, { autoAlpha: 0 });
         restoreSourceElVisibility();
         imageViewerState.isAnimating = false;
         viewer.classList.remove('pc-image-viewer-flipping');
         return;
     }
 
-    gsap.set(img, { transformOrigin: '0 0' });
+    gsap.set(img, { transformOrigin: invert.transformOrigin });
     await new Promise((resolve) => {
         activeTween = gsap.to(img, {
-            x: sourceRect.left - targetRect.left,
-            y: sourceRect.top - targetRect.top,
-            scaleX: sourceRect.width / targetRect.width,
-            scaleY: sourceRect.height / targetRect.height,
+            x: invert.x,
+            y: invert.y,
+            scale: invert.scale,
+            borderRadius: invert.fromRadius,
             duration: CLOSE_DURATION,
-            ease: 'power2.in',
+            ease: CLOSE_EASE,
             overwrite: 'auto',
             onComplete: resolve,
             onInterrupt: resolve
@@ -584,6 +629,8 @@ async function playCloseFlip({ viewer, img, sourceEl }) {
     });
     activeTween = null;
     if (session !== flipSession) return;
+    // 先藏 viewer 图，再露出源图，避免 teardown 时全尺寸回弹闪烁
+    gsap.set(img, { autoAlpha: 0 });
     restoreSourceElVisibility();
     imageViewerState.isAnimating = false;
     viewer.classList.remove('pc-image-viewer-flipping');
@@ -645,11 +692,14 @@ async function closeImageViewer({ immediate = false } = {}) {
 
     if (shouldReverse) {
         await playCloseFlip({ viewer, img, sourceEl: reverseSource });
+        // playCloseFlip 结束时图已 autoAlpha:0，源图已恢复
     } else {
+        if (img) gsap.set(img, { autoAlpha: 0 });
         restoreSourceElVisibility();
     }
 
     flipSourceEl = null;
+    // 先收壳（图已不可见），再清理 transform，避免淡出过程中全尺寸回弹
     viewer.classList.remove('pc-image-viewer-active');
     imageViewerDownloadTarget = { url: '', filename: '', sourceFile: '' };
     imageViewerState.urls = [];
@@ -658,7 +708,7 @@ async function closeImageViewer({ immediate = false } = {}) {
     imageViewerState.isAnimating = false;
     resetImageViewerTransform();
     if (img) {
-        gsap.set(img, { clearProps: 'transform,transformOrigin,opacity,visibility' });
+        gsap.set(img, { clearProps: 'transform,transformOrigin,opacity,visibility,borderRadius' });
     }
     const toolbar = viewer.querySelector('.pc-image-viewer-toolbar');
     const nav = viewer.querySelector('.pc-image-viewer-nav');

@@ -1210,6 +1210,7 @@
 
 .pc-image-viewer.pc-image-viewer-flipping .pc-image-viewer-img {
     transition: none;
+    box-shadow: none;
 }
 
 .pc-image-viewer.pc-image-viewer-flipping {

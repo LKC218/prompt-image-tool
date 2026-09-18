@@ -42,6 +42,7 @@ vi.mock('./pc-utils.js', () => ({
     closeModal: vi.fn(),
     closeImageViewer: vi.fn(),
     copyToClipboard: vi.fn(),
+    hideContextMenu: vi.fn(),
     escapeHtml: (value = '') => String(value),
     formatBytes: () => '0 B',
 }));
@@ -50,6 +51,11 @@ vi.mock('./release-notes.js', () => ({
     openReleaseNotes: vi.fn(),
     showUnreadReleaseNotes: vi.fn(),
     syncReleaseNotesUnreadBadge: vi.fn(),
+}));
+
+vi.mock('./auto-updater.js', () => ({
+    runStartupUpdateCheck: vi.fn(async () => {}),
+    runManualUpdateCheck: vi.fn(async () => {}),
 }));
 
 function mockPage() {
@@ -268,9 +274,19 @@ describe('PC 侧边栏导航点击动效', () => {
 
         const utilityNav = app.querySelector('.pc-sidebar-utility-nav');
         const toggle = utilityNav.querySelector('.pc-theme-toggle');
+        const moreTrigger = utilityNav.querySelector('[data-more-menu]');
+        const moreMenu = utilityNav.querySelector('.pc-sidebar-more-menu');
 
         expect(utilityNav.querySelector('[data-release-notes]')).not.toBeNull();
         expect(utilityNav.querySelector('[data-nav="/settings"]')).not.toBeNull();
+        expect(utilityNav.querySelector('.pc-utility-divider')).not.toBeNull();
+        expect(moreTrigger).not.toBeNull();
+        expect(moreTrigger.getAttribute('aria-haspopup')).toBe('menu');
+        expect(moreTrigger.getAttribute('aria-expanded')).toBe('false');
+        expect(moreMenu).not.toBeNull();
+        expect(moreMenu.hidden).toBe(true);
+        expect(moreMenu.querySelector('[data-release-notes]')).not.toBeNull();
+        expect(moreMenu.querySelector('[data-check-update]')).not.toBeNull();
         expect(toggle.getAttribute('role')).toBe('switch');
         expect(toggle.getAttribute('aria-checked')).toBe('false');
         expect(toggle.getAttribute('aria-label')).toBe('切换为深色主题');
@@ -281,6 +297,28 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(pcCss).toContain('height: 48px');
         expect(pcCss).toContain('flex-wrap: nowrap');
         expect(pcCss).toContain('gap: 8px');
+        expect(pcCss).toContain('.pc-sidebar-more-menu');
+        expect(pcCss).toContain('.pc-utility-divider');
+    });
+
+    it('侧栏更多菜单可开合，并在选择低频入口后关闭', async () => {
+        const { openReleaseNotes } = await import('./release-notes.js');
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const moreTrigger = app.querySelector('[data-more-menu]');
+        const moreMenu = app.querySelector('.pc-sidebar-more-menu');
+        const releaseItem = moreMenu.querySelector('[data-release-notes]');
+
+        moreTrigger.click();
+        expect(moreTrigger.getAttribute('aria-expanded')).toBe('true');
+        expect(moreMenu.hidden).toBe(false);
+
+        releaseItem.click();
+        expect(openReleaseNotes).toHaveBeenCalled();
+        expect(moreTrigger.getAttribute('aria-expanded')).toBe('false');
+        expect(moreMenu.hidden).toBe(true);
     });
 
     it('折叠按钮在图标动效结束后保留最小化导航栏并持久化', async () => {

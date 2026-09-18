@@ -76,6 +76,14 @@ const THEME_TOGGLE_ICONS = {
     `,
 };
 
+const MORE_MENU_ICON = `
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="6" cy="12" r="1.35" fill="currentColor" stroke="none"></circle>
+        <circle cx="12" cy="12" r="1.35" fill="currentColor" stroke="none"></circle>
+        <circle cx="18" cy="12" r="1.35" fill="currentColor" stroke="none"></circle>
+    </svg>
+`;
+
 const TAB_ROUTES = ['/', '/library', '/goals', '/category', '/games', '/settings'];
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
@@ -154,18 +162,43 @@ function renderShell() {
             </nav>
             <div class="pc-sidebar-footer">
                 <div class="pc-sidebar-utility-nav" aria-label="应用设置">
-                    <button class="pc-nav-item pc-sidebar-utility-item pc-sidebar-release-notes-item" type="button" data-release-notes data-ripple="false" aria-label="更新记录" title="更新记录">
-                        <span class="pc-release-notes-nav-icon" aria-hidden="true">${RELEASE_NOTES_ICON}</span>
-                        <span class="pc-release-notes-nav-badge" aria-hidden="true"></span>
-                    </button>
-                    <button class="pc-nav-item pc-sidebar-utility-item pc-sidebar-check-update-item" type="button" data-check-update data-ripple="false" aria-label="检查更新" title="检查更新">
-                        <span class="pc-check-update-nav-icon" aria-hidden="true">${CHECK_UPDATE_ICON}</span>
-                        <span class="pc-check-update-nav-badge" aria-hidden="true" hidden></span>
-                    </button>
-                    ${renderThemeToggle()}
-                    <button class="pc-nav-item pc-sidebar-settings-item" type="button" data-nav="${SETTINGS_NAV_ITEM.path}" data-ripple="false" aria-label="${SETTINGS_NAV_ITEM.label}" title="${SETTINGS_NAV_ITEM.label}">
-                        <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${SETTINGS_NAV_ITEM.icon});mask-image:url(${SETTINGS_NAV_ITEM.icon})"></div>
-                    </button>
+                    <div class="pc-utility-group pc-utility-group-theme">
+                        ${renderThemeToggle()}
+                    </div>
+                    <div class="pc-utility-divider" aria-hidden="true"></div>
+                    <div class="pc-utility-group pc-utility-group-actions">
+                        <div class="pc-sidebar-more-wrap">
+                            <button
+                                class="pc-nav-item pc-sidebar-utility-item pc-sidebar-more-item"
+                                type="button"
+                                data-more-menu
+                                data-ripple="false"
+                                aria-label="更多操作"
+                                title="更多操作"
+                                aria-haspopup="menu"
+                                aria-expanded="false"
+                                aria-controls="pcSidebarMoreMenu"
+                            >
+                                <span class="pc-more-nav-icon" aria-hidden="true">${MORE_MENU_ICON}</span>
+                                <span class="pc-sidebar-more-badge" aria-hidden="true" hidden></span>
+                            </button>
+                            <div class="pc-sidebar-more-menu" id="pcSidebarMoreMenu" role="menu" hidden>
+                                <button class="pc-nav-item pc-sidebar-more-menu-item pc-sidebar-release-notes-item" type="button" data-release-notes data-ripple="false" role="menuitem" aria-label="更新记录" title="更新记录">
+                                    <span class="pc-release-notes-nav-icon" aria-hidden="true">${RELEASE_NOTES_ICON}</span>
+                                    <span class="pc-more-menu-label">更新记录</span>
+                                    <span class="pc-release-notes-nav-badge" aria-hidden="true"></span>
+                                </button>
+                                <button class="pc-nav-item pc-sidebar-more-menu-item pc-sidebar-check-update-item" type="button" data-check-update data-ripple="false" role="menuitem" aria-label="检查更新" title="检查更新">
+                                    <span class="pc-check-update-nav-icon" aria-hidden="true">${CHECK_UPDATE_ICON}</span>
+                                    <span class="pc-more-menu-label">检查更新</span>
+                                    <span class="pc-check-update-nav-badge" aria-hidden="true" hidden></span>
+                                </button>
+                            </div>
+                        </div>
+                        <button class="pc-nav-item pc-sidebar-settings-item" type="button" data-nav="${SETTINGS_NAV_ITEM.path}" data-ripple="false" aria-label="${SETTINGS_NAV_ITEM.label}" title="${SETTINGS_NAV_ITEM.label}">
+                            <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${SETTINGS_NAV_ITEM.icon});mask-image:url(${SETTINGS_NAV_ITEM.icon})"></div>
+                        </button>
+                    </div>
                 </div>
                 <div class="pc-sidebar-clock" id="pcSidebarClock" aria-label="当前时间">
                     <div class="pc-sidebar-clock-face" aria-hidden="true">
@@ -230,6 +263,7 @@ async function mount(el) {
     initRipple(appEl);
     initPcCursor(appEl);
     syncReleaseNotesUnreadBadge(appEl);
+    syncSidebarMoreBadge();
 
     setRouteChangeCallback(handleRouteChange);
     const initialRoute = initRouter() || getCurrentRoute() || { path: '/', params: {} };
@@ -323,6 +357,13 @@ function setupSidebarNav() {
                 timestamp: Date.now(),
             }),
         }).catch(() => {});
+        const moreToggle = e.target.closest('[data-more-menu]');
+        if (moreToggle) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleSidebarMoreMenu();
+            return;
+        }
         const themeToggle = e.target.closest('.pc-theme-toggle');
         if (themeToggle) {
             toggleAppearance(themeToggle);
@@ -332,13 +373,21 @@ function setupSidebarNav() {
         if (!item) return;
         if (item.hasAttribute('data-release-notes')) {
             openReleaseNotes();
+            syncSidebarMoreBadge();
+            closeSidebarMoreMenu();
             return;
         }
         if (item.hasAttribute('data-check-update')) {
             item.disabled = true;
             runManualUpdateCheck().finally(() => {
                 item.disabled = false;
+                syncSidebarMoreBadge();
             });
+            closeSidebarMoreMenu();
+            return;
+        }
+        if (item.classList.contains('pc-sidebar-more-menu-item')) {
+            closeSidebarMoreMenu();
             return;
         }
         playNavIconClickMotion(item);
@@ -346,6 +395,7 @@ function setupSidebarNav() {
         if (path === '/editor/') {
             navigate('/editor/');
         } else if (TAB_ROUTES.includes(path)) {
+            closeSidebarMoreMenu();
             navigateToTab(path);
             updateNavHighlight(path);
         }
@@ -353,6 +403,83 @@ function setupSidebarNav() {
 
     nav.addEventListener('click', handleNavigation);
     settingsNav?.addEventListener('click', handleNavigation);
+    setupSidebarMoreMenu();
+}
+
+function getSidebarMoreMenuElements() {
+    const wrap = appEl?.querySelector('.pc-sidebar-more-wrap');
+    const trigger = wrap?.querySelector('[data-more-menu]');
+    const menu = wrap?.querySelector('.pc-sidebar-more-menu');
+    return { wrap, trigger, menu };
+}
+
+function isSidebarMoreMenuOpen() {
+    const { trigger, menu } = getSidebarMoreMenuElements();
+    return Boolean(trigger && menu && trigger.getAttribute('aria-expanded') === 'true' && !menu.hidden);
+}
+
+function openSidebarMoreMenu() {
+    const { wrap, trigger, menu } = getSidebarMoreMenuElements();
+    if (!wrap || !trigger || !menu) return;
+    menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    wrap.classList.add('is-open');
+}
+
+function closeSidebarMoreMenu() {
+    const { wrap, trigger, menu } = getSidebarMoreMenuElements();
+    if (!wrap || !trigger || !menu) return;
+    menu.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+    wrap.classList.remove('is-open');
+}
+
+function toggleSidebarMoreMenu() {
+    if (isSidebarMoreMenuOpen()) {
+        closeSidebarMoreMenu();
+        return;
+    }
+    openSidebarMoreMenu();
+    syncSidebarMoreBadge();
+}
+
+function syncSidebarMoreBadge() {
+    const moreBadge = appEl?.querySelector('.pc-sidebar-more-badge');
+    if (!moreBadge) return;
+    const hasUnread = Boolean(appEl.querySelector('[data-release-notes].pc-release-notes-unread'));
+    const updateBadge = appEl.querySelector('.pc-check-update-nav-badge');
+    const hasUpdate = Boolean(updateBadge && !updateBadge.hidden);
+    moreBadge.hidden = !(hasUnread || hasUpdate);
+}
+
+function setupSidebarMoreMenu() {
+    const { wrap } = getSidebarMoreMenuElements();
+    if (!wrap) return;
+
+    const handleDocPointerDown = (event) => {
+        if (!wrap.contains(event.target)) closeSidebarMoreMenu();
+    };
+    const handleKeyDown = (event) => {
+        if (event.key === 'Escape' && isSidebarMoreMenuOpen()) {
+            closeSidebarMoreMenu();
+            getSidebarMoreMenuElements().trigger?.focus();
+        }
+    };
+
+    document.addEventListener('pointerdown', handleDocPointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    const badgeSource = wrap.querySelector('.pc-release-notes-nav-badge');
+    const updateBadge = wrap.querySelector('.pc-check-update-nav-badge');
+    const observer = new MutationObserver(() => syncSidebarMoreBadge());
+    if (badgeSource) {
+        observer.observe(badgeSource.parentElement, { attributes: true, attributeFilter: ['class'] });
+    }
+    if (updateBadge) {
+        observer.observe(updateBadge, { attributes: true, attributeFilter: ['hidden'] });
+    }
+
+    syncSidebarMoreBadge();
 }
 
 function toggleAppearance(toggle) {
@@ -560,6 +687,7 @@ function updateNavHighlight(path) {
 
 function handleRouteChange(newRoute, oldRoute, direction) {
     if (!newRoute) return;
+    closeSidebarMoreMenu();
     const path = newRoute.path || '';
     const routeKey = resolveRouteKey(path);
     fetch('http://127.0.0.1:7777/event', {

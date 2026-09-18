@@ -265,14 +265,23 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--pc-space-lg);
+    perspective: 1000px;
 }
 
 .pc-goal-projects-list .pc-goal-projects-empty {
     grid-column: 1 / -1;
 }
 
-/* 项目卡片：上图下信息 */
+/* 项目卡片：上图下信息 + 鼠标 3D 视差（共享 --pc-card-tilt-* 变量） */
 .pc-goal-project-card {
+    --pc-card-lift: 0px;
+    --pc-card-tilt-rx: 0deg;
+    --pc-card-tilt-ry: 0deg;
+    --pc-card-tilt-px: 0px;
+    --pc-card-tilt-py: 0px;
+    --pc-card-tilt-mx: 50%;
+    --pc-card-tilt-my: 50%;
+    --pc-card-cover-scale: 1;
     display: flex;
     flex-direction: column;
     background: var(--pc-neu-bg);
@@ -284,21 +293,34 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    transform-style: preserve-3d;
+    transform:
+        translateY(var(--pc-card-lift))
+        rotateX(var(--pc-card-tilt-rx))
+        rotateY(var(--pc-card-tilt-ry));
     box-shadow:
         var(--pc-neu-offset) var(--pc-neu-offset) var(--pc-neu-blur) var(--pc-neu-dark),
         calc(-1 * var(--pc-neu-offset)) calc(-1 * var(--pc-neu-offset)) var(--pc-neu-blur) var(--pc-neu-light);
     transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.pc-goal-project-card:hover {
-    transform: translateY(-4px);
+.pc-goal-project-card:hover,
+.pc-goal-project-card.is-tilting {
+    --pc-card-lift: -4px;
+    --pc-card-cover-scale: 1.05;
     box-shadow:
         calc(var(--pc-neu-offset) + 4px) calc(var(--pc-neu-offset) + 4px) calc(var(--pc-neu-blur) + 6px) var(--pc-neu-dark),
         calc(-1 * var(--pc-neu-offset) - 4px) calc(-1 * var(--pc-neu-offset) - 4px) calc(var(--pc-neu-blur) + 6px) var(--pc-neu-light);
 }
 
+.pc-goal-project-card.is-tilting {
+    will-change: transform;
+    z-index: 1;
+    transition: box-shadow 0.2s ease, transform 0.05s linear;
+}
+
 .pc-goal-project-card:active {
-    transform: translateY(-1px);
+    --pc-card-lift: -1px;
     box-shadow:
         inset calc(var(--pc-neu-offset) - 2px) calc(var(--pc-neu-offset) - 2px) calc(var(--pc-neu-blur) - 4px) var(--pc-neu-dark),
         inset calc(-1 * var(--pc-neu-offset) + 2px) calc(-1 * var(--pc-neu-offset) + 2px) calc(var(--pc-neu-blur) - 4px) var(--pc-neu-light);
@@ -310,25 +332,54 @@
     aspect-ratio: 16 / 9;
     overflow: hidden;
     background: var(--pc-surface2);
+    transform-style: preserve-3d;
 }
 
-.pc-goal-project-cover img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.3s ease;
-}
-
-.pc-goal-project-card:hover .pc-goal-project-cover img {
-    transform: scale(1.05);
-}
-
+/* 封面内容：鼠标视差平移 + hover 轻微放大 */
+.pc-goal-project-cover img,
 .pc-goal-project-cover-gradient {
     width: 100%;
     height: 100%;
+    object-fit: cover;
+    transform:
+        translate3d(var(--pc-card-tilt-px), var(--pc-card-tilt-py), 0)
+        scale(var(--pc-card-cover-scale));
+    transition: transform 0.3s ease;
+}
+
+.pc-goal-project-card.is-tilting .pc-goal-project-cover img,
+.pc-goal-project-card.is-tilting .pc-goal-project-cover-gradient {
+    transition: none;
+}
+
+.pc-goal-project-cover-gradient {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* 高光层：跟随光标的径向 sheen，无封面渐变卡同样成立 */
+.pc-goal-project-cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: inherit;
+    background: radial-gradient(
+        circle at var(--pc-card-tilt-mx) var(--pc-card-tilt-my),
+        rgba(255, 255, 255, 0.42) 0%,
+        rgba(255, 255, 255, 0.1) 28%,
+        transparent 55%
+    );
+    opacity: 0;
+    transform: translateZ(28px);
+    transition: opacity 0.2s ease;
+}
+
+.pc-goal-project-card.is-tilting .pc-goal-project-cover::after {
+    opacity: 1;
+    transition: none;
 }
 
 .pc-goal-project-cover-initials {
@@ -336,6 +387,7 @@
     color: rgba(255, 255, 255, 0.92);
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
     letter-spacing: 0.05em;
+    transform: translateZ(24px);
 }
 
 .pc-goal-project-body {
@@ -1124,7 +1176,6 @@
     box-shadow: 0 10px 24px var(--color-shadow-dark);
 }
 
-:root[data-appearance="dark"] .pc-goal-project-card:active,
 :root[data-appearance="dark"] .pc-goal-detail-back:active,
 :root[data-appearance="dark"] .pc-goal-task-action:active,
 :root[data-appearance="dark"] .pc-goal-project-more:active,
@@ -1133,6 +1184,22 @@
         inset 2px 2px 6px var(--color-shadow-dark),
         inset -2px -2px 6px rgba(255, 255, 255, 0.04);
     transform: translateY(1px);
+}
+
+:root[data-appearance="dark"] .pc-goal-project-card:active {
+    --pc-card-lift: 1px;
+    box-shadow:
+        inset 2px 2px 6px var(--color-shadow-dark),
+        inset -2px -2px 6px rgba(255, 255, 255, 0.04);
+}
+
+:root[data-appearance="dark"] .pc-goal-project-cover::after {
+    background: radial-gradient(
+        circle at var(--pc-card-tilt-mx) var(--pc-card-tilt-my),
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.04) 28%,
+        transparent 55%
+    );
 }
 
 :root[data-appearance="dark"] .pc-goal-project-progress-bar,
@@ -1168,7 +1235,27 @@
         transition: none !important;
     }
 
+    .pc-goal-project-card,
+    .pc-goal-project-card:hover,
+    .pc-goal-project-card.is-tilting,
     .pc-goal-project-card:active,
+    .pc-goal-project-cover img,
+    .pc-goal-project-cover-gradient,
+    .pc-goal-project-cover-initials,
+    .pc-goal-project-cover::after {
+        transform: none !important;
+        --pc-card-lift: 0px !important;
+        --pc-card-tilt-rx: 0deg !important;
+        --pc-card-tilt-ry: 0deg !important;
+        --pc-card-tilt-px: 0px !important;
+        --pc-card-tilt-py: 0px !important;
+        --pc-card-cover-scale: 1 !important;
+    }
+
+    .pc-goal-project-cover::after {
+        opacity: 0 !important;
+    }
+
     .pc-goal-detail-back:active,
     .pc-goal-task-action:active,
     .pc-goal-project-more:active,

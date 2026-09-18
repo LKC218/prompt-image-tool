@@ -130,7 +130,15 @@ function New-LatestJson([string]$Root, [string]$Ver, [System.Collections.IEnumer
     return $outPath
 }
 
-function Get-ReleaseHighlights([string]$Root, [string]$Ver) {
+function Get-ReleaseSections([string]$Root, [string]$Ver) {
+    # 返回有序对象列表：@{ Title=...; Items=@(...) }
+    # 与应用内弹窗同源，含「发布」；无条目的分类不返回。
+    # 中文标题用码点拼接，避免控制台/文件编码差异。
+    $tAdd = [string]([char]0x65B0) + [char]0x589E      # 新增
+    $tOpt = [string]([char]0x4F18) + [char]0x5316      # 优化
+    $tFix = [string]([char]0x4FEE) + [char]0x590D      # 修复
+    $tPub = [string]([char]0x53D1) + [char]0x5E03      # 发布
+
     $path = Join-Path $Root "src\js\release-notes-data.js"
     if (-not (Test-Path $path)) {
         return @()
@@ -143,31 +151,30 @@ function Get-ReleaseHighlights([string]$Root, [string]$Ver) {
         return @()
     }
     $block = $m.Value
-    $highlights = @()
-    # 逐 section 解析：title + items，跳过「发布」
+    $order = @($tAdd, $tOpt, $tFix, $tPub)
+    $byTitle = @{}
     $sectionPattern = "(?s)\{\s*title:\s*'([^']+)'.*?items:\s*\[(.*?)\]\s*,?\s*\}"
-    $sections = [regex]::Matches($block, $sectionPattern)
-    foreach ($sec in $sections) {
+    foreach ($sec in [regex]::Matches($block, $sectionPattern)) {
         $title = $sec.Groups[1].Value
-        if ($title -eq '发布') {
-            continue
-        }
-        $itemsRaw = $sec.Groups[2].Value
-        $itemMatches = [regex]::Matches($itemsRaw, "'((?:\\'|[^'])*)'")
-        foreach ($im in $itemMatches) {
+        $items = @()
+        foreach ($im in [regex]::Matches($sec.Groups[2].Value, "'((?:\\'|[^'])*)'")) {
             $item = $im.Groups[1].Value -replace "\\'", "'"
             $item = ($item -replace '\s+', ' ').Trim()
             if ($item) {
-                $highlights += $item
+                $items += $item
             }
         }
+        if ($items.Count -gt 0) {
+            $byTitle[$title] = $items
+        }
     }
-    $max = 8
-    if ($highlights.Count -gt $max) {
-        $highlights = $highlights[0..($max - 1)]
-        $highlights += "… 更多变更见仓库内 docs/版本记录/changelog.md。"
+    $result = @()
+    foreach ($t in $order) {
+        if ($byTitle.ContainsKey($t)) {
+            $result += [pscustomobject]@{ Title = $t; Items = $byTitle[$t] }
+        }
     }
-    return $highlights
+    return $result
 }
 
 function Get-GitHubToken {
@@ -400,16 +407,16 @@ if (-not $SkipRelease) {
             }
             $table = $rows -join "`n"
 
-            $highlights = Get-ReleaseHighlights -Root $root -Ver $ver
-            $highlightsMd = ""
-            if ($highlights.Count -gt 0) {
+            $sections = Get-ReleaseSections -Root $root -Ver $ver
+            $sectionMd = ""
+            foreach ($sec in $sections) {
                 $bulletLines = @()
-                foreach ($h in $highlights) {
-                    $bulletLines += ("- {0}" -f $h)
+                foreach ($item in $sec.Items) {
+                    $bulletLines += ("- {0}" -f $item)
                 }
-                $highlightsMd = @"
+                $sectionMd += @"
 
-### Highlights
+### $($sec.Title)
 
 $($bulletLines -join "`n")
 "@
@@ -423,7 +430,7 @@ $($bulletLines -join "`n")
 | Asset | Size | SHA256 |
 | --- | ---: | --- |
 $table
-$highlightsMd
+$sectionMd
 
 > Full changelog: ``docs/版本记录/changelog.md`` in this repository.
 "@

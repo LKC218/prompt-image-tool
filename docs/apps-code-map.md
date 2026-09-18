@@ -27,7 +27,7 @@
 | `src-tauri/` | Tauri PC 壳 |
 | `android/` | Capacitor Android 工程 |
 | `installer-shell/` | Tauri 自定义安装器壳 |
-| `scripts/` | 构建、开发、维护脚本；`publish_release.ps1` 一键发布（含版本一致性校验与 Release Highlights 自动抽取）；`normalize_changelog.py` 规范化 changelog 章节词表；`capture_readme_previews.py` 重拍 README 预览图；`verify-*.mjs` 为本地功能核验脚本 |
+| `scripts/` | 构建、开发、维护脚本；`publish_release.ps1` 一键发布（版本一致性校验 + Release 完整分节更新说明）；`normalize_changelog.py` 规范化 changelog 章节词表；`gen_release_body.py` / `backfill_release_notes.py` 生成或回填 Release 正文；`capture_readme_previews.py` 重拍 README 预览图；`verify-*.mjs` 为本地功能核验脚本 |
 | `.mimocode/skills/release-publish/` | 项目技能：一键发布安装包并更新首页 README 版本信息 |
 | `build/` | PyInstaller / NSIS 打包配置与中间产物（安装包不入 Git） |
 | `releases/` | 本地发布产物落点（不入 Git） |
@@ -164,8 +164,9 @@
 | `docs/模块说明/` | 就近模块说明（光标、样式、目标计划、路由等） |
 | `docs/计划文档/` | 活跃计划 + `_历史归档/` |
 | `docs/构建方案/` | 打包与发布流程 |
-| `docs/版本记录/` | 更新记录权威源（changelog）与版本索引；词表规范见维护指南 |
-| `docs/版本发布与更新记录维护指南.md` | 发版流程、统一词表、changelog/弹窗/GitHub Release 派生规则 |
+| `docs/版本记录/` | 更新记录规范（固定格式）、changelog 权威源、版本索引 |
+| `docs/版本记录/更新记录规范.md` | **更新说明格式唯一规范**：词表/模板/检查清单 |
+| `docs/版本发布与更新记录维护指南.md` | 发版流程、版本号与配置同步；格式细节指向更新记录规范 |
 | `docs/测试记录/` | 测试与回归记录 |
 | `docs/项目开发经验/` | 可复用规范与踩坑 |
 | `docs/UI计划/` | 页面级 UI 计划与复刻稿 |

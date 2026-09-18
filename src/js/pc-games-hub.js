@@ -1,6 +1,9 @@
 import { navigate } from './pc-router.js';
 import { showConfirmModal, escapeHtml } from './pc-utils.js';
 import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
+import { setupCardParallaxTilt, clearCardParallaxIn } from './pc-card-parallax.js';
+
+const GAMES_CARD_SELECTOR = '.pc-games-card';
 
 const GAMES = [
     {
@@ -79,13 +82,14 @@ function mount(pageEl) {
             handleEnter(btn.dataset.enterGame);
         });
     });
-    pageEl.querySelectorAll('.pc-games-card').forEach((card) => {
+    pageEl.querySelectorAll(GAMES_CARD_SELECTOR).forEach((card) => {
         card.addEventListener('click', () => handleEnter(card.dataset.gameId));
     });
+    setupCardParallaxTilt(pageEl, { cardSelector: GAMES_CARD_SELECTOR });
 }
 
-function unmount() {
-    // page DOM destroyed by shell
+function unmount(pageEl) {
+    clearCardParallaxIn(pageEl, GAMES_CARD_SELECTOR);
 }
 
 export { render, mount, unmount, GAMES };

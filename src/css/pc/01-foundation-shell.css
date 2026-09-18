@@ -977,7 +977,7 @@
 
 .pc-sidebar-footer {
     flex-shrink: 0;
-    padding: var(--pc-space-xl);
+    padding: var(--pc-space-xl) var(--pc-space-lg) var(--pc-space-xl);
     border-top: 1px solid var(--pc-border-light);
     transition: padding 0.22s cubic-bezier(.2,.8,.2,1), border-color 0.22s ease;
 }
@@ -986,11 +986,11 @@
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    padding: 0 var(--pc-space-sm);
-    margin-bottom: var(--pc-space-md);
+    gap: 8px;
+    padding: 0 2px;
+    margin-bottom: var(--pc-space-lg);
 }
 
 .pc-sidebar-utility-item,
@@ -1005,13 +1005,20 @@
     gap: 0;
     padding: 0;
     border-radius: var(--pc-sidebar-item-radius);
-    transition: background-color 0.16s ease, color 0.16s ease;
+    transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, transform 0.14s var(--td-motion-easing);
 }
 
 .pc-sidebar-utility-item:hover,
 .pc-sidebar-settings-item:hover {
     background: color-mix(in srgb, var(--pc-surface2) 86%, var(--pc-accent));
-    color: var(--pc-text1);
+    color: var(--pc-text);
+    box-shadow: var(--pc-shadow-sm);
+    transform: translateY(-1px);
+}
+
+.pc-sidebar-utility-item:active,
+.pc-sidebar-settings-item:active {
+    transform: translateY(0) scale(0.96);
 }
 
 .pc-sidebar-release-notes-item {
