@@ -65,7 +65,7 @@ describe('PC 首页新拟态结构', () => {
         expect(pcCss).toContain('padding-right: 48px;');
         expect(pcCss).toContain('.pc-home-page .pc-recent-meta-separator');
         expect(pcCss).not.toContain('.pc-home-page .pc-recent-meta-time::before');
-        expect(pcCss).toContain('.pc-home-page .pc-more-btn {\n    width: 28px;');
+        expect(pcCss).toMatch(/\.pc-home-page \.pc-more-btn \{\r?\n    width: 28px;/);
         expect(pcCss).toContain('min-height: 96px;');
         expect(pcCss).toContain('.pc-home-page .pc-recent-item:focus-within .pc-more-btn');
         expect(pcCss).toContain('@media (hover: hover) and (pointer: fine)');

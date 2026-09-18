@@ -1,5 +1,34 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.8',
+        date: '2026-09-18',
+        sections: [
+            {
+                title: '新增',
+                tone: 'pink',
+                items: [
+                    '侧栏「更多菜单」：PC 侧栏工具区收进更多入口，主题切换更清晰。',
+                    '目标计划 / 摸鱼时间卡片 3D 视差：卡片随指针轻微倾斜，层次感更强。'
+                ]
+            },
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '图片查看器 FLIP 转场：缩略图可平滑展开到全屏，关闭时反向收回（详情 / 编辑器 / 目标 / 资源库）。',
+                    '目标项目封面导入自动压缩为 WebP（长边 1600、质量 0.85）；上传限制 jpeg/png/webp 且不超过 15MB。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.8；基于当前主分支重新构建 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.7',
         date: '2026-09-17',
         sections: [
