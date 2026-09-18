@@ -1,4 +1,5 @@
 import { isCapacitor } from './storage.js';
+import { optimizeImageDataUrl } from './image-utils.js';
 
 export const TASK_PRIORITIES = [
     { key: 'high', label: '高', color: '#EF4444' },
@@ -260,14 +261,65 @@ export function generateProjectCoverGradient(name = '') {
     return `linear-gradient(135deg, hsl(${hue1} 72% 82%), hsl(${hue2} 72% 72%))`;
 }
 
+export const GOAL_COVER_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const GOAL_COVER_MAX_SOURCE_BYTES = 15 * 1024 * 1024;
+export const GOAL_COVER_OPTIMIZE_OPTIONS = {
+    quality: 0.85,
+    maxSide: 1600,
+    maxInputPixels: 24 * 1000 * 1000,
+    outputType: 'image/webp',
+    background: '#FFFFFF'
+};
+
+function buildOriginalCoverOptimizeResult(dataUrl = '') {
+    const mimeType = getImageMimeType(dataUrl);
+    return {
+        dataUrl,
+        mimeType,
+        extension: getImageExtension(dataUrl),
+        size: 0,
+        originalSize: 0,
+        width: 0,
+        height: 0,
+        originalWidth: 0,
+        originalHeight: 0,
+        usedOriginal: true,
+        resized: false
+    };
+}
+
+export async function optimizeGoalCoverDataUrl(dataUrl, options = GOAL_COVER_OPTIMIZE_OPTIONS) {
+    try {
+        return await optimizeImageDataUrl(dataUrl, options);
+    } catch (_) {
+        return buildOriginalCoverOptimizeResult(dataUrl);
+    }
+}
+
+export function resolveGoalCoverExtension(optimized, dataUrl = '') {
+    if (optimized && optimized.usedOriginal === false && optimized.extension) {
+        return optimized.extension;
+    }
+    return getImageExtension(dataUrl);
+}
+
+export function buildGoalCoverFileName(imageId, name = '', ext = 'png') {
+    const original = name ? String(name).split(/[\\/]/).pop() : '';
+    const base = original.replace(/\.[^.]+$/, '').trim();
+    if (!base) return `${imageId}.${ext}`;
+    return `${imageId}-${base}.${ext}`;
+}
+
 export async function importGoalProjectCover(storage, projectId, dataUrl, name = '') {
     const imageId = generateGoalId();
-    const ext = getImageExtension(dataUrl);
-    const fileName = name ? `${imageId}-${name.split(/[\\/]/).pop()}` : `${imageId}.${ext}`;
+    const optimized = await optimizeGoalCoverDataUrl(dataUrl);
+    const finalDataUrl = optimized?.dataUrl || dataUrl;
+    const ext = resolveGoalCoverExtension(optimized, finalDataUrl);
+    const fileName = buildGoalCoverFileName(imageId, name, ext);
 
     if (isCapacitor) {
         const { Filesystem, Directory } = await import('@capacitor/filesystem');
-        const base64Data = dataUrl.split(',')[1] || '';
+        const base64Data = finalDataUrl.split(',')[1] || '';
         const relPath = `goal_images/${projectId}/cover/${fileName}`;
         await Filesystem.writeFile({
             path: relPath,
@@ -278,7 +330,7 @@ export async function importGoalProjectCover(storage, projectId, dataUrl, name =
         return relPath;
     }
 
-    const result = await storage.uploadGoalImage(projectId, imageId, dataUrl);
+    const result = await storage.uploadGoalImage(projectId, imageId, finalDataUrl);
     return result?.path || result || '';
 }
 

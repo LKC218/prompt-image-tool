@@ -8,9 +8,12 @@ import {
     getProjectInitials,
     generateProjectCoverGradient,
     importGoalProjectCover,
-    formatBytes
+    formatBytes,
+    GOAL_COVER_ALLOWED_TYPES,
+    GOAL_COVER_MAX_SOURCE_BYTES
 } from './goal-utils.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
+import { setupCardParallaxTilt, clearCardParallaxIn } from './pc-card-parallax.js';
 import plusIcon from '../assets/icons/plus.svg';
 import moreIcon from '../assets/icons/more-horizontal.svg';
 import imageIcon from '../assets/icons/image.svg';
@@ -118,6 +121,7 @@ async function mount(pageEl, params = {}) {
 }
 
 function unmount(pageEl) {
+    clearCardParallaxIn(pageElRef, '.pc-goal-project-card');
     pageElRef = null;
 }
 
@@ -183,6 +187,7 @@ function renderList() {
 
     setupProjectNameMarquee(container);
     setupCoverFallback(container);
+    setupCardParallaxTilt(container, { cardSelector: '.pc-goal-project-card' });
 }
 
 // 封面加载失败时回退为首字母渐变，避免裂图
@@ -324,10 +329,21 @@ async function copyProject(id) {
 async function setProjectCover(id) {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    input.accept = GOAL_COVER_ALLOWED_TYPES.join(',');
     input.onchange = async () => {
         const file = input.files?.[0];
         if (!file) return;
+
+        if (!GOAL_COVER_ALLOWED_TYPES.includes(file.type)) {
+            showToast(`${file.name} 格式不支持，已跳过`, 'warning');
+            return;
+        }
+        if (file.size > GOAL_COVER_MAX_SOURCE_BYTES) {
+            showToast(`${file.name} 超过 15MB，已跳过`, 'warning');
+            return;
+        }
+
+        showToast('正在处理封面...');
         const reader = new FileReader();
         reader.onload = async () => {
             try {
@@ -348,6 +364,7 @@ async function setProjectCover(id) {
                 showToast('设置封面失败', 'error');
             }
         };
+        reader.onerror = () => showToast('封面读取失败', 'error');
         reader.readAsDataURL(file);
     };
     input.click();
