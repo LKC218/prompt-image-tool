@@ -41,7 +41,7 @@ vi.mock('./pc-utils.js', () => ({
 }));
 
 vi.mock('./pc-prompt-ui-utils.js', () => ({
-    formatPromptForDisplay: (value = '') => String(value).trim(),
+    formatPromptForDisplay: (value = '') => String(value || '').replace(/^[\s﻿]+/, ''),
 }));
 
 vi.mock('./pc-icon-assets.js', () => ({

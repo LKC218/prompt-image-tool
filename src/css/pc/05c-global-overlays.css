@@ -670,44 +670,178 @@
     outline-offset: var(--td-focus-outline-offset);
 }
 
+.pc-release-notes-body {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+}
+
+.pc-release-phase-rail {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 20px 0;
+    margin: 0;
+}
+
+.pc-release-phase-rail::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    bottom: 24px;
+    left: 50%;
+    width: 1px;
+    transform: translateX(-50%);
+    background: color-mix(in srgb, var(--pc-text3) 20%, transparent);
+}
+
+.pc-release-phase-tick {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 16px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.pc-release-phase-tick-mark {
+    display: block;
+    width: 12px;
+    height: 2px;
+    border-radius: 1px;
+    background: color-mix(in srgb, var(--pc-text3) 55%, transparent);
+    transition: width 0.16s ease, height 0.16s ease, background-color 0.16s ease;
+}
+
+.pc-release-phase-tick:hover .pc-release-phase-tick-mark,
+.pc-release-phase-tick:focus-visible .pc-release-phase-tick-mark,
+.pc-release-phase-tick.is-hot .pc-release-phase-tick-mark {
+    width: 16px;
+    height: 3px;
+    background: color-mix(in srgb, var(--pc-text) 72%, transparent);
+}
+
+.pc-release-phase-tick:focus-visible {
+    outline: var(--td-focus-outline);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.pc-release-phase-tick.is-active .pc-release-phase-tick-mark {
+    width: 18px;
+    height: 3px;
+    background: color-mix(in srgb, var(--pc-text) 80%, transparent);
+}
+
+.pc-release-phase-tick.is-current .pc-release-phase-tick-mark {
+    width: 20px;
+    height: 3px;
+    background: var(--pc-accent);
+}
+
+.pc-release-phase-tooltip {
+    position: absolute;
+    z-index: 5;
+    min-width: 148px;
+    max-width: 220px;
+    padding: 9px 11px;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-surface-floating) 94%, var(--pc-accent-bg));
+    box-shadow: 0 10px 24px var(--color-shadow-dark);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.pc-release-phase-tooltip.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.pc-release-phase-tooltip[hidden] {
+    display: none;
+}
+
+.pc-release-phase-tooltip-title {
+    color: var(--pc-text);
+    font: 700 12px/1.4 var(--pc-font-family);
+}
+
+.pc-release-phase-tooltip-sub {
+    margin-top: 3px;
+    color: var(--pc-text2);
+    font: 500 12px/1.4 var(--pc-font-family);
+}
+
+.pc-release-phase-tooltip-meta {
+    margin-top: 5px;
+    color: var(--pc-text3);
+    font: 400 11px/1.3 var(--pc-font-family);
+}
+
 .pc-release-notes-scroll {
     flex: 1 1 auto;
     display: grid;
     align-content: start;
-    gap: 16px;
+    gap: 12px;
     min-height: 0;
+    min-width: 0;
     overflow-y: auto;
-    padding: 22px 28px;
+    padding: 16px 24px 16px 8px;
+    scrollbar-width: none;
 }
 
-.pc-release-card {
-    padding: 16px 20px;
+.pc-release-notes-scroll::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.pc-release-phase {
+    scroll-margin-top: 8px;
+    padding: 14px 16px;
     border: 1px solid var(--color-border-subtle);
-    border-radius: 18px;
-    background: color-mix(in srgb, var(--pc-sidebar-bg) 88%, var(--color-surface-raised));
-    box-shadow: inset 2px 2px 5px var(--color-shadow-neu-dark), inset -2px -2px 5px var(--color-shadow-highlight);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--pc-sidebar-bg) 72%, var(--color-surface-raised));
+    box-shadow: 0 1px 0 color-mix(in srgb, var(--color-shadow-highlight) 80%, transparent) inset;
+    transition: border-color 0.16s ease, background-color 0.16s ease;
 }
 
-.pc-release-card-current {
-    border-color: color-mix(in srgb, var(--pc-accent) 36%, #fff);
-    box-shadow: inset 2px 2px 5px rgba(164, 137, 99, 0.1), inset -2px -2px 5px rgba(255, 255, 255, 0.88), 0 8px 18px color-mix(in srgb, var(--pc-accent) 11%, transparent);
+.pc-release-phase.is-hot,
+.pc-release-phase.is-active {
+    border-color: color-mix(in srgb, var(--pc-accent) 28%, var(--color-border-subtle));
 }
 
-.pc-release-card-head,
-.pc-release-version-wrap,
-.pc-release-section-title {
+.pc-release-phase-current {
+    border-color: color-mix(in srgb, var(--pc-accent) 34%, var(--color-border-subtle));
+    background: color-mix(in srgb, var(--pc-accent) 4%, var(--color-surface-raised));
+}
+
+.pc-release-phase-head {
     display: flex;
     align-items: center;
-}
-
-.pc-release-card-head {
     justify-content: space-between;
     gap: var(--pc-space-md);
-    margin-bottom: 14px;
+    margin-bottom: 10px;
 }
 
-.pc-release-version-wrap {
+.pc-release-phase-title {
+    display: flex;
+    align-items: center;
     gap: 8px;
+    min-width: 0;
 }
 
 .pc-release-version,
@@ -717,29 +851,41 @@
 }
 
 .pc-release-version {
-    padding: 7px 10px;
+    padding: 6px 10px;
     background: var(--pc-accent-bg);
     color: var(--pc-accent-strong);
 }
 
 .pc-release-current-label {
-    padding: 5px 8px;
+    padding: 4px 8px;
     background: color-mix(in srgb, var(--pc-accent) 12%, #fff);
     color: var(--pc-accent-strong);
 }
 
-.pc-release-card time {
+.pc-release-phase-head time {
+    flex: 0 0 auto;
     color: var(--pc-text3);
     font: 500 12px/1.4 var(--pc-font-family);
 }
 
-.pc-release-section + .pc-release-section {
-    margin-top: 12px;
+.pc-release-phase-body {
+    display: grid;
+    gap: 6px;
+}
+
+.pc-release-step {
+    padding: 4px 0;
+}
+
+.pc-release-step-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
 }
 
 .pc-release-section-title {
-    gap: 8px;
-    margin: 0 0 7px;
+    margin: 0;
     color: var(--pc-text);
     font: 700 13px/1.4 var(--pc-font-family);
 }
@@ -748,6 +894,7 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
+    flex: 0 0 auto;
 }
 
 .pc-release-section-dot-pink { background: var(--pc-pink); }
@@ -756,7 +903,7 @@
 
 .pc-release-list {
     display: grid;
-    gap: 5px;
+    gap: 4px;
     padding: 0 0 0 18px;
     margin: 0;
     color: var(--pc-text2);
@@ -780,7 +927,12 @@
 
 @media (prefers-reduced-motion: reduce) {
     .pc-release-notes-nav-badge,
-    .pc-release-close {
+    .pc-release-close,
+    .pc-release-phase-tick-mark,
+    .pc-release-phase,
+    .pc-release-phase-head,
+    .pc-release-step,
+    .pc-release-phase-tooltip {
         transition: none;
     }
 }
@@ -790,15 +942,27 @@
         min-width: 0;
     }
 
+    .pc-release-phase-rail {
+        flex-basis: 24px;
+        gap: 12px;
+    }
+
+    .pc-release-phase-tick {
+        width: 24px;
+    }
+
     .pc-release-notes-head,
-    .pc-release-notes-scroll,
     .pc-release-notes-actions {
         padding-left: 20px;
         padding-right: 20px;
     }
 
-    .pc-release-card {
-        padding: 16px;
+    .pc-release-notes-scroll {
+        padding: 14px 16px 14px 6px;
+    }
+
+    .pc-release-phase {
+        padding: 12px;
     }
 }
 

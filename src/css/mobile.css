@@ -589,6 +589,7 @@
 
 .mobile-app .m-filter-tag {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     min-height: 36px;
     padding: 6px 16px;

@@ -75,11 +75,11 @@ function closeModal() {
 
 function showConfirmModal(message, onConfirm) {
     const modal = showModal(`
-        <h3>纭鎿嶄綔</h3>
+        <h3>确认操作</h3>
         <p class="pc-modal-desc">${message}</p>
         <div class="pc-modal-actions">
-            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">鍙栨秷</button>
-            <button class="pc-btn pc-btn-danger" id="pcModalConfirm">纭畾</button>
+            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">取消</button>
+            <button class="pc-btn pc-btn-danger" id="pcModalConfirm">确定</button>
         </div>
     `);
     modal.querySelector('#pcModalCancel').addEventListener('click', closeModal);
@@ -96,8 +96,8 @@ function showPromptModal(title, defaultValue, onConfirm) {
             <input type="text" class="pc-input" id="pcModalInput" value="${escapeHtml(defaultValue)}" autocomplete="off">
         </div>
         <div class="pc-modal-actions">
-            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">鍙栨秷</button>
-            <button class="pc-btn pc-btn-primary" id="pcModalConfirm">纭畾</button>
+            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">取消</button>
+            <button class="pc-btn pc-btn-primary" id="pcModalConfirm">确定</button>
         </div>
     `);
     const input = modal.querySelector('#pcModalInput');
@@ -248,7 +248,7 @@ function renderContextMenuItems(items, parentAction = '') {
         return `<button type="button" class="pc-context-action${tone} ${item.danger ? 'pc-context-danger' : ''}" role="menuitem" data-action="${item.action || ''}"${submenuAttrs}${item.disabled ? ' disabled' : ''} data-ripple="false" style="--pc-context-index:${index}">
             <span class="pc-context-label">${item.label}</span>
             <span class="pc-context-icon${tone}">${item.icon || ''}</span>
-            ${submenu ? '<span class="pc-context-submenu-arrow" aria-hidden="true">鈥?/span>' : ''}
+            ${submenu ? '<span class="pc-context-submenu-arrow" aria-hidden="true">›</span>' : ''}
         </button>`;
     }).join('');
 }

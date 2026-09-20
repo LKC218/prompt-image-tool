@@ -22,13 +22,13 @@
 
 ## 下载
 
-当前最新：[v2.5.9](https://github.com/LKC218/prompt-image-tool/releases/latest)
+当前最新：[v2.5.10](https://github.com/LKC218/prompt-image-tool/releases/latest)
 
 普通用户直接下载发布版，无需安装 Python 或前端依赖。
 
 - [GitHub Releases](https://github.com/LKC218/prompt-image-tool/releases/latest)
-- Windows：`PromptImageManager-Setup-2.5.9.exe`
-- Android：`PromptImageManager-v2.5.9-Android.apk`（若该版本未附带 APK，请继续使用 Release 页中可用的最新 Android 包）
+- Windows：`PromptImageManager-Setup-2.5.10.exe`
+- Android：`PromptImageManager-v2.5.10-Android.apk`（若该版本未附带 APK，请继续使用 Release 页中可用的最新 Android 包）
 
 > Android 首次安装如被拦截，请在系统设置中允许安装未知来源应用。
 
@@ -103,13 +103,13 @@ python scripts\build_release_packages.py
 | `android/` | Capacitor Android 原生工程 |
 | `installer-shell/` | Tauri 自定义安装器壳工程 |
 | `scripts/` | 构建、维护、发布脚本与 README 预览截图脚本 |
-| `docs/` | 技术文档、设计文档、计划文档和测试记录 |
+| `docs/` | 工程指南、技术、设计、计划、质量与版本文档（见文档中心） |
 | `releases/` | 本地发布产物落点，安装包不提交到 Git |
 
 ## 文档入口
 
 - [文档中心](docs/README.md)
-- [项目文件导航](docs/apps-code-map.md)
+- [项目文件导航](docs/导航/apps-code-map.md)
 - [PC 技术文档](docs/技术文档/pc-technical-doc.md)
 - [移动端技术文档](docs/技术文档/mobile-technical-doc.md)
 - [局域网同步设计](docs/技术文档/lan-sync-design-doc.md)

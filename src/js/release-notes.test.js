@@ -39,18 +39,61 @@ describe('更新记录模块', () => {
         expect(releaseModalRule).not.toContain('-10px -10px');
     });
 
-    it('使用三段式弹窗布局，让版本列表滚动并将操作区固定在底部', () => {
+    it('使用三段式弹窗布局，让阶段列表滚动并将操作区固定在底部', () => {
         const dialogRule = pcCss.match(/\.pc-release-notes\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+        const bodyRule = pcCss.match(/\.pc-release-notes-body\s*\{([\s\S]*?)\n\}/)?.[1] || '';
         const scrollRule = pcCss.match(/\.pc-release-notes-scroll\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+        const railRule = pcCss.match(/\.pc-release-phase-rail\s*\{([\s\S]*?)\n\}/)?.[1] || '';
         const actionsRule = pcCss.match(/\.pc-release-notes-actions\s*\{([\s\S]*?)\n\}/)?.[1] || '';
 
         expect(dialogRule).toContain('display: flex');
         expect(dialogRule).toContain('flex-direction: column');
+        expect(bodyRule).toContain('display: flex');
         expect(scrollRule).toContain('flex: 1 1 auto');
         expect(scrollRule).toContain('min-height: 0');
         expect(scrollRule).toContain('overflow-y: auto');
+        expect(scrollRule).toContain('scrollbar-width: none');
+        expect(railRule).toContain('flex: 0 0 28px');
         expect(actionsRule).toContain('flex: 0 0 auto');
         expect(actionsRule).toContain('min-height: 86px');
+    });
+
+    it('打开弹窗：阶段轨每个版本仅一条刻度，与版本卡一一对应', async () => {
+        const { openReleaseNotes } = await import('./release-notes.js');
+        const { RELEASE_NOTES } = await import('./release-notes-data.js');
+        const rendered = document.createElement('div');
+        pcUtilsMocks.showModal.mockImplementationOnce((html) => {
+            rendered.innerHTML = html;
+            return rendered;
+        });
+
+        openReleaseNotes();
+
+        const ticks = rendered.querySelectorAll('.pc-release-phase-tick');
+        const phases = rendered.querySelectorAll('.pc-release-phase');
+        const steps = rendered.querySelectorAll('.pc-release-step');
+
+        expect(rendered.querySelector('.pc-release-phase-rail')).toBeTruthy();
+        expect(rendered.querySelector('.pc-release-phase-tooltip')).toBeTruthy();
+        expect(ticks.length).toBe(RELEASE_NOTES.length);
+        expect(phases.length).toBe(RELEASE_NOTES.length);
+        expect(steps.length).toBe(RELEASE_NOTES.reduce((sum, note) => sum + note.sections.length, 0));
+        expect(rendered.querySelectorAll('.pc-release-phase-tick-section, .pc-release-phase-tick-tone-pink, .pc-release-step-count').length).toBe(0);
+
+        const currentTick = rendered.querySelector('.pc-release-phase-tick.is-current');
+        expect(currentTick?.dataset.phaseTarget).toBe('2.5.2');
+        expect(currentTick?.dataset.stepLabel).toContain('v2.5.2');
+        expect(currentTick?.getAttribute('aria-current')).toBe('true');
+
+        const currentPhase = rendered.querySelector('.pc-release-phase-current');
+        expect(currentPhase?.dataset.phaseVersion).toBe('2.5.2');
+
+        ticks.forEach((tick) => {
+            const stepId = tick.dataset.stepId;
+            const phase = rendered.querySelector(`.pc-release-phase[data-step-id="${stepId}"]`);
+            expect(phase).toBeTruthy();
+            expect(phase.dataset.phaseVersion).toBe(tick.dataset.phaseTarget);
+        });
     });
 
     it('当前版本首次显示为未读，并能同步侧栏提示点', async () => {

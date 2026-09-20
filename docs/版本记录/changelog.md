@@ -5,6 +5,45 @@
 
 ---
 
+## v2.5.10 (2026-09-20)
+
+> 记录依据：`v2.5.9` 发布提交 `31337d4` 之后的工作区缺陷扫描与修复（UI 乱码、移动端筛选标签、测试 mock、编码与资源回归门禁）。
+
+### 修复
+
+- **确认弹窗与右键菜单中文乱码**：通用确认/输入弹窗标题与「取消/确定」按钮、二级菜单箭头文案恢复为正确中文与符号。
+- **移动端筛选标签布局**：横向滚动筛选条中的标签增加不可收缩约束，长标签不再被压缩换行。
+- **安装器中文编码**：`build/installer.nsi` 恢复 UTF-8 with BOM，避免 NSIS 按 ANSI 解析导致安装界面中文乱码。
+- **库页测试 mock 缺口**：补全详情链路所需 mock 导出，消除测试运行时 mock 缺失报错。
+
+### 优化
+
+- **构建产物资源校验**：新增 `verify:dist-assets` / `verify:ui-encoding` / `verify:defects`，可在发布前检查 dist CSS 资源解析与源码乱码特征。
+
+### 发布
+
+- 版本号统一升级至 `2.5.10`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、NSIS 安装器、安装器壳版本统一升级至 `2.5.10`。
+- Android `versionCode` 从 `21` 递增至 `22`，`versionName` 升级为 `2.5.10`。
+- 已完成 PC 端核心安装包构建（基于当前主分支工作区）：
+  - `PromptImageManager-Setup-2.5.10.exe`：39,392,665 字节（37.6 MB），SHA256 `4F0FA110481640403F51B8943ACF03AE1628BD3F5FD738C26382D05DD1C729DD`
+
+
+### 验证
+
+- `npm run test`：通过，39 个测试文件、308 个测试用例。
+- `venv python -m pytest python/tests -q`：通过，77 个用例。
+- `npm run test:rust`：通过，3 个用例。
+- `npm run build`：成功。
+- `npm run verify:defects`：通过（ui-encoding + dist-assets）。
+- `python scripts/build_pc_package.py`：成功（Vite + PyInstaller + NSIS）。
+- 产物检查：`dist/index.html` 与内置前端 meta 均为 `2.5.10`。
+
+---
+
 ## v2.5.9 (2026-09-18)
 
 > 记录依据：`v2.5.8` 发布提交 `f5f85ea` 之后的主分支变更（`4e259b7`）：应用内更新安装完成后自动重启。

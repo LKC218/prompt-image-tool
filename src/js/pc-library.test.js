@@ -9,7 +9,9 @@ vi.mock('./pc-app.js', () => ({
 
 vi.mock('./pc-utils.js', () => ({
     showToast: vi.fn(),
+    showConfirmModal: vi.fn(),
     showContextMenu: vi.fn(),
+    hideContextMenu: vi.fn(),
     setContextMenuTargetId: vi.fn(),
     copyToClipboard: vi.fn(),
     showImageViewer: vi.fn(),
@@ -30,6 +32,7 @@ vi.mock('./pc-welcome-banner.js', () => ({
 vi.mock('./pc-prompt-ui-utils.js', () => ({
     countPromptSetsByFolder: vi.fn(() => new Map()),
     getPromptFolderId: vi.fn((item) => item?.folderId || item?.folder_id || ''),
+    formatPromptForDisplay: (value = '') => String(value || '').replace(/^[\s﻿]+/, ''),
 }));
 
 vi.mock('./pc-icon-assets.js', () => ({

@@ -1,6 +1,7 @@
-# 生图提示词管理器 — 技术文档中心
+# 生图提示词管理器 — 文档中心
 
-> 版本：2.2.1 | 最后更新：2026-05-04
+> 文档体系版本：2026-09-20 | 对应应用版本：v2.5.10  
+> 分类规范见：[docs 归类规范与迁移计划](计划与规格/09-项目治理/docs文档归类规范与迁移计划-260918.md)
 
 ---
 
@@ -31,35 +32,49 @@
         └───────────────────┘ └─────────────────────┘
 ```
 
-**平台检测逻辑**（[storage.js](../src/js/storage.js)）：
+---
 
-```javascript
-const isTauri = typeof window !== 'undefined' && window.__TAURI_INTERNALS__;
-const isCapacitor = typeof window !== 'undefined' && window.Capacitor
-                    && window.Capacitor.isNativePlatform
-                    && window.Capacitor.isNativePlatform();
-```
+## 文档导航
 
-- `isCapacitor === true` → 动态加载 `SqliteStorage`
-- 其他情况 → 动态加载 `ApiStorage`
+| 目录 | 职责 | 入口 |
+|------|------|------|
+| [导航/](导航/) | 全局代码地图与项目百科 | [apps-code-map](导航/apps-code-map.md) · [项目代码百科](导航/项目代码百科.md) |
+| [工程指南/](工程指南/) | 交接、迁移、目录职责、发版维护流程 | [README](工程指南/README.md) |
+| [技术文档/](技术文档/) | 平台架构、API、同步协议（路径稳定） | [README](技术文档/README.md) |
+| [设计系统/](设计系统/) | 主题 Token、全局组件与视觉规范 | [README](设计系统/README.md) |
+| [页面与UI/](页面与UI/) | 页面级 UI 方案、端侧布局、复刻稿 | [README](页面与UI/README.md) |
+| [模块说明/](模块说明/) | 就近模块职责与文件清单 | [README](模块说明/README.md) |
+| [构建方案/](构建方案/) | PC / Android 打包流程（路径稳定） | [README](构建方案/README.md) |
+| [版本记录/](版本记录/) | changelog 权威源与更新说明规范（路径稳定） | [README](版本记录/README.md) |
+| [计划与规格/](计划与规格/) | 活跃实施计划 + compose 功能规格 | [分类索引](计划与规格/计划文档-分类索引.md) |
+| [质量与复盘/](质量与复盘/) | 测试记录、已修复问题、经验沉淀 | [README](质量与复盘/README.md) |
+| [素材与提示词/](素材与提示词/) | 生图提示词、美术素材对照 | [README](素材与提示词/README.md) |
+| [_归档/](_归档/) | 已完成/过期/一次性材料 | [README](_归档/README.md) |
+
+**路径稳定目录**（脚本与外链依赖，勿随意改名）：`技术文档/`、`构建方案/`、`版本记录/`、`assets/`、`模块说明/`。
 
 ---
 
-## 文档索引
+## 新文档放哪（口诀）
 
-| 文档 | 说明 |
-|------|------|
-| [技术文档](技术文档/README.md) | API、PC、移动端、Web 和局域网同步技术说明 |
-| [设计文档](设计文档/README.md) | UI/UX、跨端配色与主题 Token、组件规范和响应式设计 |
-| [构建方案](构建方案/README.md) | PC、Android、独立安装包和平台打包流程 |
-| [计划文档](计划文档/计划文档-分类索引.md) | 活跃计划导航；历史完成计划见 `_历史归档/` |
-| [工程文档](工程文档/README.md) | 工程交接、迁移和目录职责说明 |
-| [UI计划](UI计划/) | PC 与移动端页面级 UI 计划和复刻设计文档 |
-| [项目开发经验](项目开发经验/) | 可复用工程规范、问题经验和跨页面实施约定 |
-| [已修复问题](已修复问题/) | 问题复盘与修复记录 |
-| [版本记录](版本记录/README.md) | 版本迭代历史与变更记录 |
-| [版本发布与更新记录维护指南](版本发布与更新记录维护指南.md) | 汇总最新修改、迭代版本号并同步 PC 更新记录弹窗的标准流程 |
-| [对话历史](对话历史/) | 重要构建与开发对话归档 |
+1. **还要做吗？** → 是：`计划与规格/`；否且有回溯价值：`_归档/` 对应子类。
+2. **怎么构建 / 怎么发版？** → `构建方案/` 或 `工程指南/`。
+3. **系统全局长什么样？** → `设计系统/`；**单页/端侧 UI** → `页面与UI/`。
+4. **某模块代码在哪、干什么？** → `模块说明/`。
+5. **测过什么 / 修过什么 / 踩过什么坑？** → `质量与复盘/`。
+6. **画图用的提示词 / 素材词？** → `素材与提示词/`。
+7. **路径怎么找 / 概念是什么？** → 更新 `导航/apps-code-map.md` 或 `导航/项目代码百科.md`。
+
+---
+
+## 命名约定
+
+| 文档类型 | 命名 | 示例 |
+|----------|------|------|
+| 长期规范 / 架构 | 中文主题，**不带日期**；文首写 `> 最后更新：` | `跨端配色与主题令牌规范.md` |
+| 计划 / 测试 / 治理 | 主题 + `-YYMMDD` | `PC自定义光标圆环柔光重构实施计划-260915.md` |
+| 版本相关 | `vX.Y.Z-` 前缀 | `v2.7.0-设置与本地存储功能实装计划.md` |
+| 已有稳定英文技术文档名 | 可保留，在 README 写中文职责 | `api-reference.md` |
 
 ---
 
@@ -76,45 +91,6 @@ const isCapacitor = typeof window !== 'undefined' && window.Capacitor
 | 移动文件系统 | @capacitor/filesystem | 8.1.2 |
 | 前端测试 | Vitest + jsdom | 4.x |
 | Rust 版本 | - | 1.77.2+ |
-
----
-
-## 项目目录结构
-
-```
-prompt-image-tool/
-├── src/                        # 前端源码
-│   ├── index.html              # 主页面
-│   ├── css/
-│   │   ├── main.css            # 主样式（暗/亮主题、CSS 变量体系）
-│   │   └── responsive.css      # 响应式断点样式
-│   ├── js/
-│   │   ├── app.js              # 核心业务逻辑（1526行）
-│   │   ├── storage.js          # 存储抽象层（平台检测 + 动态加载）
-│   │   ├── api-storage.js      # PC/Web 端 API 存储实现
-│   │   ├── sqlite-storage.js   # Android 端 SQLite 存储实现
-│   │   ├── lan-sync.js         # 局域网同步逻辑
-│   │   ├── tutorial.js         # 新手引导教程
-│   │   └── utils.js            # 工具函数
-│   └── assets/                 # 静态资源
-├── python/
-│   ├── main.py                 # Python HTTP 后端（638行）
-│   └── tests/                  # Python 测试
-├── src-tauri/                  # Tauri 桌面端
-│   ├── src/lib.rs              # Rust 入口
-│   ├── Cargo.toml              # Rust 依赖
-│   └── icons/                  # 桌面端图标
-├── android/                    # Android 移动端
-│   ├── app/                    # Android 应用模块
-│   └── build.gradle            # Gradle 构建
-├── dist/                       # 前端构建产物
-├── build/                      # PC 端打包相关（PyInstaller）
-├── docs/                       # 技术文档
-├── capacitor.config.ts         # Capacitor 配置
-├── vite.config.js              # Vite 配置
-├── package.json                # Node.js 项目配置
-└── build.bat                   # 一键构建脚本
-```
 
 ---
 
@@ -149,3 +125,14 @@ cd android && ./gradlew assembleDebug
 # 一键脚本
 build.bat → 选择 2（PC）或 3（Android）
 ```
+
+详见 [构建方案](构建方案/README.md)。
+
+---
+
+## 维护约定
+
+- 功能模块变更后：同步 `导航/apps-code-map.md` 与最近的 `模块说明/` 文档。
+- 发版时：changelog 唯一权威源是 [`版本记录/changelog.md`](版本记录/changelog.md)；格式见 [`版本记录/更新记录规范.md`](版本记录/更新记录规范.md)；流程见 [`工程指南/版本发布与更新记录维护指南.md`](工程指南/版本发布与更新记录维护指南.md)。
+- 计划完成后：从 `计划与规格/` 移入 `_归档/计划/`，并更新分类索引。
+- 归档内历史路径引用**允许保留**；活跃文档中的引用必须指向新路径。

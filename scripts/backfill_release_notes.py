@@ -15,6 +15,12 @@ ORDER = ["新增", "优化", "修复", "发布"]
 REPO = "LKC218/prompt-image-tool"
 
 TABLES = {
+    "2.5.7": (
+        "| `PromptImageManager-Setup-2.5.7.exe` | 37.6 MB | "
+        "`7C134B46C026D9047A2B240BCA54D5E3903E84D51F383E25B6AC7E9A2FA53AB9` |\n"
+        "| `latest.json` | 0.0 MB | "
+        "`E0C4F1C905E0A63C7037C5CB9F3CE5EB73047706A693F372FBB47932F7ECC9B9` |"
+    ),
     "2.5.6": (
         "| `PromptImageManager-Setup-2.5.6.exe` | 34.0 MB | "
         "`D704D7B0B55549E9517E02E09C1479DF2AA7BAC5AFC3E16F0D8CA2ACA4A6C52C` |\n"
@@ -104,7 +110,8 @@ def api(method: str, url: str, token: str, payload: dict | None = None):
 
 def main() -> None:
     token = get_token()
-    for ver in ("2.5.6", "2.5.5"):
+    versions = sys.argv[1:] or ["2.5.7"]
+    for ver in versions:
         body = build(ver)
         rel, _ = api(
             "GET",

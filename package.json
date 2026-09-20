@@ -1,6 +1,6 @@
 {
   "name": "prompt-image-manager",
-  "version": "2.5.9",
+  "version": "2.5.10",
   "description": "生图提示词管理器",
   "type": "module",
   "scripts": {
@@ -18,7 +18,10 @@
     "test:watch": "vitest",
     "test:python": "python -m pytest python/tests -v",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
-    "test:all": "npm run test && npm run test:python && npm run test:rust"
+    "test:all": "npm run test && npm run test:python && npm run test:rust",
+    "verify:dist-assets": "node scripts/verify-dist-assets.mjs",
+    "verify:ui-encoding": "node scripts/verify-ui-encoding.mjs",
+    "verify:defects": "npm run verify:ui-encoding && npm run verify:dist-assets"
   },
   "dependencies": {
     "@capacitor-community/sqlite": "^8.1.0",
