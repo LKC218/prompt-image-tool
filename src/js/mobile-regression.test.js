@@ -179,6 +179,11 @@ async function flush() {
     await new Promise(resolve => setTimeout(resolve, 0));
 }
 
+async function flushSearch() {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    await flush();
+}
+
 describe('移动端页面全功能回归冒烟', () => {
     let storage;
 
@@ -287,10 +292,12 @@ describe('移动端页面全功能回归冒烟', () => {
         const input = pageEl.querySelector('#mLibSearchInput');
         input.value = '不存在';
         input.dispatchEvent(new Event('input', { bubbles: true }));
+        await flushSearch();
         expect(pageEl.querySelector('.m-empty-text').textContent).toContain('未找到');
 
         input.value = '移动端';
         input.dispatchEvent(new Event('input', { bubbles: true }));
+        await flushSearch();
         expect(pageEl.querySelectorAll('.m-prompt-list-card')).toHaveLength(1);
 
         click('.m-prompt-list-card', pageEl);

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { generateId, formatDate, isMobile } from './utils.js';
+import { generateId, formatDate, isMobile, debounce } from './utils.js';
 
 describe('generateId', () => {
     it('should return a non-empty string', () => {
@@ -61,5 +61,48 @@ describe('isMobile', () => {
     it('should return true for small widths', () => {
         Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true });
         expect(isMobile()).toBe(true);
+    });
+});
+
+describe('debounce', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+    });
+
+    it('should delay invocation and keep only the latest call', () => {
+        const fn = vi.fn();
+        const debounced = debounce(fn, 160);
+
+        debounced('a');
+        debounced('b');
+        debounced('c');
+        expect(fn).not.toHaveBeenCalled();
+
+        vi.advanceTimersByTime(160);
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(fn).toHaveBeenCalledWith('c');
+    });
+
+    it('should flush pending call immediately', () => {
+        const fn = vi.fn();
+        const debounced = debounce(fn, 160);
+
+        debounced('pending');
+        debounced.flush();
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(fn).toHaveBeenCalledWith('pending');
+
+        vi.advanceTimersByTime(160);
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should cancel pending call', () => {
+        const fn = vi.fn();
+        const debounced = debounce(fn, 160);
+
+        debounced('drop');
+        debounced.cancel();
+        vi.advanceTimersByTime(160);
+        expect(fn).not.toHaveBeenCalled();
     });
 });

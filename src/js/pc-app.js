@@ -12,20 +12,26 @@ import navGames from '../assets/pc/nav-icons/games.png';
 import navSettings from '../assets/pc/nav-icons/settings.png';
 import { openReleaseNotes, showUnreadReleaseNotes, syncReleaseNotesUnreadBadge } from './release-notes.js';
 import { runStartupUpdateCheck, runManualUpdateCheck } from './auto-updater.js';
-import { render as renderHome, mount as mountHome, unmount as unmountHome } from './pc-home.js';
-import { render as renderLibrary, mount as mountLibrary, unmount as unmountLibrary } from './pc-library.js';
-import { render as renderDetail, mount as mountDetail, unmount as unmountDetail } from './pc-detail.js';
-import { render as renderEditor, mount as mountEditor, unmount as unmountEditor } from './pc-editor.js';
-import { render as renderCategory, mount as mountCategory, unmount as unmountCategory } from './pc-category.js';
-import { render as renderGoalProjects, mount as mountGoalProjects, unmount as unmountGoalProjects } from './pc-goal-projects.js';
-import { render as renderGoalDetail, mount as mountGoalDetail, unmount as unmountGoalDetail } from './pc-goal-detail.js';
-import { render as renderTetris, mount as mountTetris, unmount as unmountTetris } from './pc-tetris.js';
-import { render as renderGamesHub, mount as mountGamesHub, unmount as unmountGamesHub } from './pc-games-hub.js';
-import { render as renderPlane, mount as mountPlane, unmount as unmountPlane } from './pc-plane.js';
-import { render as renderSettings, mount as mountSettings, unmount as unmountSettings } from './pc-settings.js';
 import { initRipple } from './ripple.js';
 import { initPcCursor } from './pc-cursor.js';
 import { getThemeState, setAppearancePreference, setWorkbenchTheme } from './theme-service.js';
+
+const LAZY_ROUTES = {
+    '/': () => import('./pc-home.js'),
+    '/library': () => import('./pc-library.js'),
+    '/detail/:id': () => import('./pc-detail.js'),
+    '/editor/:id': () => import('./pc-editor.js'),
+    '/category': () => import('./pc-category.js'),
+    '/goals': () => import('./pc-goal-projects.js'),
+    '/goals/:id': () => import('./pc-goal-detail.js'),
+    '/games': () => import('./pc-games-hub.js'),
+    '/tetris': () => import('./pc-tetris.js'),
+    '/plane': () => import('./pc-plane.js'),
+    '/settings': () => import('./pc-settings.js'),
+};
+
+const lazyHandlerCache = new Map();
+let createPageSeq = 0;
 
 let appEl = null;
 let pageContainer = null;
@@ -233,6 +239,43 @@ function renderThemeToggle() {
     `;
 }
 
+function registerAppRoutes() {
+    Object.keys(LAZY_ROUTES).forEach((path) => {
+        registerRoute(path, {
+            key: path,
+            lazy: true,
+            render: () => '<div class="pc-page-loading" aria-live="polite"></div>',
+            mount: () => {},
+            unmount: () => {},
+        });
+    });
+}
+
+async function ensureRouteModule(routeKey) {
+    if (lazyHandlerCache.has(routeKey)) return lazyHandlerCache.get(routeKey);
+    const loader = LAZY_ROUTES[routeKey];
+    if (!loader) return getRouteHandler(routeKey);
+    const mod = await loader();
+    const handler = {
+        key: routeKey,
+        render: mod.render,
+        mount: mod.mount,
+        unmount: mod.unmount,
+    };
+    lazyHandlerCache.set(routeKey, handler);
+    return handler;
+}
+
+function prefetchRouteModules() {
+    const schedule = typeof window.requestIdleCallback === 'function'
+        ? window.requestIdleCallback
+        : (cb) => window.setTimeout(cb, 600);
+    schedule(() => {
+        ensureRouteModule('/library').catch(() => {});
+        ensureRouteModule('/category').catch(() => {});
+    });
+}
+
 async function mount(el) {
     appEl = el;
     isSidebarCollapsed = readSidebarCollapsedState();
@@ -244,17 +287,7 @@ async function mount(el) {
 
     currentAccent = getThemeState().workbenchTheme;
 
-    registerRoute('/', { render: renderHome, mount: mountHome, unmount: unmountHome });
-    registerRoute('/library', { render: renderLibrary, mount: mountLibrary, unmount: unmountLibrary });
-    registerRoute('/detail/:id', { render: renderDetail, mount: mountDetail, unmount: unmountDetail });
-    registerRoute('/editor/:id', { render: renderEditor, mount: mountEditor, unmount: unmountEditor });
-    registerRoute('/category', { render: renderCategory, mount: mountCategory, unmount: unmountCategory });
-    registerRoute('/goals', { render: renderGoalProjects, mount: mountGoalProjects, unmount: unmountGoalProjects });
-    registerRoute('/goals/:id', { render: renderGoalDetail, mount: mountGoalDetail, unmount: unmountGoalDetail });
-    registerRoute('/games', { render: renderGamesHub, mount: mountGamesHub, unmount: unmountGamesHub });
-    registerRoute('/tetris', { render: renderTetris, mount: mountTetris, unmount: unmountTetris });
-    registerRoute('/plane', { render: renderPlane, mount: mountPlane, unmount: unmountPlane });
-    registerRoute('/settings', { render: renderSettings, mount: mountSettings, unmount: unmountSettings });
+    registerAppRoutes();
 
     setupSidebarNav();
     setupSidebarToggle();
@@ -279,7 +312,8 @@ async function mount(el) {
     } else if (initialPath === '/tetris' || initialPath === '/plane') {
         updateNavHighlight('/games');
     }
-    createPage(resolveRouteKey(initialPath), initialRoute.params || {}, 'tab');
+    await createPage(resolveRouteKey(initialPath), initialRoute.params || {}, 'tab');
+    prefetchRouteModules();
     const initialSidebarStage = appEl.querySelector('#pcSidebarStage');
     window.requestAnimationFrame(() => {
         showUnreadReleaseNotes();
@@ -717,7 +751,9 @@ function handleRouteChange(newRoute, oldRoute, direction) {
         updateNavHighlight('/games');
     }
 
-    createPage(routeKey, newRoute.params || {}, direction);
+    createPage(routeKey, newRoute.params || {}, direction).catch((error) => {
+        console.error('createPage failed:', error);
+    });
 }
 
 function destroyCurrentPage() {
@@ -729,9 +765,20 @@ function destroyCurrentPage() {
     activePage = null;
 }
 
-function createPage(routeKey, params = {}, direction = 'tab') {
-    const handler = getRouteHandler(routeKey);
-    if (!handler) {
+async function createPage(routeKey, params = {}, direction = 'tab') {
+    const seq = ++createPageSeq;
+    let handler = null;
+    try {
+        handler = await ensureRouteModule(routeKey);
+    } catch (error) {
+        console.error('Failed to load route module:', routeKey, error);
+    }
+    if (seq !== createPageSeq) return;
+
+    if (!handler || typeof handler.render !== 'function') {
+        handler = getRouteHandler(routeKey);
+    }
+    if (!handler || typeof handler.render !== 'function') {
         console.warn('No route handler for:', routeKey);
         return;
     }
@@ -746,7 +793,14 @@ function createPage(routeKey, params = {}, direction = 'tab') {
     activePage = { el: pageEl, handler };
 
     if (handler.mount) {
-        handler.mount(pageEl, params);
+        try {
+            const result = handler.mount(pageEl, params);
+            if (result && typeof result.then === 'function') {
+                result.catch((error) => console.error('page mount error:', routeKey, error));
+            }
+        } catch (error) {
+            console.error('page mount error:', routeKey, error);
+        }
     }
 
     pageContainer.scrollTop = 0;
@@ -801,7 +855,9 @@ function refreshCurrentPage() {
     const route = getCurrentRoute();
     if (!route) return;
     const routeKey = resolveRouteKey(route.path || '');
-    createPage(routeKey, route.params || {}, 'tab');
+    createPage(routeKey, route.params || {}, 'tab').catch((error) => {
+        console.error('refreshCurrentPage failed:', error);
+    });
 }
 
 export {

@@ -19,6 +19,37 @@ import {
     isTaskExecuting,
     sortTasksByCompletion
 } from './goal-utils.js';
+import {
+    buildMindmapGraph,
+    layoutMindmap,
+    normalizeMindmapLinks,
+    readMindmapLinks,
+    writeMindmapLinks,
+    readMindmapView,
+    writeMindmapView,
+    consumeMindmapOpenView,
+    toggleMindmapLink,
+    hierarchyPathToRoot,
+    mindmapPriorityClass,
+    zoomMindmapAtPoint,
+    fitMindmapTransform,
+    focusMindmapTransform,
+    formatMindmapZoomLabel,
+    clampMindmapScale,
+    readMindmapMaximize,
+    writeMindmapMaximize,
+    assignMindmapBranchColors,
+    orthogonalEdgePath,
+    buildMindmapHierarchyEdgePaths,
+    annotateMindmapProgress,
+    filterIncompleteMindmap,
+    interpolateMindmapTransform,
+    stepMindmapInertia,
+    estimateMindmapPanVelocity,
+    MINDMAP_CAMERA_DURATION,
+    MINDMAP_ROOT_ID,
+    MINDMAP_DEFAULT_TRANSFORM
+} from './goal-mindmap-core.js';
 import Sortable from 'sortablejs';
 import plusIcon from '../assets/icons/plus.svg';
 import chevronDownIcon from '../assets/icons/mobile/chevron-down.svg';
@@ -40,6 +71,21 @@ let pageElRef = null;
 let previewCleanup = null;
 let imageManagerCurrent = null;
 let imageManagerObserver = null;
+let viewMode = 'list';
+let mindmapLinks = [];
+let mindmapGraph = null;
+let mindmapLayoutResult = null;
+let mindmapTransform = { ...MINDMAP_DEFAULT_TRANSFORM };
+let mindmapLinkMode = false;
+let mindmapSelectedId = null;
+let mindmapPendingFromId = null;
+let mindmapPanState = null;
+let mindmapMaximized = false;
+let mindmapEscHandler = null;
+let mindmapOnlyIncomplete = false;
+let mindmapCameraRaf = 0;
+let mindmapInertiaRaf = 0;
+let mindmapPanSamples = [];
 
 if (typeof document !== 'undefined') {
     document.addEventListener('paste', handleManagerPaste);
@@ -56,6 +102,10 @@ function render(params = {}) {
                 <button class="pc-goal-detail-back" id="pcGoalDetailBack" aria-label="返回">${iconImg(chevronDownIcon)}</button>
                 <h2 class="pc-goal-detail-title" id="pcGoalDetailTitle">加载中...</h2>
                 <div class="pc-goal-detail-actions">
+                    <div class="pc-goal-view-switch" role="tablist" aria-label="视图切换">
+                        <button type="button" class="pc-goal-view-switch-btn" data-view="list" id="pcGoalViewList" role="tab">列表</button>
+                        <button type="button" class="pc-goal-view-switch-btn" data-view="mindmap" id="pcGoalViewMindmap" role="tab">思维导图</button>
+                    </div>
                     <button class="pc-btn pc-btn-primary pc-btn-sm" id="pcGoalAddTask">
                         <span class="pc-btn-icon">${iconImg(plusIcon)}</span>
                         <span>添加任务</span>
@@ -64,6 +114,7 @@ function render(params = {}) {
             </div>
             <div class="pc-goal-detail-progress" id="pcGoalDetailProgress"></div>
             <div id="pcGoalTaskList" class="pc-goal-task-list"></div>
+            <div id="pcGoalMindmap" class="pc-goal-mindmap" hidden></div>
         </div>
     `;
 }
@@ -76,8 +127,14 @@ async function mount(pageEl, params = {}) {
         navigate('/goals');
         return;
     }
+    mindmapLinkMode = false;
+    mindmapSelectedId = null;
+    mindmapPendingFromId = null;
+    mindmapTransform = { ...MINDMAP_DEFAULT_TRANSFORM };
     await loadData();
     setupEvents(pageEl);
+    applyViewMode();
+    bindMindmapEscHandler();
 }
 
 function unmount(pageEl) {
@@ -89,8 +146,21 @@ function unmount(pageEl) {
     }
     closeGoalImagePreview();
     releaseGoalThumbUrls();
+    unbindMindmapEscHandler();
+    cancelMindmapCameraAnimation();
+    cancelMindmapInertia();
+    if (pageElRef) {
+        pageElRef.classList.remove('is-mindmap-maximized');
+        pageElRef.querySelector('#pcGoalMindmap')?.classList.remove('is-maximized');
+    }
+    document.body.classList.remove('pc-goal-mindmap-max-open');
     pageElRef = null;
     projectId = null;
+    mindmapGraph = null;
+    mindmapLayoutResult = null;
+    mindmapPanState = null;
+    mindmapPanSamples = [];
+    mindmapMaximized = false;
 }
 
 async function loadData() {
@@ -100,9 +170,14 @@ async function loadData() {
         tasks = await storage.getGoalTasks(projectId);
         flatTasks = flattenTasks(tasks);
         expandedIds = new Set(flatTasks.map(t => t.id));
+        mindmapLinks = normalizeMindmapLinks(readMindmapLinks(window.localStorage, projectId), new Set(flatTasks.map(t => t.id)));
+        const openView = consumeMindmapOpenView(window.localStorage, projectId);
+        viewMode = openView || readMindmapView(window.localStorage, projectId, 'list');
+        mindmapMaximized = viewMode === 'mindmap' && readMindmapMaximize(window.localStorage, projectId, false);
         renderHeader();
         renderProgress();
         renderTasks();
+        if (viewMode === 'mindmap') renderMindmap();
     } catch (e) {
         console.error('loadData error:', e);
         showToast('加载任务失败', 'error');
@@ -352,6 +427,7 @@ async function saveTasks() {
         await storage.updateGoalTasks(projectId, tasks);
         flatTasks = flattenTasks(tasks);
         renderProgress();
+        if (viewMode === 'mindmap') renderMindmap();
     } catch (e) {
         console.error('saveTasks error:', e);
         showToast('保存失败', 'error');
@@ -514,7 +590,7 @@ function copyTask(id) {
     }
 }
 
-async function showTaskMenu(id, anchorEl) {
+async function showTaskMenu(id, anchorEl, options = {}) {
     const task = findTask(id);
     if (!task || !anchorEl) return;
 
@@ -531,30 +607,59 @@ async function showTaskMenu(id, anchorEl) {
     ];
 
     const executing = isTaskExecuting(task);
+    const fromMindmap = options.source === 'mindmap';
 
     const items = [
+        { action: 'toggle-complete', icon: iconImg(checkIcon), label: task.completed ? '标记为未完成' : '标记为已完成' },
         { action: 'add-child', icon: iconImg(plusIcon), label: '添加子任务' },
         { action: 'rename', icon: iconImg(renameIcon), tone: 'rename', label: '重命名' },
         { action: 'copy', icon: iconImg(copyIcon), tone: 'copy', label: '复制' },
         { action: 'set-priority', icon: iconImg(moreIcon), label: '设置优先级', children: priorityChildren },
-        { action: 'toggle-executing', icon: '', label: executing ? '取消执行中' : '标记为执行中' },
-        { action: 'image-manager', icon: iconImg(imageIcon), label: '图片管理' }
+        { action: 'toggle-executing', icon: '', label: executing ? '取消执行中' : '标记为执行中' }
     ];
-    if (hasImages) {
-        items.push({ action: 'view-images', icon: iconImg(imageIcon), label: '查看图片' });
+    if (!fromMindmap) {
+        items.push({ action: 'image-manager', icon: iconImg(imageIcon), label: '图片管理' });
+        if (hasImages) {
+            items.push({ action: 'view-images', icon: iconImg(imageIcon), label: '查看图片' });
+        }
+    } else {
+        items.push({ action: 'locate-list', icon: iconImg(chevronDownIcon), label: '在列表中定位' });
     }
     items.push({ action: 'delete', icon: iconImg(deleteIcon), tone: 'delete', label: '删除', danger: true });
 
-    const action = await showContextMenu(rect.right + 8, rect.bottom + 8, items, { anchor: anchorEl, source: 'more' });
+    // 不用 source:'more'：prepareMoreButton 会把锚点 innerHTML 换成三点，破坏导图节点标题
+    const action = await showContextMenu(rect.right + 8, rect.bottom + 8, items, {
+        anchor: anchorEl,
+        source: fromMindmap ? 'mindmap' : 'more'
+    });
 
-    if (action === 'add-child') addChildTask(id);
+    const refreshMindmap = () => {
+        if (viewMode === 'mindmap') renderMindmap({ flip: false });
+        else renderTasks();
+    };
+
+    if (action === 'toggle-complete') {
+        toggleTask(id, !task.completed);
+        refreshMindmap();
+    } else if (action === 'add-child') addChildTask(id);
     else if (action === 'rename') editTaskTitle(id);
     else if (action === 'copy') copyTask(id);
     else if (action === 'toggle-executing') toggleTaskExecuting(id);
     else if (action === 'image-manager') showTaskImageManager(id);
     else if (action === 'view-images') viewTaskImages(id);
+    else if (action === 'locate-list') openTaskInListView(id);
     else if (action === 'delete') deleteTask(id);
     else if (action && action.startsWith('priority-')) setTaskPriority(id, action.replace('priority-', ''));
+
+    if (typeof window !== 'undefined') {
+        window.__pcGoalMindmapMenuAction = action || '';
+        window.__pcGoalMindmapViewMode = viewMode;
+    }
+
+    // 取消菜单后强制重绘，恢复可能被污染的节点 DOM
+    if (fromMindmap && viewMode === 'mindmap' && action !== 'locate-list') {
+        renderMindmap({ flip: false });
+    }
 }
 
 function viewTaskImages(id) {
@@ -800,9 +905,715 @@ function showTaskImageManager(id) {
     bindManagerEvents();
 }
 
+function resolveMindmapGraph() {
+    mindmapGraph = buildMindmapGraph(project, tasks);
+    mindmapGraph = {
+        ...mindmapGraph,
+        nodes: annotateMindmapProgress(mindmapGraph.nodes)
+    };
+    if (mindmapOnlyIncomplete) {
+        const filtered = filterIncompleteMindmap(mindmapGraph.nodes, mindmapGraph.hierarchyEdges);
+        if (filtered.nodes.length === 0) {
+            mindmapGraph = { ...mindmapGraph, nodes: [], hierarchyEdges: [] };
+        } else {
+            mindmapGraph = { ...mindmapGraph, nodes: filtered.nodes, hierarchyEdges: filtered.hierarchyEdges };
+        }
+    }
+    mindmapLayoutResult = layoutMindmap(mindmapGraph.nodes, mindmapGraph.hierarchyEdges);
+    return mindmapGraph;
+}
+
+function mindmapStatusMarkup(node) {
+    const kind = node.statusKind || (node.completed || node.checkState === 'checked' ? 'done' : 'todo');
+    const title = kind === 'done' ? '已完成' : (kind === 'doing' ? '部分完成' : '未完成');
+    return `<span class="pc-goal-mindmap-status is-${kind}" data-status="${kind}" title="${title}" aria-label="${title}"></span>`;
+}
+
+function mindmapPriorityBadgeMarkup(node) {
+    const priorityClass = mindmapPriorityClass(node.priority);
+    if (!priorityClass) return '';
+    const label = getTaskPriorityLabel(node.priority) || node.priority;
+    return `<span class="pc-goal-mindmap-priority-badge ${priorityClass}" data-priority="${escapeHtml(node.priority)}" title="优先级：${escapeHtml(label)}"></span>`;
+}
+
+function mindmapProgressMarkup(node) {
+    if (!node.hasChildren && !node.isRoot) return '';
+    return `<span class="pc-goal-mindmap-progress" title="子任务完成 ${escapeHtml(node.progressText || '')}">${escapeHtml(node.progressText || '')}</span>`;
+}
+
+function setViewMode(next) {
+    const mode = next === 'mindmap' ? 'mindmap' : 'list';
+    if (mode !== 'mindmap' && mindmapMaximized) {
+        setMindmapMaximized(false, { skipRender: true });
+    }
+    if (mode === viewMode) {
+        applyViewMode();
+        return;
+    }
+    viewMode = mode;
+    writeMindmapView(window.localStorage, projectId, viewMode);
+    applyViewMode();
+}
+
+function applyViewMode() {
+    if (!pageElRef) return;
+    const listEl = pageElRef.querySelector('#pcGoalTaskList');
+    const mindEl = pageElRef.querySelector('#pcGoalMindmap');
+    const addBtn = pageElRef.querySelector('#pcGoalAddTask');
+    pageElRef.querySelectorAll('.pc-goal-view-switch-btn').forEach(btn => {
+        const active = btn.dataset.view === viewMode;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    if (addBtn) addBtn.hidden = viewMode === 'mindmap' || mindmapMaximized;
+    if (viewMode === 'mindmap') {
+        if (listEl) {
+            destroySortables(listEl);
+            listEl.hidden = true;
+        }
+        if (mindEl) mindEl.hidden = false;
+        renderMindmap({ flip: false });
+        applyMindmapMaximizedClass();
+        requestAnimationFrame(() => fitMindmapView({ onlyIfUnset: true }));
+    } else {
+        if (mindEl) mindEl.hidden = true;
+        if (listEl) listEl.hidden = false;
+        applyMindmapMaximizedClass();
+        renderTasks();
+    }
+}
+
+function applyMindmapMaximizedClass() {
+    if (!pageElRef) return;
+    const on = !!(mindmapMaximized && viewMode === 'mindmap');
+    pageElRef.classList.toggle('is-mindmap-maximized', on);
+    const page = pageElRef.classList.contains('pc-goal-detail-page')
+        ? pageElRef
+        : pageElRef.querySelector('.pc-goal-detail-page');
+    page?.classList.toggle('is-mindmap-maximized', on);
+    pageElRef.querySelector('#pcGoalMindmap')?.classList.toggle('is-maximized', on);
+    document.body.classList.toggle('pc-goal-mindmap-max-open', on);
+    if (on) {
+        pageElRef.style.transform = 'none';
+        pageElRef.style.filter = 'none';
+        pageElRef.style.perspective = 'none';
+        const container = pageElRef.parentElement;
+        if (container) {
+            if (container.dataset.mindmapMaxRestore === undefined) {
+                container.dataset.mindmapMaxRestore = container.style.transform || '';
+            }
+            container.style.transform = 'none';
+        }
+    } else if (pageElRef) {
+        pageElRef.style.transform = '';
+        pageElRef.style.filter = '';
+        pageElRef.style.perspective = '';
+        const container = pageElRef.parentElement;
+        if (container && container.dataset.mindmapMaxRestore !== undefined) {
+            container.style.transform = container.dataset.mindmapMaxRestore;
+            delete container.dataset.mindmapMaxRestore;
+        }
+    }
+}
+
+function bindMindmapEscHandler() {
+    unbindMindmapEscHandler();
+    mindmapEscHandler = (e) => {
+        if (e.key !== 'Escape' || !mindmapMaximized) return;
+        if (document.querySelector('.pc-modal-overlay.pc-modal-active')) return;
+        if (document.querySelector('#pcContextMenu.pc-context-active')) return;
+        e.preventDefault();
+        setMindmapMaximized(false);
+    };
+    document.addEventListener('keydown', mindmapEscHandler);
+}
+
+function unbindMindmapEscHandler() {
+    if (mindmapEscHandler) {
+        document.removeEventListener('keydown', mindmapEscHandler);
+        mindmapEscHandler = null;
+    }
+}
+
+function setMindmapMaximized(enabled, options = {}) {
+    const next = !!enabled;
+    mindmapMaximized = next;
+    writeMindmapMaximize(window.localStorage, projectId, mindmapMaximized);
+    applyMindmapMaximizedClass();
+    syncMindmapMaximizeButton();
+    if (!options.skipRender && viewMode === 'mindmap') {
+        requestAnimationFrame(() => {
+            applyMindmapMaximizedClass();
+            syncMindmapMaximizeButton();
+            fitMindmapView();
+        });
+    }
+}
+
+function syncMindmapMaximizeButton() {
+    const buttons = pageElRef?.querySelectorAll('#pcGoalMindmapMaximize') || [];
+    buttons.forEach(maxBtn => {
+        maxBtn.textContent = mindmapMaximized ? '退出最大化' : '最大化';
+        maxBtn.setAttribute('aria-pressed', mindmapMaximized ? 'true' : 'false');
+        maxBtn.classList.toggle('pc-btn-primary', mindmapMaximized);
+    });
+}
+
+function getMindmapStageSize() {
+    const stage = pageElRef?.querySelector('#pcGoalMindmapStage');
+    if (!stage) return { width: 0, height: 0 };
+    const rect = stage.getBoundingClientRect();
+    return {
+        width: rect.width || stage.clientWidth || 0,
+        height: rect.height || stage.clientHeight || 0
+    };
+}
+
+function updateMindmapTransform() {
+    const world = pageElRef?.querySelector('#pcGoalMindmapWorld');
+    if (!world) return;
+    mindmapTransform.scale = clampMindmapScale(mindmapTransform.scale);
+    world.style.transform = `translate(${mindmapTransform.x}px, ${mindmapTransform.y}px) scale(${mindmapTransform.scale})`;
+    const zoomEl = pageElRef.querySelector('#pcGoalMindmapZoom');
+    if (zoomEl) zoomEl.textContent = formatMindmapZoomLabel(mindmapTransform.scale);
+}
+
+function edgePathBetween(fromPos, toPos) {
+    return orthogonalEdgePath(fromPos, toPos);
+}
+
+function nodeStatusClass(node) {
+    const classes = ['pc-goal-mindmap-node'];
+    if (node.isRoot) classes.push('is-root');
+    const kind = node.statusKind || (node.completed || node.checkState === 'checked' ? 'done' : 'todo');
+    classes.push(`is-status-${kind}`);
+    if (node.completed || node.checkState === 'checked') classes.push('is-completed');
+    if (node.checkState === 'indeterminate') classes.push('is-indeterminate');
+    if (isTaskExecuting(node)) classes.push('is-executing');
+    const priorityClass = mindmapPriorityClass(node.priority);
+    if (priorityClass) classes.push('has-priority');
+    if (mindmapSelectedId === node.id) classes.push('is-selected');
+    if (mindmapPendingFromId === node.id) classes.push('is-link-from');
+    return classes.join(' ');
+}
+
+function applyMindmapSelectionStyles() {
+    const container = pageElRef?.querySelector('#pcGoalMindmap');
+    if (!container) return;
+    container.querySelectorAll('.pc-goal-mindmap-node').forEach(el => {
+        const id = el.dataset.nodeId;
+        el.classList.toggle('is-selected', mindmapSelectedId === id);
+        el.classList.toggle('is-link-from', mindmapPendingFromId === id);
+    });
+}
+
+function renderMindmap(options = {}) {
+    const container = pageElRef?.querySelector('#pcGoalMindmap');
+    if (!container) return;
+
+    const useFlip = options.flip !== false;
+    const prevRects = useFlip ? captureMindmapNodeRects() : new Map();
+
+    if (!tasks || tasks.length === 0) {
+        container.innerHTML = `
+            <div class="pc-empty-state pc-goal-tasks-empty">
+                <span class="pc-empty-icon">${iconImg(rabbitTip, '目标计划')}</span>
+                <span class="pc-empty-text">还没有任务，点击右上角添加第一个任务吧</span>
+            </div>
+        `;
+        return;
+    }
+
+    const graph = resolveMindmapGraph();
+    if (!graph.nodes || graph.nodes.length === 0) {
+        container.innerHTML = `
+            <div class="pc-goal-mindmap-toolbar">
+                <button type="button" class="pc-btn pc-btn-sm pc-btn-primary" id="pcGoalMindmapOnlyOpen" aria-pressed="true">只看未完成</button>
+            </div>
+            <div class="pc-empty-state pc-goal-tasks-empty">
+                <span class="pc-empty-icon">${iconImg(rabbitTip, '目标计划')}</span>
+                <span class="pc-empty-text">没有未完成任务，可关闭「只看未完成」查看全部</span>
+            </div>
+        `;
+        container.querySelector('#pcGoalMindmapOnlyOpen')?.addEventListener('click', () => {
+            mindmapOnlyIncomplete = false;
+            renderMindmap({ flip: true });
+        });
+        return;
+    }
+
+    const { positions, width, height } = mindmapLayoutResult;
+    const validIds = new Set(flatTasks.map(t => t.id));
+    const nextLinks = normalizeMindmapLinks(mindmapLinks, validIds);
+    if (JSON.stringify(nextLinks) !== JSON.stringify(mindmapLinks)) {
+        mindmapLinks = nextLinks;
+        writeMindmapLinks(window.localStorage, projectId, mindmapLinks);
+    } else {
+        mindmapLinks = nextLinks;
+    }
+
+    const branchColors = assignMindmapBranchColors(graph.nodes);
+    const hierarchyPathItems = buildMindmapHierarchyEdgePaths(graph.nodes, positions, graph.hierarchyEdges);
+    const edgeMarkup = hierarchyPathItems.map(item => {
+        const toNode = graph.nodes.find(n => n.id === item.to);
+        const doneEdge = toNode?.statusKind === 'done';
+        return `<path class="pc-goal-mindmap-edge is-hierarchy${doneEdge ? ' is-done' : ''}" d="${item.d}" stroke="${item.color}" style="opacity:${doneEdge ? Math.min(item.opacity, 0.35) : item.opacity}" data-from="${escapeHtml(item.from)}" data-to="${escapeHtml(item.to)}" />`;
+    }).join('');
+
+    const linkMarkup = mindmapLinks.map(link => {
+        const fromPos = positions.get(link.fromId);
+        const toPos = positions.get(link.toId);
+        if (!fromPos || !toPos) return '';
+        return `<path class="pc-goal-mindmap-edge is-relation" d="${orthogonalEdgePath(fromPos, toPos)}" data-from="${escapeHtml(link.fromId)}" data-to="${escapeHtml(link.toId)}" />`;
+    }).join('');
+
+    const nodeMarkup = graph.nodes.map(node => {
+        const pos = positions.get(node.id);
+        if (!pos) return '';
+        const priorityLabel = node.priority ? ` · 优先级 ${getTaskPriorityLabel(node.priority) || node.priority}` : '';
+        const branchColor = branchColors.get(node.id) || '';
+        const branchStyle = branchColor && !node.isRoot
+            ? `left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;height:${pos.h}px;--pc-goal-mindmap-branch:${branchColor}`
+            : `left:${pos.x}px;top:${pos.y}px;width:${pos.w}px;height:${pos.h}px`;
+        return `
+            <div class="${nodeStatusClass(node)}"
+                 data-node-id="${escapeHtml(node.id)}"
+                 data-status="${escapeHtml(node.statusKind || '')}"
+                 style="${branchStyle}"
+                 title="${escapeHtml(node.title + priorityLabel)}">
+                ${mindmapStatusMarkup(node)}
+                <span class="pc-goal-mindmap-node-title">${escapeHtml(node.title)}</span>
+                ${mindmapProgressMarkup(node)}
+                ${mindmapPriorityBadgeMarkup(node)}
+            </div>
+        `;
+    }).join('');
+
+    const openFilterClass = mindmapOnlyIncomplete ? 'pc-btn-primary' : '';
+    container.innerHTML = `
+        <div class="pc-goal-mindmap-toolbar">
+            <button type="button" class="pc-btn pc-btn-sm ${mindmapLinkMode ? 'pc-btn-primary' : ''}" id="pcGoalMindmapLinkMode" aria-pressed="${mindmapLinkMode}">
+                ${mindmapLinkMode ? '关联中…' : '关联模式'}
+            </button>
+            <button type="button" class="pc-btn pc-btn-sm" id="pcGoalMindmapClearLinks">清空关联</button>
+            <button type="button" class="pc-btn pc-btn-sm ${openFilterClass}" id="pcGoalMindmapOnlyOpen" aria-pressed="${mindmapOnlyIncomplete}">只看未完成</button>
+            <button type="button" class="pc-btn pc-btn-sm" id="pcGoalMindmapFit">适应画布</button>
+            <button type="button" class="pc-btn pc-btn-sm" id="pcGoalMindmapReset">重置视图</button>
+            <button type="button" class="pc-btn pc-btn-sm ${mindmapMaximized ? 'pc-btn-primary' : ''}" id="pcGoalMindmapMaximize" aria-pressed="${mindmapMaximized}">
+                ${mindmapMaximized ? '退出最大化' : '最大化'}
+            </button>
+            <span class="pc-goal-mindmap-zoom" id="pcGoalMindmapZoom" title="当前缩放">${formatMindmapZoomLabel(mindmapTransform.scale)}</span>
+            <span class="pc-goal-mindmap-hint">${mindmapLinkMode
+                ? (mindmapPendingFromId ? '再点击目标节点以创建/取消关联' : '点击起点节点')
+                : '左侧状态 · 右上优先级 · 父节点显示进度'}</span>
+        </div>
+        <div class="pc-goal-mindmap-stage" id="pcGoalMindmapStage">
+            <div class="pc-goal-mindmap-world" id="pcGoalMindmapWorld"
+                 style="width:${width}px;height:${height}px;transform:translate(${mindmapTransform.x}px, ${mindmapTransform.y}px) scale(${mindmapTransform.scale})">
+                <svg class="pc-goal-mindmap-edges" width="${width}" height="${height}" aria-hidden="true">
+                    ${edgeMarkup}
+                    ${linkMarkup}
+                </svg>
+                <div class="pc-goal-mindmap-nodes">${nodeMarkup}</div>
+            </div>
+        </div>
+        <div class="pc-goal-mindmap-legend">
+            <span><i class="is-status-todo"></i>未完成</span>
+            <span><i class="is-status-doing"></i>部分完成</span>
+            <span><i class="is-status-done"></i>已完成</span>
+            <span><i class="is-priority-badge"></i>优先级（右上）</span>
+            <span><i class="is-progress"></i>父级进度</span>
+            <span><i class="is-hierarchy"></i>任务层级</span>
+            <span><i class="is-relation"></i>手动关联</span>
+        </div>
+    `;
+
+    bindMindmapEvents(container);
+    applyMindmapMaximizedClass();
+    if (useFlip) animateMindmapNodesWithFlip(prevRects);
+}
+
+function handleMindmapNodeClick(nodeId, anchorEl) {
+    if (nodeId === MINDMAP_ROOT_ID && mindmapLinkMode) {
+        showToast('根节点不能建立关联', 'error');
+        return;
+    }
+    if (!mindmapLinkMode) {
+        // 任务节点：单击始终选中并弹出菜单（取消后再点也能重新打开）
+        if (nodeId === MINDMAP_ROOT_ID) {
+            mindmapSelectedId = mindmapSelectedId === nodeId ? null : nodeId;
+            mindmapPendingFromId = null;
+            applyMindmapSelectionStyles();
+            return;
+        }
+        mindmapSelectedId = nodeId;
+        mindmapPendingFromId = null;
+        applyMindmapSelectionStyles();
+        if (anchorEl) {
+            showTaskMenu(nodeId, anchorEl, { source: 'mindmap' });
+        }
+        return;
+    }
+    if (!mindmapPendingFromId) {
+        mindmapPendingFromId = nodeId;
+        mindmapSelectedId = nodeId;
+        applyMindmapSelectionStyles();
+        return;
+    }
+    if (mindmapPendingFromId === nodeId) {
+        mindmapPendingFromId = null;
+        applyMindmapSelectionStyles();
+        return;
+    }
+    mindmapLinks = toggleMindmapLink(mindmapLinks, mindmapPendingFromId, nodeId);
+    const validIds = new Set(flatTasks.map(t => t.id));
+    mindmapLinks = normalizeMindmapLinks(mindmapLinks, validIds);
+    writeMindmapLinks(window.localStorage, projectId, mindmapLinks);
+    mindmapPendingFromId = null;
+    mindmapSelectedId = nodeId;
+    showToast('已更新跨分支关联', 'success');
+    renderMindmap();
+}
+
+function captureMindmapNodeRects() {
+    const map = new Map();
+    const container = pageElRef?.querySelector('#pcGoalMindmap');
+    if (!container) return map;
+    container.querySelectorAll('.pc-goal-mindmap-node').forEach(el => {
+        const id = el.dataset.nodeId;
+        if (!id) return;
+        map.set(id, {
+            left: parseFloat(el.style.left) || 0,
+            top: parseFloat(el.style.top) || 0
+        });
+    });
+    return map;
+}
+
+function prefersMindmapMotionReduced() {
+    return typeof window !== 'undefined'
+        && window.matchMedia
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function cancelMindmapCameraAnimation() {
+    if (mindmapCameraRaf) {
+        cancelAnimationFrame(mindmapCameraRaf);
+        mindmapCameraRaf = 0;
+    }
+}
+
+function cancelMindmapInertia() {
+    if (mindmapInertiaRaf) {
+        cancelAnimationFrame(mindmapInertiaRaf);
+        mindmapInertiaRaf = 0;
+    }
+}
+
+function animateMindmapCameraTo(target, options = {}) {
+    const to = {
+        x: Number(target?.x) || 0,
+        y: Number(target?.y) || 0,
+        scale: clampMindmapScale(target?.scale)
+    };
+    const duration = Number.isFinite(options.duration) ? options.duration : MINDMAP_CAMERA_DURATION;
+    if (prefersMindmapMotionReduced() || duration <= 0) {
+        cancelMindmapCameraAnimation();
+        mindmapTransform = { ...to };
+        updateMindmapTransform();
+        return;
+    }
+    cancelMindmapCameraAnimation();
+    cancelMindmapInertia();
+    const from = { ...mindmapTransform };
+    const start = performance.now();
+    const step = (now) => {
+        const t = duration <= 0 ? 1 : Math.min(1, (now - start) / duration);
+        mindmapTransform = interpolateMindmapTransform(from, to, t);
+        updateMindmapTransform();
+        if (t < 1) {
+            mindmapCameraRaf = requestAnimationFrame(step);
+        } else {
+            mindmapCameraRaf = 0;
+            mindmapTransform = { ...to };
+            updateMindmapTransform();
+        }
+    };
+    mindmapCameraRaf = requestAnimationFrame(step);
+}
+
+function startMindmapPanInertia(velocity) {
+    cancelMindmapInertia();
+    if (prefersMindmapMotionReduced()) return;
+    let vx = Number(velocity?.x) || 0;
+    let vy = Number(velocity?.y) || 0;
+    if (!vx && !vy) return;
+    const step = () => {
+        const next = stepMindmapInertia({ x: vx * 16, y: vy * 16 });
+        if (!next.active) {
+            mindmapInertiaRaf = 0;
+            return;
+        }
+        // next 已含 friction，换算回像素/帧
+        vx = next.x / 16;
+        vy = next.y / 16;
+        mindmapTransform = {
+            ...mindmapTransform,
+            x: mindmapTransform.x + next.x,
+            y: mindmapTransform.y + next.y
+        };
+        updateMindmapTransform();
+        mindmapInertiaRaf = requestAnimationFrame(step);
+    };
+    mindmapInertiaRaf = requestAnimationFrame(step);
+}
+
+function fitMindmapView(options = {}) {
+    if (viewMode !== 'mindmap' || !pageElRef) return;
+    const stageSize = getMindmapStageSize();
+    if (!stageSize.width || !stageSize.height) return;
+    if (options.onlyIfUnset && mindmapTransform.scale !== MINDMAP_DEFAULT_TRANSFORM.scale) {
+        if (mindmapTransform.x !== MINDMAP_DEFAULT_TRANSFORM.x || mindmapTransform.y !== MINDMAP_DEFAULT_TRANSFORM.y) {
+            updateMindmapTransform();
+            return;
+        }
+    }
+    let target = null;
+    if (options.focusNodeId && mindmapLayoutResult?.positions?.has(options.focusNodeId)) {
+        target = focusMindmapTransform(mindmapLayoutResult.positions, options.focusNodeId, stageSize, {
+            scale: options.scale ?? 1.05
+        });
+    }
+    if (!target) {
+        const content = mindmapLayoutResult
+            ? { width: mindmapLayoutResult.width, height: mindmapLayoutResult.height }
+            : { width: 800, height: 480 };
+        target = fitMindmapTransform(content, stageSize, {
+            padding: mindmapMaximized ? 28 : 20,
+            maxScale: 1.15
+        });
+    }
+    if (options.animate === false) {
+        cancelMindmapCameraAnimation();
+        mindmapTransform = target;
+        updateMindmapTransform();
+        return;
+    }
+    animateMindmapCameraTo(target, { duration: options.duration ?? MINDMAP_CAMERA_DURATION });
+}
+
+function animateMindmapNodesWithFlip(prevRects) {
+    const container = pageElRef?.querySelector('#pcGoalMindmap');
+    if (!container || prefersMindmapMotionReduced()) return;
+    const nodes = container.querySelectorAll('.pc-goal-mindmap-node');
+    nodes.forEach(el => {
+        const id = el.dataset.nodeId;
+        const nextLeft = parseFloat(el.style.left) || 0;
+        const nextTop = parseFloat(el.style.top) || 0;
+        const prev = prevRects.get(id);
+        el.classList.remove('is-entering', 'is-leaving');
+        if (!prev) {
+            el.classList.add('is-entering');
+            return;
+        }
+        const dx = prev.left - nextLeft;
+        const dy = prev.top - nextTop;
+        if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+        el.style.transition = 'none';
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+        requestAnimationFrame(() => {
+            el.style.transition = 'transform 260ms cubic-bezier(0.22, 0.8, 0.24, 1), opacity 200ms ease';
+            el.style.transform = 'translate(0, 0)';
+        });
+    });
+    const edges = container.querySelector('.pc-goal-mindmap-edges');
+    if (edges) {
+        edges.classList.remove('is-animating');
+        void edges.offsetWidth;
+        edges.classList.add('is-animating');
+    }
+}
+
+function openTaskInListView(taskId) {
+    const graph = mindmapGraph || resolveMindmapGraph();
+    const path = hierarchyPathToRoot(graph.nodes, taskId);
+    for (const id of path) {
+        if (id !== MINDMAP_ROOT_ID) expandedIds.add(id);
+    }
+    if (mindmapMaximized) {
+        mindmapMaximized = false;
+        writeMindmapMaximize(window.localStorage, projectId, false);
+    }
+    setViewMode('list');
+    applyMindmapMaximizedClass();
+    syncMindmapMaximizeButton();
+    if (typeof window !== 'undefined') {
+        window.__pcGoalMindmapLocated = taskId;
+        window.__pcGoalMindmapViewMode = viewMode;
+    }
+    requestAnimationFrame(() => {
+        const item = pageElRef?.querySelector(`.pc-goal-task-item[data-task-id="${CSS.escape(taskId)}"]`);
+        item?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        item?.classList.add('is-flash');
+        setTimeout(() => item?.classList.remove('is-flash'), 800);
+    });
+}
+
+function bindMindmapEvents(container) {
+    container.querySelector('#pcGoalMindmapLinkMode')?.addEventListener('click', () => {
+        mindmapLinkMode = !mindmapLinkMode;
+        mindmapPendingFromId = null;
+        if (!mindmapLinkMode) mindmapSelectedId = null;
+        renderMindmap();
+    });
+
+    container.querySelector('#pcGoalMindmapClearLinks')?.addEventListener('click', () => {
+        if (!mindmapLinks.length) {
+            showToast('当前没有手动关联', 'error');
+            return;
+        }
+        showConfirmModal('确定清空本项目的跨分支关联吗？', async () => {
+            mindmapLinks = [];
+            writeMindmapLinks(window.localStorage, projectId, mindmapLinks);
+            mindmapPendingFromId = null;
+            showToast('已清空关联', 'success');
+            renderMindmap();
+        });
+    });
+
+    container.querySelector('#pcGoalMindmapOnlyOpen')?.addEventListener('click', () => {
+        mindmapOnlyIncomplete = !mindmapOnlyIncomplete;
+        renderMindmap({ flip: true });
+        requestAnimationFrame(() => fitMindmapView());
+    });
+
+    container.querySelector('#pcGoalMindmapFit')?.addEventListener('click', () => {
+        if (mindmapSelectedId && mindmapLayoutResult?.positions?.has(mindmapSelectedId)) {
+            fitMindmapView({ focusNodeId: mindmapSelectedId });
+        } else {
+            fitMindmapView();
+        }
+    });
+
+    container.querySelector('#pcGoalMindmapMaximize')?.addEventListener('click', () => {
+        setMindmapMaximized(!mindmapMaximized, { force: true });
+    });
+
+    container.querySelector('#pcGoalMindmapReset')?.addEventListener('click', () => {
+        mindmapSelectedId = null;
+        mindmapPendingFromId = null;
+        applyMindmapSelectionStyles();
+        fitMindmapView();
+    });
+
+    container.querySelectorAll('.pc-goal-mindmap-node').forEach(nodeEl => {
+        nodeEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleMindmapNodeClick(nodeEl.dataset.nodeId, nodeEl);
+        });
+        nodeEl.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            if (mindmapLinkMode) return;
+            const id = nodeEl.dataset.nodeId;
+            if (!id || id === MINDMAP_ROOT_ID) return;
+            openTaskInListView(id);
+        });
+    });
+
+    const stage = container.querySelector('#pcGoalMindmapStage');
+    if (stage) {
+        stage.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            if (e.target.closest('.pc-goal-mindmap-node')) return;
+            cancelMindmapInertia();
+            cancelMindmapCameraAnimation();
+            const now = performance.now();
+            mindmapPanSamples = [{ x: e.clientX, y: e.clientY, t: now }];
+            mindmapPanState = {
+                startX: e.clientX,
+                startY: e.clientY,
+                originX: mindmapTransform.x,
+                originY: mindmapTransform.y,
+                moved: false,
+                lastX: e.clientX,
+                lastY: e.clientY,
+                lastT: now
+            };
+            stage.classList.add('is-panning');
+        });
+        stage.addEventListener('mousemove', (e) => {
+            if (!mindmapPanState) return;
+            const dx = e.clientX - mindmapPanState.startX;
+            const dy = e.clientY - mindmapPanState.startY;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) mindmapPanState.moved = true;
+            const now = performance.now();
+            mindmapPanSamples.push({ x: e.clientX, y: e.clientY, t: now });
+            if (mindmapPanSamples.length > 12) mindmapPanSamples.shift();
+            mindmapPanState.lastX = e.clientX;
+            mindmapPanState.lastY = e.clientY;
+            mindmapPanState.lastT = now;
+            mindmapTransform.x = mindmapPanState.originX + dx;
+            mindmapTransform.y = mindmapPanState.originY + dy;
+            updateMindmapTransform();
+        });
+        const endPan = (e) => {
+            const state = mindmapPanState;
+            mindmapPanState = null;
+            stage.classList.remove('is-panning');
+            if (state && state.moved) {
+                const velocity = estimateMindmapPanVelocity(mindmapPanSamples);
+                startMindmapPanInertia(velocity);
+            }
+            mindmapPanSamples = [];
+            if (state && !state.moved && e && e.type === 'mouseup') {
+                const target = e.target;
+                if (target === stage || target.closest('.pc-goal-mindmap-world') === pageElRef?.querySelector('#pcGoalMindmapWorld')
+                    || target.classList?.contains('pc-goal-mindmap-edges')
+                    || target.classList?.contains('pc-goal-mindmap-nodes')) {
+                    if (!target.closest?.('.pc-goal-mindmap-node')) {
+                        mindmapSelectedId = null;
+                        mindmapPendingFromId = null;
+                        applyMindmapSelectionStyles();
+                    }
+                }
+            }
+        };
+        stage.addEventListener('mouseup', endPan);
+        stage.addEventListener('mouseleave', endPan);
+        stage.addEventListener('click', (e) => {
+            if (e.target.closest('.pc-goal-mindmap-node')) return;
+            if (e.target.closest('.pc-goal-mindmap-toolbar') || e.target.closest('.pc-goal-mindmap-legend')) return;
+            mindmapSelectedId = null;
+            mindmapPendingFromId = null;
+            applyMindmapSelectionStyles();
+        });
+        stage.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            cancelMindmapInertia();
+            cancelMindmapCameraAnimation();
+            const rect = stage.getBoundingClientRect();
+            const pointX = e.clientX - rect.left;
+            const pointY = e.clientY - rect.top;
+            if (e.shiftKey) {
+                mindmapTransform = {
+                    ...mindmapTransform,
+                    x: mindmapTransform.x - e.deltaY,
+                    y: mindmapTransform.y - e.deltaX
+                };
+                updateMindmapTransform();
+                return;
+            }
+            mindmapTransform = zoomMindmapAtPoint(mindmapTransform, e.deltaY, pointX, pointY);
+            updateMindmapTransform();
+        }, { passive: false });
+    }
+}
+
 function setupEvents(pageEl) {
     pageEl.querySelector('#pcGoalDetailBack')?.addEventListener('click', () => goBack());
     pageEl.querySelector('#pcGoalAddTask')?.addEventListener('click', addTask);
+    pageEl.querySelector('#pcGoalViewList')?.addEventListener('click', () => setViewMode('list'));
+    pageEl.querySelector('#pcGoalViewMindmap')?.addEventListener('click', () => setViewMode('mindmap'));
 }
 
 export { render, mount, unmount };

@@ -12,6 +12,7 @@ import {
     GOAL_COVER_ALLOWED_TYPES,
     GOAL_COVER_MAX_SOURCE_BYTES
 } from './goal-utils.js';
+import { requestOpenMindmapView } from './goal-mindmap-core.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { setupCardParallaxTilt, clearCardParallaxIn } from './pc-card-parallax.js';
 import plusIcon from '../assets/icons/plus.svg';
@@ -396,13 +397,17 @@ async function showProjectMenu(id, anchorEl) {
 
     const rect = anchorEl.getBoundingClientRect();
     const action = await showContextMenu(rect.right + 8, rect.bottom + 8, [
+        { action: 'openMindmap', icon: iconImg(sortIcon), tone: 'default', label: '查看思维导图' },
         { action: 'setCover', icon: iconImg(imageIcon), tone: 'default', label: '设置封面' },
         { action: 'rename', icon: iconImg(renameIcon), tone: 'rename', label: '重命名' },
         { action: 'copy', icon: iconImg(copyIcon), tone: 'copy', label: '复制' },
         { action: 'delete', icon: iconImg(deleteIcon), tone: 'delete', label: '删除', danger: true }
     ], { anchor: anchorEl, source: 'more' });
 
-    if (action === 'setCover') setProjectCover(id);
+    if (action === 'openMindmap') {
+        requestOpenMindmapView(window.localStorage, id);
+        navigate(`/goals/${id}`);
+    } else if (action === 'setCover') setProjectCover(id);
     else if (action === 'rename') renameProject(id);
     else if (action === 'copy') copyProject(id);
     else if (action === 'delete') deleteProject(id);

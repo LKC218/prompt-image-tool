@@ -1,5 +1,6 @@
 import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
+import { debounce } from './utils.js';
 import { showToast, showContextMenu, setContextMenuTargetId, escapeHtml, formatRelativeTime } from './pc-utils.js';
 import { aggregateTags, getPcTagStyleClass } from './tag-utils.js';
 import { getPromptSetMenuItems } from './pc-menu-actions.js';
@@ -14,6 +15,7 @@ import { destroyPlantView, mountPlantView, updatePlantView } from './plant-view.
 let homeData = null;
 let homeSearchKeyword = '';
 let plantTracker = null;
+let homeSearchDebounced = null;
 
 function setFavoriteButtonState(button, isFavorite) {
     button.classList.toggle('pc-starred', isFavorite);
@@ -338,18 +340,26 @@ function renderCategoryGrid(pageEl, folders, promptSets) {
 function setupHomeEvents(pageEl) {
     const searchInput = pageEl.querySelector('#pcHomeSearchInput');
     if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            homeSearchKeyword = e.target.value.trim();
+        homeSearchDebounced?.cancel();
+        homeSearchDebounced = debounce((value) => {
+            homeSearchKeyword = value;
             if (homeData) {
                 renderRecentList(pageEl, homeData.promptSets);
                 renderCategoryGrid(pageEl, homeData.folders, homeData.promptSets);
             }
+        }, 160);
+
+        searchInput.addEventListener('input', (e) => {
+            homeSearchDebounced(e.target.value.trim());
         });
         searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && homeSearchKeyword) {
-                const bar = pageEl.querySelector('#pcHomeSearch');
-                if (bar) bar.classList.add('is-searching');
-                setTimeout(() => navigate('/library', { search: homeSearchKeyword }), 320);
+            if (e.key === 'Enter') {
+                homeSearchDebounced?.flush();
+                if (homeSearchKeyword) {
+                    const bar = pageEl.querySelector('#pcHomeSearch');
+                    if (bar) bar.classList.add('is-searching');
+                    setTimeout(() => navigate('/library', { search: homeSearchKeyword }), 320);
+                }
             }
         });
     }
@@ -473,6 +483,8 @@ function unmount(pageEl) {
         plantTracker = null;
     }
     destroyPlantView();
+    homeSearchDebounced?.cancel();
+    homeSearchDebounced = null;
     homeData = null;
     homeSearchKeyword = '';
 }

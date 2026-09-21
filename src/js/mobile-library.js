@@ -1,5 +1,5 @@
 import { getStorage } from './storage.js';
-import { formatDate } from './utils.js';
+import { formatDate, debounce } from './utils.js';
 import { navigate, showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { aggregateTags } from './tag-utils.js';
@@ -17,6 +17,7 @@ let currentFilter = 'all';
 let searchKeyword = '';
 let folderFilters = [];
 let tagFilters = [];
+let librarySearchDebounced = null;
 
 const FIXED_FILTERS = [
     { key: 'all', label: '全部' },
@@ -137,8 +138,9 @@ function renderList(pageEl) {
         return;
     }
 
+    const animateCards = !searchKeyword && list.length <= 12;
     container.innerHTML = list.map((item, idx) => `
-        <div class="m-prompt-list-card m-fade-in" data-id="${item.id}" style="animation-delay: ${idx * 30}ms">
+        <div class="m-prompt-list-card${animateCards ? ' m-fade-in' : ''}" data-id="${item.id}"${animateCards ? ` style="animation-delay: ${idx * 30}ms"` : ''}>
             <div class="m-prompt-list-thumb${item.firstImage ? '' : ' m-prompt-thumb-default'}">${item.firstImage ? `<img alt="" data-first-image='${JSON.stringify(item.firstImage).replace(/'/g, "&#39;")}'>` : `<img src="${imagePlaceholder}" alt="默认图片" class="m-prompt-thumb-placeholder">`}</div>
             <div class="m-prompt-list-content">
                 <div class="m-prompt-list-title">${escapeHtml(item.name)}</div>
@@ -173,6 +175,12 @@ async function loadThumbImages(container) {
 }
 
 function setupLibraryEvents(pageEl) {
+    librarySearchDebounced?.cancel();
+    librarySearchDebounced = debounce((value) => {
+        searchKeyword = value;
+        renderList(pageEl);
+    }, 160);
+
     pageEl.querySelector('#mFilterBar')?.addEventListener('click', (e) => {
         const tag = e.target.closest('.m-filter-tag');
         if (!tag) return;
@@ -231,10 +239,10 @@ function setupLibraryEvents(pageEl) {
             const input = searchBar.querySelector('#mLibSearchInput');
             input.focus();
             input.addEventListener('input', (e) => {
-                searchKeyword = e.target.value;
-                renderList(pageEl);
+                librarySearchDebounced(e.target.value);
             });
             searchBar.querySelector('#mLibSearchClose').addEventListener('click', () => {
+                librarySearchDebounced?.cancel();
                 searchKeyword = '';
                 searchBar.remove();
                 renderList(pageEl);
@@ -263,6 +271,8 @@ async function handleExport() {
 }
 
 function unmount(pageEl) {
+    librarySearchDebounced?.cancel();
+    librarySearchDebounced = null;
     searchKeyword = '';
     currentFilter = 'all';
 }

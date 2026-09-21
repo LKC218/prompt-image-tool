@@ -172,6 +172,12 @@ export class ApiStorage {
     }
 
     async estimateStorageSize() {
+        try {
+            const stats = await this.api('GET', '/storage-size');
+            if (stats && typeof stats.totalBytes === 'number') return stats.totalBytes;
+        } catch (e) {
+            // fall back to export estimate for older backends
+        }
         const data = await this.exportData();
         return new Blob([JSON.stringify(data)]).size;
     }

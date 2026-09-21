@@ -1,5 +1,6 @@
 import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
+import { debounce } from './utils.js';
 import { showToast, showContextMenu, setContextMenuTargetId, copyToClipboard, showImageViewer, escapeHtml, formatRelativeTime, formatDate } from './pc-utils.js';
 import { getPromptSetMenuItems } from './pc-menu-actions.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
@@ -17,6 +18,7 @@ let currentPage = 1;
 let pageSize = 20;
 let libraryScrollState = null;
 let nameMarqueeResizeHandler = null;
+let librarySearchDebounced = null;
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 const promptDetailCache = new Map();
@@ -268,6 +270,20 @@ function renderLibraryContent(pageEl) {
         selectedPromptId = pageItems[0].id;
     }
     const selectedItem = items.find(item => item.id === selectedPromptId) || pageItems[0];
+
+    const tbody = container.querySelector('#pcLibraryTableBody');
+    const pagination = container.querySelector('.pc-library-pagination');
+    const preview = container.querySelector('#pcLibraryPreview');
+    if (tbody && pagination && preview) {
+        tbody.innerHTML = pageItems.map(item => renderTableRow(item)).join('');
+        pagination.outerHTML = renderPagination(items.length, pageCount);
+        preview.innerHTML = renderPreviewPanel(selectedItem);
+        loadLibraryImages(tbody);
+        loadLibraryImages(preview);
+        window.requestAnimationFrame(() => setupNameMarquee(container));
+        ensureSelectedDetail(pageEl, selectedItem.id);
+        return;
+    }
 
     container.innerHTML = `
         <div class="pc-library-workspace">
@@ -538,10 +554,15 @@ function setupLibraryEvents(pageEl) {
         }, CREATE_BTN_ACTING_DURATION);
     });
 
-    pageEl.querySelector('#pcLibrarySearchInput')?.addEventListener('input', (e) => {
-        searchKeyword = e.target.value.trim();
+    librarySearchDebounced?.cancel();
+    librarySearchDebounced = debounce((value) => {
+        searchKeyword = value;
         currentPage = 1;
         renderLibraryContent(pageEl);
+    }, 160);
+
+    pageEl.querySelector('#pcLibrarySearchInput')?.addEventListener('input', (e) => {
+        librarySearchDebounced(e.target.value.trim());
     });
 
     pageEl.querySelector('#pcLibraryFilter')?.addEventListener('click', async (e) => {
@@ -748,6 +769,8 @@ function getPageCount(total) {
 
 function unmount(pageEl) {
     libraryScrollState = captureLibraryScrollState(pageEl);
+    librarySearchDebounced?.cancel();
+    librarySearchDebounced = null;
     if (nameMarqueeResizeHandler) {
         window.removeEventListener('resize', nameMarqueeResizeHandler);
         nameMarqueeResizeHandler = null;

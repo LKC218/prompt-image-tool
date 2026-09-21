@@ -72,6 +72,11 @@ vi.mock('./pc-detail.js', () => mockPage());
 vi.mock('./pc-editor.js', () => mockPage());
 vi.mock('./pc-category.js', () => mockPage());
 vi.mock('./pc-settings.js', () => mockPage());
+vi.mock('./pc-goal-projects.js', () => mockPage());
+vi.mock('./pc-goal-detail.js', () => mockPage());
+vi.mock('./pc-games-hub.js', () => mockPage());
+vi.mock('./pc-tetris.js', () => mockPage());
+vi.mock('./pc-plane.js', () => mockPage());
 
 describe('PC 侧边栏导航点击动效', () => {
     beforeEach(() => {

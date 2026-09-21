@@ -14,6 +14,7 @@ import secrets
 import hashlib
 import shutil
 import zipfile
+import copy
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -164,6 +165,27 @@ class DataFileError(RuntimeError):
     pass
 
 
+DATA_LOCK = threading.RLock()
+_FILE_CACHE = {}
+_PRETTY_JSON = os.environ.get('PROMPT_IMAGE_TOOL_PRETTY_JSON', '').strip() not in {'0', 'false', 'False'}
+
+
+def _stat_key(file_path):
+    try:
+        st = os.stat(file_path)
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
+def clear_data_cache(file_path=None):
+    with DATA_LOCK:
+        if file_path is None:
+            _FILE_CACHE.clear()
+        else:
+            _FILE_CACHE.pop(file_path, None)
+
+
 def ensure_dirs():
     os.makedirs(IMAGES_DIR, exist_ok=True)
     os.makedirs(BACKUPS_DIR, exist_ok=True)
@@ -193,35 +215,59 @@ def save_json_atomic(file_path, data):
     temp_file = f'{file_path}.{os.getpid()}.tmp'
     try:
         with open(temp_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+            if _PRETTY_JSON:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            else:
+                json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
         if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
             shutil.copy2(file_path, f'{file_path}.bak')
         os.replace(temp_file, file_path)
+        key = _stat_key(file_path)
+        if key is None:
+            _FILE_CACHE.pop(file_path, None)
+        else:
+            _FILE_CACHE[file_path] = {'key': key, 'data': copy.deepcopy(data)}
     finally:
         if os.path.exists(temp_file):
             os.remove(temp_file)
 
 
+def _load_cached(file_path, loader):
+    with DATA_LOCK:
+        key = _stat_key(file_path)
+        if key is None:
+            _FILE_CACHE.pop(file_path, None)
+            return loader(file_path)
+        cached = _FILE_CACHE.get(file_path)
+        if cached and cached.get('key') == key:
+            return copy.deepcopy(cached['data'])
+        data = loader(file_path)
+        _FILE_CACHE[file_path] = {'key': key, 'data': copy.deepcopy(data)}
+        return data
+
+
 def load_data():
-    return load_json_list(DATA_FILE, '提示词')
+    return _load_cached(DATA_FILE, lambda path: load_json_list(path, '提示词'))
 
 
 def save_data(data):
-    save_json_atomic(DATA_FILE, data)
+    with DATA_LOCK:
+        save_json_atomic(DATA_FILE, data)
 
 
 def load_folders():
-    return load_json_list(FOLDERS_FILE, '分类')
+    return _load_cached(FOLDERS_FILE, lambda path: load_json_list(path, '分类'))
 
 
 def save_folders(data):
-    save_json_atomic(FOLDERS_FILE, data)
+    with DATA_LOCK:
+        save_json_atomic(FOLDERS_FILE, data)
 
 
-def load_goals():
-    if os.path.exists(GOALS_FILE):
+def _load_goals_from_disk(file_path):
+    if os.path.exists(file_path):
         try:
-            with open(GOALS_FILE, 'r', encoding='utf-8') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read().strip()
             if not content:
                 return {'projects': []}
@@ -236,8 +282,13 @@ def load_goals():
     return {'projects': []}
 
 
+def load_goals():
+    return _load_cached(GOALS_FILE, _load_goals_from_disk)
+
+
 def save_goals(data):
-    save_json_atomic(GOALS_FILE, data)
+    with DATA_LOCK:
+        save_json_atomic(GOALS_FILE, data)
 
 
 def load_plant():
@@ -261,7 +312,31 @@ def save_plant(payload):
     """原子写入 plant.json。payload 为 {schemaVersion, plant, updatedAt}。"""
     if not isinstance(payload, dict):
         raise ValueError('plant payload must be object')
-    save_json_atomic(PLANT_FILE, payload)
+    with DATA_LOCK:
+        save_json_atomic(PLANT_FILE, payload)
+
+
+def get_storage_stats(root_dir=None):
+    """统计数据目录磁盘占用，避免前端整包 exportData 估算体积。"""
+    target = root_dir or DATA_DIR
+    total = 0
+    breakdown = {}
+    if not os.path.isdir(target):
+        return {'totalBytes': 0, 'breakdown': {}, 'dataDir': target}
+    for dirpath, _, filenames in os.walk(target):
+        for name in filenames:
+            if name.endswith('.tmp'):
+                continue
+            path = os.path.join(dirpath, name)
+            try:
+                size = os.path.getsize(path)
+            except OSError:
+                continue
+            total += size
+            rel = os.path.relpath(path, target)
+            top = rel.split(os.sep, 1)[0]
+            breakdown[top] = breakdown.get(top, 0) + size
+    return {'totalBytes': total, 'breakdown': breakdown, 'dataDir': target}
 
 
 def load_sync_device():
@@ -1536,6 +1611,8 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_get_goal_projects()
         elif path == '/api/plant':
             self.handle_get_plant()
+        elif path == '/api/storage-size':
+            self.handle_storage_size()
         elif path.startswith('/api/goals/projects/'):
             parts = path.split('/api/goals/projects/')[1].split('/')
             project_id = parts[0]
@@ -1557,7 +1634,10 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
+        with DATA_LOCK:
+            self._dispatch_post(path)
 
+    def _dispatch_post(self, path):
         if path == '/api/prompt-sets':
             self.handle_create_prompt_set()
         elif path == '/api/update/download':
@@ -1634,7 +1714,10 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
     def do_DELETE(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
+        with DATA_LOCK:
+            self._dispatch_delete(path)
 
+    def _dispatch_delete(self, path):
         if path.startswith('/api/folder/'):
             folder_id = path.split('/api/folder/')[1]
             self.handle_delete_folder(folder_id)
@@ -2118,6 +2201,9 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
             item.update(goal_image_stats_for_project(p.get('id')))
             result.append(item)
         self.send_json(result)
+
+    def handle_storage_size(self):
+        self.send_json(get_storage_stats())
 
     def handle_get_plant(self):
         data = load_plant()

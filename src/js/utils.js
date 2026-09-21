@@ -21,3 +21,43 @@ export function showToast(msg, type = 'success') {
 export function isMobile() {
     return window.innerWidth <= 768;
 }
+
+export function debounce(fn, wait = 160) {
+    let timer = null;
+    let pendingArgs = null;
+    let pendingThis = null;
+
+    function debounced(...args) {
+        pendingArgs = args;
+        pendingThis = this;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+            timer = null;
+            const ctx = pendingThis;
+            const callArgs = pendingArgs;
+            pendingArgs = null;
+            pendingThis = null;
+            fn.apply(ctx, callArgs);
+        }, wait);
+    }
+
+    debounced.cancel = () => {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        pendingArgs = null;
+        pendingThis = null;
+    };
+
+    debounced.flush = () => {
+        if (!timer) return;
+        clearTimeout(timer);
+        timer = null;
+        const ctx = pendingThis;
+        const callArgs = pendingArgs;
+        pendingArgs = null;
+        pendingThis = null;
+        if (callArgs) fn.apply(ctx, callArgs);
+    };
+
+    return debounced;
+}

@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 420" width="680" height="420">
+  <style>
+    .bg { fill: #F7F8FB; }
+    .panel { fill: #FFFFFF; stroke: #E5E7EB; stroke-width: 1; }
+    .title { font: 500 14px -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #1F2937; }
+    .caption { font: 400 11px -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; fill: #6B7280; }
+    .node { fill: #FFFFFF; stroke: #D1D5DB; stroke-width: 1; }
+    .node-root { fill: #EEF2FF; stroke: #A5B4FC; }
+    .bad { stroke: #D97706; stroke-width: 2.2; fill: none; stroke-linecap: round; }
+    .ortho { stroke: #3B82F6; stroke-width: 1.8; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .curve { stroke: #14B8A6; stroke-width: 1.5; fill: none; stroke-linecap: round; }
+  </style>
+  <rect class="bg" x="0" y="0" width="680" height="420" rx="12"/>
+  <!-- panel 1 -->
+  <rect class="panel" x="24" y="28" width="200" height="340" rx="10"/>
+  <text class="title" x="40" y="52">现状：同点长弧</text>
+  <rect class="node node-root" x="40" y="150" width="72" height="28" rx="8"/>
+  <rect class="node" x="140" y="70" width="64" height="24" rx="7"/>
+  <rect class="node" x="140" y="120" width="64" height="24" rx="7"/>
+  <rect class="node" x="140" y="170" width="64" height="24" rx="7"/>
+  <rect class="node" x="140" y="220" width="64" height="24" rx="7"/>
+  <rect class="node" x="140" y="270" width="64" height="24" rx="7"/>
+  <path class="bad" d="M112,164 C150,164 120,82 140,82"/>
+  <path class="bad" d="M112,164 C160,164 110,132 140,132"/>
+  <path class="bad" d="M112,164 C155,170 100,182 140,182"/>
+  <path class="bad" d="M112,164 C170,200 105,232 140,232"/>
+  <path class="bad" d="M112,164 C175,230 100,282 140,282"/>
+  <text class="caption" x="40" y="348">发散点重合 · 弧线缠绕</text>
+  <!-- panel 2 -->
+  <rect class="panel" x="240" y="28" width="200" height="340" rx="10"/>
+  <text class="title" x="256" y="52">推荐：圆角正交</text>
+  <rect class="node node-root" x="256" y="150" width="72" height="28" rx="8"/>
+  <rect class="node" x="356" y="70" width="64" height="24" rx="7"/>
+  <rect class="node" x="356" y="120" width="64" height="24" rx="7"/>
+  <rect class="node" x="356" y="170" width="64" height="24" rx="7"/>
+  <rect class="node" x="356" y="220" width="64" height="24" rx="7"/>
+  <rect class="node" x="356" y="270" width="64" height="24" rx="7"/>
+  <!-- stub + vertical bus + stubs -->
+  <path class="ortho" d="M328,164 H344"/>
+  <path class="ortho" d="M344,82 V282"/>
+  <path class="ortho" d="M344,82 H356"/>
+  <path class="ortho" d="M344,132 H356"/>
+  <path class="ortho" d="M344,182 H356"/>
+  <path class="ortho" d="M344,232 H356"/>
+  <path class="ortho" d="M344,282 H356"/>
+  <text class="caption" x="256" y="348">短横 → 竖脊 → 短横</text>
+  <!-- panel 3 -->
+  <rect class="panel" x="456" y="28" width="200" height="340" rx="10"/>
+  <text class="title" x="472" y="52">备选：分散短曲线</text>
+  <rect class="node node-root" x="472" y="150" width="72" height="28" rx="8"/>
+  <rect class="node" x="572" y="70" width="64" height="24" rx="7"/>
+  <rect class="node" x="572" y="120" width="64" height="24" rx="7"/>
+  <rect class="node" x="572" y="170" width="64" height="24" rx="7"/>
+  <rect class="node" x="572" y="220" width="64" height="24" rx="7"/>
+  <rect class="node" x="572" y="270" width="64" height="24" rx="7"/>
+  <!-- anchors distributed on parent right edge -->
+  <path class="curve" d="M544,140 C558,140 558,82 572,82"/>
+  <path class="curve" d="M544,152 C558,152 558,132 572,132"/>
+  <path class="curve" d="M544,164 C558,164 558,182 572,182"/>
+  <path class="curve" d="M544,176 C558,176 558,232 572,232"/>
+  <path class="curve" d="M544,188 C558,188 558,282 572,282"/>
+  <text class="caption" x="472" y="348">锚点分散 · 控制臂变短</text>
+</svg>

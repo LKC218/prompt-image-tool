@@ -1264,3 +1264,713 @@
         transform: none !important;
     }
 }
+
+
+
+
+/* =========================
+   目标计划 · 思维导图（新拟态）
+   Token: --pc-neu-* / --pc-control-*-shadow
+   ========================= */
+
+.pc-goal-mindmap {
+    --pc-goal-mindmap-relation: color-mix(in srgb, var(--pc-accent) 35%, #7c5cfc);
+    --pc-goal-mindmap-executing: var(--color-state-success-fg, #1f8a5b);
+}
+
+.pc-goal-view-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 8px;
+    padding: 4px;
+    border-radius: var(--pc-neu-radius, 16px);
+    background: var(--pc-neu-bg);
+    box-shadow:
+        inset 3px 3px 6px var(--pc-neu-dark),
+        inset -3px -3px 6px var(--pc-neu-light);
+}
+
+.pc-goal-view-switch-btn {
+    border: none;
+    background: transparent;
+    color: var(--pc-text2);
+    font-size: 13px;
+    line-height: 1;
+    padding: 8px 12px;
+    border-radius: calc(var(--pc-neu-radius, 16px) - 4px);
+    cursor: pointer;
+    transition: box-shadow var(--pc-neu-transition, 0.2s ease), color 0.15s ease;
+}
+
+.pc-goal-view-switch-btn:hover {
+    color: var(--pc-text1);
+}
+
+.pc-goal-view-switch-btn.is-active {
+    background: var(--pc-neu-bg);
+    color: var(--pc-accent);
+    box-shadow:
+        2px 2px 5px var(--pc-neu-dark),
+        -2px -2px 5px var(--pc-neu-light);
+}
+
+.pc-goal-mindmap {
+    position: relative;
+    flex: 1;
+    min-height: 420px;
+    margin-top: 12px;
+    border-radius: var(--pc-radius-lg, 24px);
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-raised-shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.pc-goal-mindmap-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    background: var(--pc-neu-bg);
+    border-bottom: none;
+    box-shadow:
+        0 1px 0 color-mix(in srgb, var(--pc-neu-dark) 18%, transparent);
+    position: relative;
+    z-index: 2;
+}
+
+.pc-goal-mindmap-toolbar .pc-btn,
+.pc-goal-mindmap-toolbar .pc-btn-sm {
+    border: none;
+    background: var(--pc-neu-bg);
+    color: var(--pc-text2);
+    border-radius: var(--pc-neu-radius, 16px);
+    box-shadow: var(--pc-control-raised-shadow);
+    transition: box-shadow var(--pc-neu-transition, 0.2s ease), color 0.15s ease;
+}
+
+.pc-goal-mindmap-toolbar .pc-btn:hover,
+.pc-goal-mindmap-toolbar .pc-btn-sm:hover {
+    color: var(--pc-text1);
+    box-shadow: var(--pc-control-raised-shadow);
+}
+
+.pc-goal-mindmap-toolbar .pc-btn:active,
+.pc-goal-mindmap-toolbar .pc-btn-sm:active,
+.pc-goal-mindmap-toolbar .pc-btn.pc-btn-primary,
+.pc-goal-mindmap-toolbar .pc-btn-sm.pc-btn-primary {
+    background: var(--pc-neu-bg);
+    color: var(--pc-accent);
+    box-shadow: var(--pc-control-pressed-shadow);
+}
+
+.pc-goal-mindmap-hint {
+    margin-left: 4px;
+    font-size: 12px;
+    color: var(--pc-text3);
+}
+
+.pc-goal-mindmap-zoom {
+    margin-left: 2px;
+    min-width: 48px;
+    text-align: center;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--pc-text2);
+    padding: 5px 10px;
+    border-radius: var(--pc-neu-radius-full, 999px);
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-pressed-shadow);
+}
+
+.pc-goal-mindmap-stage {
+    position: relative;
+    flex: 1;
+    min-height: 360px;
+    overflow: hidden;
+    cursor: grab;
+    background-color: var(--pc-neu-bg);
+    background-image:
+        radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--pc-neu-dark) 22%, transparent) 1px, transparent 0);
+    background-size: 18px 18px;
+    box-shadow:
+        inset 6px 6px 14px var(--pc-neu-dark),
+        inset -6px -6px 14px var(--pc-neu-light);
+}
+
+.pc-goal-mindmap-stage.is-panning {
+    cursor: grabbing;
+}
+
+.pc-goal-mindmap-world {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+}
+
+.pc-goal-mindmap-edges {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.pc-goal-mindmap-edge {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pc-goal-mindmap-edge.is-hierarchy {
+    stroke-width: 1.6;
+}
+
+.pc-goal-mindmap-edge.is-hierarchy.is-done {
+    opacity: 0.32;
+}
+
+.pc-goal-mindmap-edge.is-relation {
+    stroke: var(--pc-goal-mindmap-relation, #7c5cfc);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+}
+
+.pc-goal-mindmap-nodes {
+    position: absolute;
+    inset: 0;
+}
+
+.pc-goal-mindmap-node {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 0 10px;
+    border-radius: var(--pc-neu-radius, 16px);
+    background: var(--pc-neu-bg);
+    border: none;
+    box-shadow:
+        inset 3px 0 0 0 var(--pc-goal-mindmap-branch, transparent),
+        var(--pc-control-raised-shadow);
+    cursor: pointer;
+    user-select: none;
+    transition:
+        box-shadow var(--pc-neu-transition, 0.2s ease),
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+
+.pc-goal-mindmap-node:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        inset 3px 0 0 0 var(--pc-goal-mindmap-branch, transparent),
+        var(--pc-control-raised-shadow),
+        0 6px 14px color-mix(in srgb, var(--pc-neu-dark) 28%, transparent);
+}
+
+.pc-goal-mindmap-node.is-root {
+    font-weight: 600;
+    box-shadow:
+        var(--pc-control-raised-shadow),
+        0 0 0 1px color-mix(in srgb, var(--pc-accent) 12%, transparent),
+        0 8px 20px color-mix(in srgb, var(--pc-accent) 10%, transparent);
+}
+
+.pc-goal-mindmap-node.is-selected {
+    box-shadow:
+        inset 3px 0 0 0 var(--pc-goal-mindmap-branch, transparent),
+        var(--pc-control-raised-shadow),
+        0 0 0 3px color-mix(in srgb, var(--pc-accent) 22%, transparent);
+}
+
+.pc-goal-mindmap-node.is-link-from {
+    box-shadow:
+        inset 3px 0 0 0 var(--pc-goal-mindmap-branch, transparent),
+        var(--pc-control-raised-shadow),
+        0 0 0 3px color-mix(in srgb, var(--pc-goal-mindmap-relation, #7c5cfc) 28%, transparent);
+}
+
+.pc-goal-mindmap-node.is-executing {
+    box-shadow:
+        inset 3px 0 0 0 var(--pc-goal-mindmap-executing, #1f8a5b),
+        var(--pc-control-raised-shadow),
+        0 0 0 3px color-mix(in srgb, var(--pc-goal-mindmap-executing, #1f8a5b) 22%, transparent);
+}
+
+.pc-goal-mindmap-node.is-status-done,
+.pc-goal-mindmap-node.is-completed {
+    opacity: 0.78;
+    box-shadow:
+        inset 3px 0 0 0 var(--pc-goal-mindmap-branch, transparent),
+        var(--pc-control-soft-shadow);
+}
+
+.pc-goal-mindmap-node-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--pc-text1);
+    text-decoration: none;
+}
+
+.pc-goal-mindmap-node.is-status-done .pc-goal-mindmap-node-title {
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--pc-text3) 70%, transparent);
+    color: var(--pc-text3);
+}
+
+.pc-goal-mindmap-node.is-status-doing .pc-goal-mindmap-node-title {
+    font-weight: 500;
+    color: var(--pc-text1);
+}
+
+/* 状态：左侧光影点 —— 不使用硬描边 */
+.pc-goal-mindmap-status {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: none;
+    position: relative;
+    background: var(--pc-neu-bg);
+}
+
+.pc-goal-mindmap-status.is-todo {
+    background: var(--pc-neu-bg);
+    box-shadow:
+        inset 1.5px 1.5px 3px var(--pc-neu-dark),
+        inset -1.5px -1.5px 3px var(--pc-neu-light);
+}
+
+.pc-goal-mindmap-status.is-doing {
+    background:
+        conic-gradient(var(--color-state-warning-fg, #b87508) 0 50%, var(--pc-neu-bg) 50% 100%);
+    box-shadow:
+        2px 2px 4px var(--pc-neu-dark),
+        -2px -2px 4px var(--pc-neu-light);
+}
+
+.pc-goal-mindmap-status.is-done {
+    background: var(--color-state-success-fg, #1f8a5b);
+    box-shadow:
+        2px 2px 4px var(--pc-neu-dark),
+        -1px -1px 3px var(--pc-neu-light);
+}
+
+.pc-goal-mindmap-status.is-done::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 2px;
+    width: 4px;
+    height: 7px;
+    border: solid #fff;
+    border-width: 0 1.8px 1.8px 0;
+    transform: rotate(45deg);
+}
+
+/* 进度：内凹胶囊 */
+.pc-goal-mindmap-progress {
+    flex-shrink: 0;
+    margin-left: 6px;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    color: var(--pc-text2);
+    background: var(--pc-neu-bg);
+    border-radius: var(--pc-neu-radius-full, 999px);
+    padding: 2px 8px;
+    line-height: 1.25;
+    box-shadow: var(--pc-control-pressed-shadow);
+}
+
+.pc-goal-mindmap-node.is-status-done .pc-goal-mindmap-progress {
+    color: var(--color-state-success-fg, #1f8a5b);
+    box-shadow: var(--pc-control-soft-shadow);
+}
+
+/* 优先级：右上抬起色点 */
+.pc-goal-mindmap-priority-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    box-shadow:
+        2px 2px 4px var(--pc-neu-dark),
+        -1px -1px 3px var(--pc-neu-light),
+        0 0 0 2px var(--pc-neu-bg);
+}
+
+.pc-goal-mindmap-priority-badge.is-priority-high { background: var(--color-state-danger-fg, #c73e4b); }
+.pc-goal-mindmap-priority-badge.is-priority-medium { background: var(--color-state-warning-fg, #b87508); }
+.pc-goal-mindmap-priority-badge.is-priority-low { background: var(--color-state-info-fg, #2477d4); }
+
+/* 图例：软浮动条 */
+.pc-goal-mindmap-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 14px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--pc-text3);
+    background: var(--pc-neu-bg);
+    border-top: none;
+    box-shadow: var(--pc-control-raised-shadow);
+    position: relative;
+    z-index: 2;
+}
+
+.pc-goal-mindmap-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pc-goal-mindmap-legend i {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 0;
+    vertical-align: middle;
+    border: none;
+    border-radius: 50%;
+    background: var(--pc-neu-bg);
+}
+
+.pc-goal-mindmap-legend i.is-status-todo {
+    box-shadow:
+        inset 1.5px 1.5px 3px var(--pc-neu-dark),
+        inset -1.5px -1.5px 3px var(--pc-neu-light);
+}
+
+.pc-goal-mindmap-legend i.is-status-doing {
+    background: conic-gradient(var(--color-state-warning-fg, #b87508) 0 50%, var(--pc-neu-bg) 50% 100%);
+    box-shadow: var(--pc-control-soft-shadow);
+}
+
+.pc-goal-mindmap-legend i.is-status-done {
+    background: var(--color-state-success-fg, #1f8a5b);
+    box-shadow: var(--pc-control-soft-shadow);
+}
+
+.pc-goal-mindmap-legend i.is-priority-badge {
+    width: 10px;
+    height: 10px;
+    background: var(--color-state-danger-fg, #c73e4b);
+    box-shadow:
+        var(--pc-control-soft-shadow),
+        0 0 0 2px var(--pc-neu-bg);
+}
+
+.pc-goal-mindmap-legend i.is-progress {
+    width: auto;
+    height: auto;
+    border-radius: var(--pc-neu-radius-full, 999px);
+    background: var(--pc-neu-bg);
+    color: var(--pc-text2);
+    font-size: 10px;
+    font-style: normal;
+    padding: 2px 6px;
+    box-shadow: var(--pc-control-pressed-shadow);
+}
+
+.pc-goal-mindmap-legend i.is-progress::after {
+    content: '2/5';
+}
+
+.pc-goal-mindmap-legend i.is-hierarchy {
+    width: 18px;
+    height: 0;
+    border-radius: 0;
+    border-top: 2px solid color-mix(in srgb, var(--pc-accent) 65%, var(--pc-text3));
+    background: transparent;
+    box-shadow: none;
+}
+
+.pc-goal-mindmap-legend i.is-relation {
+    width: 18px;
+    height: 0;
+    border-radius: 0;
+    border-top: 2px dashed var(--pc-goal-mindmap-relation, #7c5cfc);
+    background: transparent;
+    box-shadow: none;
+}
+
+/* 最大化布局（保持功能，表面同新拟态） */
+.pc-goal-detail-page.is-mindmap-maximized {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2400;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    background: var(--pc-bg, var(--pc-neu-bg)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 0 !important;
+}
+
+.pc-goal-detail-page.is-mindmap-maximized .pc-goal-detail-header,
+.pc-goal-detail-page.is-mindmap-maximized .pc-goal-detail-progress,
+.pc-goal-detail-page.is-mindmap-maximized #pcGoalTaskList {
+    display: none !important;
+}
+
+.pc-goal-detail-page.is-mindmap-maximized #pcGoalMindmap,
+.pc-goal-mindmap.is-maximized {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: var(--pc-neu-bg) !important;
+}
+
+.pc-goal-detail-page.is-mindmap-maximized .pc-goal-mindmap-stage,
+.pc-goal-mindmap.is-maximized .pc-goal-mindmap-stage {
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+}
+
+body.pc-goal-mindmap-max-open {
+    overflow: hidden !important;
+}
+
+.pc-goal-detail-page .pc-goal-task-item.is-flash > .pc-goal-task-row {
+    outline: 2px solid color-mix(in srgb, var(--pc-accent) 55%, transparent);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-goal-mindmap-node,
+    .pc-goal-mindmap-node:hover,
+    .pc-goal-mindmap-toolbar .pc-btn,
+    .pc-goal-view-switch-btn {
+        transition: none;
+        transform: none;
+    }
+}
+
+
+/* 目标计划 · 导图背景纹理 / FLIP 动画 */
+.pc-goal-mindmap-stage {
+    background-color: var(--pc-neu-bg);
+    background-image:
+        radial-gradient(ellipse 80% 70% at 50% 40%, rgba(255,255,255,0.55) 0%, transparent 70%),
+        radial-gradient(ellipse 100% 80% at 50% 100%, color-mix(in srgb, var(--pc-neu-dark) 10%, transparent) 0%, transparent 55%),
+        radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--pc-neu-dark) 28%, transparent) 1px, transparent 0),
+        radial-gradient(circle at 9px 9px, color-mix(in srgb, var(--pc-accent) 8%, transparent) 0.8px, transparent 0);
+    background-size: auto, auto, 16px 16px, 32px 32px;
+    background-position: center, center, 0 0, 0 0;
+}
+
+.pc-goal-mindmap-stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    mix-blend-mode: multiply;
+    z-index: 0;
+}
+
+.pc-goal-mindmap-world {
+    z-index: 1;
+}
+
+.pc-goal-mindmap-node.is-entering {
+    animation: mindmap-node-enter 260ms cubic-bezier(0.22, 0.8, 0.24, 1) both;
+}
+
+.pc-goal-mindmap-edges.is-animating .pc-goal-mindmap-edge {
+    animation: mindmap-edge-fade 280ms ease both;
+}
+
+@keyframes mindmap-node-enter {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes mindmap-edge-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-goal-mindmap-node.is-entering,
+    .pc-goal-mindmap-edges.is-animating .pc-goal-mindmap-edge {
+        animation: none;
+    }
+}
+
+
+/* 最大化：清除祖先 transform 包含块，保证 position:fixed 铺满视口 */
+body.pc-goal-mindmap-max-open {
+    overflow: hidden !important;
+}
+
+body.pc-goal-mindmap-max-open .pc-page.is-mindmap-maximized,
+body.pc-goal-mindmap-max-open .pc-page:has(> .pc-goal-detail-page.is-mindmap-maximized) {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+}
+
+body.pc-goal-mindmap-max-open .pc-goal-detail-page.is-mindmap-maximized {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2400 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 0 !important;
+    background: var(--pc-bg, var(--pc-neu-bg)) !important;
+}
+
+/* 导图节点禁止被 more-btn 动画样式误伤 */
+.pc-goal-mindmap-node.pc-more-btn-opening,
+.pc-goal-mindmap-node.pc-more-btn-active {
+    animation: none !important;
+    color: inherit !important;
+}
+
+
+/* 右键菜单必须盖在导图画布之上，避免 stage 拦截点击 */
+#pcContextMenu.pc-context-menu,
+.pc-context-menu {
+    z-index: 10050 !important;
+}
+
+.pc-goal-mindmap {
+    z-index: 0;
+    isolation: isolate;
+}
+
+.pc-goal-mindmap-stage,
+.pc-goal-mindmap-stage::before,
+.pc-goal-mindmap-world,
+.pc-goal-mindmap-toolbar,
+.pc-goal-mindmap-legend {
+    z-index: auto;
+}
+
+.pc-goal-mindmap-toolbar { z-index: 2; }
+.pc-goal-mindmap-legend { z-index: 2; }
+.pc-goal-mindmap-world { z-index: 1; }
+
+body.pc-goal-mindmap-max-open #pcContextMenu.pc-context-menu {
+    z-index: 2500 !important;
+}
+
+body.pc-goal-mindmap-max-open .pc-goal-detail-page.is-mindmap-maximized {
+    z-index: 2400 !important;
+}
+
+
+/* 目标计划 · 导图四边羽化（内容溶入画布） */
+.pc-goal-mindmap-stage {
+    --pc-goal-mindmap-fade: 36px;
+}
+
+.pc-goal-mindmap-stage::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background:
+        linear-gradient(to right, var(--pc-neu-bg) 0%, transparent var(--pc-goal-mindmap-fade)),
+        linear-gradient(to left, var(--pc-neu-bg) 0%, transparent var(--pc-goal-mindmap-fade)),
+        linear-gradient(to bottom, var(--pc-neu-bg) 0%, transparent var(--pc-goal-mindmap-fade)),
+        linear-gradient(to top, var(--pc-neu-bg) 0%, transparent var(--pc-goal-mindmap-fade));
+}
+
+.pc-goal-mindmap-stage::before {
+    z-index: 0;
+}
+
+.pc-goal-mindmap-world {
+    z-index: 1;
+}
+
+.pc-goal-mindmap.is-maximized .pc-goal-mindmap-stage,
+.pc-goal-detail-page.is-mindmap-maximized .pc-goal-mindmap-stage {
+    --pc-goal-mindmap-fade: 40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-goal-mindmap-stage::after {
+        transition: none;
+    }
+}
+
+
+/* 目标计划 · 导图图例防重叠 */
+.pc-goal-mindmap-legend {
+    position: relative;
+    z-index: 4;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 16px 12px;
+    min-height: 40px;
+    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scrollbar-width: thin;
+}
+
+.pc-goal-mindmap-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    min-height: 22px;
+    line-height: 1.2;
+    padding: 2px 2px 2px 0;
+}
+
+.pc-goal-mindmap-legend > span + span {
+    margin-left: 0;
+}
+
+.pc-goal-mindmap-legend i {
+    flex-shrink: 0;
+}
+
+/* 图例压住四边羽化，避免字被渐变吃掉 */
+.pc-goal-mindmap-stage::after {
+    z-index: 2;
+}
+
+body.pc-goal-mindmap-max-open .pc-goal-mindmap-legend {
+    z-index: 4;
+}

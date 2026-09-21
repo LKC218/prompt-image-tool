@@ -17,7 +17,8 @@ from main import (
     load_data, save_data, save_folders, save_image, delete_image_file,
     ensure_dirs, AppHandler, APP_DIR, DATA_DIR, IMAGES_DIR, DATA_FILE,
     build_backup_payload, save_backup_file, save_image_download_file,
-    save_zip_backup_file, preview_zip_backup_file,
+    save_zip_backup_file, preview_zip_backup_file, clear_data_cache,
+    get_storage_stats,
 )
 
 
@@ -126,11 +127,13 @@ class TestLoadSaveData:
         assert marker['status'] == 'skipped-target-has-data'
 
     def test_load_data_no_file(self, tmp_path, monkeypatch):
+        clear_data_cache()
         monkeypatch.setattr('main.DATA_FILE', str(tmp_path / 'nonexistent.json'))
         result = load_data()
         assert result == []
 
     def test_save_and_load(self, tmp_path, monkeypatch):
+        clear_data_cache()
         data_file = str(tmp_path / 'test_data.json')
         monkeypatch.setattr('main.DATA_FILE', data_file)
         monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
@@ -139,6 +142,51 @@ class TestLoadSaveData:
         save_data(test_data)
         result = load_data()
         assert result == test_data
+
+    def test_load_data_uses_cache_until_file_changes(self, tmp_path, monkeypatch):
+        clear_data_cache()
+        data_file = tmp_path / 'cached.json'
+        monkeypatch.setattr('main.DATA_FILE', str(data_file))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+
+        first = [{'id': '1', 'name': 'first', 'versions': []}]
+        second = [{'id': '2', 'name': 'second', 'versions': []}]
+        save_data(first)
+        assert load_data() == first
+
+        # 外部写盘后 mtime/size 变化，应失效并重新读取
+        data_file.write_text(json.dumps(second, ensure_ascii=False), encoding='utf-8')
+        assert load_data() == second
+
+    def test_get_storage_stats_sums_data_dir(self, tmp_path):
+        images = tmp_path / 'images'
+        images.mkdir()
+        (images / 'a.webp').write_bytes(b'12345')
+        (tmp_path / 'prompt_sets.json').write_text('[]', encoding='utf-8')
+        stats = get_storage_stats(str(tmp_path))
+        assert stats['totalBytes'] >= 5 + 2
+        assert 'images' in stats['breakdown']
+
+    def test_api_storage_size_endpoint(self, tmp_path, monkeypatch):
+        clear_data_cache()
+        data_file = tmp_path / 'prompt_sets.json'
+        monkeypatch.setattr('main.DATA_FILE', str(data_file))
+        monkeypatch.setattr('main.FOLDERS_FILE', str(tmp_path / 'folders.json'))
+        monkeypatch.setattr('main.IMAGES_DIR', str(tmp_path / 'images'))
+        monkeypatch.setattr('main.BACKUPS_DIR', str(tmp_path / 'backups'))
+        monkeypatch.setattr('main.DATA_DIR', str(tmp_path))
+        ensure_dirs()
+        save_data([{'id': 'set1', 'name': '提示词', 'versions': []}])
+
+        server, thread = start_test_server()
+        try:
+            url = f'http://127.0.0.1:{server.server_address[1]}/api/storage-size'
+            status, payload = request_json(url)
+            assert status == 200
+            assert payload['totalBytes'] > 0
+            assert 'prompt_sets.json' in payload['breakdown']
+        finally:
+            stop_test_server(server, thread)
 
     def test_save_data_creates_dirs(self, tmp_path, monkeypatch):
         data_file = str(tmp_path / 'sub' / 'data.json')

@@ -1,5 +1,6 @@
 import { getStorage } from './storage.js';
 import { navigate } from './pc-app.js';
+import { debounce } from './utils.js';
 import { showToast, showModal, closeModal, showConfirmModal, showContextMenu, escapeHtml } from './pc-utils.js';
 import { aggregateTags, getCustomTags, getPcTagStyleClass, removeCustomTag, saveCustomTag } from './tag-utils.js';
 import { getFolderColor } from './folder-color.js';
@@ -23,6 +24,8 @@ let activeSegment = 'categories';
 let categorySearchKeyword = '';
 let tagSearchKeyword = '';
 let dragState = null;
+let categorySearchDebounced = null;
+let tagSearchDebounced = null;
 
 const FOLDER_COLORS = [
     { name: '蓝色', value: '#2D8CFF', bg: '#EAF5FF' },
@@ -254,6 +257,29 @@ function renderTagsList(container) {
 }
 
 function setupCategoryEvents(pageEl) {
+    categorySearchDebounced?.cancel();
+    tagSearchDebounced?.cancel();
+
+    categorySearchDebounced = debounce((value) => {
+        categorySearchKeyword = value;
+        renderCategoryContent(pageEl);
+        const newInput = pageEl.querySelector('#pcCategorySearch');
+        if (newInput) {
+            newInput.focus();
+            newInput.setSelectionRange(newInput.value.length, newInput.value.length);
+        }
+    }, 160);
+
+    tagSearchDebounced = debounce((value) => {
+        tagSearchKeyword = value;
+        renderCategoryContent(pageEl);
+        const newInput = pageEl.querySelector('#pcTagSearch');
+        if (newInput) {
+            newInput.focus();
+            newInput.setSelectionRange(newInput.value.length, newInput.value.length);
+        }
+    }, 160);
+
     pageEl.querySelector('#pcCategorySegment')?.addEventListener('click', (e) => {
         const btn = e.target.closest('.pc-segment-btn');
         if (!btn) return;
@@ -351,25 +377,13 @@ function setupCategoryEvents(pageEl) {
     pageEl.querySelector('#pcCategoryContent')?.addEventListener('input', (e) => {
         const categorySearch = e.target.closest('#pcCategorySearch');
         if (categorySearch) {
-            categorySearchKeyword = categorySearch.value.trim();
-            renderCategoryContent(pageEl);
-            const newInput = pageEl.querySelector('#pcCategorySearch');
-            if (newInput) {
-                newInput.focus();
-                newInput.setSelectionRange(newInput.value.length, newInput.value.length);
-            }
+            categorySearchDebounced(categorySearch.value.trim());
             return;
         }
 
         const tagSearch = e.target.closest('#pcTagSearch');
         if (tagSearch) {
-            tagSearchKeyword = tagSearch.value.trim();
-            renderCategoryContent(pageEl);
-            const newInput = pageEl.querySelector('#pcTagSearch');
-            if (newInput) {
-                newInput.focus();
-                newInput.setSelectionRange(newInput.value.length, newInput.value.length);
-            }
+            tagSearchDebounced(tagSearch.value.trim());
             return;
         }
     });
@@ -921,6 +935,10 @@ async function renameTag(oldName, newName) {
 }
 
 function unmount(pageEl) {
+    categorySearchDebounced?.cancel();
+    categorySearchDebounced = null;
+    tagSearchDebounced?.cancel();
+    tagSearchDebounced = null;
     categoryData = null;
     activeSegment = 'categories';
     categorySearchKeyword = '';

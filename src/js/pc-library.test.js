@@ -157,4 +157,31 @@ describe('pc-library state restore', () => {
         expect(pageEl.querySelector('.pc-library-preview-section h4')?.textContent).toBe('正向提示词');
         expect(pageEl.querySelector('.pc-library-preview-section p')?.textContent).toBe('海边灯塔，油画质感，金色日落，细腻笔触');
     });
+
+    it('搜索防抖后只更新表格区，筛选结果正确', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        const items = buildItems(25);
+        getStorageMock.mockReturnValue(createStorageMock(items));
+
+        const { pageEl } = await mountLibraryPage();
+        const workspace = pageEl.querySelector('.pc-library-workspace');
+        expect(workspace).toBeTruthy();
+
+        const input = pageEl.querySelector('#pcLibrarySearchInput');
+        input.value = '提示词 2';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.value = '提示词 25';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // 防抖窗口内不应重建整页工作区
+        expect(pageEl.querySelector('.pc-library-workspace')).toBe(workspace);
+
+        await vi.advanceTimersByTimeAsync(160);
+        await flushFrame();
+
+        expect(pageEl.querySelector('.pc-library-workspace')).toBe(workspace);
+        const rows = [...pageEl.querySelectorAll('#pcLibraryTableBody tr')].map(tr => tr.dataset.id);
+        expect(rows).toContain('prompt-25');
+        expect(rows).not.toContain('prompt-24');
+    });
 });

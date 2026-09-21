@@ -18,6 +18,27 @@ describe('ApiStorage', () => {
         global.fetch = vi.fn().mockResolvedValue(mockResponse({ status: 'ok' }));
     });
 
+    describe('estimateStorageSize', () => {
+        it('prefers backend storage-size endpoint', async () => {
+            global.fetch = vi.fn().mockResolvedValue(mockResponse({ totalBytes: 2048, breakdown: {} }));
+            const size = await storage.estimateStorageSize();
+            expect(size).toBe(2048);
+            expect(global.fetch).toHaveBeenCalledWith('/api/storage-size', expect.anything());
+        });
+
+        it('falls back to export estimate when storage-size is unavailable', async () => {
+            global.fetch = vi.fn().mockImplementation(async (url) => {
+                if (String(url).includes('/storage-size')) {
+                    return mockResponse({ error: 'missing' }, false, 404);
+                }
+                return mockResponse({ folders: [], prompt_sets: [] });
+            });
+            const size = await storage.estimateStorageSize();
+            expect(typeof size).toBe('number');
+            expect(size).toBeGreaterThan(0);
+        });
+    });
+
     describe('init', () => {
         it('should resolve without error when backend is ready', async () => {
             global.fetch = vi.fn().mockResolvedValue(mockResponse({ status: 'ok' }));
