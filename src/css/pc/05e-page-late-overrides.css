@@ -1560,6 +1560,93 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* 统计卡液体容器：静置液面 + 双层波浪微动（无鼠标交互） */
+.pc-home-page .pc-stat-card {
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.pc-home-page .pc-stat-liquid {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    overflow: hidden;
+}
+
+.pc-home-page .pc-stat-liquid-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.pc-home-page .pc-stat-icon,
+.pc-home-page .pc-stat-copy {
+    position: relative;
+    z-index: 1;
+}
+
+.pc-home-page .pc-stat-card::before {
+    z-index: 2;
+}
+
+.pc-home-page .pc-stat-liquid-body {
+    fill: var(--pc-stat-liquid-body, rgba(45, 140, 255, 0.34));
+}
+
+.pc-home-page .pc-stat-liquid-wave-a {
+    fill: rgba(255, 255, 255, 0.28);
+}
+
+.pc-home-page .pc-stat-liquid-wave-b {
+    fill: rgba(255, 255, 255, 0.16);
+}
+
+.pc-home-page .pc-stat-card-blue {
+    --pc-stat-liquid-body: color-mix(in srgb, var(--pc-blue) 34%, transparent);
+}
+.pc-home-page .pc-stat-card-yellow {
+    --pc-stat-liquid-body: color-mix(in srgb, #E79B11 32%, transparent);
+}
+.pc-home-page .pc-stat-card-purple {
+    --pc-stat-liquid-body: color-mix(in srgb, var(--pc-purple) 32%, transparent);
+}
+.pc-home-page .pc-stat-card-pink {
+    --pc-stat-liquid-body: color-mix(in srgb, var(--pc-pink) 32%, transparent);
+}
+
+:root[data-appearance="dark"] .pc-home-page .pc-stat-liquid-body {
+    opacity: 0.92;
+}
+
+:root[data-appearance="dark"] .pc-home-page .pc-stat-card-blue {
+    --pc-stat-liquid-body: color-mix(in srgb, var(--pc-blue) 28%, transparent);
+}
+:root[data-appearance="dark"] .pc-home-page .pc-stat-card-yellow {
+    --pc-stat-liquid-body: color-mix(in srgb, #E79B11 26%, transparent);
+}
+:root[data-appearance="dark"] .pc-home-page .pc-stat-card-purple {
+    --pc-stat-liquid-body: color-mix(in srgb, var(--pc-purple) 28%, transparent);
+}
+:root[data-appearance="dark"] .pc-home-page .pc-stat-card-pink {
+    --pc-stat-liquid-body: color-mix(in srgb, var(--pc-pink) 28%, transparent);
+}
+
+:root[data-appearance="dark"] .pc-home-page .pc-stat-liquid-wave-a {
+    fill: rgba(255, 255, 255, 0.14);
+}
+:root[data-appearance="dark"] .pc-home-page .pc-stat-liquid-wave-b {
+    fill: rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-home-page .pc-stat-liquid-wave-a,
+    .pc-home-page .pc-stat-liquid-wave-b {
+        display: none;
+    }
+}
+
 
 
 

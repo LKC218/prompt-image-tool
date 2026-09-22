@@ -149,6 +149,17 @@ function navigateToTab(path) {
     }
 }
 
+/** 静默更新当前路由 params（不触发页面重挂载），用于视图切换等同页状态同步到 URL/history。 */
+function updateRouteParams(params = {}) {
+    if (!currentRoute) return null;
+    currentRoute = {
+        ...currentRoute,
+        params: { ...(currentRoute.params || {}), ...params }
+    };
+    history.replaceState(buildHistoryState(), '');
+    return currentRoute;
+}
+
 function initRouter() {
     const restored = hydrateHistoryState(history.state);
     if (restored) {
@@ -180,6 +191,7 @@ export {
     replace,
     goBack,
     navigateToTab,
+    updateRouteParams,
     getCurrentRoute,
     getRouteStack,
     clearStack,

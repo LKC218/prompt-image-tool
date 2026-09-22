@@ -405,8 +405,9 @@ async function showProjectMenu(id, anchorEl) {
     ], { anchor: anchorEl, source: 'more' });
 
     if (action === 'openMindmap') {
+        // URL params.view 优先；一次性标记作兼容回退
         requestOpenMindmapView(window.localStorage, id);
-        navigate(`/goals/${id}`);
+        navigate(`/goals/${id}`, { view: 'mindmap' });
     } else if (action === 'setCover') setProjectCover(id);
     else if (action === 'rename') renameProject(id);
     else if (action === 'copy') copyProject(id);

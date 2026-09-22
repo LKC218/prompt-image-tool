@@ -17,6 +17,8 @@ import {
     mindmapPriorityClass,
     requestOpenMindmapView,
     consumeMindmapOpenView,
+    normalizeMindmapViewMode,
+    resolveInitialMindmapView,
     zoomMindmapAtPoint,
     fitMindmapTransform,
     focusMindmapTransform,
@@ -187,6 +189,33 @@ describe('open-view marker', () => {
         requestOpenMindmapView(storage, 'p1');
         expect(consumeMindmapOpenView(storage, 'p1')).toBe('mindmap');
         expect(storage.getItem(MINDMAP_OPEN_VIEW_KEY)).toBeNull();
+    });
+
+    it('normalizeMindmapViewMode 白名单', () => {
+        expect(normalizeMindmapViewMode('mindmap')).toBe('mindmap');
+        expect(normalizeMindmapViewMode('list')).toBe('list');
+        expect(normalizeMindmapViewMode('board')).toBeNull();
+        expect(normalizeMindmapViewMode(undefined)).toBeNull();
+    });
+
+    it('resolveInitialMindmapView：路由 > open-view > 偏好 > fallback', () => {
+        expect(resolveInitialMindmapView({
+            routeView: 'mindmap',
+            openView: 'list',
+            storedView: 'list'
+        })).toBe('mindmap');
+        expect(resolveInitialMindmapView({
+            routeView: null,
+            openView: 'mindmap',
+            storedView: 'list'
+        })).toBe('mindmap');
+        expect(resolveInitialMindmapView({
+            routeView: '',
+            openView: null,
+            storedView: 'mindmap'
+        })).toBe('mindmap');
+        expect(resolveInitialMindmapView({})).toBe('list');
+        expect(resolveInitialMindmapView({ fallback: 'mindmap' })).toBe('mindmap');
     });
 
     it('优先级 class 白名单', () => {
@@ -390,5 +419,31 @@ describe('mindmap camera / inertia', () => {
         ];
         const v = estimateMindmapPanVelocity(samples, 80);
         expect(v.x).toBeGreaterThan(0);
+    });
+});
+
+describe('mindmap node images', () => {
+    it('节点携带图片计数与精简图片列表', () => {
+        const withImages = [
+            {
+                id: 't-img',
+                title: '有图',
+                completed: false,
+                images: [
+                    { id: 'i1', path: 'goal_images/p/a.webp', name: 'a.webp' },
+                    { id: 'i2', path: 'goal_images/p/b.webp', name: 'b.webp', data: 'data:image/png;base64,xx' }
+                ],
+                children: []
+            },
+            { id: 't-no', title: '无图', completed: false, children: [] }
+        ];
+        const graph = buildMindmapGraph(project, withImages);
+        const withImg = graph.nodes.find(n => n.id === 't-img');
+        const noImg = graph.nodes.find(n => n.id === 't-no');
+        expect(withImg.imageCount).toBe(2);
+        expect(withImg.images).toHaveLength(2);
+        expect(withImg.images[0]).toMatchObject({ path: 'goal_images/p/a.webp' });
+        expect(noImg.imageCount).toBe(0);
+        expect(graph.nodes.find(n => n.id === MINDMAP_ROOT_ID).imageCount).toBe(0);
     });
 });

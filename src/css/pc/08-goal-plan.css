@@ -710,6 +710,12 @@
     gap: var(--pc-space-md);
 }
 
+/* 作者样式 display 会压过 UA [hidden]，必须显式兜底，否则视图切换失效 */
+.pc-goal-task-list[hidden],
+.pc-goal-mindmap[hidden] {
+    display: none !important;
+}
+
 /* 任务项：轻凸起卡片 */
 .pc-goal-task-item {
     display: flex;
@@ -1300,7 +1306,21 @@
     padding: 8px 12px;
     border-radius: calc(var(--pc-neu-radius, 16px) - 4px);
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     transition: box-shadow var(--pc-neu-transition, 0.2s ease), color 0.15s ease;
+}
+
+.pc-goal-view-switch-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+}
+
+.pc-goal-view-switch-btn.is-active .pc-goal-view-switch-icon {
+    opacity: 1;
 }
 
 .pc-goal-view-switch-btn:hover {
@@ -1326,6 +1346,62 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+}
+
+/* =========================
+   导图嵌入态高度链（方案A）
+   .pc-app fixed → .pc-main flex:1 → .pc-page → detail → mindmap
+   容器下限 clamp(480px, 58vh, 860px)；stage 吃剩余高度
+   ========================= */
+.pc-main:has(> .pc-page.is-view-mindmap:not(.is-mindmap-maximized)) {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.pc-page.is-view-mindmap:not(.is-mindmap-maximized) {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.pc-goal-detail-page.is-view-mindmap:not(.is-mindmap-maximized) {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.pc-goal-detail-page.is-view-mindmap:not(.is-mindmap-maximized) #pcGoalMindmap,
+.pc-goal-detail-page.is-view-mindmap:not(.is-mindmap-maximized) .pc-goal-mindmap {
+    flex: 1 1 auto;
+    min-height: clamp(480px, 58vh, 860px);
+    margin-top: 12px;
+    margin-bottom: var(--pc-space-lg, 20px);
+    max-height: none;
+}
+
+.pc-goal-detail-page.is-view-mindmap:not(.is-mindmap-maximized) .pc-goal-mindmap-stage {
+    min-height: 0;
+    flex: 1 1 auto;
+}
+
+/* 最大化时由既有 100vh 规则接管，避免嵌入态 clamp/flex 干扰 */
+.pc-goal-detail-page.is-view-mindmap.is-mindmap-maximized #pcGoalMindmap,
+.pc-page.is-view-mindmap.is-mindmap-maximized #pcGoalMindmap {
+    min-height: 0 !important;
+}
+
+@media (max-height: 720px) {
+    .pc-goal-detail-page.is-view-mindmap:not(.is-mindmap-maximized) .pc-goal-mindmap {
+        min-height: clamp(420px, 52vh, 640px);
+    }
 }
 
 .pc-goal-mindmap-toolbar {
@@ -1755,6 +1831,33 @@ body.pc-goal-mindmap-max-open {
     outline-offset: 2px;
 }
 
+.pc-goal-detail-page .pc-goal-task-item.is-selected > .pc-goal-task-row {
+    outline: 2px solid color-mix(in srgb, var(--pc-accent) 40%, transparent);
+    outline-offset: 2px;
+}
+
+.pc-goal-mindmap-node.is-flash {
+    animation: pc-goal-mindmap-node-flash 0.85s ease;
+}
+
+@keyframes pc-goal-mindmap-node-flash {
+    0% {
+        box-shadow:
+            0 0 0 0 color-mix(in srgb, var(--pc-accent) 55%, transparent),
+            var(--pc-control-raised-shadow);
+    }
+    40% {
+        box-shadow:
+            0 0 0 6px color-mix(in srgb, var(--pc-accent) 28%, transparent),
+            var(--pc-control-raised-shadow);
+    }
+    100% {
+        box-shadow:
+            0 0 0 0 transparent,
+            var(--pc-control-raised-shadow);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .pc-goal-mindmap-node,
     .pc-goal-mindmap-node:hover,
@@ -1973,4 +2076,50 @@ body.pc-goal-mindmap-max-open .pc-goal-detail-page.is-mindmap-maximized {
 
 body.pc-goal-mindmap-max-open .pc-goal-mindmap-legend {
     z-index: 4;
+}
+
+/* 目标计划 · 导图节点图片预览 */
+.pc-goal-mindmap-image {
+    position: relative;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    margin-left: 4px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    overflow: visible;
+    background: var(--pc-neu-bg);
+    box-shadow:
+        2px 2px 4px var(--pc-neu-dark),
+        -2px -2px 4px var(--pc-neu-light);
+    cursor: zoom-in;
+}
+
+.pc-goal-mindmap-image img {
+    display: block;
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #e8eef8, #f4f6fa);
+}
+
+.pc-goal-mindmap-image-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    border-radius: 7px;
+    background: var(--pc-accent);
+    color: #fff;
+    font: 700 9px/14px var(--pc-font-family, sans-serif);
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.pc-goal-mindmap-node.is-status-done .pc-goal-mindmap-image {
+    opacity: 0.85;
 }

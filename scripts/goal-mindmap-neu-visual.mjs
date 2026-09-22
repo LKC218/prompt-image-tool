@@ -32,9 +32,10 @@ async function seedProject() {
         {
             id: 'vm-t1', projectId: project.id, parentId: '',
             title: '增加首次性能基准测试', completed: false, order: 0,
-            priority: 'high', status: 'executing', images: [],
+            priority: 'high', status: 'executing',
+            images: [{ id: 'img1', path: 'goal_images/x/a.png', name: 'a.png' }],
             children: [
-                { id: 'vm-t1a', projectId: project.id, parentId: 'vm-t1', title: '设置画板增加关闭按钮', completed: false, order: 0, priority: '', status: '', images: [], children: [] },
+                { id: 'vm-t1a', projectId: project.id, parentId: 'vm-t1', title: '设置画板增加关闭按钮', completed: false, order: 0, priority: '', status: '', images: [{ id: 'img2', path: 'goal_images/x/b.png', name: 'b.png' }, { id: 'img3', path: 'goal_images/x/c.png', name: 'c.png' }], children: [] },
                 { id: 'vm-t1b', projectId: project.id, parentId: 'vm-t1', title: '接入基准测试界面UI', completed: true, order: 1, priority: 'low', status: '', images: [], children: [] }
             ]
         },
@@ -115,6 +116,17 @@ const textureMeta = await page.evaluate(() => {
     };
 });
 console.log('TEXTURE_META', JSON.stringify(textureMeta));
+
+const imageMeta = await page.evaluate(() => {
+    const thumbs = [...document.querySelectorAll('.pc-goal-mindmap-image')];
+    return {
+        thumbCount: thumbs.length,
+        multiBadge: document.querySelectorAll('.pc-goal-mindmap-image-count').length,
+        sampleTitle: thumbs[0]?.getAttribute('aria-label') || ''
+    };
+});
+console.log('IMAGE_META', JSON.stringify(imageMeta));
+await page.screenshot({ path: `${OUT}/08-image-preview.png`, fullPage: true });
 
 const firstNode = page.locator('.pc-goal-mindmap-node:not(.is-root)').first();
 const titleBeforeMenu = await firstNode.locator('.pc-goal-mindmap-node-title').textContent().catch(() => '');
@@ -329,6 +341,8 @@ const pass = styleMeta.nodes > 0
     && styleMeta.hardWhiteBorder === false
     && styleMeta.featherGradients >= 4
     && styleMeta.featherPointerNone === true
+    && imageMeta.thumbCount >= 1
+    && imageMeta.multiBadge >= 1
     && legendMeta
     && legendMeta.overlaps === 0
     && legendMeta.spanCount >= 5

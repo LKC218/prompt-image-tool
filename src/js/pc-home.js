@@ -11,11 +11,13 @@ import { openPromptDetail } from './pc-detail-modal.js';
 import homeFolderIcon from '../assets/pc/home-folder.png';
 import { createPlantTracker } from './plant-tracker.js';
 import { destroyPlantView, mountPlantView, updatePlantView } from './plant-view.js';
+import { createStatLiquidController } from './pc-stat-liquid.js';
 
 let homeData = null;
 let homeSearchKeyword = '';
 let plantTracker = null;
 let homeSearchDebounced = null;
+let statLiquid = null;
 
 function setFavoriteButtonState(button, isFavorite) {
     button.classList.toggle('pc-starred', isFavorite);
@@ -71,10 +73,10 @@ function render(params = {}) {
             </div>
 
             <div class="pc-stat-grid pc-home-stat-grid">
-                ${renderStatCard('pc-stat-card-blue', ICONS.prompt, '提示词总数', 'pcStatTotal')}
-                ${renderStatCard('pc-stat-card-yellow', ICONS.folder, '分类', 'pcStatCategories')}
-                ${renderStatCard('pc-stat-card-purple', ICONS.tag, '标签', 'pcStatTags')}
-                ${renderStatCard('pc-stat-card-pink', ICONS.star, '收藏', 'pcStatFavorites')}
+                ${renderStatCard('pc-stat-card-blue', ICONS.prompt, '提示词总数', 'pcStatTotal', 'total', 0.46)}
+                ${renderStatCard('pc-stat-card-yellow', ICONS.folder, '分类', 'pcStatCategories', 'categories', 0.48)}
+                ${renderStatCard('pc-stat-card-purple', ICONS.tag, '标签', 'pcStatTags', 'tags', 0.44)}
+                ${renderStatCard('pc-stat-card-pink', ICONS.star, '收藏', 'pcStatFavorites', 'favorites', 0.45)}
             </div>
 
             <section class="pc-home-panel pc-home-recent-panel">
@@ -134,9 +136,16 @@ function render(params = {}) {
     `;
 }
 
-function renderStatCard(className, icon, label, valueId) {
+function renderStatCard(className, icon, label, valueId, liquidKey, liquidFill = 0.45) {
     return `
-        <div class="pc-stat-card ${className}">
+        <div class="pc-stat-card ${className}" data-stat-liquid="${liquidKey}" data-stat-fill="${liquidFill}">
+            <div class="pc-stat-liquid" aria-hidden="true">
+                <svg class="pc-stat-liquid-svg" viewBox="0 0 200 100" preserveAspectRatio="none">
+                    <path class="pc-stat-liquid-wave pc-stat-liquid-wave-b"></path>
+                    <path class="pc-stat-liquid-body"></path>
+                    <path class="pc-stat-liquid-wave pc-stat-liquid-wave-a"></path>
+                </svg>
+            </div>
             <span class="pc-stat-icon pc-home-inline-icon">${icon}</span>
             <span class="pc-stat-copy">
                 <span class="pc-stat-label">${label}</span>
@@ -147,6 +156,8 @@ function renderStatCard(className, icon, label, valueId) {
 }
 
 async function mount(pageEl, params = {}) {
+    statLiquid?.destroy?.();
+    statLiquid = createStatLiquidController(pageEl);
     await loadHomeData(pageEl);
     setupHomeEvents(pageEl);
     setupPlant(pageEl);
@@ -188,10 +199,20 @@ async function loadHomeData(pageEl) {
         const catEl = pageEl.querySelector('#pcStatCategories');
         const tagsEl = pageEl.querySelector('#pcStatTags');
         const favEl = pageEl.querySelector('#pcStatFavorites');
+        const tagCount = aggregateTags(promptSets).length;
+        const favCount = promptSets.filter(p => p.isFavorite === true).length;
         if (totalEl) totalEl.textContent = promptSets.length;
         if (catEl) catEl.textContent = folders.length;
-        if (tagsEl) tagsEl.textContent = aggregateTags(promptSets).length;
-        if (favEl) favEl.textContent = promptSets.filter(p => p.isFavorite === true).length;
+        if (tagsEl) tagsEl.textContent = tagCount;
+        if (favEl) favEl.textContent = favCount;
+
+        // 液面固定中位装饰高度，不随数量填充
+        statLiquid?.setFills?.({
+            total: 0.46,
+            categories: 0.48,
+            tags: 0.44,
+            favorites: 0.45,
+        });
 
         renderRecentList(pageEl, promptSets);
         renderCategoryGrid(pageEl, folders, promptSets);
@@ -485,6 +506,8 @@ function unmount(pageEl) {
     destroyPlantView();
     homeSearchDebounced?.cancel();
     homeSearchDebounced = null;
+    statLiquid?.destroy?.();
+    statLiquid = null;
     homeData = null;
     homeSearchKeyword = '';
 }

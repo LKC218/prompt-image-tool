@@ -1,4 +1,4 @@
-const DEFAULT_VERSION = '2.5.11';
+const DEFAULT_VERSION = '2.5.12';
 
 /**
  * 从页面 meta 标签读取应用版本号。

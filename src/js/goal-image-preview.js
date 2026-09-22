@@ -215,7 +215,7 @@ export function mountGoalImageIcons(container, options = {}) {
     }
     const unbindKeyboard = bindKeyboard();
 
-    container.querySelectorAll('.goal-image-icon').forEach(icon => {
+    container.querySelectorAll(options.iconSelector || '.goal-image-icon').forEach(icon => {
         const taskId = icon.dataset.taskId;
 
         if (isMobile) {

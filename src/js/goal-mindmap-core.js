@@ -62,7 +62,14 @@ function buildNodesFromTasks(tasks, parentId, depth, nodes) {
             priority: task.priority || '',
             status: task.status || '',
             checkState,
-            hasChildren: children.length > 0
+            hasChildren: children.length > 0,
+            imageCount: Array.isArray(task.images) ? task.images.length : 0,
+            images: Array.isArray(task.images) ? task.images.map(img => ({
+                id: img?.id || '',
+                path: img?.path || '',
+                name: img?.name || '',
+                data: img?.data || ''
+            })) : []
         });
         if (children.length > 0) {
             buildNodesFromTasks(children, task.id, depth + 1, nodes);
@@ -196,7 +203,9 @@ export function buildMindmapGraph(project, tasks) {
         status: '',
         checkState: rootTasks.length > 0 ? getParentCheckState(rootTasks) : 'unchecked',
         hasChildren: rootTasks.length > 0,
-        isRoot: true
+        isRoot: true,
+        imageCount: 0,
+        images: []
     }];
     const hierarchyEdges = [];
     buildNodesFromTasks(rootTasks, MINDMAP_ROOT_ID, 1, nodes);
@@ -398,6 +407,19 @@ export function writeMindmapLinks(storage, projectId, links) {
     } catch {
         // ignore quota / private mode
     }
+}
+
+export function normalizeMindmapViewMode(value) {
+    return value === 'mindmap' || value === 'list' ? value : null;
+}
+
+/** 初始视图优先级：路由 params.view > 一次性 open-view > 项目偏好 > fallback。 */
+export function resolveInitialMindmapView(options = {}) {
+    const fromRoute = normalizeMindmapViewMode(options.routeView);
+    if (fromRoute) return fromRoute;
+    const fromOpen = normalizeMindmapViewMode(options.openView);
+    if (fromOpen) return fromOpen;
+    return normalizeMindmapViewMode(options.storedView) || options.fallback || 'list';
 }
 
 export function readMindmapView(storage, projectId, fallback = 'list') {
