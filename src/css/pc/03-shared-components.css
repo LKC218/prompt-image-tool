@@ -3,7 +3,7 @@
 }
 
 .pc-app.pc-sidebar-collapsed .pc-sidebar-header {
-    padding: calc(var(--pc-window-chrome-height) + 10px) 6px 14px;
+    padding: 18px 6px 14px;
 }
 
 .pc-app.pc-sidebar-collapsed .pc-sidebar-header-top {
@@ -130,7 +130,7 @@
     width: 100%;
     max-width: var(--pc-content-max);
     margin: 0 auto;
-    padding: calc(var(--pc-page-pad-y) + var(--pc-window-chrome-height, 36px)) var(--pc-page-pad-x) var(--pc-page-pad-y);
+    padding: var(--pc-page-pad-y) var(--pc-page-pad-x);
     min-height: 100%;
     animation: pc-fade-in 0.25s ease;
 }

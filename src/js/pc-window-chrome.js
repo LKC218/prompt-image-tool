@@ -56,6 +56,22 @@ async function resolveWindowApi() {
 }
 
 const ICONS = {
+    sidebar: `
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+            <rect x="2" y="3" width="12" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M6 3v10" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        </svg>
+    `,
+    back: `
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M10 3.5 5.5 8 10 12.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    `,
+    forward: `
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    `,
     minimize: `
         <svg viewBox="0 0 12 12" aria-hidden="true">
             <path d="M2 6.25h8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
@@ -81,7 +97,18 @@ const ICONS = {
 
 export function renderWindowChrome() {
     return `
-        <div class="pc-window-chrome ${DRAG_CLASS}" id="${CHROME_ID}" ${DRAG_ATTR}>
+        <header class="pc-window-chrome" id="${CHROME_ID}">
+            <div class="pc-window-chrome-left ${DRAG_CLASS}" ${DRAG_ATTR}>
+                <button type="button" class="pc-chrome-nav-btn" data-chrome-action="toggle-sidebar" aria-label="收起侧边栏" title="收起侧边栏">
+                    ${ICONS.sidebar}
+                </button>
+                <button type="button" class="pc-chrome-nav-btn" data-chrome-action="back" aria-label="后退" title="后退">
+                    ${ICONS.back}
+                </button>
+                <button type="button" class="pc-chrome-nav-btn" data-chrome-action="forward" aria-label="前进" title="前进">
+                    ${ICONS.forward}
+                </button>
+            </div>
             <div class="pc-window-chrome-drag ${DRAG_CLASS}" ${DRAG_ATTR}></div>
             <div class="pc-window-controls" role="group" aria-label="窗口控制">
                 <button type="button" class="pc-window-btn" data-window-action="minimize" aria-label="最小化" title="最小化">
@@ -95,7 +122,7 @@ export function renderWindowChrome() {
                     ${ICONS.close}
                 </button>
             </div>
-        </div>
+        </header>
     `;
 }
 
@@ -118,6 +145,20 @@ async function syncMaximizeState(root) {
         maxBtn.querySelector('.pc-window-btn-icon-restore')?.toggleAttribute('hidden', !maximized);
     } catch (e) {
         console.warn('sync window maximize state failed:', e);
+    }
+}
+
+function handleChromeAction(action) {
+    if (action === 'toggle-sidebar') {
+        document.getElementById('pcSidebarToggle')?.click();
+        return;
+    }
+    if (action === 'back') {
+        window.history.back();
+        return;
+    }
+    if (action === 'forward') {
+        window.history.forward();
     }
 }
 
@@ -155,6 +196,13 @@ export function mountWindowChrome(root) {
     if (!chrome) return () => {};
 
     const onActionClick = (event) => {
+        const chromeBtn = event.target.closest('[data-chrome-action]');
+        if (chromeBtn && chrome.contains(chromeBtn)) {
+            event.preventDefault();
+            event.stopPropagation();
+            handleChromeAction(chromeBtn.dataset.chromeAction);
+            return;
+        }
         const btn = event.target.closest('[data-window-action]');
         if (!btn || !chrome.contains(btn)) return;
         event.preventDefault();
@@ -165,7 +213,7 @@ export function mountWindowChrome(root) {
     };
 
     const onDragDoubleClick = (event) => {
-        if (event.target.closest('[data-window-action]')) return;
+        if (event.target.closest('[data-window-action], [data-chrome-action]')) return;
         if (!event.target.closest(`[${DRAG_ATTR}], .${DRAG_CLASS}`)) return;
         handleWindowAction('maximize').finally(() => {
             syncMaximizeState(chrome);

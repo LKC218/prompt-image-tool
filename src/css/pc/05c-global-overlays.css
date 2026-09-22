@@ -1569,20 +1569,24 @@
 .pc-update-progress-modal {
     width: min(440px, 100%);
     padding: 28px 28px 22px;
-    border-radius: var(--pc-radius-lg, 16px);
-    background: var(--pc-surface, #fff);
+    border-radius: var(--pc-radius-xl, 28px);
+    background: linear-gradient(145deg, var(--pc-surface), var(--pc-surface2));
     color: var(--pc-text);
-    box-shadow: var(--pc-shadow-lg, 0 16px 40px rgba(15, 23, 42, 0.16));
+    box-shadow:
+        16px 16px 32px var(--pc-neu-dark),
+        -12px -12px 28px var(--pc-neu-light),
+        inset 0 1px 0 color-mix(in srgb, var(--pc-neu-light) 70%, transparent);
 }
 
 .pc-update-progress-modal h3 {
     margin: 0 0 8px;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
+    letter-spacing: 0.01em;
 }
 
 .pc-update-progress-desc {
-    margin: 0 0 18px;
+    margin: 0 0 20px;
     color: var(--pc-text2);
     font-size: 13px;
     line-height: 1.5;
@@ -1592,24 +1596,49 @@
 .pc-update-progress-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
 }
 
 .pc-update-progress-bar {
     position: relative;
     flex: 1;
-    height: 8px;
+    height: 14px;
     overflow: hidden;
-    border-radius: var(--pc-radius-full, 999px);
-    background: var(--pc-surface2);
+    border-radius: var(--pc-neu-radius-full);
+    background: var(--pc-neu-bg);
+    box-shadow:
+        inset 4px 4px 8px var(--pc-neu-dark),
+        inset -3px -3px 7px var(--pc-neu-light);
 }
 
 .pc-update-progress-fill {
     height: 100%;
     width: 0;
     border-radius: inherit;
-    background: var(--pc-accent);
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--pc-accent) 78%, #fff),
+        var(--pc-accent) 55%,
+        var(--pc-accent-strong)
+    );
+    box-shadow:
+        0 1px 2px color-mix(in srgb, var(--pc-accent-strong) 35%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--pc-neu-light) 40%, transparent);
     transition: width 0.25s ease;
+}
+
+.pc-update-progress-fill::after {
+    content: "";
+    position: absolute;
+    right: 3px;
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--pc-neu-light) 55%, transparent);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--pc-neu-light) 70%, transparent);
+    transform: translateY(-50%);
+    pointer-events: none;
 }
 
 .pc-update-progress-indeterminate {
@@ -1618,6 +1647,7 @@
     width: 36%;
     border-radius: inherit;
     background: linear-gradient(90deg, transparent, var(--pc-accent), transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--pc-neu-light) 35%, transparent);
     animation: pc-update-progress-slide 1.1s ease-in-out infinite;
 }
 
@@ -1627,15 +1657,16 @@
 }
 
 .pc-update-progress-percent {
-    min-width: 42px;
+    min-width: 44px;
     text-align: right;
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: var(--pc-text1, var(--pc-text));
+    color: var(--pc-accent);
 }
 
 .pc-update-progress-meta {
-    margin: 10px 0 0;
+    margin: 12px 0 0;
     color: var(--pc-text3);
     font-size: 12px;
     min-height: 1.2em;
@@ -1644,7 +1675,7 @@
 
 .pc-update-stage-list {
     list-style: none;
-    margin: 18px 0 0;
+    margin: 20px 0 0;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -1653,9 +1684,15 @@
 
 .pc-update-stage-list li {
     display: grid;
-    grid-template-columns: 12px 1fr auto;
+    grid-template-columns: 28px 1fr auto;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--pc-radius-md);
+    background: var(--pc-neu-bg);
+    box-shadow:
+        5px 5px 11px var(--pc-neu-dark),
+        -5px -5px 11px var(--pc-neu-light);
     font-size: 13px;
     color: var(--pc-text2);
 }
@@ -1663,7 +1700,13 @@
 .pc-update-stage-list li strong {
     font-size: 12px;
     font-weight: 600;
+    padding: 4px 10px;
+    border-radius: var(--pc-neu-radius-full);
+    background: var(--pc-neu-bg);
     color: var(--pc-text3);
+    box-shadow:
+        inset 2px 2px 5px var(--pc-neu-dark),
+        inset -2px -2px 5px var(--pc-neu-light);
 }
 
 .pc-update-stage-list li.done {
@@ -1671,7 +1714,12 @@
 }
 
 .pc-update-stage-list li.done strong {
-    color: var(--pc-green, #22c55e);
+    color: var(--pc-green, #29B37A);
+    background: var(--pc-green-light, #EFFFF4);
+    box-shadow:
+        2px 2px 5px color-mix(in srgb, var(--pc-green, #29B37A) 12%, transparent),
+        -2px -2px 5px var(--pc-neu-light),
+        inset 0 1px 0 color-mix(in srgb, var(--pc-neu-light) 50%, transparent);
 }
 
 .pc-update-stage-list li.active {
@@ -1681,61 +1729,217 @@
 
 .pc-update-stage-list li.active strong {
     color: var(--pc-accent);
+    background: var(--pc-accent-bg);
+    box-shadow:
+        2px 2px 5px color-mix(in srgb, var(--pc-accent) 14%, transparent),
+        -2px -2px 5px var(--pc-neu-light),
+        inset 0 1px 0 color-mix(in srgb, var(--pc-neu-light) 50%, transparent);
 }
 
 .pc-update-stage-list .stage-dot {
-    width: 8px;
-    height: 8px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background: var(--pc-surface2);
-    box-shadow: inset 0 0 0 1px var(--pc-border, rgba(15, 23, 42, 0.08));
+    display: grid;
+    place-items: center;
+    background: var(--pc-neu-bg);
+    box-shadow:
+        3px 3px 7px var(--pc-neu-dark),
+        -3px -3px 7px var(--pc-neu-light);
+}
+
+.pc-update-stage-list .stage-dot::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--pc-text3) 55%, var(--pc-neu-bg));
+    box-shadow: inset 1px 1px 2px var(--pc-neu-dark);
 }
 
 .pc-update-stage-list li.done .stage-dot {
-    background: var(--pc-green, #22c55e);
+    background: linear-gradient(145deg, #3BC48A, #1F9A66);
+    box-shadow:
+        3px 3px 7px color-mix(in srgb, #1F8A5B 28%, transparent),
+        -3px -3px 7px var(--pc-neu-light);
+}
+
+.pc-update-stage-list li.done .stage-dot::before {
+    width: 8px;
+    height: 5px;
+    border-radius: 0;
+    background: transparent;
     box-shadow: none;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
 }
 
 .pc-update-stage-list li.active .stage-dot {
-    background: var(--pc-accent);
-    box-shadow: none;
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--pc-accent) 88%, #fff),
+        var(--pc-accent-strong)
+    );
+    box-shadow:
+        3px 3px 7px color-mix(in srgb, var(--pc-accent-strong) 32%, transparent),
+        -3px -3px 7px var(--pc-neu-light);
+}
+
+.pc-update-stage-list li.active .stage-dot::before {
+    width: 8px;
+    height: 8px;
+    background: color-mix(in srgb, var(--pc-neu-light) 35%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--pc-neu-light) 18%, transparent);
     animation: pc-update-stage-pulse 1.2s ease-in-out infinite;
 }
 
 @keyframes pc-update-stage-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.45; }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
 }
 
 .pc-update-progress-error {
     margin-top: 14px;
     padding: 10px 12px;
-    border-radius: var(--pc-radius-sm, 10px);
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--pc-danger, #ef4444);
+    border-radius: var(--pc-radius-sm);
+    background: color-mix(in srgb, var(--pc-danger, #FF5A5A) 10%, var(--pc-neu-bg));
+    color: var(--pc-danger, #FF5A5A);
     font-size: 12px;
     line-height: 1.5;
+    box-shadow:
+        inset 3px 3px 7px var(--pc-neu-dark),
+        inset -2px -2px 6px var(--pc-neu-light);
 }
 
 .pc-update-progress-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+/* 新拟态操作按钮（仅限更新弹窗作用域） */
+.pc-update-progress-modal .pc-btn {
+    border: none;
+    border-radius: var(--pc-neu-radius-full);
+    padding: 11px 22px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+}
+
+.pc-update-progress-modal .pc-btn-secondary {
+    background: linear-gradient(145deg, var(--pc-surface), var(--pc-surface2));
+    color: var(--pc-text2);
+    box-shadow:
+        5px 5px 11px var(--pc-neu-dark),
+        -5px -5px 11px var(--pc-neu-light);
+}
+
+.pc-update-progress-modal .pc-btn-secondary:hover {
+    background: linear-gradient(145deg, var(--pc-surface), var(--pc-surface2));
+    color: var(--pc-text);
+    box-shadow:
+        7px 7px 14px var(--pc-neu-dark-accent),
+        -6px -6px 12px var(--pc-neu-light);
+}
+
+.pc-update-progress-modal .pc-btn-primary {
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--pc-accent) 88%, #fff),
+        var(--pc-accent-strong)
+    );
+    color: var(--color-text-on-brand, #fff);
+    border-color: transparent;
+    box-shadow:
+        6px 6px 14px color-mix(in srgb, var(--pc-accent-strong) 28%, transparent),
+        -4px -4px 10px var(--pc-neu-light),
+        inset 0 1px 0 color-mix(in srgb, var(--pc-neu-light) 25%, transparent);
+}
+
+.pc-update-progress-modal .pc-btn-primary:hover {
+    opacity: 1;
+    background: linear-gradient(
+        145deg,
+        color-mix(in srgb, var(--pc-accent) 92%, #fff),
+        var(--pc-accent-strong)
+    );
+    box-shadow:
+        8px 8px 16px color-mix(in srgb, var(--pc-accent-strong) 32%, transparent),
+        -5px -5px 12px var(--pc-neu-light),
+        inset 0 1px 0 color-mix(in srgb, var(--pc-neu-light) 28%, transparent);
+}
+
+.pc-update-progress-modal .pc-btn:active:not(:disabled) {
+    transform: translateY(1px) scale(0.99);
+}
+
+.pc-update-progress-modal .pc-btn-secondary:active:not(:disabled) {
+    box-shadow:
+        inset 4px 4px 10px var(--pc-neu-dark),
+        inset -3px -3px 8px var(--pc-neu-light);
+}
+
+.pc-update-progress-modal .pc-btn-primary:active:not(:disabled) {
+    background: linear-gradient(
+        145deg,
+        var(--pc-accent-strong),
+        color-mix(in srgb, var(--pc-accent) 88%, #fff)
+    );
+    box-shadow:
+        inset 4px 4px 10px color-mix(in srgb, var(--pc-accent-strong) 45%, #000 10%),
+        inset -3px -3px 8px color-mix(in srgb, var(--pc-neu-light) 12%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
     .pc-update-progress-indeterminate,
-    .pc-update-stage-list li.active .stage-dot {
+    .pc-update-stage-list li.active .stage-dot::before {
         animation: none;
+    }
+
+    .pc-update-progress-modal .pc-btn {
+        transition: none;
     }
 }
 
 :root[data-appearance="dark"] .pc-update-progress-modal {
-    background: var(--pc-surface);
+    background: linear-gradient(145deg, var(--pc-surface), var(--pc-surface2));
+    box-shadow:
+        16px 16px 32px var(--pc-neu-dark),
+        -10px -10px 24px var(--pc-neu-light),
+        inset 0 1px 0 color-mix(in srgb, var(--pc-neu-light) 18%, transparent);
 }
 
 :root[data-appearance="dark"] .pc-update-progress-overlay {
-    background: rgba(0, 0, 0, 0.45);
+    background: var(--color-overlay-backdrop-soft);
+}
+
+:root[data-appearance="dark"] .pc-update-stage-list li.done .stage-dot {
+    background: linear-gradient(145deg, #3BC48A, #1F9A66);
+}
+
+:root[data-appearance="dark"] .pc-update-stage-list li.done strong {
+    background: var(--color-state-success-bg, #194A37);
+    color: var(--color-state-success-fg, #6ED7A3);
+    box-shadow:
+        2px 2px 5px var(--pc-neu-dark),
+        -2px -2px 5px var(--pc-neu-light),
+        inset 0 1px 0 color-mix(in srgb, var(--pc-neu-light) 12%, transparent);
+}
+
+:root[data-appearance="dark"] .pc-update-stage-list li.active strong {
+    background: var(--color-state-info-bg, #173C63);
+    color: var(--color-state-info-fg, #7DBDFF);
+}
+
+:root[data-appearance="dark"] .pc-update-progress-error {
+    background: var(--color-state-danger-bg, #642B35);
+    color: var(--color-state-danger-fg, #FF9EAA);
+}
+
+:root[data-appearance="dark"] .pc-update-progress-modal .pc-btn-primary {
+    color: var(--color-text-on-brand, #0C1927);
 }
 

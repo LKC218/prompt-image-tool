@@ -10,10 +10,11 @@ describe('pc-window-chrome', () => {
     it('renders chrome with drag region and window controls', () => {
         const chrome = document.getElementById(CHROME_ID);
         expect(chrome).toBeTruthy();
-        expect(chrome.hasAttribute('data-tauri-drag-region')).toBe(true);
-        expect(chrome.classList.contains('pywebview-drag-region')).toBe(true);
+        expect(chrome.querySelector('.pc-window-chrome-left')?.hasAttribute('data-tauri-drag-region')).toBe(true);
         expect(chrome.querySelector('.pc-window-chrome-drag')?.hasAttribute('data-tauri-drag-region')).toBe(true);
-        expect(chrome.querySelector('.pc-window-chrome-drag')?.classList.contains('pywebview-drag-region')).toBe(true);
+        expect(chrome.querySelector('[data-chrome-action="toggle-sidebar"]')).toBeTruthy();
+        expect(chrome.querySelector('[data-chrome-action="back"]')).toBeTruthy();
+        expect(chrome.querySelector('[data-chrome-action="forward"]')).toBeTruthy();
         expect(chrome.querySelector('[data-window-action="minimize"]')).toBeTruthy();
         expect(chrome.querySelector('[data-window-action="maximize"]')).toBeTruthy();
         expect(chrome.querySelector('[data-window-action="close"]')).toBeTruthy();

@@ -129,6 +129,8 @@ const CLOCK_NUMBERS = Array.from({ length: 12 }, (_, i) => {
 
 function renderShell() {
     return `
+        ${renderWindowChrome()}
+        <div class="pc-shell-body">
         <div class="pc-sidebar-stage" id="pcSidebarStage">
             <div class="pc-sidebar-underlay pc-sidebar-underlay-far" aria-hidden="true"></div>
             <div class="pc-sidebar-underlay pc-sidebar-underlay-near" aria-hidden="true"></div>
@@ -220,8 +222,8 @@ function renderShell() {
             </div>
             </aside>
         </div>
-        ${renderWindowChrome()}
         <main class="pc-main" id="pcMain"></main>
+        </div>
     `;
 }
 

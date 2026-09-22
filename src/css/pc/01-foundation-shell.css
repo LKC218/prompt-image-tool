@@ -133,6 +133,7 @@
     color: var(--pc-text);
     font: var(--pc-font-body);
     display: flex;
+    flex-direction: column;
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
 }
@@ -257,40 +258,86 @@
     }
 }
 
-/* 系统无边框窗口外壳：顶栏融入界面，右上角自绘窗口控件 */
+/* 一体化窗口顶栏：真实布局行（左导航簇 + 拖动区 + 右窗口钮） */
 .pc-window-chrome {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: relative;
     z-index: 2600;
     height: var(--pc-window-chrome-height);
+    min-height: var(--pc-window-chrome-height);
     display: flex;
     align-items: stretch;
-    justify-content: flex-end;
-    pointer-events: none;
+    flex-shrink: 0;
     user-select: none;
     -webkit-user-select: none;
+}
+
+.pc-window-chrome-left {
+    width: var(--pc-sidebar-width);
+    min-width: var(--pc-sidebar-width);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 8px;
+    background: var(--pc-sidebar-bg);
+    border-right: 1px solid var(--pc-border-light);
+    transition: width 0.32s cubic-bezier(.2,.8,.2,1), min-width 0.32s cubic-bezier(.2,.8,.2,1);
+    cursor: default;
 }
 
 .pc-window-chrome-drag {
     flex: 1;
     min-width: 0;
-    pointer-events: auto;
+    background: var(--pc-bg);
     cursor: default;
 }
 
 /* pywebview 无边框窗口拖动热区（与 Tauri data-tauri-drag-region 双端并存） */
-.pc-window-chrome.pywebview-drag-region,
+.pc-window-chrome-left.pywebview-drag-region,
 .pc-window-chrome-drag.pywebview-drag-region {
     -webkit-app-region: drag;
     app-region: drag;
 }
 
+.pc-chrome-nav-btn {
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--pc-text2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pc-chrome-nav-btn svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.pc-chrome-nav-btn:hover {
+    background: var(--pc-control-surface-pressed);
+    color: var(--pc-text);
+}
+
+.pc-chrome-nav-btn:active {
+    background: var(--pc-control-surface-pressed);
+}
+
+.pc-chrome-nav-btn:focus-visible {
+    outline: 2px solid var(--pc-accent);
+    outline-offset: -2px;
+}
+
 .pc-window-controls {
     display: flex;
     align-items: stretch;
-    pointer-events: auto;
+    background: var(--pc-bg);
 }
 
 .pc-window-btn {
@@ -345,23 +392,22 @@
     justify-content: center;
 }
 
-body.pc-goal-mindmap-max-open .pc-window-chrome {
-    z-index: 2600;
+.pc-shell-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    position: relative;
 }
 
-body.pc-goal-mindmap-max-open .pc-goal-mindmap-toolbar {
-    padding-right: calc(var(--pc-window-control-width) * 3 + 12px);
-    padding-top: calc(var(--pc-window-chrome-height) + 4px);
-}
-
-body.pc-goal-mindmap-max-open .pc-goal-detail-page.is-mindmap-maximized .pc-goal-mindmap-toolbar,
-body.pc-goal-mindmap-max-open .pc-goal-mindmap.is-maximized .pc-goal-mindmap-toolbar {
-    padding-right: calc(var(--pc-window-control-width) * 3 + 12px);
-    padding-top: calc(var(--pc-window-chrome-height) + 4px);
+/* 脑图最大化铺满内容区，顶栏保持可见 */
+body.pc-goal-mindmap-max-open .pc-goal-detail-page.is-mindmap-maximized,
+body.pc-goal-mindmap-max-open .pc-goal-mindmap.is-maximized {
+    top: var(--pc-window-chrome-height) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .pc-window-btn {
+    .pc-window-btn,
+    .pc-chrome-nav-btn {
         transition: none;
     }
 }
@@ -566,7 +612,7 @@ body.pc-goal-mindmap-max-open .pc-goal-mindmap.is-maximized .pc-goal-mindmap-too
 }
 
 .pc-sidebar-header {
-    padding: calc(var(--pc-window-chrome-height) + var(--pc-space-lg)) var(--pc-space-xl) var(--pc-space-2xl);
+    padding: var(--pc-space-2xl) var(--pc-space-xl);
     border-bottom: 1px solid var(--pc-border-light);
     transition: padding 0.22s cubic-bezier(.2,.8,.2,1);
 }

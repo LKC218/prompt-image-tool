@@ -82,8 +82,8 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
                 ${STAGE_LABELS.map((stage) => `
                     <li data-stage="${stage.key}" class="waiting">
                         <span class="stage-dot" aria-hidden="true"></span>
-                        <span>${stage.label}</span>
-                        <strong>等待中</strong>
+                        <span class="stage-label">${stage.label}</span>
+                        <strong class="stage-status">等待中</strong>
                     </li>
                 `).join('')}
             </ul>

@@ -8,7 +8,7 @@
     background-color: #EAF6FF;
     border-radius: 0 0 28px 28px;
     min-height: 176px;
-    margin: calc((var(--pc-page-pad-y) + var(--pc-window-chrome-height, 36px)) * -1) calc(var(--pc-page-pad-x) * -1) var(--pc-space-lg);
+    margin: calc(var(--pc-page-pad-y) * -1) calc(var(--pc-page-pad-x) * -1) var(--pc-space-lg);
     box-shadow: none;
 }
 
