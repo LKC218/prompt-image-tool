@@ -220,6 +220,68 @@ class DesktopWindowApi:
         return bool(self._maximized)
 
 
+def strip_native_caption(window, log=None):
+    """Force-remove OS title bar on Windows (frameless=True is not enough on WebView2)."""
+    if sys.platform != 'win32':
+        return False
+    try:
+        import ctypes
+
+        GWL_STYLE = -16
+        WS_CAPTION = 0x00C00000
+        WS_SYSMENU = 0x00080000
+        WS_THICKFRAME = 0x00040000
+        WS_MINIMIZEBOX = 0x00020000
+        WS_MAXIMIZEBOX = 0x00010000
+        SWP_NOSIZE = 0x0001
+        SWP_NOMOVE = 0x0002
+        SWP_NOZORDER = 0x0004
+        SWP_FRAMECHANGED = 0x0020
+
+        hwnd = 0
+        native = getattr(window, 'native', None)
+        if native is not None:
+            handle = getattr(native, 'Handle', None)
+            if handle is not None:
+                if hasattr(handle, 'ToInt64'):
+                    hwnd = int(handle.ToInt64())
+                elif hasattr(handle, 'value'):
+                    hwnd = int(handle.value)
+                else:
+                    try:
+                        hwnd = int(handle)
+                    except (TypeError, ValueError):
+                        hwnd = 0
+        if not hwnd:
+            if log:
+                log('strip_native_caption: hwnd not found')
+            return False
+
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+        style = user32.GetWindowLongW(hwnd, GWL_STYLE)
+        style &= ~WS_CAPTION
+        style &= ~WS_SYSMENU
+        style |= WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
+        kernel32.SetLastError(0)
+        result = user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+        if result == 0 and kernel32.GetLastError() != 0:
+            if log:
+                log('strip_native_caption: SetWindowLongW failed')
+            return False
+        user32.SetWindowPos(
+            hwnd, 0, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
+        )
+        if log:
+            log(f'strip_native_caption: ok hwnd={hwnd} style={style:#x}')
+        return True
+    except Exception as exc:
+        if log:
+            log(f'strip_native_caption failed: {type(exc).__name__}: {exc}')
+        return False
+
+
 class DataFileError(RuntimeError):
     pass
 
@@ -2747,6 +2809,14 @@ def main():
             )
             window_api.bind_window(window)
 
+            def _on_shown(*_args, **_kwargs):
+                strip_native_caption(window, log=write_log)
+
+            try:
+                window.events.shown += _on_shown
+            except Exception as bind_err:
+                write_log(f'bind shown hook failed: {bind_err}')
+
             def _sync_window_chrome(*_args, **_kwargs):
                 try:
                     window.evaluate_js(
@@ -2781,6 +2851,10 @@ def main():
                     js_api=window_api,
                 )
                 window_api.bind_window(window)
+                try:
+                    window.events.shown += lambda *a, **k: strip_native_caption(window, log=write_log)
+                except Exception as shown_err:
+                    write_log(f'bind shown hook (fallback) failed: {shown_err}')
                 webview.start()
                 write_log('webview.start() succeeded without icon')
                 httpd.shutdown()

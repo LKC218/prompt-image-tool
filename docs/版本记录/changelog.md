@@ -5,6 +5,20 @@
 
 ---
 
+## 未发布（feat/hide-native-titlebar）
+
+### 修复
+
+- **原生标题栏未隐藏**：Win11 WebView2 下 `frameless=True` 仍可能保留系统标题栏；`build/app_main.py` 在窗口 `shown` 后用 Win32 去掉 `WS_CAPTION | WS_SYSMENU`（保留 `WS_THICKFRAME` 边缘缩放），失败不阻断启动。
+
+### 验证
+
+- `python scripts/frameless_probe.py`：拆边框后 `has_ws_caption: false`。
+- `npm run test`：通过（42 个测试文件，352 个测试用例）。
+- `python -m py_compile build/app_main.py`：通过。
+
+---
+
 ## v2.5.14 (2026-09-22)
 
 > 记录依据：`v2.5.13` 发布之后的窗口外壳结构重做（真实顶栏布局行、MiMO 同构导航/窗口控件）。
