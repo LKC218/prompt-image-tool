@@ -5,11 +5,24 @@
 
 ---
 
-## 未发布（feat/hide-native-titlebar）
+## v2.5.15 (2026-09-22)
+
+> 记录依据：`feat/hide-native-titlebar`（`12fe649`）Win32 强制隐藏原生标题栏。
 
 ### 修复
 
 - **原生标题栏未隐藏**：Win11 WebView2 下 `frameless=True` 仍可能保留系统标题栏；`build/app_main.py` 在窗口 `shown` 后用 Win32 去掉 `WS_CAPTION | WS_SYSMENU`（保留 `WS_THICKFRAME` 边缘缩放），失败不阻断启动。
+
+### 发布
+
+- 版本号统一升级至 `2.5.15`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、NSIS 安装器、安装器壳版本统一升级至 `2.5.15`。
+- Android `versionCode` 从 `26` 递增至 `27`，`versionName` 升级为 `2.5.15`。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.15.exe`：39,437,173 字节（37.6 MB），SHA256 `3D817CE702E5DC6F063CC15CB5FF278A5EE458D39B9D77B642CDAE1B10615762`
 
 ### 验证
 

@@ -1,5 +1,25 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.15',
+        date: '2026-09-22',
+        sections: [
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    '去掉系统黑色标题栏：Win11 下 WebView2 无边框不可靠时，启动后强制隐藏原生标题栏，只保留应用内顶栏。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.15；基于当前主分支重新构建 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.14',
         date: '2026-09-22',
         sections: [
