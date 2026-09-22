@@ -64,6 +64,8 @@
     --pc-space-3xl: 32px;
     --pc-space-4xl: 48px;
 
+    --pc-window-chrome-height: 36px;
+    --pc-window-control-width: 46px;
     --pc-sidebar-expanded-width: 280px;
     --pc-sidebar-collapsed-width: 84px;
     --pc-sidebar-width: var(--pc-sidebar-expanded-width);
@@ -252,6 +254,115 @@
     .pc-custom-cursor.is-plant.is-pressed {
         width: 30px;
         height: 30px;
+    }
+}
+
+/* 系统无边框窗口外壳：顶栏融入界面，右上角自绘窗口控件 */
+.pc-window-chrome {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 2600;
+    height: var(--pc-window-chrome-height);
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.pc-window-chrome-drag {
+    flex: 1;
+    min-width: 0;
+    pointer-events: auto;
+    cursor: default;
+}
+
+/* pywebview 无边框窗口拖动热区（与 Tauri data-tauri-drag-region 双端并存） */
+.pc-window-chrome.pywebview-drag-region,
+.pc-window-chrome-drag.pywebview-drag-region {
+    -webkit-app-region: drag;
+    app-region: drag;
+}
+
+.pc-window-controls {
+    display: flex;
+    align-items: stretch;
+    pointer-events: auto;
+}
+
+.pc-window-btn {
+    width: var(--pc-window-control-width);
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--pc-text2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pc-window-btn svg {
+    width: 12px;
+    height: 12px;
+    display: block;
+}
+
+.pc-window-btn:hover {
+    background: var(--pc-control-surface-pressed);
+    color: var(--pc-text);
+}
+
+.pc-window-btn:active {
+    background: var(--pc-control-surface-pressed);
+}
+
+.pc-window-btn:focus-visible {
+    outline: 2px solid var(--pc-accent);
+    outline-offset: -2px;
+}
+
+.pc-window-btn-close:hover {
+    background: var(--pc-danger);
+    color: #fff;
+}
+
+.pc-window-btn-close:active {
+    background: color-mix(in srgb, var(--pc-danger) 82%, #000);
+    color: #fff;
+}
+
+.pc-window-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.pc-goal-mindmap-max-open .pc-window-chrome {
+    z-index: 2600;
+}
+
+body.pc-goal-mindmap-max-open .pc-goal-mindmap-toolbar {
+    padding-right: calc(var(--pc-window-control-width) * 3 + 12px);
+    padding-top: calc(var(--pc-window-chrome-height) + 4px);
+}
+
+body.pc-goal-mindmap-max-open .pc-goal-detail-page.is-mindmap-maximized .pc-goal-mindmap-toolbar,
+body.pc-goal-mindmap-max-open .pc-goal-mindmap.is-maximized .pc-goal-mindmap-toolbar {
+    padding-right: calc(var(--pc-window-control-width) * 3 + 12px);
+    padding-top: calc(var(--pc-window-chrome-height) + 4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-window-btn {
+        transition: none;
     }
 }
 
@@ -455,7 +566,7 @@
 }
 
 .pc-sidebar-header {
-    padding: var(--pc-space-2xl) var(--pc-space-xl);
+    padding: calc(var(--pc-window-chrome-height) + var(--pc-space-lg)) var(--pc-space-xl) var(--pc-space-2xl);
     border-bottom: 1px solid var(--pc-border-light);
     transition: padding 0.22s cubic-bezier(.2,.8,.2,1);
 }

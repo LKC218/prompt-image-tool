@@ -173,6 +173,53 @@ ZIP_BACKUP_MAX_FILE_BYTES = 1024 * 1024 * 1024
 ZIP_BACKUP_MAX_UNCOMPRESSED_BYTES = 20 * 1024 * 1024 * 1024
 
 
+class DesktopWindowApi:
+    """Expose desktop window controls to the page (pywebview js_api)."""
+
+    def __init__(self):
+        self._window = None
+        self._maximized = False
+
+    def bind_window(self, window):
+        self._window = window
+
+        def _on_maximized(*_args, **_kwargs):
+            self._maximized = True
+
+        def _on_restored(*_args, **_kwargs):
+            self._maximized = False
+
+        try:
+            window.events.maximized += _on_maximized
+            window.events.restored += _on_restored
+        except Exception:
+            pass
+
+    def minimize(self):
+        if self._window is not None:
+            self._window.minimize()
+        return True
+
+    def toggle_maximize(self):
+        if self._window is None:
+            return False
+        if self._maximized:
+            self._window.restore()
+            self._maximized = False
+            return False
+        self._window.maximize()
+        self._maximized = True
+        return True
+
+    def close(self):
+        if self._window is not None:
+            self._window.destroy()
+        return True
+
+    def is_maximized(self):
+        return bool(self._maximized)
+
+
 class DataFileError(RuntimeError):
     pass
 
@@ -2686,6 +2733,7 @@ def main():
             write_log(f'Icon path: {icon_path}, exists: {os.path.exists(icon_path)}')
             write_log(f'Creating webview window with URL: {url}')
 
+            window_api = DesktopWindowApi()
             window = webview.create_window(
                 title='生图提示词管理器',
                 url=url,
@@ -2693,7 +2741,27 @@ def main():
                 height=900,
                 min_size=(1024, 576),
                 text_select=True,
+                frameless=True,
+                easy_drag=False,
+                js_api=window_api,
             )
+            window_api.bind_window(window)
+
+            def _sync_window_chrome(*_args, **_kwargs):
+                try:
+                    window.evaluate_js(
+                        'window.dispatchEvent(new Event("resize"));'
+                    )
+                except Exception as sync_err:
+                    write_log(f'sync window chrome failed: {sync_err}')
+
+            try:
+                window.events.maximized += _sync_window_chrome
+                window.events.restored += _sync_window_chrome
+                window.events.resized += _sync_window_chrome
+            except Exception as bind_err:
+                write_log(f'bind window events failed: {bind_err}')
+
             write_log('Calling webview.start()')
             webview.start(icon=icon_path if os.path.exists(icon_path) else None)
             write_log('webview.start() returned normally')
@@ -2701,13 +2769,18 @@ def main():
         except TypeError as e:
             write_log(f'webview TypeError (likely API mismatch): {e}')
             try:
+                window_api = DesktopWindowApi()
                 window = webview.create_window(
                     title='生图提示词管理器',
                     url=url,
                     width=1600,
                     height=900,
                     min_size=(1024, 576),
+                    frameless=True,
+                    easy_drag=False,
+                    js_api=window_api,
                 )
+                window_api.bind_window(window)
                 webview.start()
                 write_log('webview.start() succeeded without icon')
                 httpd.shutdown()

@@ -1800,6 +1800,12 @@
     border-radius: 0 !important;
 }
 
+/* 预留一体化窗口顶栏，避免工具条压到窗口控件 */
+.pc-goal-detail-page.is-mindmap-maximized .pc-goal-mindmap-toolbar {
+    padding-top: calc(var(--pc-window-chrome-height, 36px) + 4px);
+    padding-right: calc(var(--pc-window-control-width, 46px) * 3 + 12px);
+}
+
 .pc-goal-detail-page.is-mindmap-maximized .pc-goal-detail-header,
 .pc-goal-detail-page.is-mindmap-maximized .pc-goal-detail-progress,
 .pc-goal-detail-page.is-mindmap-maximized #pcGoalTaskList {
@@ -1993,6 +1999,11 @@ body.pc-goal-mindmap-max-open #pcContextMenu.pc-context-menu {
 
 body.pc-goal-mindmap-max-open .pc-goal-detail-page.is-mindmap-maximized {
     z-index: 2400 !important;
+}
+
+body.pc-goal-mindmap-max-open .pc-goal-detail-page.is-mindmap-maximized .pc-goal-mindmap-toolbar {
+    padding-top: calc(var(--pc-window-chrome-height, 36px) + 4px);
+    padding-right: calc(var(--pc-window-control-width, 46px) * 3 + 12px);
 }
 
 

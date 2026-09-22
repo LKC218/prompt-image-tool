@@ -5,6 +5,41 @@
 
 ---
 
+## v2.5.13 (2026-09-22)
+
+> 记录依据：`v2.5.12` 发布之后的桌面端窗口外壳一体化改造（无边框窗口、自定义标题栏控件、顶通布局适配）。
+
+### 新增
+
+- **一体化窗口外壳**：去掉系统黑色标题栏，窗口顶栏融入应用界面；右上角提供最小化/最大化/关闭，双击顶栏空白区可切换最大化/还原。
+- **双端窗口壳同步**：Tauri 与 Python/pywebview 安装包均启用无边框窗口与自定义标题栏控件，拖动热区分别对接 `data-tauri-drag-region` 与 `.pywebview-drag-region`。
+
+### 优化
+
+- **窗口观感对齐现代客户端**：侧栏与内容区从窗口顶端开始，品牌区保留在左侧；顶栏为隐形拖动区，视觉上不再出现独立系统黑条。
+- **顶栏空间适配**：欢迎横幅、详情页与导图最大化工具条预留顶栏高度，深浅色主题下窗口控件对比清晰，导图最大化时仍可操作窗口按钮。
+
+### 发布
+
+- 版本号统一升级至 `2.5.13`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、NSIS 安装器、安装器壳版本统一升级至 `2.5.13`。
+- Android `versionCode` 从 `24` 递增至 `25`，`versionName` 升级为 `2.5.13`。
+- PC Tauri 窗口配置启用 `decorations: false`，capability 补齐窗口拖动/最小化/最大化/关闭权限。
+- `build/app_main.py` 同步启用 `frameless` 窗口与 `DesktopWindowApi`（最小化/最大化/关闭），拖动区使用 `.pywebview-drag-region`。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.13.exe`：39,434,429 字节（37.6 MB），SHA256 `0DA53142ECF507B7E3E5848A7781A04078FB04642A53112A1267F8626FFDE6F1`
+
+### 验证
+
+- `npm run test`：通过（42 个测试文件，352 个测试用例；含新增 `pc-window-chrome`）。
+- `npm run build`：通过。
+- `python scripts/build_pc_package.py`：通过（PyInstaller + NSIS，产物已拷贝至 `releases/`）。
+
+---
+
 ## v2.5.12 (2026-09-22)
 
 > 记录依据：`v2.5.11` 发布提交 `6a51e62` / 首页对齐 `6fcdc48` 之后的工作区优化（导图图片预览、视图路由、首页液面、导图高度与定位）。

@@ -15,6 +15,7 @@ import { runStartupUpdateCheck, runManualUpdateCheck } from './auto-updater.js';
 import { initRipple } from './ripple.js';
 import { initPcCursor } from './pc-cursor.js';
 import { getThemeState, setAppearancePreference, setWorkbenchTheme } from './theme-service.js';
+import { renderWindowChrome, mountWindowChrome } from './pc-window-chrome.js';
 
 const LAZY_ROUTES = {
     '/': () => import('./pc-home.js'),
@@ -219,6 +220,7 @@ function renderShell() {
             </div>
             </aside>
         </div>
+        ${renderWindowChrome()}
         <main class="pc-main" id="pcMain"></main>
     `;
 }
@@ -293,6 +295,7 @@ async function mount(el) {
     setupSidebarToggle();
     setupKeyboardShortcuts();
     setupSidebarClock();
+    mountWindowChrome(appEl);
     initRipple(appEl);
     initPcCursor(appEl);
     syncReleaseNotesUnreadBadge(appEl);
