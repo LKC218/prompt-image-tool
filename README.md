@@ -22,7 +22,7 @@
 
 ## 下载
 
-当前最新：[v2.5.14](https://github.com/LKC218/prompt-image-tool/releases/latest)
+当前最新：[v2.5.15](https://github.com/LKC218/prompt-image-tool/releases/latest)
 
 普通用户直接下载发布版，无需安装 Python 或前端依赖。
 
