@@ -737,12 +737,25 @@
 
 .pc-library-table-scroll::-webkit-scrollbar-track {
     background: transparent;
-    box-shadow: var(--pc-library-neu-pressed);
 }
 
-.pc-library-table-scroll::-webkit-scrollbar-thumb {
-    border-color: var(--pc-library-surface-subtle);
-    background: color-mix(in srgb, var(--pc-accent) 42%, var(--pc-library-border));
+.pc-library-table-scroll:hover::-webkit-scrollbar-thumb,
+.pc-library-table-scroll:focus-within::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--pc-accent) 18%, var(--pc-scroll-thumb));
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow);
+}
+
+.pc-library-table-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--pc-accent) 40%, var(--pc-surface));
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-hover);
+}
+
+.pc-library-table-scroll::-webkit-scrollbar-thumb:active {
+    background-color: color-mix(in srgb, var(--pc-accent) 60%, var(--pc-surface));
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-active);
 }
 
 .pc-library-table th {

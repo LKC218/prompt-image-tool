@@ -112,6 +112,26 @@
     --pc-control-pressed-shadow: var(--color-shadow-control-pressed);
     --pc-control-soft-shadow: var(--color-shadow-control-soft);
 
+    /* 悬浮软块滚动条（方案 B）：默认近隐形，悬停浮出新拟态软胶囊 */
+    --pc-scroll-width: 10px;
+    --pc-scroll-width-thin: 8px;
+    --pc-scroll-height: 10px;
+    --pc-scroll-height-thin: 8px;
+    --pc-scroll-thumb: color-mix(in srgb, var(--pc-surface) 72%, var(--pc-text3));
+    --pc-scroll-thumb-hover: color-mix(in srgb, var(--pc-accent) 35%, var(--pc-surface));
+    --pc-scroll-thumb-active: color-mix(in srgb, var(--pc-accent) 55%, var(--pc-surface));
+    --pc-scroll-thumb-ring: color-mix(in srgb, var(--pc-text3) 12%, transparent);
+    --pc-scroll-thumb-shadow:
+        3px 3px 8px var(--pc-neu-dark),
+        -2px -2px 6px var(--pc-neu-light),
+        0 0 0 1px var(--pc-scroll-thumb-ring);
+    --pc-scroll-thumb-shadow-hover:
+        4px 4px 10px color-mix(in srgb, var(--pc-accent) 22%, transparent),
+        -3px -3px 8px var(--pc-neu-light);
+    --pc-scroll-thumb-shadow-active:
+        inset 3px 3px 8px var(--pc-neu-dark),
+        inset -2px -2px 6px var(--pc-neu-light);
+
     /* PC 侧栏采用暖色轻拟态，交互层级低于主内容区。 */
     --pc-sidebar-neu-light: var(--color-shadow-highlight);
     --pc-sidebar-neu-dark: var(--color-shadow-neu-dark);
@@ -980,21 +1000,55 @@ body.pc-goal-mindmap-max-open .pc-goal-mindmap.is-maximized {
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--pc-text3) 48%, transparent) transparent;
+    scrollbar-color: transparent transparent;
     transition: padding 0.22s cubic-bezier(.2,.8,.2,1);
 }
 
+.pc-sidebar-nav:hover,
+.pc-sidebar-nav:focus-within {
+    scrollbar-color: var(--pc-scroll-thumb) transparent;
+}
+
 .pc-sidebar-nav::-webkit-scrollbar {
-    width: 6px;
+    width: var(--pc-scroll-width-thin);
 }
 
 .pc-sidebar-nav::-webkit-scrollbar-track {
     background: transparent;
 }
 
+.pc-sidebar-nav::-webkit-scrollbar-button {
+    display: none;
+}
+
+.pc-sidebar-nav::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 .pc-sidebar-nav::-webkit-scrollbar-thumb {
     border-radius: var(--pc-radius-full);
-    background: color-mix(in srgb, var(--pc-text3) 48%, transparent);
+    border: 2px solid transparent;
+    background-color: transparent;
+    background-clip: padding-box;
+}
+
+.pc-sidebar-nav:hover::-webkit-scrollbar-thumb,
+.pc-sidebar-nav:focus-within::-webkit-scrollbar-thumb {
+    background-color: var(--pc-scroll-thumb);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow);
+}
+
+.pc-sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background-color: var(--pc-scroll-thumb-hover);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-hover);
+}
+
+.pc-sidebar-nav::-webkit-scrollbar-thumb:active {
+    background-color: var(--pc-scroll-thumb-active);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-active);
 }
 
 .pc-nav-item {

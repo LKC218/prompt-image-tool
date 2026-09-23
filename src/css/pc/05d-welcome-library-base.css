@@ -516,24 +516,55 @@
     overflow-y: hidden;
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-    scrollbar-color: rgba(142, 139, 134, 0.72) rgba(244, 240, 234, 0.9);
+    scrollbar-color: transparent transparent;
     background: linear-gradient(180deg, rgba(255, 253, 248, 0.76) 0, rgba(255, 255, 255, 0.92) 52px, rgba(255, 255, 255, 0.92) 100%);
 }
 
+.pc-library-table-scroll:hover,
+.pc-library-table-scroll:focus-within {
+    scrollbar-color: var(--pc-scroll-thumb) transparent;
+}
+
 .pc-library-table-scroll::-webkit-scrollbar {
-    height: 12px;
+    height: var(--pc-scroll-height);
 }
 
 .pc-library-table-scroll::-webkit-scrollbar-track {
-    margin: 0 14px;
-    border-radius: 999px;
-    background: rgba(244, 240, 234, 0.9);
+    background: transparent;
+}
+
+.pc-library-table-scroll::-webkit-scrollbar-button {
+    display: none;
+}
+
+.pc-library-table-scroll::-webkit-scrollbar-corner {
+    background: transparent;
 }
 
 .pc-library-table-scroll::-webkit-scrollbar-thumb {
-    border: 3px solid rgba(255, 255, 255, 0.92);
+    border: 2px solid transparent;
     border-radius: 999px;
-    background: rgba(142, 139, 134, 0.72);
+    background-color: transparent;
+    background-clip: padding-box;
+}
+
+.pc-library-table-scroll:hover::-webkit-scrollbar-thumb,
+.pc-library-table-scroll:focus-within::-webkit-scrollbar-thumb {
+    background-color: var(--pc-scroll-thumb);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow);
+}
+
+.pc-library-table-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--pc-scroll-thumb-hover);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-hover);
+}
+
+.pc-library-table-scroll::-webkit-scrollbar-thumb:active {
+    background-color: var(--pc-scroll-thumb-active);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-active);
 }
 
 .pc-library-table {

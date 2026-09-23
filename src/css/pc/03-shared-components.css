@@ -123,6 +123,159 @@
     position: relative;
     container-type: inline-size;
     container-name: pc-main;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+.pc-main:hover,
+.pc-main:focus-within {
+    scrollbar-color: var(--pc-scroll-thumb) transparent;
+}
+
+.pc-main::-webkit-scrollbar {
+    width: var(--pc-scroll-width);
+}
+
+.pc-main::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pc-main::-webkit-scrollbar-button {
+    display: none;
+}
+
+.pc-main::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.pc-main::-webkit-scrollbar-thumb {
+    border-radius: var(--pc-radius-full);
+    border: 2px solid transparent;
+    background-color: transparent;
+    background-clip: padding-box;
+}
+
+.pc-main:hover::-webkit-scrollbar-thumb,
+.pc-main:focus-within::-webkit-scrollbar-thumb {
+    background-color: var(--pc-scroll-thumb);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow);
+}
+
+.pc-main::-webkit-scrollbar-thumb:hover {
+    background-color: var(--pc-scroll-thumb-hover);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-hover);
+}
+
+.pc-main::-webkit-scrollbar-thumb:active {
+    background-color: var(--pc-scroll-thumb-active);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-active);
+}
+
+/* 次要可滚动容器：与主区/侧栏共用方案 B 悬浮软块 */
+.pc-picker-sheet,
+.pc-picker-list,
+.pc-goal-image-manager-body,
+.pc-prompt-detail-minimized-list,
+.pc-image-thumbs-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+.pc-picker-sheet:hover,
+.pc-picker-sheet:focus-within,
+.pc-picker-list:hover,
+.pc-picker-list:focus-within,
+.pc-goal-image-manager-body:hover,
+.pc-goal-image-manager-body:focus-within,
+.pc-prompt-detail-minimized-list:hover,
+.pc-prompt-detail-minimized-list:focus-within,
+.pc-image-thumbs-scroll:hover,
+.pc-image-thumbs-scroll:focus-within {
+    scrollbar-color: var(--pc-scroll-thumb) transparent;
+}
+
+.pc-picker-sheet::-webkit-scrollbar,
+.pc-picker-list::-webkit-scrollbar,
+.pc-goal-image-manager-body::-webkit-scrollbar,
+.pc-prompt-detail-minimized-list::-webkit-scrollbar {
+    width: var(--pc-scroll-width-thin);
+}
+
+.pc-image-thumbs-scroll::-webkit-scrollbar {
+    height: var(--pc-scroll-height-thin);
+}
+
+.pc-picker-sheet::-webkit-scrollbar-track,
+.pc-picker-list::-webkit-scrollbar-track,
+.pc-goal-image-manager-body::-webkit-scrollbar-track,
+.pc-prompt-detail-minimized-list::-webkit-scrollbar-track,
+.pc-image-thumbs-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.pc-picker-sheet::-webkit-scrollbar-button,
+.pc-picker-list::-webkit-scrollbar-button,
+.pc-goal-image-manager-body::-webkit-scrollbar-button,
+.pc-prompt-detail-minimized-list::-webkit-scrollbar-button,
+.pc-image-thumbs-scroll::-webkit-scrollbar-button {
+    display: none;
+}
+
+.pc-picker-sheet::-webkit-scrollbar-corner,
+.pc-picker-list::-webkit-scrollbar-corner,
+.pc-goal-image-manager-body::-webkit-scrollbar-corner,
+.pc-prompt-detail-minimized-list::-webkit-scrollbar-corner,
+.pc-image-thumbs-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+.pc-picker-sheet::-webkit-scrollbar-thumb,
+.pc-picker-list::-webkit-scrollbar-thumb,
+.pc-goal-image-manager-body::-webkit-scrollbar-thumb,
+.pc-prompt-detail-minimized-list::-webkit-scrollbar-thumb,
+.pc-image-thumbs-scroll::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-color: transparent;
+    background-clip: padding-box;
+}
+
+.pc-picker-sheet:hover::-webkit-scrollbar-thumb,
+.pc-picker-sheet:focus-within::-webkit-scrollbar-thumb,
+.pc-picker-list:hover::-webkit-scrollbar-thumb,
+.pc-picker-list:focus-within::-webkit-scrollbar-thumb,
+.pc-goal-image-manager-body:hover::-webkit-scrollbar-thumb,
+.pc-goal-image-manager-body:focus-within::-webkit-scrollbar-thumb,
+.pc-prompt-detail-minimized-list:hover::-webkit-scrollbar-thumb,
+.pc-prompt-detail-minimized-list:focus-within::-webkit-scrollbar-thumb,
+.pc-image-thumbs-scroll:hover::-webkit-scrollbar-thumb,
+.pc-image-thumbs-scroll:focus-within::-webkit-scrollbar-thumb {
+    background-color: var(--pc-scroll-thumb);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow);
+}
+
+.pc-picker-sheet::-webkit-scrollbar-thumb:hover,
+.pc-picker-list::-webkit-scrollbar-thumb:hover,
+.pc-goal-image-manager-body::-webkit-scrollbar-thumb:hover,
+.pc-prompt-detail-minimized-list::-webkit-scrollbar-thumb:hover,
+.pc-image-thumbs-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: var(--pc-scroll-thumb-hover);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-hover);
+}
+
+.pc-picker-sheet::-webkit-scrollbar-thumb:active,
+.pc-picker-list::-webkit-scrollbar-thumb:active,
+.pc-goal-image-manager-body::-webkit-scrollbar-thumb:active,
+.pc-prompt-detail-minimized-list::-webkit-scrollbar-thumb:active,
+.pc-image-thumbs-scroll::-webkit-scrollbar-thumb:active {
+    background-color: var(--pc-scroll-thumb-active);
+    background-clip: padding-box;
+    box-shadow: var(--pc-scroll-thumb-shadow-active);
 }
 
 .pc-page {
