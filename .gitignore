@@ -1,4 +1,5 @@
 node_modules/
+src/node_modules/
 dist/
 .vscode/
 .venv/
@@ -8,8 +9,11 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 *.log
+.vite-dev.log
 .playwright-cli/
+playwright-cli/
 scripts/.verify-out/
+.output/
 
 jdk-*/
 android-sdk/
@@ -52,9 +56,13 @@ python/data/*
 build/debug_output.txt
 build/stderr.log
 build/_uninstall_files.nsh
+build/_*.txt
+build/_*.py
+build/app.log
 debug-backups/
 output/
 .dbg/
+.worktrees/
 
 .DS_Store
 Thumbs.db
