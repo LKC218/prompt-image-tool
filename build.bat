@@ -3,23 +3,23 @@ chcp 65001 >nul
 title 生图提示词管理器 - 构建
 
 echo ╔══════════════════════════════════════════╗
-echo ║       生图提示词管理器 v2.5.16 构建脚本     ║
+echo ║       生图提示词管理器 v2.5.17 构建脚本     ║
 echo ╚══════════════════════════════════════════╝
 echo.
 
 :menu
 echo 请选择构建目标：
-echo   1. 构建 PC 安装包（PyInstaller + NSIS）
-echo   2. 构建 PC 桌面端（Tauri）
+echo   1. 构建 PC 安装包（Tauri + Python Sidecar）★推荐
+echo   2. 构建 PC 应急旧壳（PyInstaller + pywebview）
 echo   3. 构建 Android 端（Capacitor）
 echo   4. 仅构建前端（Vite）
 echo   5. 开发模式（前端 + Python 后端）
 echo   6. 退出
 echo.
-set /p choice=请输入选项 (1-6): 
+set /p choice=请输入选项 (1-6):
 
-if "%choice%"=="1" goto build_pc
-if "%choice%"=="2" goto build_tauri
+if "%choice%"=="1" goto build_tauri
+if "%choice%"=="2" goto build_pc
 if "%choice%"=="3" goto build_android
 if "%choice%"=="4" goto build_frontend
 if "%choice%"=="5" goto dev_mode
@@ -103,13 +103,13 @@ if %NSIS_RESULT% neq 0 (
 )
 echo.
 echo ✅ PC 安装包构建完成！
-echo 安装包：build\PromptImageManager-Setup-2.5.16.exe
+echo 安装包：build\PromptImageManager-Setup-2.5.17.exe
 if not exist releases mkdir releases
-copy /Y build\PromptImageManager-Setup-2.5.16.exe releases\PromptImageManager-Setup-2.5.16.exe >nul
+copy /Y build\PromptImageManager-Setup-2.5.17.exe releases\PromptImageManager-Setup-2.5.17.exe >nul
 if %errorlevel% neq 0 (
     echo ⚠️ 安装包复制到 releases 失败，请手动复制
 ) else (
-    echo 发布副本：releases\PromptImageManager-Setup-2.5.16.exe
+    echo 发布副本：releases\PromptImageManager-Setup-2.5.17.exe
 )
 echo.
 goto menu
@@ -117,7 +117,7 @@ goto menu
 :build_tauri
 echo.
 echo ══════════════════════════════════════════
-echo   构建 PC 桌面端（Tauri）
+echo   构建 PC 安装包（Tauri + Python Sidecar）
 echo ══════════════════════════════════════════
 echo.
 
@@ -127,15 +127,51 @@ if %errorlevel% neq 0 (
     goto menu
 )
 
-echo [1/2] 构建前端 + Tauri 桌面端...
+where python >nul 2>nul
+if %errorlevel% neq 0 (
+    echo ❌ 未找到 Python（打包 Sidecar 需要）
+    goto menu
+)
+
+echo [1/4] 构建前端（Vite）...
+call npx vite build
+if %errorlevel% neq 0 (
+    echo ❌ 前端构建失败
+    goto menu
+)
+echo ✅ 前端构建完成
+
+echo [2/4] 构建 Python Sidecar（无头后端）...
+python -m PyInstaller build\server.spec --workpath build\build-server --distpath build\dist-server --clean -y
+if %errorlevel% neq 0 (
+    echo ❌ Sidecar 构建失败
+    goto menu
+)
+echo ✅ Sidecar 构建完成
+
+echo [3/4] 拷贝 Sidecar 到 Tauri 资源目录...
+if not exist src-tauri\server mkdir src-tauri\server
+copy /Y build\dist-server\PromptImageManager-Server.exe src-tauri\server\PromptImageManager-Server.exe >nul
+if %errorlevel% neq 0 (
+    echo ❌ Sidecar 拷贝失败
+    goto menu
+)
+echo ✅ Sidecar 已就位：src-tauri\server\PromptImageManager-Server.exe
+
+echo [4/4] 构建 Tauri 桌面端 + NSIS...
 call npx tauri build
 if %errorlevel% neq 0 (
     echo ❌ Tauri 构建失败
     goto menu
 )
 echo.
-echo ✅ PC 桌面端构建完成！
-echo 输出目录：src-tauri\target\release\bundle\
+echo ✅ PC 安装包构建完成！
+echo 输出目录：src-tauri\target\release\bundle\nsis\
+if not exist releases mkdir releases
+for %%F in ("src-tauri\target\release\bundle\nsis\*.exe") do (
+    copy /Y "%%F" "releases\%%~nxF" >nul
+    echo 发布副本：releases\%%~nxF
+)
 echo.
 goto menu
 

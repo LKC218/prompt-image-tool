@@ -70,26 +70,28 @@ NSIS 用于生成带安装向导的 `.exe` 安装包。不安装 NSIS 也可以�
 
 ## 三、两种PC端构建方式对比
 
-| | 方式A：PyInstaller | 方式B：Tauri |
+| | 方式A：PyInstaller + pywebview | 方式B：Tauri + Python Sidecar |
 |---|---|---|
-| **窗口技术** | pywebview（系统WebView） | Tauri（系统WebView） |
+| **定位** | **应急旧壳**（窗口问题不再投入） | **正式主路径**（Windows 安装包） |
+| **窗口技术** | pywebview（系统WebView） | Tauri 2 无边框窗口 |
 | **是否跳转浏览器** | 否，独立窗口 | 否，独立窗口 |
 | **需要Rust** | 不需要 | 需要 |
-| **打包体积** | ~26 MB（解压后） | 较小 |
-| **安装包体积** | ~14 MB（NSIS压缩后） | 较小 |
+| **Python 依赖** | 打进包（pywebview） | Sidecar 无头后端（`server.spec`） |
 | **构建速度** | 较快（~30秒） | 较慢（需编译Rust） |
-| **输出格式** | exe文件夹 / NSIS安装包 | exe安装包 |
-| **推荐场景** | 快速打包、无需Rust环境 | 追求专业桌面应用体验 |
+| **输出格式** | exe文件夹 / NSIS安装包 | NSIS 安装包 |
+| **推荐场景** | 仅应急回退 | 正式发布、日常构建 |
+
+> **主路径**：`build.bat` 选项 1 = Tauri + Python Sidecar。原 PyInstaller 全量包为选项 2，仅作应急。
 
 ---
 
-## 四、方式A：PyInstaller 构建（推荐）
+## 四、方式A：PyInstaller + pywebview（应急旧壳）
 
 ### 4.1 一键构建
 
 ```bash
 build.bat
-# 选择 1 → 构建 PC 安装包（PyInstaller + NSIS）
+# 选择 2 → 构建 PC 应急旧壳（PyInstaller + pywebview）
 ```
 
 ### 4.2 标准构建流程（手动）
@@ -202,19 +204,26 @@ build/dist/PromptImageManager/
 
 ---
 
-## 五、方式B：Tauri 构建
+## 五、方式B：Tauri + Python Sidecar（正式主路径）
 
 ### 5.1 一键构建
 
 ```bash
 build.bat
-# 选择 2 → 构建 PC 桌面端（Tauri）
+# 选择 1 → 构建 PC 安装包（Tauri + Python Sidecar）★推荐
 ```
 
 ### 5.2 手动构建
 
 ```bash
 npm install
+# 1) 前端
+npx vite build
+# 2) 无头后端 Sidecar
+python -m PyInstaller build/server.spec --workpath build/build-server --distpath build/dist-server --clean -y
+# 3) 拷贝到 Tauri 资源目录
+copy /Y build\dist-server\PromptImageManager-Server.exe src-tauri\server\PromptImageManager-Server.exe
+# 4) 打 NSIS 安装包
 npx tauri build
 ```
 
@@ -225,16 +234,19 @@ npx tauri build
 ```
 src-tauri/target/release/bundle/
 └── nsis/
-    └── 生图提示词管理器_2.0.0_x64-setup.exe
+    └── 生图提示词管理器_2.5.x_x64-setup.exe
 ```
 
 ### 5.4 关键文件说明
 
 | 文件 | 作用 |
 |------|------|
-| `src-tauri/src/lib.rs` | Tauri入口，启动时自动寻找并运行Python后端 |
-| `src-tauri/tauri.conf.json` | Tauri配置：窗口大小、打包格式、资源包含、图标等 |
-| `src-tauri/capabilities/default.json` | 权限配置：允许shell操作等 |
+| `src-tauri/src/lib.rs` | Tauri入口：优先启动 Sidecar，退出回收；失败回退系统 Python |
+| `src-tauri/tauri.conf.json` | 窗口契约（1600×900、无边框、阴影）、Sidecar 资源、NSIS |
+| `src-tauri/capabilities/default.json` | 窗口/Shell 权限 |
+| `build/server.spec` | 无头后端 Sidecar 打包规格 |
+| `src/js/pc/pc-window-size.js` | 启动 16:9 校验与最小化还原纠偏 |
+| `src/js/core/storage.js` | 后端端口扫描发现（8888–8897） |
 
 ---
 

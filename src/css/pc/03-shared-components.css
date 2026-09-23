@@ -60,6 +60,8 @@
 }
 
 .pc-app.pc-sidebar-collapsed .pc-sidebar-nav {
+    --pc-sidebar-nav-fade-y: 14px;
+    --pc-sidebar-nav-fade-x: 10px;
     padding: 14px 10px;
     gap: 8px;
     scrollbar-width: none;

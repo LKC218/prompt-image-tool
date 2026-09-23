@@ -16,6 +16,7 @@ import { initRipple } from '../shared/ripple.js';
 import { initPcCursor } from './pc-cursor.js';
 import { getThemeState, setAppearancePreference, setWorkbenchTheme } from '../core/theme-service.js';
 import { renderWindowChrome, mountWindowChrome } from './pc-window-chrome.js';
+import { initWindowSizePolicy } from './pc-window-size.js';
 
 const LAZY_ROUTES = {
     '/': () => import('./pc-home.js'),
@@ -298,6 +299,9 @@ async function mount(el) {
     setupKeyboardShortcuts();
     setupSidebarClock();
     mountWindowChrome(appEl);
+    initWindowSizePolicy().catch((error) => {
+        console.warn('initWindowSizePolicy failed:', error);
+    });
     initRipple(appEl);
     initPcCursor(appEl);
     syncReleaseNotesUnreadBadge(appEl);

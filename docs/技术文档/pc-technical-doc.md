@@ -1,4 +1,4 @@
-﻿# 生图提示词管理器 — PC 端技术文档
+# 生图提示词管理器 — PC 端技术文档
 
 > 版本：2.2.1 | 最后更新：2026-05-04
 
@@ -112,16 +112,18 @@ Tauri 启动
 | 配置项 | 值 | 说明 |
 |--------|-----|------|
 | 窗口标题 | 生图提示词管理器 | - |
-| 窗口尺寸 | 1600 × 900 | 默认大小（Tauri 与 Python 壳已对齐） |
+| 窗口尺寸 | 1600 × 900 | 默认 16:9；启动校验 + 最小化还原纠偏 |
 | 最小尺寸 | 1024 × 576 | - |
 | 窗口居中 | 是 | - |
 | 可调整大小 | 是 | - |
-| 打包格式 | NSIS | Windows 安装程序 |
-| 资源包含 | `../../python/*` | Python 后端脚本 |
+| 无边框 | `decorations: false` | 自绘顶栏 |
+| 阴影/圆角 | `shadow: true` | Win11 原生圆角 |
+| 打包格式 | NSIS | Windows 正式安装包 |
+| 资源包含 | `../python/*`、`server/` | 回退脚本 + Sidecar |
 | WebView 安装 | 下载引导程序 | 首次运行自动下载 |
-| 应用 ID | `com.promptimagemanager.app` | - |
+| 应用 ID | `com.promptimagemanager` | - |
 
-> 注意：项目存在两条桌面壳链路。Tauri 读 `src-tauri/tauri.conf.json`；Python/pywebview 安装包读 `build/app_main.py` 的 `webview.create_window()`。改默认窗口尺寸时两边必须同步。
+> **桌面壳策略**：Windows 正式壳唯一为 **Tauri 2**（`src-tauri/`）。Python/pywebview（`build/app_main.py`）已冻结为应急回退，窗口问题不再在该链路修复。数据后端以 Sidecar（`PromptImageManager-Server.exe`）随 Tauri 包分发。
 
 ### 权限配置（capabilities/default.json）
 

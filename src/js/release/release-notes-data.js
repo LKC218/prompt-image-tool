@@ -1,5 +1,34 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.17',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    '顶部黑边消失：桌面端改用 Tauri 无边框窗口，Win11 上不再出现深色残条。',
+                    '最小化后再还原，窗口尺寸不再变小；默认 1600×900，小屏自动等比适配。'
+                ]
+            },
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '桌面窗口更稳：正式 Windows 安装包收敛为 Tauri 壳，顶栏拖动与窗口按钮统一体验。',
+                    '后端随包分发，无需单独安装 Python；端口被占用时会自动换端口并保持可用。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '发布 Tauri NSIS 安装包；旧 pywebview 壳降为应急路径。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.16',
         date: '2026-09-23',
         sections: [

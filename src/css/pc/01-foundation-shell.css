@@ -143,6 +143,8 @@
     --pc-sidebar-nav-pressed-shadow: inset 4px 4px 6px -1px var(--color-shadow-neu-dark), inset -4px -4px 6px -1px var(--pc-sidebar-neu-light), -0.5px -0.5px 0 var(--color-shadow-highlight), 0.5px 0.5px 0 var(--color-shadow-neu-dark);
     --pc-sidebar-nav-press-offset: 1px;
     --pc-sidebar-nav-icon-press-scale: 0.9;
+    --pc-sidebar-nav-fade-y: 18px;
+    --pc-sidebar-nav-fade-x: 12px;
     --pc-sidebar-clock-bg: var(--color-surface-raised);
     --pc-sidebar-clock-dark: var(--color-shadow-neu-dark);
     --pc-sidebar-clock-light: var(--color-shadow-highlight);
@@ -990,6 +992,7 @@ body.pc-goal-mindmap-max-open .pc-goal-mindmap.is-maximized {
     }
 }
 
+/* 侧栏导航列表边缘羽化：滚动溢出与拟态阴影在容器边硬裁切，用 mask 软溶入底色 */
 .pc-sidebar-nav {
     flex: 1;
     min-height: 0;
@@ -1002,6 +1005,14 @@ body.pc-goal-mindmap-max-open .pc-goal-mindmap.is-maximized {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
     transition: padding 0.22s cubic-bezier(.2,.8,.2,1);
+    -webkit-mask-image:
+        linear-gradient(to bottom, transparent 0%, #000 var(--pc-sidebar-nav-fade-y), #000 calc(100% - var(--pc-sidebar-nav-fade-y)), transparent 100%),
+        linear-gradient(to right, transparent 0%, #000 var(--pc-sidebar-nav-fade-x), #000 calc(100% - var(--pc-sidebar-nav-fade-x)), transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+        linear-gradient(to bottom, transparent 0%, #000 var(--pc-sidebar-nav-fade-y), #000 calc(100% - var(--pc-sidebar-nav-fade-y)), transparent 100%),
+        linear-gradient(to right, transparent 0%, #000 var(--pc-sidebar-nav-fade-x), #000 calc(100% - var(--pc-sidebar-nav-fade-x)), transparent 100%);
+    mask-composite: intersect;
 }
 
 .pc-sidebar-nav:hover,

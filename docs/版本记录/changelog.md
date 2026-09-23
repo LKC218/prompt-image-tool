@@ -5,6 +5,44 @@
 
 ---
 
+## v2.5.17 (2026-09-24)
+
+> 记录依据：无边框窗口壳 Tauri 收敛（顶栏黑边、最小化缩窗、双壳分叉）实施与实机安装验证通过。
+
+### 修复
+
+- **顶部黑边**：Windows 正式壳切换为 Tauri 无边框窗口，去掉 Win11 WebView2 残余非客户区深色条。
+- **最小化后窗口变小**：最小化再还原不再丢失尺寸；启动默认 1600×900（16:9），屏幕不足时等比缩到工作区。
+
+### 优化
+
+- **桌面壳收敛**：Windows 正式安装包以 Tauri 2 为唯一主壳；自绘顶栏、拖动、最小化/最大化/关闭统一走 Tauri 窗口 API。
+- **后端 Sidecar**：Python HTTP 后端以无头 `PromptImageManager-Server.exe` 随包分发，不再依赖用户自装 Python；端口占用时自动递增并通过 `/api/health` 发现。
+- **构建主路径**：`build.bat` 选项 1 改为「Tauri + Python Sidecar」；原 PyInstaller + pywebview 全量包降为应急选项 2。
+
+### 发布
+
+- 版本号统一升级至 `2.5.17`；发布 Windows Setup 安装包。
+- 旧 pywebview 壳代码冻结为应急路径，不再投入窗口修复。
+
+### 版本与打包
+
+- 新增 `build/server.spec`（无头后端 onefile）、`src-tauri/server/`（Sidecar 资源位）、`src/js/pc/pc-window-size.js`（启动尺寸与还原纠偏）。
+- `src-tauri/tauri.conf.json`：`decorations:false` + `shadow`；capabilities 补齐尺寸/监视器权限。
+- `src-tauri/src/lib.rs`：优先启动 Sidecar，退出回收子进程；失败回退系统 Python。
+- Android `versionCode` 从 `28` 递增至 `29`，`versionName` 升级为 `2.5.17`。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.17.exe`：28,946,644 字节（27.6 MB），SHA256 `C2386DE7632F381A74B635A88971AEDCF6DB6EC23F7998FE8C628D0F08DA5039`
+
+### 验证
+
+- `npm test`：43 文件 / 358 用例通过。
+- `cargo test --manifest-path src-tauri/Cargo.toml --lib`：2 passed。
+- `npm run build` / `npx tauri build`：通过，产出 NSIS 安装包。
+- 人工安装实机确认：顶部黑边消失，最小化还原不再缩窗。
+
+---
+
 ## v2.5.16 (2026-09-23)
 
 > 记录依据：`v2.5.15` 发布之后的思维导图图片导入能力与任务图片入口统一。

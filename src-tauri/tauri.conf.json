@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "生图提示词管理器",
-  "version": "2.5.16",
+  "version": "2.5.17",
   "identifier": "com.promptimagemanager",
   "build": {
     "frontendDist": "../dist",
@@ -21,7 +21,9 @@
         "resizable": true,
         "fullscreen": false,
         "center": true,
-        "decorations": false
+        "decorations": false,
+        "shadow": true,
+        "dragDropEnabled": true
       }
     ],
     "security": {
@@ -39,7 +41,8 @@
       "icons/icon.ico"
     ],
     "resources": [
-      "../python/*"
+      "../python/*",
+      "server/"
     ],
     "windows": {
       "webviewInstallMode": {

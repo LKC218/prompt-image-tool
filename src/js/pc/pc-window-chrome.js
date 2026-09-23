@@ -43,16 +43,15 @@ function getPywebviewAdapter() {
 async function resolveWindowApi() {
     const existing = getWindowApi();
     if (existing) return existing;
-    const pyBridge = getPywebviewAdapter();
-    if (pyBridge) return pyBridge;
-    if (!isTauriRuntime()) return null;
-    try {
-        const { getCurrentWindow } = await import('@tauri-apps/api/window');
-        return getCurrentWindow();
-    } catch (e) {
-        console.warn('resolve tauri window api failed:', e);
-        return null;
+    if (isTauriRuntime()) {
+        try {
+            const { getCurrentWindow } = await import('@tauri-apps/api/window');
+            return getCurrentWindow();
+        } catch (e) {
+            console.warn('resolve tauri window api failed:', e);
+        }
     }
+    return getPywebviewAdapter();
 }
 
 const ICONS = {

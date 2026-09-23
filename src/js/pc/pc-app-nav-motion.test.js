@@ -124,6 +124,23 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(collapsedUtilityRule).toContain('gap: 8px');
     });
 
+    it('侧栏导航列表使用 mask 四边羽化，并在收起态收窄羽化宽度', () => {
+        const navRule = pcCss.match(/(?:\/\*[^*]*\*\/\s*)?\.pc-sidebar-nav\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+        const collapsedNavRule = pcCss.match(/\.pc-app\.pc-sidebar-collapsed \.pc-sidebar-nav\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+
+        expect(navRule).toContain('mask-image:');
+        expect(navRule).toContain('mask-composite: intersect');
+        expect(navRule).toContain('-webkit-mask-composite: source-in');
+        expect(navRule).toContain('linear-gradient(to bottom');
+        expect(navRule).toContain('linear-gradient(to right');
+        expect(navRule).toContain('var(--pc-sidebar-nav-fade-y)');
+        expect(navRule).toContain('var(--pc-sidebar-nav-fade-x)');
+        expect(pcCss).toContain('--pc-sidebar-nav-fade-y: 18px');
+        expect(pcCss).toContain('--pc-sidebar-nav-fade-x: 12px');
+        expect(collapsedNavRule).toContain('--pc-sidebar-nav-fade-y: 14px');
+        expect(collapsedNavRule).toContain('--pc-sidebar-nav-fade-x: 10px');
+    });
+
     it('最大化与最小化之间使用分阶段收束过渡', () => {
         expect(pcCss).toContain('.pc-sidebar-stage.pc-sidebar-is-collapsing .pc-sidebar-logo-copy');
         expect(pcCss).toContain('transform: translateX(-10px)');

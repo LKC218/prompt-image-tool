@@ -32,11 +32,33 @@ except ImportError:
     HAS_AUTO_UPDATE = False
 
 
-def find_free_port():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('', 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.getsockname()[1]
+def find_free_port(preferred=8888, max_attempts=10):
+    last_error = None
+    for offset in range(max_attempts):
+        port = preferred + offset
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.bind(('127.0.0.1', port))
+                return port
+        except OSError as error:
+            last_error = error
+    raise OSError(f'无法绑定 HTTP 服务端口，最后错误：{last_error}')
+
+
+def write_runtime_port(port):
+    payload = {'port': port, 'host': '127.0.0.1', 'pid': os.getpid()}
+    targets = []
+    data_dir = get_user_data_root()
+    targets.append(os.path.join(data_dir, 'runtime-port.json'))
+    targets.append(os.path.join(get_app_dir(), 'runtime-port.json'))
+    for path in targets:
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(payload, f)
+        except OSError:
+            pass
 
 
 def get_app_dir():
@@ -2620,11 +2642,14 @@ def main():
     os.chdir(app_dir)
     ensure_dirs()
 
-    port = 8888
+    port = find_free_port(8888, 10)
     SERVER_PORT = port
+    write_runtime_port(port)
 
     socketserver.ThreadingTCPServer.allow_reuse_address = True
-    with socketserver.ThreadingTCPServer(("", port), AppHandler) as httpd:
+    with socketserver.ThreadingTCPServer(("127.0.0.1", port), AppHandler) as httpd:
+        ready = json.dumps({'status': 'ready', 'host': '127.0.0.1', 'port': port, 'dataDir': DATA_DIR})
+        print(ready, flush=True)
         print(f"Python backend started on port {port}")
         print(f"Data directory: {DATA_DIR}")
 

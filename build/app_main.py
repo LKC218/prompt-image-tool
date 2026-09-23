@@ -1,3 +1,9 @@
+"""应急旧壳（PyInstaller + pywebview）入口 — 已冻结。
+
+Windows 正式桌面壳已收敛为 Tauri 2（见 src-tauri/ 与 docs/计划与规格/03-UI页面重构/桌面无边框窗口壳Tauri收敛实施计划-260924.md）。
+本文件仅作应急回退，不再投入窗口黑边/尺寸等问题修复；数据 API 逻辑与 python/main.py 同步维护。
+"""
+
 import http.server
 import json
 import socketserver
