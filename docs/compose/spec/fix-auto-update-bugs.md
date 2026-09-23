@@ -3,7 +3,7 @@ feature: fix-auto-update-bugs
 status: delivered
 updated: 2026-09-23
 branch: fix/auto-update-bugs
-commits: 0320ed1..0320ed1 # filled after implementation commit
+commits: 0320ed1..15f1256 # reviewed implementation range
 ---
 
 # 自动更新缺陷修复
