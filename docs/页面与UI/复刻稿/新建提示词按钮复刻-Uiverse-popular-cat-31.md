@@ -1,7 +1,7 @@
 # 新建提示词按钮复刻方案（Uiverse popular-cat-31）
 
 > 参考来源：`https://uiverse.io/Pankaj-Meharchandani/popular-cat-31`  
-> 落点文件：`src/js/pc-library.js`、`src/css/pc.css`、`src/js/ripple.js`  
+> 落点文件：`src/js/pc/pc-library.js`、`src/css/pc.css`、`src/js/shared/ripple.js`  
 > 相关规范：`docs/设计系统/新拟态按钮设计规范.md`
 
 ---
@@ -152,13 +152,13 @@ Uiverse `popular-cat-31` 是一款**玻璃拟态风格的「加入购物车」�
 ## 五、源码落点
 
 - HTML 结构：
-  - 库页按钮：`src/js/pc-library.js` 的 `render()`。
-  - 编辑器保存按钮：`src/js/pc-editor.js` 的 `render()`。
+  - 库页按钮：`src/js/pc/pc-library.js` 的 `render()`。
+  - 编辑器保存按钮：`src/js/pc/pc-editor.js` 的 `render()`。
 - 样式与动画：`src/css/pc.css` 末尾「新建提示词按钮 — Uiverse popular-cat-31 复刻」区块。
 - 交互时序：
-  - 库页按钮：`src/js/pc-library.js` 的 `setupLibraryEvents()`。
-  - 编辑器保存按钮：`src/js/pc-editor.js` 的 `setEditorSavingState()`。
-- 水波纹移除：`src/js/ripple.js` 的 `RIPPLE_SELECTOR`。
+  - 库页按钮：`src/js/pc/pc-library.js` 的 `setupLibraryEvents()`。
+  - 编辑器保存按钮：`src/js/pc/pc-editor.js` 的 `setEditorSavingState()`。
+- 水波纹移除：`src/js/shared/ripple.js` 的 `RIPPLE_SELECTOR`。
 
 ---
 
@@ -220,7 +220,7 @@ Uiverse `popular-cat-31` 是一款**玻璃拟态风格的「加入购物车」�
 
 ### 11.3 JS 状态联动
 
-`src/js/pc-editor.js` 的 `setEditorSavingState()` 在原有 `disabled` / `pc-editor-save-busy` 切换基础上，新增 `.is-acting` 切换：
+`src/js/pc/pc-editor.js` 的 `setEditorSavingState()` 在原有 `disabled` / `pc-editor-save-busy` 切换基础上，新增 `.is-acting` 切换：
 
 ```js
 saveBtn.classList.toggle('is-acting', saving);
@@ -233,7 +233,7 @@ saveBtn.classList.toggle('is-acting', saving);
 - 移除 `.pc-welcome-banner-editor .pc-editor-save-btn` 及其 hover 状态中的粉色渐变、边框、阴影。
 - 移除 `.pc-welcome-banner-editor .pc-editor-save-icon` 的 `filter` 覆盖。
 - 移除通用 `.pc-editor-save-btn` 样式。
-- 从 `src/js/ripple.js` 的 `RIPPLE_SELECTOR` 中移除 `.pc-editor-save-btn`。
+- 从 `src/js/shared/ripple.js` 的 `RIPPLE_SELECTOR` 中移除 `.pc-editor-save-btn`。
 
 ---
 

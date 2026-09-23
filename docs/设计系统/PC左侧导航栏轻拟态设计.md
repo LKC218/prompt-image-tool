@@ -1,6 +1,6 @@
 # PC 左侧导航栏轻拟态设计
 
-> 落点文件：`src/css/pc.css`、`src/js/pc-app.js`、`src/js/pc-app-nav-motion.test.js`
+> 落点文件：`src/css/pc.css`、`src/js/pc/pc-app.js`、`src/js/pc-app-nav-motion.test.js`
 > 生效日期：2026-07-12
 > 参考来源：Uiverse `talhabangyal/hungry-parrot-32`
 

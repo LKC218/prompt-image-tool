@@ -74,7 +74,7 @@ cancel_download_job(job_id: str) -> dict
 
 ### 前端：auto-updater 状态机
 
-`src/js/auto-updater.js`：
+`src/js/release/auto-updater.js`：
 
 - `startDownloadUpdate(latest)`：POST download，返回 `jobId`。
 - `pollUpdateProgress(jobId, { onUpdate, signal, intervalMs })`：轮询直到终态（ready/failed/cancelled）。
@@ -84,7 +84,7 @@ cancel_download_job(job_id: str) -> dict
 
 ### 前端：进度弹窗
 
-新建 `src/js/update-progress-modal.js`（或内联于 auto-updater，优先独立文件便于测试）：
+新建 `src/js/release/update-progress-modal.js`（或内联于 auto-updater，优先独立文件便于测试）：
 
 - 复用 `pc-utils.showModal` 骨架，不与业务 `showConfirmModal` 争用同一时刻状态。
 - 内容：

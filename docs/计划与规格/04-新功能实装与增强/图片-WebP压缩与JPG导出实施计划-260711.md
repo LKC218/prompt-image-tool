@@ -12,9 +12,9 @@
 
 但现有图片优化参数在 PC 与移动端编辑器中默认写死为 `image/jpeg`：
 
-- PC：`src/js/pc-editor.js` 中 `IMAGE_OPTIMIZE_OPTIONS.outputType = 'image/jpeg'`
-- 移动端：`src/js/mobile-editor.js` 中 `IMAGE_OPTIMIZE_OPTIONS.outputType = 'image/jpeg'`
-- 通用优化函数：`src/js/image-utils.js` 的 `optimizeImageDataUrl()`
+- PC：`src/js/pc/pc-editor.js` 中 `IMAGE_OPTIMIZE_OPTIONS.outputType = 'image/jpeg'`
+- 移动端：`src/js/mobile/mobile-editor.js` 中 `IMAGE_OPTIMIZE_OPTIONS.outputType = 'image/jpeg'`
+- 通用优化函数：`src/js/shared/image-utils.js` 的 `optimizeImageDataUrl()`
 
 这意味着目前大多数被压缩的导入图片会转为 JPG，而不是 WebP。下载链路则基本保持“当前存储是什么格式，就下载什么格式”。
 
@@ -84,7 +84,7 @@ const IMAGE_OPTIMIZE_OPTIONS = {
 
 ### 4.2 第二阶段：图片下载支持 JPG
 
-在 `src/js/image-download-utils.js` 增加下载格式参数：
+在 `src/js/shared/image-download-utils.js` 增加下载格式参数：
 
 ```js
 downloadImage({
@@ -159,8 +159,8 @@ PC 图片查看器与移动端图片查看器下载入口建议提供两个操�
 
 | 文件 | 改动点 |
 | --- | --- |
-| `src/js/image-utils.js` | 增强输出格式能力，补充 WebP 支持检测与 JPG 转码辅助 |
-| `src/js/image-download-utils.js` | 增加 `format: 'jpg'` 下载转码分支 |
+| `src/js/shared/image-utils.js` | 增强输出格式能力，补充 WebP 支持检测与 JPG 转码辅助 |
+| `src/js/shared/image-download-utils.js` | 增加 `format: 'jpg'` 下载转码分支 |
 | `src/js/image-utils.test.js` | 增加 WebP 输出、回退、扩展名识别测试 |
 | `src/js/image-download-utils.test.js` | 增加 JPG 导出文件名、MIME、Canvas 转码测试 |
 
@@ -168,18 +168,18 @@ PC 图片查看器与移动端图片查看器下载入口建议提供两个操�
 
 | 文件 | 改动点 |
 | --- | --- |
-| `src/js/pc-editor.js` | 将新导入优化默认输出改为 WebP |
-| `src/js/pc-utils.js` | 图片查看器下载菜单增加“下载原格式 / 导出 JPG” |
-| `src/js/pc-detail.js` | 如详情页存在直接下载入口，同步接入 JPG 导出 |
+| `src/js/pc/pc-editor.js` | 将新导入优化默认输出改为 WebP |
+| `src/js/pc/pc-utils.js` | 图片查看器下载菜单增加“下载原格式 / 导出 JPG” |
+| `src/js/pc/pc-detail.js` | 如详情页存在直接下载入口，同步接入 JPG 导出 |
 | `src/css/pc.css` | 下载菜单新增按钮样式时再补充 |
 
 ### 6.3 移动端
 
 | 文件 | 改动点 |
 | --- | --- |
-| `src/js/mobile-editor.js` | 将新导入优化默认输出改为 WebP |
+| `src/js/mobile/mobile-editor.js` | 将新导入优化默认输出改为 WebP |
 | `src/js/mobile-detail.js` | 图片查看器下载入口增加 JPG 导出动作 |
-| `src/js/mobile-gallery.js` | 确认 JPG Data URL 写入相册流程兼容 |
+| `src/js/mobile/mobile-gallery.js` | 确认 JPG Data URL 写入相册流程兼容 |
 | `src/css/mobile.css` | 如新增 action sheet 项视觉不够清晰，再补充 |
 
 ### 6.4 存储与后端
@@ -187,8 +187,8 @@ PC 图片查看器与移动端图片查看器下载入口建议提供两个操�
 | 文件 | 改动点 |
 | --- | --- |
 | `python/main.py` | 第一阶段无需改动；已有 WebP MIME 与扩展名支持 |
-| `src/js/sqlite-storage.js` | 第一阶段无需改动；已有 WebP 扩展名识别 |
-| `src/js/api-storage.js` | 第一阶段无需改动 |
+| `src/js/core/sqlite-storage.js` | 第一阶段无需改动；已有 WebP 扩展名识别 |
+| `src/js/core/api-storage.js` | 第一阶段无需改动 |
 
 ### 6.5 文档
 

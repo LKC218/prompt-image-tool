@@ -1,7 +1,7 @@
 # 侧边栏折叠按钮复刻方案（Uiverse 00Kubi/red-crab-76）
 
 > 参考来源：`https://uiverse.io/00Kubi/red-crab-76`  
-> 落点文件：`src/js/pc-app.js`、`src/css/pc.css`  
+> 落点文件：`src/js/pc/pc-app.js`、`src/css/pc.css`  
 > 相关规范：`docs/设计系统/新拟态按钮设计规范.md`
 
 > 当前实现恢复旋转描边、文字拆分、图标飞走和尾迹动效；侧栏状态在图标起飞动画结束时切换，`prefers-reduced-motion: reduce` 下直接切换。本文件与 `docs/设计系统/PC左侧导航栏轻拟态设计.md` 共同作为现行说明。
@@ -100,7 +100,7 @@ Uiverse `red-crab-76` 是一款**3D 新拟态发送按钮**，核心视觉由以
 
 | 文件 | 职责 |
 |------|------|
-| `src/js/pc-app.js` | `splitTextToSpans()` 拆分文字；`renderShell()` / `applySidebarState()` 渲染结构；`setupSidebarToggle()` 控制飞走时序。 |
+| `src/js/pc/pc-app.js` | `splitTextToSpans()` 拆分文字；`renderShell()` / `applySidebarState()` 渲染结构；`setupSidebarToggle()` 控制飞走时序。 |
 | `src/css/pc.css` | `.pc-sidebar-toggle` 系列规则与关键帧：`pc-sidebar-toggle-spin`、`pc-sidebar-toggle-wave`、`pc-sidebar-toggle-slide-down`、`pc-sidebar-toggle-disappear`、`pc-sidebar-toggle-take-off`、`pc-sidebar-toggle-land`、`pc-sidebar-toggle-contrail`。 |
 | `docs/设计系统/新拟态按钮设计规范.md` | 规范第十章「侧边栏折叠按钮变体」。 |
 | `docs/导航/apps-code-map.md` | 更新 `pc.css` 与 `pc-app.js` 的说明。 |

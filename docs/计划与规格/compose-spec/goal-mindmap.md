@@ -155,10 +155,10 @@ parseMindmapLinks / serializeMindmapLinks / normalizeMindmapLinks / toggleMindma
 ### 本特性文件
 
 - `docs/计划与规格/compose-spec/goal-mindmap.md`
-- `src/js/goal-mindmap-core.js`
+- `src/js/goal/goal-mindmap-core.js`
 - `src/js/goal-mindmap-core.test.js`
-- `src/js/pc-goal-detail.js`
-- `src/js/pc-goal-projects.js`
+- `src/js/pc/pc-goal-detail.js`
+- `src/js/pc/pc-goal-projects.js`
 - `src/css/pc/08-goal-plan.css`
-- `src/js/pc-utils.js`（`escapeHtml` 属性安全转义）
+- `src/js/pc/pc-utils.js`（`escapeHtml` 属性安全转义）
 - `scripts/goal-mindmap-visual.mjs`

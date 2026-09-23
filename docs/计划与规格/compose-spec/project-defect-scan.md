@@ -32,7 +32,7 @@ commits: uncommitted-on-main
    - BUG-003：`.m-filter-tag` 在 flex 横滑容器中可被压缩；需 `flex: 0 0 auto`。
    - BUG-007：源码路径已正确，当前 dist 资源可解析；以**构建产物资源回归脚本**防回归。
 3. **工作区已修复项纳入闭环**：
-   - UI 乱码：`src/js/pc-utils.js` 确认/取消/确定/子菜单箭头文案。
+   - UI 乱码：`src/js/pc/pc-utils.js` 确认/取消/确定/子菜单箭头文案。
    - `build/installer.nsi` 恢复 UTF-8 with BOM。
 4. **Rust**：本机 `cargo` 可用，`npm run test:rust` 通过（3 tests）。
 

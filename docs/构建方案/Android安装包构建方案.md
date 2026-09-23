@@ -269,8 +269,8 @@ APK 大小：`46744828` 字节。`apksigner` 校验通过 APK Signature Scheme v
 | `android/variables.gradle` | SDK 版本变量定义 |
 | `android/keystore.properties` | 签名密钥参数（不入库） |
 | `patch-java-version.ps1` | Java 版本兼容性修补脚本 |
-| `src/js/sqlite-storage.js` | Android 端存储实现（SQLite） |
-| `src/js/storage.js` | 存储抽象层（策略模式入口） |
+| `src/js/core/sqlite-storage.js` | Android 端存储实现（SQLite） |
+| `src/js/core/storage.js` | 存储抽象层（策略模式入口） |
 
 ---
 

@@ -20,7 +20,7 @@
 
 ## 加载方式
 
-`src/js/main.js` 先加载 `theme-tokens.css`，桌面端再动态加载 `src/js/pc-app.js`。`pc-app.js` 导入 `pc.css`，入口依次导入六个子文件。
+`src/js/main.js` 先加载 `theme-tokens.css`，桌面端再动态加载 `src/js/pc/pc-app.js`。`pc-app.js` 导入 `pc.css`，入口依次导入六个子文件。
 
 `pc.css` 是对外稳定入口。HTML 演示页、JavaScript 模块和其他调用方不得直接改为导入子文件。`01-foundation-shell.css` 通过本地 `src/assets/fonts/乐米沐和圆体.ttf` 注册全局主字体，并由 `--pc-font-family` 保留系统字体回退链。
 
@@ -43,13 +43,13 @@
 
 ## 测试约束
 
-`src/js/pc-css-test-utils.js` 按入口顺序读取六个子文件，供 CSS 文本断言测试使用。新增样式子文件或调整顺序时，必须同步更新该读取清单和相关测试。
+`src/js/pc/pc-css-test-utils.js` 按入口顺序读取六个子文件，供 CSS 文本断言测试使用。新增样式子文件或调整顺序时，必须同步更新该读取清单和相关测试。
 
 ## 关联文件
 
 - `src/js/main.js`：应用入口和端类型加载。
-- `src/js/pc-app.js`：桌面端应用与样式入口导入方。
-- `src/js/pc-utils.js`：动态挂载 Toast、Modal、右键菜单和图片预览等组件。
+- `src/js/pc/pc-app.js`：桌面端应用与样式入口导入方。
+- `src/js/pc/pc-utils.js`：动态挂载 Toast、Modal、右键菜单和图片预览等组件。
 - `src/css/theme-tokens.css`：跨端主题语义 Token。
 - `docs/设计系统/跨端配色与主题令牌规范.md`：主题 Token 权威规范。
 - `docs/计划与规格/09-项目治理/PC端样式文件拆分治理计划-260716.md`：拆分边界、风险与验收计划。

@@ -43,7 +43,7 @@ pc-goal-projects.js  setProjectCover
         └─ Web/API: storage.uploadGoalImage(projectId, imageId, finalDataUrl)
 ```
 
-复用 `src/js/image-utils.js` 的 `optimizeImageDataUrl`（已有 canvas 缩放、WebP 转码、像素上限拒绝、压后变大回退原图）。不新写 canvas 逻辑，也不把任务图 `compressToWebp` 直接接到封面（其缺 `maxInputPixels` 与 size fallback）。
+复用 `src/js/shared/image-utils.js` 的 `optimizeImageDataUrl`（已有 canvas 缩放、WebP 转码、像素上限拒绝、压后变大回退原图）。不新写 canvas 逻辑，也不把任务图 `compressToWebp` 直接接到封面（其缺 `maxInputPixels` 与 size fallback）。
 
 `goal-utils.js` → `image-utils.js` 单向依赖，不反向。
 

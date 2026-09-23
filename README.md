@@ -97,13 +97,15 @@ python scripts\build_release_packages.py
 
 | 路径 | 职责 |
 | --- | --- |
-| `src/` | 前端源码、样式、交互脚本和运行时资源 |
+| `src/` | 前端源码、样式、交互脚本和运行时资源；`src/js` 按 `core/shared/pc/mobile/plant/goal/games/release/sync` 分组 |
 | `python/` | Python 后端、接口和测试 |
 | `src-tauri/` | Tauri 桌面端工程 |
 | `android/` | Capacitor Android 原生工程 |
 | `installer-shell/` | Tauri 自定义安装器壳工程 |
 | `scripts/` | 构建、维护、发布脚本与 README 预览截图脚本 |
+| `build/` | PyInstaller/NSIS 打包源与本地安装包落点（产物不入 Git） |
 | `docs/` | 工程指南、技术、设计、计划、质量与版本文档（见文档中心） |
+| `UI设计稿/` | 设计稿、插画与视觉参考（不参与构建） |
 | `releases/` | 本地发布产物落点，安装包不提交到 Git |
 
 ## 文档入口

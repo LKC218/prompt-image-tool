@@ -10,7 +10,7 @@ commits: 7b864cb..6c8a70a
 
 ## Report
 
-**What was built** — PC 左侧主导航在「分类与标签」后新增「俄罗斯方块」入口，路由 `/tetris`。游戏页提供 10×20 Canvas 棋盘、七种方块与 7-bag、左右/旋转/软降/硬降、消行计分与等级加速、下一预览、暂停（P/Esc）、重开、结束遮罩重开，以及 `localStorage` 最高分。纯逻辑拆在 `tetris-core.js` 并有 12 条单测；样式走语义 Token 新拟态，仅 PC，移动端未做。
+**What was built** — PC 左侧主导航在「分类与标签」后新增「俄罗斯方块」入口，路由 `/tetris`。游戏页提供 10×20 Canvas 棋盘、七种方块与 7-bag、左右/旋转/软降/硬降、消行计分与等级加速、下一预览、暂停（P/Esc）、重开、结束遮罩重开，以及 `localStorage` 最高分。纯逻辑拆在 `games/tetris-core.js` 并有 12 条单测；样式走语义 Token 新拟态，仅 PC，移动端未做。
 
 **Verification** — `npm test`：33 files / 250 tests 全过（含 `tetris-core.test.js` 12）；`npm run build`：vite 生产构建成功。独立审查结论 `pass-with-minor`，已回修修饰键短路、Esc 暂停、结束遮罩重开按钮、预览形状复用 core、死代码清理。
 
@@ -33,7 +33,7 @@ commits: 7b864cb..6c8a70a
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/js/pc-tetris.js` | 游戏页：DOM/Canvas 渲染、输入、循环、状态、生命周期 |
+| `src/js/pc/pc-tetris.js` | 游戏页：DOM/Canvas 渲染、输入、循环、状态、生命周期 |
 | `src/css/pc/09-tetris.css` | 页面布局与新拟态控件样式，经 `pc.css` 引入 |
 
 模块导出约定与 `pc-category.js` 等一致：`export function render` / `export function mount` / `export function unmount`。`unmount` 必须清理 `requestAnimationFrame`、`keydown` 监听与计时器，避免路由切换后游戏继续跑。
@@ -57,7 +57,7 @@ commits: 7b864cb..6c8a70a
 
 ### 测试边界
 
-- 单元测试聚焦纯逻辑：旋转、碰撞、消行、计分、7-bag（可抽 `src/js/tetris-core.js`，页面只做 UI 接线）。
+- 单元测试聚焦纯逻辑：旋转、碰撞、消行、计分、7-bag（可抽 `src/js/games/tetris-core.js`，页面只做 UI 接线）。
 - 侧栏入口与路由注册可在 `pc-app` 相关测试或手动验收覆盖；不强制 E2E。
 
 ## [S3] Out of Scope
@@ -70,6 +70,6 @@ commits: 7b864cb..6c8a70a
 ## Tasks
 
 - [x] T1: 新增 tetris 侧栏图标与导航项 — acceptance: 侧栏出现入口，点击进入 `/tetris`，高亮正确；不破坏现有五项导航 (covers: S2)
-- [x] T2: 抽出 `tetris-core.js` 纯逻辑并补单测 — acceptance: 碰撞/旋转/消行/计分/bag 测试通过 `npm test` (covers: S2)
+- [x] T2: 抽出 `games/tetris-core.js` 纯逻辑并补单测 — acceptance: 碰撞/旋转/消行/计分/bag 测试通过 `npm test` (covers: S2)
 - [x] T3: 实现 `pc-tetris.js` 页面与 `09-tetris.css` — acceptance: 本地 dev 可完整玩一局：移动/旋转/硬降/升级/结束/重开/最高分持久化；离开路由无残留监听 (covers: S2)
 - [x] T4: 文档同步 `docs/导航/apps-code-map.md` 与就近模块说明 — acceptance: 导航表含 `/tetris` 与新文件职责 (covers: S2; depends: T1, T3)

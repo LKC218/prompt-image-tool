@@ -46,13 +46,13 @@ commits: 1e921b2..73eb66b
 - 点击「进入游戏」→ `showConfirmModal` 显示标题+简述，确认后 `navigate`，取消则停留。
 - 卡片封面用确定性渐变/首字或内联 SVG 风格图形，不依赖业务图片资源。
 
-### 飞机大战 `pc-plane.js` + `plane-war-core.js`
+### 飞机大战 `pc-plane.js` + `games/plane-war-core.js`
 
 - Canvas 竖版战场；玩家机底部，←→（及可选 ↑↓ 限底部区域）移动；Space 或自动射击（经典：空格射击，可自动连射）。
 - 敌机自上而下波次生成，命中得分；玩家中弹扣命；生命归零结束。
 - 计分、等级/波次加速、暂停（P/Esc）、重开（R）、结束遮罩重开。
 - 最高分：`localStorage` key `pc-plane-highscore`。
-- 纯逻辑进 `plane-war-core.js`（生成、碰撞、计分、tick），页面只做渲染与输入；补单元测试。
+- 纯逻辑进 `games/plane-war-core.js`（生成、碰撞、计分、tick），页面只做渲染与输入；补单元测试。
 - 样式 `10-plane.css`（或并入 games 相关 css），经 `pc.css` 引入；Token 与 tetris 页一致。
 - `unmount` 清理 rAF 与 keydown。
 
@@ -72,6 +72,6 @@ commits: 1e921b2..73eb66b
 
 - [x] T1: 侧栏改名「摸鱼时间」并接 `/games` 高亮规则 — acceptance: 侧栏文案与路由正确；`/tetris`、`/plane` 高亮摸鱼时间 (covers: S2)
 - [x] T2: 实现游戏中心卡片页与确认进入 — acceptance: 两张卡片展示简述，确认后进入对应游戏，取消不跳转 (covers: S2)
-- [x] T3: `plane-war-core.js` 逻辑与单测 — acceptance: 核心测试通过 (covers: S2)
+- [x] T3: `games/plane-war-core.js` 逻辑与单测 — acceptance: 核心测试通过 (covers: S2)
 - [x] T4: 飞机大战页面与样式 — acceptance: 可完整玩一局（移动/射击/波次/结束/重开/最高分）；离开无残留 (covers: S2)
 - [x] T5: 文档同步 apps-code-map 与模块说明 — acceptance: 导航/路由/文件表更新 (covers: S2; depends: T1, T2, T4)

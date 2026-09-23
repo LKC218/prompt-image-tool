@@ -1,4 +1,4 @@
-# 生图提示词管理器 — PC 端技术文档
+﻿# 生图提示词管理器 — PC 端技术文档
 
 > 版本：2.2.1 | 最后更新：2026-05-04
 
@@ -202,7 +202,7 @@ PC 编辑器导入图片时先在前端执行统一优化：
 
 - 支持 JPG、PNG、WebP，单张源文件上限为 15MB，单版本最多 10 张。
 - 新建/编辑页支持从外部复制图片后在页面内 `Ctrl+V` 粘贴，剪贴板图片会转换为 `File` 并复用同一套导入、压缩、数量上限和保存流程。
-- 使用 `src/js/image-utils.js` 解码 Data URL 后通过 Canvas 默认输出 WebP，质量参数为 `0.9`。
+- 使用 `src/js/shared/image-utils.js` 解码 Data URL 后通过 Canvas 默认输出 WebP，质量参数为 `0.9`。
 - 最大边长限制为 `2560px`，最大输入像素为 `4000 万`，避免超大图拖慢 WebView。
 - 当未缩放且 WebP 结果不小于原图时保留原始 Data URL，避免 PNG/WebP 反向增大。
 - 图片元数据中的 `file` 字段以 `uploadImage()` 返回值为准，保证回退原图时扩展名与真实落盘文件一致。
@@ -211,7 +211,7 @@ PC 编辑器导入图片时先在前端执行统一优化：
 
 ### 5.6.1 图片下载与 JPG 导出
 
-图片查看器下载入口由 `src/js/image-download-utils.js` 统一处理：
+图片查看器下载入口由 `src/js/shared/image-download-utils.js` 统一处理：
 
 - `format: 'original'` 直接保存当前存储格式，PC 桌面端可优先使用文件保存选择器，并在原格式场景回退后端原生保存窗口。
 - `format: 'jpg'` 会先 fetch 当前图片，再通过 Canvas 输出 `image/jpeg`，文件名统一改为 `.jpg`。
@@ -221,7 +221,7 @@ PC 编辑器导入图片时先在前端执行统一优化：
 
 ### 5.7 提示词长度限制
 
-PC 新建/编辑页的提示词长度限制由 `src/js/pc-editor.js` 前端常量维护：
+PC 新建/编辑页的提示词长度限制由 `src/js/pc/pc-editor.js` 前端常量维护：
 
 - 正向提示词：`MAX_POSITIVE_PROMPT_LEN = 6666`，用于 `maxlength`、字数统计和超限样式。
 - 负向提示词：`MAX_NEGATIVE_PROMPT_LEN = 2000`，继续保持原有输入上限。
@@ -248,7 +248,7 @@ PC 独立安装包通过 `build/app.spec` 打包 `build/app_main.py`，该入口
 
 ### 5.10 prompt-image-tool JSON 导入联动
 
-PC 首页导入 JSON 时会先尝试通过 `src/js/prompt-tool-json-import.js` 判断是否能转成新建提示词导入内容。若命中 `prompt-image-tool.import.v1`，或命中单条 ChatGPT Vault 对话归档 JSON（包含 `messages[]`、标题和归档标识），则会标准化、临时暂存并跳转到新建提示词页。
+PC 首页导入 JSON 时会先尝试通过 `src/js/shared/prompt-tool-json-import.js` 判断是否能转成新建提示词导入内容。若命中 `prompt-image-tool.import.v1`，或命中单条 ChatGPT Vault 对话归档 JSON（包含 `messages[]`、标题和归档标识），则会标准化、临时暂存并跳转到新建提示词页。
 
 导入暂存优先写入 IndexedDB，失败时回退 Web Storage 和同页内存 Map，避免带参考图片的专用 JSON 因 `sessionStorage` 配额限制被误报为文件格式错误。
 
@@ -257,7 +257,7 @@ PC 设置页的导入入口现在分成两个显式按钮：
 - `导入 JSON`：只处理完整备份 JSON，继续走 `storage.importData(data)`。
 - `导入 ChatGPT 对话`：处理单条 ChatGPT Vault 对话归档 JSON，成功后跳转到 `navigate('/editor/', { importId })`。
 - 新建/编辑页从暂存 payload 回填标题、正向提示词、负向提示词、标签、比例和参考图片。
-- 图片对象会先复用 `src/js/image-utils.js` 做统一压缩，再交给现有保存链路上传。
+- 图片对象会先复用 `src/js/shared/image-utils.js` 做统一压缩，再交给现有保存链路上传。
 - 单条 ChatGPT 对话归档 JSON 不包含内嵌图片二进制时，仅预填标题与提示词文本；需要图片同步时应优先使用 ChatGPT Vault 的 `导出提示词JSON` 入口。
 
 发布前需运行 `python -m pytest python/tests/test_build_app_main.py -q`，避免安装包后端落后于源码后端，导致前端拿到首页 HTML 并触发 JSON 解析失败；同时确认 `/`、`/index.html` 和任意前端路由不会返回 `SimpleHTTPRequestHandler` 目录列表。
@@ -303,7 +303,7 @@ PC 设置页的导入入口现在分成两个显式按钮：
 
 ## 七、前端存储层（ApiStorage）
 
-[api-storage.js](../../src/js/api-storage.js) 实现了 `ApiStorage` 类，通过 HTTP Fetch 与 Python 后端通信。
+[api-storage.js](../../src/js/core/api-storage.js) 实现了 `ApiStorage` 类，通过 HTTP Fetch 与 Python 后端通信。
 
 ### 7.1 初始化与健康检查
 

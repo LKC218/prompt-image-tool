@@ -4,7 +4,7 @@
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/js/pc-cursor.js` | 初始化、可点目标判定、圆环状态切换、GSAP 跟随、生命周期清理 |
+| `src/js/pc/pc-cursor.js` | 初始化、可点目标判定、圆环状态切换、GSAP 跟随、生命周期清理 |
 | `src/js/pc-cursor.test.js` | 精细指针门禁、native 回退、hover/disabled/loading/pressed 与销毁行为测试 |
 | `src/css/theme-tokens.css` | 根级主题与品牌配色令牌 |
 | `src/css/pc/01-foundation-shell.css` | 圆环光标样式、原生光标 CSS 回退 |

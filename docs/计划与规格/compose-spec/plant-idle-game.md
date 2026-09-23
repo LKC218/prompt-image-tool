@@ -184,11 +184,11 @@ commits: c928215..HEAD
 
 | 文件 | 变更 |
 |------|------|
-| `src/js/plant-persist.js`（新） | `loadPlantFromApi` / `savePlantToApi`；超时/失败回退 LS |
-| `src/js/plant-tracker.js` | start 时：API 优先 → LS 迁移；save 节流写 API + 同步 LS |
-| `src/js/api-storage.js` | `getPlant()` / `savePlant(plant)` |
-| `src/js/backup-utils.js` / export | `exportData` 附带 `plant` |
-| `src/js/pc-settings.js` | 导入时若含 `plant` 则写入 API/LS |
+| `src/js/plant/plant-persist.js`（新） | `loadPlantFromApi` / `savePlantToApi`；超时/失败回退 LS |
+| `src/js/plant/plant-tracker.js` | start 时：API 优先 → LS 迁移；save 节流写 API + 同步 LS |
+| `src/js/core/api-storage.js` | `getPlant()` / `savePlant(plant)` |
+| `src/js/shared/backup-utils.js` / export | `exportData` 附带 `plant` |
+| `src/js/pc/pc-settings.js` | 导入时若含 `plant` 则写入 API/LS |
 
 **写策略：**
 

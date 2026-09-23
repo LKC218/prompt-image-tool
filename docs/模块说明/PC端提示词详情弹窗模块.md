@@ -6,8 +6,8 @@
 
 ## 源码位置
 
-- `src/js/pc-detail-modal.js`
-- `src/js/pc-detail.js`
+- `src/js/pc/pc-detail-modal.js`
+- `src/js/pc/pc-detail.js`
 
 ## 交互约束
 
@@ -20,8 +20,8 @@
 
 ## 关联文件
 
-- `src/js/pc-home.js`：首页最近使用项的详情入口。
-- `src/js/pc-library.js`：提示词库列表的详情入口。
+- `src/js/pc/pc-home.js`：首页最近使用项的详情入口。
+- `src/js/pc/pc-library.js`：提示词库列表的详情入口。
 - `src/css/pc/05c-global-overlays.css`：详情窗口、双窗口布局和背景模糊样式。
 - `src/js/pc-detail-modal.test.js`：详情窗口背景滚动锁定回归测试。
 - `docs/页面与UI/PC端/03-提示词详情.md`：用户可见交互规则。

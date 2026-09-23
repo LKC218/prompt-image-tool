@@ -2,7 +2,7 @@
 
 > 本文档仅作为「文件导航」与「文档更新落点」，不记录修改历史或执行结果。
 > 源文件为中文 UTF-8 编码；若编辑器显示乱码，请确认以 UTF-8 打开。
-> 最后整理：2026-08-21
+> 最后整理：2026-09-23
 
 ---
 
@@ -22,7 +22,7 @@
 
 | 路径 | 职责 |
 | --- | --- |
-| `src/` | 前端源码（js / css / assets / react 试点 / index.html） |
+| `src/` | 前端源码（js / css / assets / react 试点 / index.html）；`src/js` 按 `core/shared/pc/mobile/plant/goal/games/release/sync` 分组 |
 | `python/` | Python 后端、数据目录占位、pytest |
 | `src-tauri/` | Tauri PC 壳 |
 | `android/` | Capacitor Android 工程 |
@@ -39,15 +39,17 @@
 
 ## 三、前端源码导航
 
+> `src/js` 分组（2026-09-23）：`core/` 存储与基础、`shared/` 跨端工具、`pc/` 与 `mobile/` 端侧壳与页面、`plant/` `goal/` `games/` `release/` `sync/` 功能域。
+
 ### 3.1 启动与双端壳
 
 | 文件 | 职责 |
 | --- | --- |
 | `src/js/main.js` | `detectUI()`、主题初始化、存储初始化、挂载 PC/移动壳 |
-| `src/js/pc-app.js` | PC 侧边栏壳、导航、路由注册、主题切换、更新记录入口 |
-| `src/js/mobile-app.js` | 移动端底部 Tab、悬浮新建、返回键、路由注册 |
-| `src/js/pc-router.js` | PC 路由（`history.pushState`） |
-| `src/js/mobile-router.js` | 移动路由 |
+| `src/js/pc/pc-app.js` | PC 侧边栏壳、导航、路由注册、主题切换、更新记录入口 |
+| `src/js/mobile/mobile-app.js` | 移动端底部 Tab、悬浮新建、返回键、路由注册 |
+| `src/js/pc/pc-router.js` | PC 路由（`history.pushState`） |
+| `src/js/mobile/mobile-router.js` | 移动路由 |
 
 **PC 路由**：`/`、`/library`、`/detail/:id`、`/editor/:id`、`/category`、`/goals`、`/goals/:id`、`/games`、`/tetris`、`/plane`、`/settings`
 
@@ -57,15 +59,17 @@
 
 | 文件 | 职责 |
 | --- | --- |
-| `src/js/storage.js` | 存储抽象入口 |
-| `src/js/api-storage.js` | PC：HTTP API |
-| `src/js/sqlite-storage.js` | 移动：Capacitor SQLite |
-| `src/js/backup-utils.js` | JSON/ZIP 备份导入导出 |
-| `src/js/lan-sync.js` | 局域网同步客户端 |
-| `src/js/prompt-tool-json-import.js` | 对话归档 / 旧格式 JSON 导入适配 |
-| `src/js/download-history.js` | 导出下载历史 |
+| `src/js/core/storage.js` | 存储抽象入口 |
+| `src/js/core/api-storage.js` | PC：HTTP API |
+| `src/js/core/sqlite-storage.js` | 移动：Capacitor SQLite |
+| `src/js/shared/backup-utils.js` | JSON/ZIP 备份导入导出 |
+| `src/js/sync/lan-sync.js` | 局域网同步客户端 |
+| `src/js/shared/prompt-tool-json-import.js` | 对话归档 / 旧格式 JSON 导入适配 |
+| `src/js/shared/download-history.js` | 导出下载历史 |
 
 ### 3.3 PC 页面模块
+
+均位于 `src/js/pc/`。
 
 | 文件 | 路由 | 职责 |
 | --- | --- | --- |
@@ -83,6 +87,8 @@
 | `pc-settings.js` | `/settings` | 外观、备份、同步、下载历史、检查更新 |
 
 ### 3.4 移动页面模块
+
+均位于 `src/js/mobile/`。
 
 | 文件 | 路由 | 职责 |
 | --- | --- | --- |
@@ -114,21 +120,22 @@
 | `src/css/pc/09-tetris.css` | 俄罗斯方块小游戏页 |
 | `src/css/pc/10-plane.css` | 摸鱼中心与飞机大战 |
 | `src/css/pc/11-plant.css` | 首页挂机种植物（横幅槽/养护气泡/debug） |
-| `src/js/tetris-core.js` | 俄罗斯方块纯逻辑（棋盘/旋转/消行/计分） |
-| `src/js/plane-war-core.js` | 飞机大战纯逻辑（生成/碰撞/计分/tick） |
-| `src/js/plant-core.js` | 挂机种植物纯逻辑（30 天轮回/养护/铲除/debug） |
-| `src/js/plant-persist.js` | 植物档 API/localStorage 双写与迁移 |
-| `src/js/plant-tracker.js` | 植物计时生命周期（visibility/心跳/存档） |
-| `src/js/plant-view.js` | 植物素材/SVG 渲染与养护 UI |
+| `src/js/games/tetris-core.js` | 俄罗斯方块纯逻辑（棋盘/旋转/消行/计分） |
+| `src/js/games/plane-war-core.js` | 飞机大战纯逻辑（生成/碰撞/计分/tick） |
+| `src/js/plant/plant-core.js` | 挂机种植物纯逻辑（30 天轮回/养护/铲除/debug） |
+| `src/js/plant/plant-persist.js` | 植物档 API/localStorage 双写与迁移 |
+| `src/js/plant/plant-tracker.js` | 植物计时生命周期（visibility/心跳/存档） |
+| `src/js/plant/plant-view.js` | 植物素材/SVG 渲染与养护 UI |
 | `src/assets/pc/plant/` | 镜面草四阶段图 + 单叶精灵 |
 | `src/css/mobile.css` | 移动端样式入口 |
-| `src/js/version-info.js` | 版本号读取与展示 |
-| `src/js/auto-updater.js` | PC 应用内更新：检查 / 启动下载 / 轮询进度 / 取消 / 安装 |
-| `src/js/update-progress-modal.js` | 阶段式更新进度弹窗（百分比、阶段列表、取消/重试） |
-| `src/js/pc-utils.js` / `mobile-utils.js` | 端侧 Toast/Modal/ActionSheet |
-| `src/js/pc-cursor.js` | PC 自定义圆环光标 |
-| `src/js/ripple.js` | 涟漪 |
-| `src/js/goal-utils.js` / `goal-image-preview.js` | 目标计划共享工具 |
+| `src/js/core/version-info.js` | 版本号读取与展示 |
+| `src/js/release/auto-updater.js` | PC 应用内更新：检查 / 启动下载 / 轮询进度 / 取消 / 安装 |
+| `src/js/release/update-progress-modal.js` | 阶段式更新进度弹窗（百分比、阶段列表、取消/重试） |
+| `src/js/release/release-notes.js` / `release-notes-data.js` | 更新记录弹窗与正文数据 |
+| `src/js/pc/pc-utils.js` / `mobile/mobile-utils.js` | 端侧 Toast/Modal/ActionSheet |
+| `src/js/pc/pc-cursor.js` | PC 自定义圆环光标 |
+| `src/js/shared/ripple.js` | 涟漪 |
+| `src/js/goal/goal-utils.js` / `goal-image-preview.js` | 目标计划共享工具 |
 
 ### 3.6 React 微试点
 

@@ -2,7 +2,7 @@
 
 > 参考来源：Uiverse `chase2k25/nice-fly-98`  
 > URL：`https://uiverse.io/chase2k25/nice-fly-98`  
-> 落点文件：`src/js/pc-app.js`、`src/css/pc.css`、`src/css/pc/01-foundation-shell.css`
+> 落点文件：`src/js/pc/pc-app.js`、`src/css/pc.css`、`src/css/pc/01-foundation-shell.css`
 > 相关规范：`docs/设计系统/新拟态按钮设计规范.md`
 
 > 当前钟面已于 2026-07-11 纳入侧栏暖色轻拟态规范：表盘使用 `--pc-sidebar-clock-*` 令牌，降低阴影和数字对比度，以避免与导航激活态竞争。完整侧栏规范见 `docs/设计系统/PC左侧导航栏轻拟态设计.md`。
@@ -96,7 +96,7 @@
 
 | 文件 | 职责 |
 |------|------|
-.| `src/js/pc-app.js` | `renderShell()` 渲染时钟 HTML；底部 footer 仅保留时钟。 |
+.| `src/js/pc/pc-app.js` | `renderShell()` 渲染时钟 HTML；底部 footer 仅保留时钟。 |
 | `src/css/pc.css` | PC 端稳定样式聚合入口。 |
 | `src/css/pc/01-foundation-shell.css` | `.pc-sidebar-clock*` 系列基础规则（新拟态视觉、指针 transform）与 `.pc-sidebar-mascot`。 |
 | `src/css/pc/03-shared-components.css` | 侧边栏折叠状态适配；该规则因保持原始连续级联顺序而不与基础侧边栏规则合并。 |
@@ -130,7 +130,7 @@
 - 2026-07-10：按工程师要求改回方案 A，完全复刻 Uiverse `chase2k25/nice-fly-98` 源案例新拟态风格；移除 JS 真实时间逻辑，改用纯 CSS `@keyframes` 动画；表盘放大到 `180px × 180px`（源案例 `300px` 的 60% 缩放）；吉祥物上移（`max-height: 80px`）为时钟腾出空间；颜色回归源案例冷灰蓝调。
 - 2026-07-10：修复数字错位问题：将 `.pc-clock-number span` 的 `transform` 从 `rotate(...) translateY(...)` 改为 `translateY(...) rotate(...)`，使数字先沿旋转后的径向推出再反向转正，与源案例一致。
 - 2026-07-10：按工程师要求将 `.pc-sidebar-mascot` 吉祥物从 footer 内移到 `.pc-sidebar-header` 与 `.pc-sidebar-nav` 之间，避免与底部时钟 UI 重叠；同步更新 `docs/导航/apps-code-map.md` 与本文档。
-- 2026-07-10：按工程师要求彻底移除 `.pc-sidebar-mascot` 吉祥物：删除 `src/js/pc-app.js` 中的 import 与 DOM、`src/css/pc.css` 中的相关样式、`src/assets/mobile/mascots/tip-mascot.png` 图片文件；同步更新 `docs/导航/apps-code-map.md` 与本文档。
+- 2026-07-10：按工程师要求彻底移除 `.pc-sidebar-mascot` 吉祥物：删除 `src/js/pc/pc-app.js` 中的 import 与 DOM、`src/css/pc.css` 中的相关样式、`src/assets/mobile/mascots/tip-mascot.png` 图片文件；同步更新 `docs/导航/apps-code-map.md` 与本文档。
 - 2026-07-10：按工程师截图中的红框位置，将 `.pc-sidebar-mascot` 吉祥物重新放回侧边栏，位于 `.pc-sidebar-nav` 与 `.pc-sidebar-footer` 之间；通过 `git checkout` 恢复 `tip-mascot.png`；同步更新 `docs/导航/apps-code-map.md` 与本文档。
 - 2026-07-10：修复吉祥物与时钟 UI 重叠问题：将 `.pc-sidebar-mascot` 的 `margin-bottom` 从 `var(--pc-space-lg)` 加大到 `28px`；将 `.pc-sidebar-clock` 的 `padding-top` 从 `var(--pc-space-lg)` 加大到 `var(--pc-space-xl)`；为 `.pc-sidebar-mascot-img` 增加 `height: 100%` 与 `object-fit: contain`，避免图片撑开父元素；同步更新本文档。
 - 2026-07-11：侧栏统一为暖色轻拟态。时钟保留系统时间驱动、180px 表盘和折叠态隐藏行为，表盘、刻度、数字与中心点改由 `--pc-sidebar-clock-bg`、`--pc-sidebar-clock-dark`、`--pc-sidebar-clock-light` 控制，降低阴影与数字对比度。

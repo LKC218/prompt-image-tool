@@ -48,7 +48,7 @@ Android 移动端基于 **Capacitor 8.x** 封装，使用 **SQLite** 本地数�
 
 ## 二点一、移动端图标资源约定
 
-移动端 UI 控件不使用 Emoji、单字符箭头、星号、省略号、叉号、加号或 CSS `content` 字符充当图标。页面统一通过 [mobile-icon-assets.js](../../src/js/mobile-icon-assets.js) 引入本地图标，并由 `mobileIcon()` 输出稳定尺寸的本地 SVG 图片。
+移动端 UI 控件不使用 Emoji、单字符箭头、星号、省略号、叉号、加号或 CSS `content` 字符充当图标。页面统一通过 [mobile-icon-assets.js](../../src/js/mobile/mobile-icon-assets.js) 引入本地图标，并由 `mobileIcon()` 输出稳定尺寸的本地 SVG 图片。
 
 - 通用图标优先复用 [src/assets/icons](../../src/assets/icons) 中已有的 Lucide 本地化资源。
 - 移动端缺口图标放在 [src/assets/icons/mobile](../../src/assets/icons/mobile)，用于返回、展开收起、关闭、收藏、加载、全屏预览、文件、刷新和剪贴板等操作。
@@ -60,7 +60,7 @@ Android 移动端基于 **Capacitor 8.x** 封装，使用 **SQLite** 本地数�
 
 ## 二点二、共享收藏反馈
 
-首页、提示词库和详情页通过 [favorite-feedback.js](../../src/js/favorite-feedback.js) 复用收藏交互。模块以提示词 ID 作为请求锁，同一提示词在请求完成前不会重复提交；点击后立即更新图标、`aria-pressed` 和页面内数据，存储失败则恢复前一状态并提示失败。按钮在请求期间使用 `disabled`、`aria-busy="true"` 表达忙碌状态，成功后播放轻量缩放反馈；动效在系统“减少动态效果”设置下由 [mobile.css](../../src/css/mobile.css) 的全局规则禁用。
+首页、提示词库和详情页通过 [favorite-feedback.js](../../src/js/mobile/favorite-feedback.js) 复用收藏交互。模块以提示词 ID 作为请求锁，同一提示词在请求完成前不会重复提交；点击后立即更新图标、`aria-pressed` 和页面内数据，存储失败则恢复前一状态并提示失败。按钮在请求期间使用 `disabled`、`aria-busy="true"` 表达忙碌状态，成功后播放轻量缩放反馈；动效在系统“减少动态效果”设置下由 [mobile.css](../../src/css/mobile.css) 的全局规则禁用。
 
 ---
 
@@ -203,7 +203,7 @@ prompt_sets ←──(prompt_set_id)── versions ←──(version_id)── 
 
 ### 6.3 导入压缩策略
 
-移动端编辑器导入图片时复用 `src/js/image-utils.js`，但参数更保守：
+移动端编辑器导入图片时复用 `src/js/shared/image-utils.js`，但参数更保守：
 
 - 支持 JPG、PNG、WebP，单张源文件上限为 10MB，单版本最多 10 张。
 - 使用 Canvas 默认输出 WebP，质量参数为 `0.86`。
@@ -216,14 +216,14 @@ prompt_sets ←──(prompt_set_id)── versions ←──(version_id)── 
 移动端图片查看器下载按钮会先弹出操作菜单：
 
 - `保存原格式`：保持当前存储格式，写入 Android 相册或浏览器下载。
-- `导出 JPG`：通过 `src/js/image-download-utils.js` fetch 当前图片并用 Canvas 输出 `image/jpeg`，文件名统一改为 `.jpg`。
+- `导出 JPG`：通过 `src/js/shared/image-download-utils.js` fetch 当前图片并用 Canvas 输出 `image/jpeg`，文件名统一改为 `.jpg`。
 - JPG 导出前填充白色背景，避免透明 PNG/WebP 转 JPEG 后出现黑底。
 - Capacitor 环境只认原生相册插件返回的成功结果；图片读取、转码或相册写入失败时不回退为“浏览器下载成功”，并且不写入下载成功历史。界面会展示具体失败原因，便于用户检查相册权限、存储空间或原图是否仍存在。
 - 历史图片不会自动转换，完整备份与局域网同步继续保留真实存储格式。
 
 ### 6.4 提示词长度限制
 
-移动端新建/编辑页的提示词长度限制由 `src/js/mobile-editor.js` 前端常量维护：
+移动端新建/编辑页的提示词长度限制由 `src/js/mobile/mobile-editor.js` 前端常量维护：
 
 - 正向提示词：`MAX_POSITIVE_PROMPT_LEN = 6666`，用于 `maxlength`、字数统计、全屏预览底部计数和超限样式。
 - 负向提示词：`MAX_NEGATIVE_PROMPT_LEN = 2000`，继续保持原有输入上限。
@@ -250,7 +250,7 @@ async getImageUrl(img) {
 
 ### 6.6 prompt-image-tool JSON 导入联动
 
-移动端首页导入 JSON 时同样会先尝试通过 `src/js/prompt-tool-json-import.js` 判断是否能转成新建提示词导入内容。若命中 `prompt-image-tool.import.v1`，或命中单条 ChatGPT Vault 对话归档 JSON（包含 `messages[]`、标题和归档标识），则会临时暂存 payload 后跳转到 `/editor/`。
+移动端首页导入 JSON 时同样会先尝试通过 `src/js/shared/prompt-tool-json-import.js` 判断是否能转成新建提示词导入内容。若命中 `prompt-image-tool.import.v1`，或命中单条 ChatGPT Vault 对话归档 JSON（包含 `messages[]`、标题和归档标识），则会临时暂存 payload 后跳转到 `/editor/`。
 
 导入暂存优先写入 IndexedDB，失败时回退 Web Storage 和同页内存 Map，减少带参考图片的专用 JSON 因浏览器暂存配额不足导致的导入失败。
 
@@ -266,7 +266,7 @@ async getImageUrl(img) {
 
 ## 七、前端存储层（SqliteStorage）
 
-[sqlite-storage.js](../../src/js/sqlite-storage.js) 实现了 `SqliteStorage` 类，通过 Capacitor SQLite 插件操作本地数据库。
+[sqlite-storage.js](../../src/js/core/sqlite-storage.js) 实现了 `SqliteStorage` 类，通过 Capacitor SQLite 插件操作本地数据库。
 
 ### 7.1 初始化
 
