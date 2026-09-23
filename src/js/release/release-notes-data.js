@@ -1,5 +1,32 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.16',
+        date: '2026-09-23',
+        sections: [
+            {
+                title: '新增',
+                tone: 'pink',
+                items: [
+                    '思维导图可导入图片：工具栏、节点 + 按钮或节点菜单均可为任务添加图片，缩略图即时刷新。'
+                ]
+            },
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '图片入口更顺手：列表与导图都能导入图片；导图节点菜单补齐图片管理与查看图片。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.16；基于当前主分支重新构建 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.15',
         date: '2026-09-23',
         sections: [

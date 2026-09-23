@@ -682,12 +682,18 @@ async function showTaskMenu(id, anchorEl, options = {}) {
         { action: 'toggle-executing', icon: '', label: executing ? '取消执行中' : '标记为执行中' }
     ];
     if (!fromMindmap) {
+        items.push({ action: 'import-image', icon: iconImg(imageIcon), label: '导入图片' });
         items.push({ action: 'image-manager', icon: iconImg(imageIcon), label: '图片管理' });
         if (hasImages) {
             items.push({ action: 'view-images', icon: iconImg(imageIcon), label: '查看图片' });
         }
         items.push({ action: 'locate-mindmap', icon: iconImg(mapIcon), label: '在导图中定位' });
     } else {
+        items.push({ action: 'import-image', icon: iconImg(imageIcon), label: '导入图片' });
+        items.push({ action: 'image-manager', icon: iconImg(imageIcon), label: '图片管理' });
+        if (hasImages) {
+            items.push({ action: 'view-images', icon: iconImg(imageIcon), label: '查看图片' });
+        }
         items.push({ action: 'locate-list', icon: iconImg(chevronDownIcon), label: '在列表中定位' });
     }
     items.push({ action: 'delete', icon: iconImg(deleteIcon), tone: 'delete', label: '删除', danger: true });
@@ -710,6 +716,10 @@ async function showTaskMenu(id, anchorEl, options = {}) {
     else if (action === 'rename') editTaskTitle(id);
     else if (action === 'copy') copyTask(id);
     else if (action === 'toggle-executing') toggleTaskExecuting(id);
+    else if (action === 'import-image') {
+        if (fromMindmap) importMindmapImage(id);
+        else addTaskImage(id, () => {});
+    }
     else if (action === 'image-manager') showTaskImageManager(id);
     else if (action === 'view-images') viewTaskImages(id);
     else if (action === 'locate-list') openTaskInListView(id);
@@ -738,6 +748,14 @@ function viewTaskImages(id) {
     }
 }
 
+function refreshAfterImageChange(options = {}) {
+    if (viewMode === 'mindmap') {
+        renderMindmap({ flip: options.flip === true });
+        return;
+    }
+    renderTasks();
+}
+
 async function importImageDataUrl(dataUrl, name, id, onAdded) {
     try {
         const compressed = await compressToWebp(dataUrl);
@@ -748,7 +766,7 @@ async function importImageDataUrl(dataUrl, name, id, onAdded) {
             if (!task.images) task.images = [];
             task.images.push(img);
             if (onAdded) onAdded();
-            renderTasks();
+            refreshAfterImageChange();
             await saveTasks();
             showToast('图片添加成功');
         }
@@ -772,6 +790,21 @@ async function addTaskImage(id, onAdded) {
         reader.readAsDataURL(file);
     };
     input.click();
+}
+
+function importMindmapImage(taskId) {
+    if (!taskId || taskId === MINDMAP_ROOT_ID) {
+        showToast('请先选中要导入图片的任务节点', 'error');
+        return;
+    }
+    const task = findTask(taskId);
+    if (!task) {
+        showToast('任务不存在', 'error');
+        return;
+    }
+    mindmapSelectedId = taskId;
+    applyMindmapSelectionStyles();
+    addTaskImage(taskId);
 }
 
 function handleManagerPaste(e) {
@@ -949,7 +982,7 @@ function showTaskImageManager(id) {
                 const index = Number(btn.dataset.index);
                 showConfirmModal('确定删除这张图片吗？', async () => {
                     task.images.splice(index, 1);
-                    renderTasks();
+                    refreshAfterImageChange();
                     await saveTasks();
                     showToast('图片已删除');
                     refresh();
@@ -992,7 +1025,14 @@ function resolveMindmapGraph() {
 function mindmapImageMarkup(node) {
     if (!node || node.isRoot) return '';
     const count = node.imageCount || 0;
-    if (!count) return '';
+    const importBtn = `
+        <button type="button" class="pc-goal-mindmap-image-add" data-task-id="${escapeHtml(node.id)}" aria-label="导入图片" title="导入图片">
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                <path d="M8 3.2v9.6M3.2 8h9.6"></path>
+            </svg>
+        </button>
+    `;
+    if (!count) return importBtn;
     const first = (node.images || [])[0];
     const dataSrc = first?.data || first?.path || '';
     return `
@@ -1000,6 +1040,7 @@ function mindmapImageMarkup(node) {
             <img alt="" data-src="${escapeHtml(dataSrc)}" loading="lazy">
             ${count > 1 ? `<span class="pc-goal-mindmap-image-count">${count}</span>` : ''}
         </button>
+        ${importBtn}
     `;
 }
 
@@ -1328,6 +1369,14 @@ function mountMindmapImagePreviews(container) {
         });
     });
 
+    container.querySelectorAll('.pc-goal-mindmap-image-add').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            importMindmapImage(btn.dataset.taskId);
+        });
+    });
+
     mountGoalImageIcons(container, {
         iconSelector: '.pc-goal-mindmap-image',
         getTask: (id) => findTask(id),
@@ -1369,6 +1418,7 @@ function renderMindmap(options = {}) {
         container.innerHTML = `
             <div class="pc-goal-mindmap-toolbar">
                 <button type="button" class="pc-btn pc-btn-sm pc-btn-primary" id="pcGoalMindmapOnlyOpen" aria-pressed="true">只看未完成</button>
+                <button type="button" class="pc-btn pc-btn-sm" id="pcGoalMindmapImportImage" title="为选中节点导入图片">导入图片</button>
             </div>
             <div class="pc-empty-state pc-goal-tasks-empty">
                 <span class="pc-empty-icon">${iconImg(rabbitTip, '目标计划')}</span>
@@ -1378,6 +1428,9 @@ function renderMindmap(options = {}) {
         container.querySelector('#pcGoalMindmapOnlyOpen')?.addEventListener('click', () => {
             mindmapOnlyIncomplete = false;
             renderMindmap({ flip: true });
+        });
+        container.querySelector('#pcGoalMindmapImportImage')?.addEventListener('click', () => {
+            importMindmapImage(mindmapSelectedId);
         });
         return;
     }
@@ -1438,6 +1491,7 @@ function renderMindmap(options = {}) {
             </button>
             <button type="button" class="pc-btn pc-btn-sm" id="pcGoalMindmapClearLinks">清空关联</button>
             <button type="button" class="pc-btn pc-btn-sm ${openFilterClass}" id="pcGoalMindmapOnlyOpen" aria-pressed="${mindmapOnlyIncomplete}">只看未完成</button>
+            <button type="button" class="pc-btn pc-btn-sm" id="pcGoalMindmapImportImage" title="为选中节点导入图片">导入图片</button>
             <button type="button" class="pc-btn pc-btn-sm" id="pcGoalMindmapFit">适应画布</button>
             <button type="button" class="pc-btn pc-btn-sm" id="pcGoalMindmapReset">重置视图</button>
             <button type="button" class="pc-btn pc-btn-sm ${mindmapMaximized ? 'pc-btn-primary' : ''}" id="pcGoalMindmapMaximize" aria-pressed="${mindmapMaximized}">
@@ -1753,6 +1807,14 @@ function bindMindmapEvents(container) {
         });
     });
 
+    container.querySelector('#pcGoalMindmapImportImage')?.addEventListener('click', () => {
+        if (mindmapLinkMode) {
+            showToast('关联模式下请先退出再导入图片', 'error');
+            return;
+        }
+        importMindmapImage(mindmapSelectedId);
+    });
+
     container.querySelector('#pcGoalMindmapFit')?.addEventListener('click', () => {
         scheduleMindmapCamera({
             focusNodeId: mindmapSelectedId && mindmapLayoutResult?.positions?.has(mindmapSelectedId)
@@ -1776,7 +1838,7 @@ function bindMindmapEvents(container) {
     container.querySelectorAll('.pc-goal-mindmap-node').forEach(nodeEl => {
         nodeEl.addEventListener('click', (e) => {
             e.stopPropagation();
-            if (e.target.closest('.pc-goal-mindmap-image')) return;
+            if (e.target.closest('.pc-goal-mindmap-image') || e.target.closest('.pc-goal-mindmap-image-add')) return;
             handleMindmapNodeClick(nodeEl.dataset.nodeId, nodeEl);
         });
         nodeEl.addEventListener('dblclick', (e) => {

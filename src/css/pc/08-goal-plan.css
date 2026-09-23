@@ -2194,3 +2194,49 @@ body.pc-goal-mindmap-max-open .pc-goal-mindmap-legend {
 .pc-goal-mindmap-node.is-status-done .pc-goal-mindmap-image {
     opacity: 0.85;
 }
+
+/* 目标计划 · 导图节点导入图片按钮 */
+.pc-goal-mindmap-image-add {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    margin-left: 4px;
+    padding: 0;
+    border: none;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pc-neu-bg);
+    color: var(--pc-text3);
+    box-shadow:
+        2px 2px 4px var(--pc-neu-dark),
+        -2px -2px 4px var(--pc-neu-light);
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.15s ease, color 0.15s ease, box-shadow var(--pc-neu-transition, 0.2s ease);
+}
+
+.pc-goal-mindmap-image-add:hover,
+.pc-goal-mindmap-image-add:focus-visible {
+    opacity: 1;
+    color: var(--pc-accent);
+}
+
+.pc-goal-mindmap-image-add:active {
+    box-shadow: var(--pc-control-pressed-shadow);
+    color: var(--pc-accent);
+}
+
+.pc-goal-mindmap-node:hover .pc-goal-mindmap-image-add,
+.pc-goal-mindmap-node.is-selected .pc-goal-mindmap-image-add {
+    opacity: 0.9;
+}
+
+.pc-goal-mindmap-node.is-status-done .pc-goal-mindmap-image-add {
+    opacity: 0.55;
+}
+
+:root[data-appearance="dark"] .pc-goal-mindmap-image-add {
+    color: var(--pc-text2);
+}
