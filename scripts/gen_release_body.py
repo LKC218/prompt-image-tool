@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-NOTES = ROOT / "src" / "js" / "release-notes-data.js"
+NOTES = ROOT / "src" / "js" / "release" / "release-notes-data.js"
 ORDER = ["新增", "优化", "修复", "发布"]
 
 

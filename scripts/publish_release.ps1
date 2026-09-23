@@ -139,7 +139,7 @@ function Get-ReleaseSections([string]$Root, [string]$Ver) {
     $tFix = [string]([char]0x4FEE) + [char]0x590D      # 修复
     $tPub = [string]([char]0x53D1) + [char]0x5E03      # 发布
 
-    $path = Join-Path $Root "src\js\release-notes-data.js"
+    $path = Join-Path $Root "src\js\release\release-notes-data.js"
     if (-not (Test-Path $path)) {
         return @()
     }
@@ -261,7 +261,7 @@ Write-Step ("Target version v{0}" -f $ver)
 $pkg = Get-Content (Join-Path $root "package.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $metaHtml = Get-Content (Join-Path $root "src/index.html") -Raw -Encoding UTF8
 $metaMatch = [regex]::Match($metaHtml, 'name="version"\s+content="([^"]+)"')
-$notesPath = Join-Path $root "src/js/release-notes-data.js"
+$notesPath = Join-Path $root "src/js/release/release-notes-data.js"
 $notesText = Get-Content $notesPath -Raw -Encoding UTF8
 $notesFirst = [regex]::Match($notesText, "version:\s*'([^']+)'")
 
