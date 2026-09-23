@@ -116,7 +116,7 @@ def read_local_app_version(frontend_dir: str | None = None) -> str:
             if not os.path.isfile(path):
                 continue
             with open(path, "r", encoding="utf-8") as handle:
-                html = handle.read(4000)
+                html = handle.read(8000)
             match = re.search(
                 r'<meta\s+name=["\']version["\']\s+content=["\']([^"\']+)["\']',
                 html,
@@ -672,14 +672,20 @@ def run_installer(
         cmd.append(f"/D={install_dir}")
 
     creationflags = 0
+    popen_arg: str | list[str] = cmd
     if os.name == "nt":
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
+        # NSIS /D= 必须是最后一段且不带引号（即使路径含空格），list2cmdline 会加引号导致失效
+        popen_arg = subprocess.list2cmdline([path, "/S"])
+        if install_dir:
+            popen_arg = f"{popen_arg} /D={install_dir}"
 
     proc = subprocess.Popen(
-        cmd,
+        popen_arg,
         cwd=os.path.dirname(path) or None,
         close_fds=True,
         creationflags=creationflags,
+        shell=False,
     )
     time.sleep(0.8)
 

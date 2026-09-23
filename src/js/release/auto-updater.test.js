@@ -5,8 +5,11 @@ import {
     pollUpdateProgress,
     startDownloadUpdate,
     cancelUpdateDownload,
+    promptAndInstallUpdate,
+    runUpdateWithProgressModal,
 } from './auto-updater.js';
 import { formatUpdateProgressLine, openUpdateProgressModal } from './update-progress-modal.js';
+import { showConfirmModal } from '../pc/pc-utils.js';
 
 describe('checkForUpdate', () => {
     beforeEach(() => {
@@ -216,5 +219,163 @@ describe('update progress modal', () => {
         root.querySelector('#pcUpdateProgressRetryBtn')?.click();
         expect(onRetry).toHaveBeenCalled();
         modal.close();
+    });
+
+    it('同 phase 连续 setProgress 不重建取消按钮', () => {
+        const modal = openUpdateProgressModal({});
+        modal.setProgress({ phase: 'downloading', percent: 10, downloaded: 1, total: 10, speed: 1 });
+        const btn = document.getElementById('pcUpdateProgressCancelBtn');
+        expect(btn).toBeTruthy();
+        modal.setProgress({ phase: 'downloading', percent: 20, downloaded: 2, total: 10, speed: 1 });
+        expect(document.getElementById('pcUpdateProgressCancelBtn')).toBe(btn);
+        modal.close();
+    });
+
+    it('installing/ready 不渲染操作按钮', () => {
+        const modal = openUpdateProgressModal({});
+        modal.setProgress({ phase: 'installing', percent: 100 });
+        expect(document.getElementById('pcUpdateProgressCancelBtn')).toBeNull();
+        expect(document.getElementById('pcUpdateProgressCloseBtn')).toBeNull();
+        expect(document.getElementById('pcUpdateProgressRetryBtn')).toBeNull();
+        modal.setProgress({ phase: 'ready', percent: 100 });
+        expect(document.getElementById('pcUpdateProgressCancelBtn')).toBeNull();
+        expect(document.getElementById('pcUpdateProgressCloseBtn')).toBeNull();
+        expect(document.getElementById('pcUpdateProgressRetryBtn')).toBeNull();
+        modal.close();
+    });
+});
+
+describe('showConfirmModal Promise 闭环', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '<div id="pcApp"></div>';
+    });
+
+    it('点击确定 resolve true', async () => {
+        const onConfirm = vi.fn();
+        const promise = showConfirmModal('确定吗？', onConfirm, { confirmText: '下载安装', cancelText: '暂不更新' });
+        expect(document.getElementById('pcModalConfirm').textContent).toBe('下载安装');
+        expect(document.getElementById('pcModalCancel').textContent).toBe('暂不更新');
+        document.getElementById('pcModalConfirm').click();
+        await expect(promise).resolves.toBe(true);
+        expect(onConfirm).toHaveBeenCalled();
+    });
+
+    it('点击取消 resolve false', async () => {
+        const promise = showConfirmModal('确定吗？');
+        document.getElementById('pcModalCancel').click();
+        await expect(promise).resolves.toBe(false);
+    });
+
+    it('Esc 关闭 resolve false', async () => {
+        const promise = showConfirmModal('确定吗？');
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await expect(promise).resolves.toBe(false);
+    });
+
+    it('进度窗残留时 Esc 仍可关闭确认框', async () => {
+        const progress = openUpdateProgressModal({});
+        progress.setProgress({ phase: 'failed', error: '网络中断' });
+        const promise = showConfirmModal('再次检查更新？');
+        const focusTarget = document.createElement('button');
+        document.body.appendChild(focusTarget);
+        focusTarget.focus();
+        focusTarget.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await expect(promise).resolves.toBe(false);
+        progress.close();
+        focusTarget.remove();
+    });
+
+    it('进度窗残留时 Esc 不触发 bubble 业务 handler', () => {
+        const progress = openUpdateProgressModal({});
+        const bubbleSpy = vi.fn();
+        document.addEventListener('keydown', bubbleSpy);
+        const focusTarget = document.createElement('button');
+        document.body.appendChild(focusTarget);
+        focusTarget.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        expect(bubbleSpy).not.toHaveBeenCalled();
+        document.removeEventListener('keydown', bubbleSpy);
+        progress.close();
+        focusTarget.remove();
+    });
+
+    it('重复打开进度窗不会泄漏 Esc 拦截', () => {
+        const first = openUpdateProgressModal({});
+        first.setProgress({ phase: 'failed', error: 'x' });
+        const second = openUpdateProgressModal({});
+        expect(first.isActive()).toBe(false);
+
+        const bubbleSpy = vi.fn();
+        document.addEventListener('keydown', bubbleSpy);
+        // 仅第二个实例 close 后，bubble 应恢复
+        second.close();
+        const focusTarget = document.createElement('button');
+        document.body.appendChild(focusTarget);
+        focusTarget.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        expect(bubbleSpy).toHaveBeenCalled();
+        document.removeEventListener('keydown', bubbleSpy);
+        focusTarget.remove();
+    });
+
+    it('遮罩点击关闭 resolve false', async () => {
+        const promise = showConfirmModal('确定吗？');
+        const overlay = document.getElementById('pcModalOverlay');
+        overlay.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await expect(promise).resolves.toBe(false);
+    });
+
+    it('被新弹窗覆盖时旧 Promise resolve false', async () => {
+        const first = showConfirmModal('第一个');
+        const second = showConfirmModal('第二个');
+        await expect(first).resolves.toBe(false);
+        document.getElementById('pcModalConfirm').click();
+        await expect(second).resolves.toBe(true);
+    });
+});
+
+describe('update session 互斥', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '<div id="pcApp"></div>';
+        vi.stubGlobal('fetch', vi.fn());
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    it('并发进入下载会话返回 busy', async () => {
+        fetch.mockImplementation(async (url) => {
+            if (String(url).includes('/api/update/download')) {
+                return {
+                    ok: true,
+                    json: async () => ({ success: true, jobId: 'job-1' }),
+                };
+            }
+            return {
+                ok: true,
+                json: async () => ({
+                    success: true,
+                    jobId: 'job-1',
+                    phase: 'downloading',
+                    percent: 5,
+                    downloaded: 1,
+                    total: 10,
+                    speed: 1,
+                }),
+            };
+        });
+
+        const latest = { version: '9.0.0', url: 'https://example.com/a.exe', sha256: 'abc' };
+        const first = runUpdateWithProgressModal(latest);
+        await new Promise((r) => setTimeout(r, 30));
+        const second = await runUpdateWithProgressModal(latest);
+        expect(second.busy).toBe(true);
+        expect(second.updated).toBe(false);
+
+        document.getElementById('pcUpdateProgressCancelBtn')?.click();
+        await Promise.race([
+            first,
+            new Promise((r) => setTimeout(r, 400)),
+        ]);
+        document.getElementById('pcUpdateProgressCloseBtn')?.click();
     });
 });

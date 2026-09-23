@@ -62,6 +62,50 @@ def test_read_local_app_version_from_src_index():
     assert version and version[0].isdigit()
 
 
+def test_read_local_app_version_reads_upto_8000(tmp_path):
+    html = (
+        "<!doctype html><html><head>"
+        + ("<!-- pad -->" * 400)
+        + '<meta name="version" content="9.9.9-test"></head><body></body></html>'
+    )
+    index = tmp_path / "index.html"
+    index.write_text(html, encoding="utf-8")
+    assert read_local_app_version(str(tmp_path)) == "9.9.9-test"
+
+
+def test_run_installer_windows_dd_unquoted(monkeypatch, tmp_path):
+    setup = tmp_path / "PromptImageManager-Setup.exe"
+    setup.write_bytes(b"mz")
+    install_dir = tmp_path / "App Local" / "PromptImageManager"
+    install_dir.mkdir(parents=True)
+
+    monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
+    monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(install_dir))
+    monkeypatch.setattr("auto_update.time.sleep", lambda *_: None)
+    monkeypatch.setattr("auto_update.os.name", "nt")
+
+    seen = {}
+
+    class _Proc:
+        pid = 1
+
+    def fake_popen(cmd, **kwargs):
+        seen["cmd"] = cmd
+        seen["kwargs"] = kwargs
+        return _Proc()
+
+    monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
+    monkeypatch.setattr("auto_update.spawn_relaunch_helper", lambda *a, **k: {"success": True})
+
+    run_installer(str(setup), expected_version="1.0.0")
+    cmdline = seen["cmd"]
+    assert isinstance(cmdline, str)
+    assert "/S" in cmdline
+    assert cmdline.rstrip().endswith(f"/D={install_dir}")
+    assert f'"/D=' not in cmdline
+    assert f"' /D=" not in cmdline
+
+
 PAYLOAD_BYTES = 1024 * 64
 
 
@@ -349,7 +393,7 @@ def test_run_installer_dev_skips_helper(monkeypatch, tmp_path):
         pid = 4242
 
     def fake_popen(cmd, **kwargs):
-        calls.append({"cmd": list(cmd), "kwargs": kwargs})
+        calls.append({"cmd": cmd, "kwargs": kwargs})
         return _Proc()
 
     monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
@@ -358,9 +402,15 @@ def test_run_installer_dev_skips_helper(monkeypatch, tmp_path):
     assert result["autoRestart"] is False
     assert result["helperSpawned"] is False
     assert result["installDir"] == ""
-    assert calls[0]["cmd"][0] == str(setup)
-    assert "/S" in calls[0]["cmd"]
-    assert not any(str(item).startswith("/D=") for item in calls[0]["cmd"])
+    arg = calls[0]["cmd"]
+    if isinstance(arg, str):
+        assert str(setup) in arg
+        assert "/S" in arg
+        assert "/D=" not in arg
+    else:
+        assert arg[0] == str(setup)
+        assert "/S" in arg
+        assert not any(str(item).startswith("/D=") for item in arg)
     assert len(calls) == 1
 
 
@@ -382,7 +432,7 @@ def test_run_installer_frozen_windows_spawns_helper(monkeypatch, tmp_path):
         pid = 9911
 
     def fake_popen(cmd, **kwargs):
-        calls.append({"cmd": list(cmd), "kwargs": kwargs})
+        calls.append({"cmd": cmd, "kwargs": kwargs})
         return _Proc()
 
     monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
@@ -395,9 +445,16 @@ def test_run_installer_frozen_windows_spawns_helper(monkeypatch, tmp_path):
     assert result["installerPid"] == 9911
 
     installer_cmd = calls[0]["cmd"]
-    assert installer_cmd[0] == str(setup)
-    assert "/S" in installer_cmd
-    assert f"/D={install_dir}" in installer_cmd
+    if isinstance(installer_cmd, str):
+        assert str(setup) in installer_cmd
+        assert "/S" in installer_cmd
+        assert installer_cmd.rstrip().endswith(f"/D={install_dir}")
+        assert f'"/D=' not in installer_cmd
+        assert f" /D={install_dir}" in installer_cmd
+    else:
+        assert installer_cmd[0] == str(setup)
+        assert "/S" in installer_cmd
+        assert f"/D={install_dir}" in installer_cmd
 
     helper_cmd = calls[1]["cmd"]
     assert helper_cmd[0] == "powershell"

@@ -1,4 +1,4 @@
-import { escapeHtml } from '../pc/pc-utils.js';
+import { closeModal, escapeHtml } from '../pc/pc-utils.js';
 
 const STAGE_LABELS = [
     { key: 'downloading', label: '下载安装包' },
@@ -51,7 +51,14 @@ export function formatUpdateProgressLine(progress) {
     return `${downloaded} / ${total}${speed}`;
 }
 
+let activeProgressHandle = null;
+
 export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
+    // 必须先 destroy 旧实例，否则 document capture 监听会泄漏成 Esc 黑洞
+    if (activeProgressHandle) {
+        activeProgressHandle.close();
+        activeProgressHandle = null;
+    }
     const existing = document.getElementById('pcUpdateProgressOverlay');
     if (existing) existing.remove();
 
@@ -107,6 +114,7 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
     const actionsEl = overlay.querySelector('#pcUpdateProgressActions');
 
     let active = true;
+    let currentActionsMode = null;
 
     function renderStages(phase, currentStage) {
         stageListEl.querySelectorAll('li').forEach((li) => {
@@ -119,7 +127,12 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
     }
 
     function setActions(mode) {
+        if (currentActionsMode === mode) return;
+        currentActionsMode = mode;
         actionsEl.innerHTML = '';
+        if (mode === 'none') {
+            return;
+        }
         if (mode === 'cancel') {
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -138,10 +151,18 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
             retry.textContent = '重试';
             retry.addEventListener('click', () => onRetry?.());
             actionsEl.appendChild(retry);
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'pc-btn pc-btn-secondary';
+            close.id = 'pcUpdateProgressCloseBtn';
+            close.textContent = '关闭';
+            close.addEventListener('click', () => destroy());
+            actionsEl.appendChild(close);
+            return;
         }
         const close = document.createElement('button');
         close.type = 'button';
-        close.className = mode === 'retry' ? 'pc-btn pc-btn-secondary' : 'pc-btn pc-btn-primary';
+        close.className = 'pc-btn pc-btn-primary';
         close.id = 'pcUpdateProgressCloseBtn';
         close.textContent = mode === 'success' ? '知道了' : '关闭';
         close.addEventListener('click', () => destroy());
@@ -152,21 +173,30 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
         if (!active) return;
         active = false;
         document.removeEventListener('keydown', onKeydown, true);
+        if (activeProgressHandle === api) {
+            activeProgressHandle = null;
+        }
         overlay.classList.remove('pc-update-progress-active');
         setTimeout(() => overlay.remove(), 200);
     }
 
     function onKeydown(event) {
+        // capture + stopPropagation：挡住编辑器/详情等 bubble 业务 Esc。
+        // 若上层还开着确认框，由我们主动 closeModal 结算 Promise（同节点 bubble 已被拦）。
         if (event.key === 'Escape' && active) {
             event.preventDefault();
             event.stopPropagation();
+            const overlay = document.getElementById('pcModalOverlay');
+            if (overlay?.classList.contains('pc-modal-active')) {
+                closeModal();
+            }
         }
     }
     document.addEventListener('keydown', onKeydown, true);
 
     setActions('cancel');
 
-    return {
+    const api = {
         setProgress(progress = {}) {
             if (!active) return;
             const phase = progress.phase || 'pending';
@@ -216,8 +246,11 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
             } else {
                 setActions('cancel');
             }
+            // ready 后由调用方 close；installing 保持无操作钮，避免误关
         },
         close: destroy,
         isActive: () => active,
     };
+    activeProgressHandle = api;
+    return api;
 }

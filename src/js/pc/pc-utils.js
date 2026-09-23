@@ -37,7 +37,19 @@ function showToast(message, type = 'success') {
     }, 2500);
 }
 
+let modalDismissHandler = null;
+
+function takeModalDismissHandler() {
+    const handler = modalDismissHandler;
+    modalDismissHandler = null;
+    return handler;
+}
+
 function showModal(content) {
+    // 新弹窗覆盖旧弹窗时，旧弹窗按取消结算
+    const previous = takeModalDismissHandler();
+    if (previous) previous();
+
     let overlay = document.getElementById('pcModalOverlay');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -71,21 +83,50 @@ function closeModal() {
     if (overlay && overlay.classList.contains('pc-modal-active')) {
         overlay.classList.remove('pc-modal-active');
     }
+    const handler = takeModalDismissHandler();
+    if (handler) handler();
 }
 
-function showConfirmModal(message, onConfirm) {
-    const modal = showModal(`
-        <h3>确认操作</h3>
-        <p class="pc-modal-desc">${message}</p>
-        <div class="pc-modal-actions">
-            <button class="pc-btn pc-btn-secondary" id="pcModalCancel">取消</button>
-            <button class="pc-btn pc-btn-danger" id="pcModalConfirm">确定</button>
-        </div>
-    `);
-    modal.querySelector('#pcModalCancel').addEventListener('click', closeModal);
-    modal.querySelector('#pcModalConfirm').addEventListener('click', () => {
-        closeModal();
-        onConfirm();
+/**
+ * @param {string} message
+ * @param {() => void} [onConfirm]
+ * @param {{confirmText?: string, cancelText?: string, confirmDanger?: boolean}} [options]
+ * @returns {Promise<boolean>} 确定 true；取消/Esc/遮罩/被覆盖 false
+ */
+function showConfirmModal(message, onConfirm, options = {}) {
+    const confirmText = options.confirmText || '确定';
+    const cancelText = options.cancelText || '取消';
+    const confirmClass = options.confirmDanger === false ? 'pc-btn-primary' : 'pc-btn-danger';
+
+    return new Promise((resolve) => {
+        let settled = false;
+        const settle = (ok) => {
+            if (settled) return;
+            settled = true;
+            modalDismissHandler = null;
+            resolve(ok);
+        };
+
+        // showModal 内会结算并清掉上一个弹窗的 dismiss，成功后再挂当前会话
+        const modal = showModal(`
+            <h3>确认操作</h3>
+            <p class="pc-modal-desc">${message}</p>
+            <div class="pc-modal-actions">
+                <button class="pc-btn pc-btn-secondary" id="pcModalCancel">${escapeHtml(cancelText)}</button>
+                <button class="pc-btn ${confirmClass}" id="pcModalConfirm">${escapeHtml(confirmText)}</button>
+            </div>
+        `);
+        modalDismissHandler = () => settle(false);
+
+        modal.querySelector('#pcModalCancel').addEventListener('click', () => {
+            closeModal();
+        });
+        modal.querySelector('#pcModalConfirm').addEventListener('click', () => {
+            if (settled) return;
+            settle(true);
+            closeModal();
+            onConfirm?.();
+        });
     });
 }
 

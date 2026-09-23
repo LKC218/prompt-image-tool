@@ -21,17 +21,18 @@ async function readJson(response) {
 }
 
 function confirmUpdate(version) {
-    return new Promise((resolve) => {
-        showConfirmModal(
-            `当前版本 v${escapeHtml(getVersion())}，可更新到 v${escapeHtml(version)}。是否下载并安装？安装完成后应用会自动退出，并尝试重启进入新版本。`,
-            () => resolve(true)
-        );
-        const cancel = document.getElementById('pcModalCancel');
-        if (cancel) {
-            cancel.addEventListener('click', () => resolve(false), { once: true });
+    return showConfirmModal(
+        `当前版本 v${escapeHtml(getVersion())}，可更新到 v${escapeHtml(version)}。是否下载并安装？安装完成后应用会自动退出，并尝试重启进入新版本。`,
+        undefined,
+        {
+            confirmText: '下载安装',
+            cancelText: '暂不更新',
+            confirmDanger: false,
         }
-    });
+    );
 }
+
+let updateSessionActive = false;
 
 export async function checkForUpdate({ silent = false, localVersion } = {}) {
     const local = localVersion || getVersion();
@@ -142,17 +143,36 @@ export function clearSkippedUpdateVersion() {
 }
 
 export async function promptAndInstallUpdate(latest) {
-    const version = latest?.version || '';
-    const confirmed = await confirmUpdate(version);
-    if (!confirmed) {
-        skipUpdateVersion(version);
-        return { updated: false, skipped: true };
+    if (updateSessionActive) {
+        return { updated: false, busy: true };
     }
-
-    return runUpdateWithProgressModal(latest);
+    updateSessionActive = true;
+    try {
+        const version = latest?.version || '';
+        const confirmed = await confirmUpdate(version);
+        if (!confirmed) {
+            skipUpdateVersion(version);
+            return { updated: false, skipped: true };
+        }
+        return await runUpdateSessionInternal(latest);
+    } finally {
+        updateSessionActive = false;
+    }
 }
 
 export async function runUpdateWithProgressModal(latest) {
+    if (updateSessionActive) {
+        return { updated: false, busy: true };
+    }
+    updateSessionActive = true;
+    try {
+        return await runUpdateSessionInternal(latest);
+    } finally {
+        updateSessionActive = false;
+    }
+}
+
+async function runUpdateSessionInternal(latest) {
     const session = {
         cancelled: false,
         controller: null,
@@ -173,12 +193,21 @@ export async function runUpdateWithProgressModal(latest) {
 
     const modal = openUpdateProgressModal({
         onCancel: cancelActiveDownload,
-        onRetry: () => {
-            session.controller?.abort();
-            session.cancelled = false;
-            session.currentJobId = '';
-            session.controller = null;
-            runUpdateSession();
+        onRetry: async () => {
+            if (updateSessionActive) {
+                showToast('已有更新任务进行中', 'info');
+                return;
+            }
+            updateSessionActive = true;
+            try {
+                session.controller?.abort();
+                session.cancelled = false;
+                session.currentJobId = '';
+                session.controller = null;
+                await runUpdateSession();
+            } finally {
+                updateSessionActive = false;
+            }
         },
     });
 
