@@ -12,9 +12,7 @@ describe('pc-window-chrome', () => {
         expect(chrome).toBeTruthy();
         expect(chrome.querySelector('.pc-window-chrome-left')?.hasAttribute('data-tauri-drag-region')).toBe(true);
         expect(chrome.querySelector('.pc-window-chrome-drag')?.hasAttribute('data-tauri-drag-region')).toBe(true);
-        expect(chrome.querySelector('[data-chrome-action="toggle-sidebar"]')).toBeTruthy();
-        expect(chrome.querySelector('[data-chrome-action="back"]')).toBeTruthy();
-        expect(chrome.querySelector('[data-chrome-action="forward"]')).toBeTruthy();
+        expect(chrome.querySelector('[data-chrome-action]')).toBeNull();
         expect(chrome.querySelector('[data-window-action="minimize"]')).toBeTruthy();
         expect(chrome.querySelector('[data-window-action="maximize"]')).toBeTruthy();
         expect(chrome.querySelector('[data-window-action="close"]')).toBeTruthy();

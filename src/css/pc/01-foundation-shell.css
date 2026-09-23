@@ -258,9 +258,12 @@
     }
 }
 
-/* 一体化窗口顶栏：真实布局行（左导航簇 + 拖动区 + 右窗口钮） */
+/* 一体化窗口顶栏：浮层，内容可从下方顶通 */
 .pc-window-chrome {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 2600;
     height: var(--pc-window-chrome-height);
     min-height: var(--pc-window-chrome-height);
@@ -269,79 +272,22 @@
     flex-shrink: 0;
     user-select: none;
     -webkit-user-select: none;
+    pointer-events: none;
 }
 
-.pc-window-chrome-left {
-    width: var(--pc-sidebar-width);
-    min-width: var(--pc-sidebar-width);
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    padding: 0 8px;
-    background: var(--pc-sidebar-bg);
-    border-right: 1px solid var(--pc-border-light);
-    transition: width 0.32s cubic-bezier(.2,.8,.2,1), min-width 0.32s cubic-bezier(.2,.8,.2,1);
-    cursor: default;
-}
-
-.pc-window-chrome-drag {
-    flex: 1;
-    min-width: 0;
-    background: var(--pc-bg);
-    cursor: default;
-}
-
-/* pywebview 无边框窗口拖动热区（与 Tauri data-tauri-drag-region 双端并存） */
-.pc-window-chrome-left.pywebview-drag-region,
-.pc-window-chrome-drag.pywebview-drag-region {
-    -webkit-app-region: drag;
-    app-region: drag;
-}
-
-.pc-chrome-nav-btn {
-    width: 28px;
-    height: 28px;
-    margin: 0;
-    padding: 0;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--pc-text2);
+.pc-window-btn-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    cursor: default;
-    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.pc-chrome-nav-btn svg {
-    width: 14px;
-    height: 14px;
-    display: block;
-}
-
-.pc-chrome-nav-btn:hover {
-    background: var(--pc-control-surface-pressed);
-    color: var(--pc-text);
-}
-
-.pc-chrome-nav-btn:active {
-    background: var(--pc-control-surface-pressed);
-}
-
-.pc-chrome-nav-btn:focus-visible {
-    outline: 2px solid var(--pc-accent);
-    outline-offset: -2px;
-}
-
-.pc-window-controls {
-    display: flex;
-    align-items: stretch;
-    background: var(--pc-bg);
+/* [hidden] 必须压过 display，否则最大化/还原图标叠影 */
+.pc-window-btn-icon[hidden] {
+    display: none !important;
 }
 
 .pc-window-btn {
-    width: var(--pc-window-control-width);
+    width: 46px;
     height: 100%;
     margin: 0;
     padding: 0;
@@ -363,12 +309,12 @@
 }
 
 .pc-window-btn:hover {
-    background: var(--pc-control-surface-pressed);
+    background: color-mix(in srgb, var(--pc-text) 10%, transparent);
     color: var(--pc-text);
 }
 
 .pc-window-btn:active {
-    background: var(--pc-control-surface-pressed);
+    background: color-mix(in srgb, var(--pc-text) 16%, transparent);
 }
 
 .pc-window-btn:focus-visible {
@@ -386,10 +332,71 @@
     color: #fff;
 }
 
-.pc-window-btn-icon {
+.pc-chrome-nav-btn {
+    width: 32px;
+    height: 28px;
+    margin: 0 2px 0 0;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--pc-text2);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    cursor: default;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pc-chrome-nav-btn svg {
+    width: 15px;
+    height: 15px;
+    display: block;
+}
+
+.pc-chrome-nav-btn:hover {
+    background: color-mix(in srgb, var(--pc-text) 10%, transparent);
+    color: var(--pc-text);
+}
+
+.pc-chrome-nav-btn:active {
+    background: color-mix(in srgb, var(--pc-text) 16%, transparent);
+}
+
+.pc-chrome-nav-btn:focus-visible {
+    outline: 2px solid var(--pc-accent);
+    outline-offset: -2px;
+}
+
+.pc-window-chrome-left {
+    box-sizing: border-box;
+    width: var(--pc-sidebar-width);
+    min-width: var(--pc-sidebar-width);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0 10px;
+    background: var(--pc-sidebar-bg);
+    border-right: 1px solid var(--pc-border-light);
+    transition: width 0.32s cubic-bezier(.2,.8,.2,1), min-width 0.32s cubic-bezier(.2,.8,.2,1);
+    cursor: default;
+    pointer-events: auto;
+}
+
+.pc-window-chrome-drag {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    cursor: default;
+    pointer-events: auto;
+}
+
+.pc-window-controls {
+    display: flex;
+    align-items: stretch;
+    background: transparent;
+    margin-left: 4px;
+    pointer-events: auto;
 }
 
 .pc-shell-body {
@@ -612,7 +619,7 @@ body.pc-goal-mindmap-max-open .pc-goal-mindmap.is-maximized {
 }
 
 .pc-sidebar-header {
-    padding: var(--pc-space-2xl) var(--pc-space-xl);
+    padding: calc(var(--pc-window-chrome-height) + var(--pc-space-2xl)) var(--pc-space-xl) var(--pc-space-2xl);
     border-bottom: 1px solid var(--pc-border-light);
     transition: padding 0.22s cubic-bezier(.2,.8,.2,1);
 }

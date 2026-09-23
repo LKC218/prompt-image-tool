@@ -74,23 +74,23 @@ const ICONS = {
     `,
     minimize: `
         <svg viewBox="0 0 12 12" aria-hidden="true">
-            <path d="M2 6.25h8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M2.2 6.2h7.6" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
         </svg>
     `,
     maximize: `
         <svg viewBox="0 0 12 12" aria-hidden="true">
-            <rect x="2.25" y="2.25" width="7.5" height="7.5" rx="0.6" fill="none" stroke="currentColor" stroke-width="1.2"/>
+            <rect x="2.4" y="2.4" width="7.2" height="7.2" rx="0.5" fill="none" stroke="currentColor" stroke-width="1.15"/>
         </svg>
     `,
     restore: `
         <svg viewBox="0 0 12 12" aria-hidden="true">
-            <rect x="1.75" y="3.25" width="6.2" height="6.2" rx="0.55" fill="none" stroke="currentColor" stroke-width="1.15"/>
-            <path d="M3.9 3.1V2.55A.55.55 0 0 1 4.45 2h4.1a.55.55 0 0 1 .55.55v4.1a.55.55 0 0 1-.55.55H8.5" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+            <rect x="2.2" y="3.6" width="5.6" height="5.6" rx="0.45" fill="none" stroke="currentColor" stroke-width="1.1"/>
+            <path d="M4.2 3.5V2.9A.5.5 0 0 1 4.7 2.4h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5H8.3" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
         </svg>
     `,
     close: `
         <svg viewBox="0 0 12 12" aria-hidden="true">
-            <path d="M3.2 3.2l5.6 5.6M8.8 3.2L3.2 8.8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M3.4 3.4l5.2 5.2M8.6 3.4L3.4 8.6" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
         </svg>
     `,
 };
@@ -98,17 +98,7 @@ const ICONS = {
 export function renderWindowChrome() {
     return `
         <header class="pc-window-chrome" id="${CHROME_ID}">
-            <div class="pc-window-chrome-left ${DRAG_CLASS}" ${DRAG_ATTR}>
-                <button type="button" class="pc-chrome-nav-btn" data-chrome-action="toggle-sidebar" aria-label="收起侧边栏" title="收起侧边栏">
-                    ${ICONS.sidebar}
-                </button>
-                <button type="button" class="pc-chrome-nav-btn" data-chrome-action="back" aria-label="后退" title="后退">
-                    ${ICONS.back}
-                </button>
-                <button type="button" class="pc-chrome-nav-btn" data-chrome-action="forward" aria-label="前进" title="前进">
-                    ${ICONS.forward}
-                </button>
-            </div>
+            <div class="pc-window-chrome-left ${DRAG_CLASS}" ${DRAG_ATTR}></div>
             <div class="pc-window-chrome-drag ${DRAG_CLASS}" ${DRAG_ATTR}></div>
             <div class="pc-window-controls" role="group" aria-label="窗口控制">
                 <button type="button" class="pc-window-btn" data-window-action="minimize" aria-label="最小化" title="最小化">
