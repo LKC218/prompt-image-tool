@@ -1,6 +1,6 @@
-import { initStorage, isCapacitor } from './storage.js';
+import { initStorage, isCapacitor } from './core/storage.js';
 import '../css/theme-tokens.css';
-import { initTheme } from './theme-service.js';
+import { initTheme } from './core/theme-service.js';
 
 function detectUI() {
     const params = new URLSearchParams(window.location.search);
@@ -28,12 +28,12 @@ async function init() {
         if (ui === 'mobile') {
             const mobileApp = document.getElementById('mobileApp');
             mobileApp.style.display = 'flex';
-            const { mount: mountMobile } = await import('./mobile-app.js');
+            const { mount: mountMobile } = await import('./mobile/mobile-app.js');
             await mountMobile(mobileApp);
         } else {
             const pcApp = document.getElementById('pcApp');
             pcApp.style.display = 'flex';
-            const { mount: mountPc } = await import('./pc-app.js');
+            const { mount: mountPc } = await import('./pc/pc-app.js');
             await mountPc(pcApp);
         }
 

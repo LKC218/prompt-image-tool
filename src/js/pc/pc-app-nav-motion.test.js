@@ -1,0 +1,379 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { readPcCss } from './pc-css-test-utils.js';
+
+const pcCss = readPcCss();
+const appHtml = readFileSync(resolve(process.cwd(), 'src/index.html'), 'utf8');
+const packageManifest = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'));
+const appVersion = appHtml.match(/<meta name="version" content="([^"]+)">/)?.[1];
+
+const routerMocks = vi.hoisted(() => {
+    const routes = new Map();
+    return {
+        routes,
+        registerRoute: vi.fn((path, handler) => routes.set(path, handler)),
+        navigate: vi.fn(),
+        goBack: vi.fn(),
+        navigateToTab: vi.fn(),
+        getCurrentRoute: vi.fn(() => ({ path: '/' })),
+        setRouteChangeCallback: vi.fn(),
+        initRouter: vi.fn(),
+        getRouteHandler: vi.fn((routeKey) => routes.get(routeKey) || routes.get('/')),
+        resolveRouteKey: vi.fn((path) => path),
+    };
+});
+
+const storageMocks = vi.hoisted(() => ({
+    getStorage: vi.fn(() => ({
+        estimateStorageSize: vi.fn(async () => 0),
+    })),
+}));
+
+vi.mock('./pc-router.js', () => routerMocks);
+
+vi.mock('../core/storage.js', () => ({
+    initStorage: vi.fn(),
+    getStorage: storageMocks.getStorage,
+}));
+
+vi.mock('./pc-utils.js', () => ({
+    showToast: vi.fn(),
+    closeModal: vi.fn(),
+    closeImageViewer: vi.fn(),
+    copyToClipboard: vi.fn(),
+    hideContextMenu: vi.fn(),
+    escapeHtml: (value = '') => String(value),
+    formatBytes: () => '0 B',
+}));
+
+vi.mock('../release/release-notes.js', () => ({
+    openReleaseNotes: vi.fn(),
+    showUnreadReleaseNotes: vi.fn(),
+    syncReleaseNotesUnreadBadge: vi.fn(),
+}));
+
+vi.mock('../release/auto-updater.js', () => ({
+    runStartupUpdateCheck: vi.fn(async () => {}),
+    runManualUpdateCheck: vi.fn(async () => {}),
+}));
+
+function mockPage() {
+    return {
+        render: () => '<section data-testid="page"></section>',
+        mount: vi.fn(),
+        unmount: vi.fn(),
+    };
+}
+
+vi.mock('./pc-home.js', () => mockPage());
+vi.mock('./pc-library.js', () => mockPage());
+vi.mock('./pc-detail.js', () => mockPage());
+vi.mock('./pc-editor.js', () => mockPage());
+vi.mock('./pc-category.js', () => mockPage());
+vi.mock('./pc-settings.js', () => mockPage());
+vi.mock('./pc-goal-projects.js', () => mockPage());
+vi.mock('./pc-goal-detail.js', () => mockPage());
+vi.mock('./pc-games-hub.js', () => mockPage());
+vi.mock('./pc-tetris.js', () => mockPage());
+vi.mock('./pc-plane.js', () => mockPage());
+
+describe('PC 侧边栏导航点击动效', () => {
+    beforeEach(() => {
+        vi.resetModules();
+        routerMocks.routes.clear();
+        routerMocks.navigate.mockClear();
+        routerMocks.navigateToTab.mockClear();
+        routerMocks.initRouter.mockReset();
+        routerMocks.getCurrentRoute.mockReset();
+        routerMocks.getCurrentRoute.mockReturnValue({ path: '/' });
+        localStorage.clear();
+        document.body.innerHTML = '<div id="app"></div>';
+        window.matchMedia = vi.fn(() => ({
+            matches: false,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        }));
+    });
+
+    afterEach(() => {
+        document.body.innerHTML = '';
+        vi.restoreAllMocks();
+    });
+
+    it('设置入口固定为圆角方形尺寸，且不渲染圆形光环', () => {
+        const settingsRule = pcCss.match(/\.pc-sidebar-settings-item\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+
+        expect(settingsRule).toContain('box-sizing: border-box');
+        expect(settingsRule).toContain('flex: 0 0 48px');
+        expect(settingsRule).toContain('width: 48px');
+        expect(settingsRule).toContain('height: 48px');
+        expect(settingsRule).toContain('border-radius: var(--pc-sidebar-item-radius)');
+        expect(settingsRule).not.toContain('50%');
+        expect(pcCss).not.toContain('.pc-sidebar-settings-item::before');
+        expect(pcCss).not.toContain('pc-sidebar-settings-ring-pulse');
+    });
+
+    it('收起态隐藏导航滚动条并将底部工具入口纵向排布', () => {
+        const collapsedNavRule = pcCss.match(/\.pc-app\.pc-sidebar-collapsed \.pc-sidebar-nav\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+        const collapsedUtilityRule = pcCss.match(/\.pc-app\.pc-sidebar-collapsed \.pc-sidebar-utility-nav\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+
+        expect(collapsedNavRule).toContain('scrollbar-width: none');
+        expect(pcCss).toContain('.pc-app.pc-sidebar-collapsed .pc-sidebar-nav::-webkit-scrollbar');
+        expect(collapsedUtilityRule).toContain('flex-direction: column');
+        expect(collapsedUtilityRule).toContain('gap: 8px');
+    });
+
+    it('最大化与最小化之间使用分阶段收束过渡', () => {
+        expect(pcCss).toContain('.pc-sidebar-stage.pc-sidebar-is-collapsing .pc-sidebar-logo-copy');
+        expect(pcCss).toContain('transform: translateX(-10px)');
+        expect(pcCss).toContain('transform: translateY(10px) scale(0.96)');
+        expect(pcCss).toContain('transition: width 0.32s cubic-bezier(.2,.8,.2,1)');
+        expect(pcCss).toContain('.pc-sidebar-stage.pc-sidebar-is-expanding');
+    });
+
+    it('侧栏舞台提供两层无交互衬板，并使用错峰位移过渡', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const stage = app.querySelector('#pcSidebarStage');
+        const underlays = stage.querySelectorAll('.pc-sidebar-underlay');
+
+        expect(stage).not.toBeNull();
+        expect(underlays).toHaveLength(2);
+        expect(stage.querySelector('.pc-sidebar-underlay-far').getAttribute('aria-hidden')).toBe('true');
+        expect(stage.querySelector('.pc-sidebar-underlay-near').getAttribute('aria-hidden')).toBe('true');
+        expect(pcCss).toContain('--pc-sidebar-stagger-ease: cubic-bezier(.76, 0, .24, 1)');
+        expect(pcCss).toContain('transform: translateX(-100%)');
+        expect(pcCss).toContain('transition-delay: 0.07s');
+        expect(pcCss).toContain('transition-delay: 0.14s');
+    });
+
+    it('点击当前激活导航项时播放一次性动效并在动画结束后清理', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const homeItem = app.querySelector('[data-nav="/"]');
+        const homeIcon = homeItem.querySelector('.pc-nav-icon');
+
+        homeItem.click();
+
+        expect(routerMocks.navigateToTab).toHaveBeenCalledWith('/');
+        expect(homeItem.classList.contains('pc-nav-clicking')).toBe(true);
+
+        homeIcon.dispatchEvent(new Event('animationend', { bubbles: true }));
+
+        expect(homeItem.classList.contains('pc-nav-clicking')).toBe(false);
+    });
+
+    it('启动时按路由器恢复的标签页挂载并同步导航当前态', async () => {
+        routerMocks.initRouter.mockReturnValue({ path: '/library', params: {} });
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        expect(app.querySelector('[data-nav="/library"]').getAttribute('aria-current')).toBe('page');
+        expect(app.querySelector('[data-nav="/"]').hasAttribute('aria-current')).toBe(false);
+    });
+
+    it('收起态导航项点击时仍触发动效', async () => {
+        localStorage.setItem('pc-sidebar-collapsed', 'true');
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const libraryItem = app.querySelector('[data-nav="/library"]');
+        libraryItem.click();
+
+        expect(app.classList.contains('pc-sidebar-collapsed')).toBe(true);
+        expect(routerMocks.navigateToTab).toHaveBeenCalledWith('/library');
+        expect(libraryItem.classList.contains('pc-nav-clicking')).toBe(true);
+    });
+
+    it('系统减弱动态开启时不添加点击动画类', async () => {
+        window.matchMedia = vi.fn(() => ({
+            matches: true,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        }));
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const settingsItem = app.querySelector('[data-nav="/settings"]');
+        settingsItem.click();
+
+        expect(routerMocks.navigateToTab).toHaveBeenCalledWith('/settings');
+        expect(settingsItem.classList.contains('pc-nav-clicking')).toBe(false);
+    });
+
+    it('当前导航项同步 aria-current 语义状态', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const homeItem = app.querySelector('[data-nav="/"]');
+        const libraryItem = app.querySelector('[data-nav="/library"]');
+
+        expect(homeItem.getAttribute('aria-current')).toBe('page');
+        expect(libraryItem.hasAttribute('aria-current')).toBe(false);
+
+        libraryItem.click();
+
+        expect(homeItem.hasAttribute('aria-current')).toBe(false);
+        expect(libraryItem.getAttribute('aria-current')).toBe('page');
+    });
+
+    it('设置从主导航分离到时钟上方的功能区，并能正常切换路由', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const primaryNav = app.querySelector('#pcSidebarNav');
+        const utilityNav = app.querySelector('.pc-sidebar-utility-nav');
+        const releaseNotesItem = utilityNav.querySelector('[data-release-notes]');
+        const settingsItem = utilityNav.querySelector('[data-nav="/settings"]');
+
+        expect(primaryNav.querySelector('[data-nav="/settings"]')).toBeNull();
+        expect(releaseNotesItem).not.toBeNull();
+        expect(utilityNav.nextElementSibling.id).toBe('pcSidebarClock');
+
+        settingsItem.click();
+
+        expect(routerMocks.navigateToTab).toHaveBeenCalledWith('/settings');
+        expect(settingsItem.getAttribute('aria-current')).toBe('page');
+        expect(settingsItem.classList.contains('pc-nav-active')).toBe(true);
+    });
+
+    it('设置入口移除可见文本，但保留无障碍名称和一次性齿轮转动反馈', async () => {
+        expect(appVersion).toBe(packageManifest.version);
+        document.head.insertAdjacentHTML('beforeend', `<meta name="version" content="${appVersion}">`);
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const settingsItem = app.querySelector('[data-nav="/settings"]');
+        const settingsIcon = settingsItem.querySelector('.pc-nav-icon');
+
+        expect(settingsItem.getAttribute('type')).toBe('button');
+        expect(settingsItem.getAttribute('aria-label')).toBe('设置');
+        expect(settingsItem.getAttribute('title')).toBe('设置');
+        expect(settingsItem.dataset.ripple).toBe('false');
+        expect(settingsItem.querySelector('.pc-nav-label')).toBeNull();
+        expect(settingsItem.classList.contains('pc-sidebar-settings-item')).toBe(true);
+        expect(app.dataset.appVersion).toBe(packageManifest.version);
+
+        settingsItem.click();
+
+        expect(settingsItem.classList.contains('pc-nav-clicking')).toBe(true);
+        settingsIcon.dispatchEvent(new Event('animationend', { bubbles: true }));
+        expect(settingsItem.classList.contains('pc-nav-clicking')).toBe(false);
+    });
+
+    it('底部工具区提供可访问的图标主题开关，并保留更新记录和设置入口', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const utilityNav = app.querySelector('.pc-sidebar-utility-nav');
+        const toggle = utilityNav.querySelector('.pc-theme-toggle');
+        const moreTrigger = utilityNav.querySelector('[data-more-menu]');
+        const moreMenu = utilityNav.querySelector('.pc-sidebar-more-menu');
+
+        expect(utilityNav.querySelector('[data-release-notes]')).not.toBeNull();
+        expect(utilityNav.querySelector('[data-nav="/settings"]')).not.toBeNull();
+        expect(utilityNav.querySelector('.pc-utility-divider')).not.toBeNull();
+        expect(moreTrigger).not.toBeNull();
+        expect(moreTrigger.getAttribute('aria-haspopup')).toBe('menu');
+        expect(moreTrigger.getAttribute('aria-expanded')).toBe('false');
+        expect(moreMenu).not.toBeNull();
+        expect(moreMenu.hidden).toBe(true);
+        expect(moreMenu.querySelector('[data-release-notes]')).not.toBeNull();
+        expect(moreMenu.querySelector('[data-check-update]')).not.toBeNull();
+        expect(toggle.getAttribute('role')).toBe('switch');
+        expect(toggle.getAttribute('aria-checked')).toBe('false');
+        expect(toggle.getAttribute('aria-label')).toBe('切换为深色主题');
+        expect(toggle.querySelector('.pc-theme-toggle-thumb')).not.toBeNull();
+        expect(pcCss).toContain('pc-theme-circle-reveal');
+        expect(pcCss).toContain('prefers-reduced-motion: reduce');
+        expect(pcCss).toContain('width: 96px');
+        expect(pcCss).toContain('height: 48px');
+        expect(pcCss).toContain('flex-wrap: nowrap');
+        expect(pcCss).toContain('gap: 8px');
+        expect(pcCss).toContain('.pc-sidebar-more-menu');
+        expect(pcCss).toContain('.pc-utility-divider');
+    });
+
+    it('侧栏更多菜单可开合，并在选择低频入口后关闭', async () => {
+        const { openReleaseNotes } = await import('../release/release-notes.js');
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const moreTrigger = app.querySelector('[data-more-menu]');
+        const moreMenu = app.querySelector('.pc-sidebar-more-menu');
+        const releaseItem = moreMenu.querySelector('[data-release-notes]');
+
+        moreTrigger.click();
+        expect(moreTrigger.getAttribute('aria-expanded')).toBe('true');
+        expect(moreMenu.hidden).toBe(false);
+
+        releaseItem.click();
+        expect(openReleaseNotes).toHaveBeenCalled();
+        expect(moreTrigger.getAttribute('aria-expanded')).toBe('false');
+        expect(moreMenu.hidden).toBe(true);
+    });
+
+    it('折叠按钮在图标动效结束后保留最小化导航栏并持久化', async () => {
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const toggle = app.querySelector('#pcSidebarToggle');
+        const icon = toggle.querySelector('.pc-sidebar-toggle-icon svg');
+        toggle.click();
+
+        expect(toggle.classList.contains('is-flying')).toBe(true);
+        expect(toggle.getAttribute('aria-busy')).toBe('true');
+        expect(app.classList.contains('pc-sidebar-collapsed')).toBe(false);
+
+        const animationEnd = new Event('animationend');
+        Object.defineProperty(animationEnd, 'animationName', { value: 'pc-sidebar-toggle-take-off' });
+        icon.dispatchEvent(animationEnd);
+
+        const stage = app.querySelector('#pcSidebarStage');
+
+        expect(app.classList.contains('pc-sidebar-collapsed')).toBe(true);
+        expect(stage.classList.contains('pc-sidebar-is-collapsing')).toBe(true);
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(toggle.hasAttribute('aria-busy')).toBe(false);
+        expect(localStorage.getItem('pc-sidebar-collapsed')).toBe('true');
+
+        const transitionEnd = new Event('transitionend');
+        Object.defineProperty(transitionEnd, 'propertyName', { value: 'width' });
+        stage.dispatchEvent(transitionEnd);
+
+        expect(stage.className).toBe('pc-sidebar-stage');
+    });
+
+    it('减弱动效模式下折叠按钮立即更新侧栏状态', async () => {
+        window.matchMedia = vi.fn(() => ({
+            matches: true,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        }));
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+
+        const toggle = app.querySelector('#pcSidebarToggle');
+        toggle.click();
+
+        expect(toggle.classList.contains('is-flying')).toBe(false);
+        expect(app.classList.contains('pc-sidebar-collapsed')).toBe(true);
+        expect(localStorage.getItem('pc-sidebar-collapsed')).toBe('true');
+    });
+
+});
