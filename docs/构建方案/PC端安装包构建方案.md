@@ -181,7 +181,7 @@ build/dist/PromptImageManager/
 |------|------|
 | `build/app_main.py` | PC 独立版主程序：Python HTTP 服务器 + pywebview 桌面窗口 + 全部 API 逻辑 + 安装版用户级数据目录和旧数据迁移 |
 | `build/app.spec` | PyInstaller 打包配置：入口文件、前端资源打包规则、隐藏导入、图标、是否显示控制台 |
-| `build/installer.nsi` | NSIS 安装包脚本：安装向导页面、快捷方式、注册表、清单式卸载逻辑和旧安装目录数据保护（必须为无 BOM 的 UTF-8 编码） |
+| `build/installer.nsi` | NSIS 安装包脚本：中文安装向导、完成页「立即启动」（静默 `/S` 不拉起）、快捷方式、注册表、清单式卸载逻辑和旧安装目录数据保护（必须为 UTF-8 with BOM） |
 | `build/_uninstall_files.nsh` | 由 PC 构建脚本根据 PyInstaller 产物生成的卸载文件清单；仅列出安装器创建的程序文件，属于构建产物，不提交仓库 |
 | `build/icon.ico` | 应用图标（同时用于 exe 和安装包） |
 | `scripts/build_installer_shell_package.py` | Tauri 安装器壳构建入口：以根目录 `package.json` 的 `version` 为唯一版本来源，同步壳元数据、NSIS 核心安装包资源名，并构建发布壳程序 |
@@ -196,11 +196,11 @@ python scripts/build_installer_shell_package.py
 
 该命令先生成与根目录 `package.json` 同版本的 NSIS 核心安装包，再构建安装器壳。PC 构建会基于实际 PyInstaller 输出生成 `build/_uninstall_files.nsh`，卸载器仅删除清单内程序文件，未知文件和用户手工放入的文件会保留在安装目录。壳程序的嵌入安装核心、资源查找文件名和临时释放文件名均从同一版本来源生成，禁止在 `main.rs` 中手工写死版本号。安装器壳图标由 `installer-shell/src-tauri/icons/icon.ico` 提供。
 
-> **⚠️ 编码注意**：`installer.nsi` 必须使用无 BOM 的 UTF-8 编码保存。如果文件包含 UTF-8 BOM（`EF BB BF`），NSIS 会报语法错误。可用以下 PowerShell 命令转换：
+> **⚠️ 编码注意**：`installer.nsi` 含中文时必须使用 **UTF-8 with BOM**（`EF BB BF`）保存，避免 NSIS 按 ANSI 解析导致中文乱码。`scripts/verify-ui-encoding.mjs` 会校验该约定。可用以下 PowerShell 命令转换：
 > ```powershell
 > $content = [System.IO.File]::ReadAllText("build\installer.nsi")
-> $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-> [System.IO.File]::WriteAllText("build\installer.nsi", $content, $utf8NoBom)
+> $utf8Bom = New-Object System.Text.UTF8Encoding($true)
+> [System.IO.File]::WriteAllText("build\installer.nsi", $content, $utf8Bom)
 > ```
 
 ---

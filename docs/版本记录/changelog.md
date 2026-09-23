@@ -5,6 +5,37 @@
 
 ---
 
+## v2.5.18 (2026-09-23)
+
+> 记录依据：侧栏列表边缘羽化落地与安装向导全面中文化（含 Tauri NSIS 与应急 NSIS 路径）。
+
+### 优化
+
+- **侧栏列表边缘羽化**：左侧导航列表四边使用 mask 软溶入底色，滚动溢出与拟态阴影不再硬裁切；收起态羽化宽度自动收窄。
+- **安装向导中文化**：Windows 安装/卸载向导标题、欢迎页、完成页、按钮与系统字符串统一简体中文；完成页提供「立即启动」，静默安装（含应用内自动更新）不会二次拉起应用。
+
+### 发布
+
+- 版本号统一升级至 `2.5.18`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.18`。
+- Android `versionCode` 从 `29` 递增至 `30`，`versionName` 升级为 `2.5.18`。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.18.exe`：28,945,430 字节（27.6 MB），SHA256 `495A442C1C0D0B8389C1B54BB9DFFCB2A91FAE9F5E225B28E0FDB790F0D26B07`
+- `src-tauri/tauri.conf.json`：NSIS `languages: ["SimpChinese"]` + `customLanguageFiles` 指向 `nsis/SimpChinese.nsh`。
+- `build/installer.nsi`：中文 MUI 文案、LangString 按钮与 `LaunchInstalledApp` 静默防护；UTF-8 with BOM。
+- `scripts/build_pc_package.py`：`validate_pc_installer_config()` 增加汉化与启动项预检。
+
+### 验证
+
+- `npm test`：43 文件 / 358 用例通过。
+- `scripts/verify-ui-encoding.mjs`：安装器编码与中文约定通过。
+- `npx tauri build`：通过，产出 NSIS 安装包（构建后回填哈希）。
+
+---
+
 ## v2.5.17 (2026-09-24)
 
 > 记录依据：无边框窗口壳 Tauri 收敛（顶栏黑边、最小化缩窗、双壳分叉）实施与实机安装验证通过。

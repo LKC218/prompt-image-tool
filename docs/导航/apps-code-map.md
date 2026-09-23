@@ -152,7 +152,7 @@
 | `python/main.py` | 开发用 HTTP API + 静态资源 |
 | `python/auto_update.py` | 更新检查/异步下载 Job/静默安装模块（`build/auto_update.py` 同步副本） |
 | `build/app_main.py` | PyInstaller 独立包入口 |
-| `build/installer.nsi` | NSIS 安装脚本 |
+| `build/installer.nsi` | NSIS 安装脚本（中文向导 + 完成页「立即启动」；静默 `/S` 不拉起应用） |
 | `src-tauri/` | PC 窗口、拉起 Python |
 | `installer-shell/` | 自定义安装向导壳 |
 | `capacitor.config.ts` / `android/` | Android 工程 |

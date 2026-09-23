@@ -1,5 +1,26 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.18',
+        date: '2026-09-23',
+        sections: [
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '侧栏列表边缘羽化：导航项在滚动与边缘处柔和淡出，阴影不再被硬裁切。',
+                    '安装向导全中文：标题、欢迎/完成页与按钮均为简体中文；完成页可一键启动，静默更新不会重复拉起应用。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.18；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.17',
         date: '2026-09-24',
         sections: [

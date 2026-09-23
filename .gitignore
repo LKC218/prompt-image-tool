@@ -20,6 +20,8 @@ android-sdk/
 
 build/build/
 build/dist/
+build/build-server/
+build/dist-server/
 build/__pycache__/
 *.exe
 *.apk

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "生图提示词管理器",
-  "version": "2.5.17",
+  "version": "2.5.18",
   "identifier": "com.promptimagemanager",
   "build": {
     "frontendDist": "../dist",
@@ -50,7 +50,12 @@
       },
       "nsis": {
         "installerIcon": "icons/icon.ico",
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "languages": ["SimpChinese"],
+        "displayLanguageSelector": false,
+        "customLanguageFiles": {
+          "SimpChinese": "nsis/SimpChinese.nsh"
+        }
       }
     }
   },

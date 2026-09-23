@@ -1,14 +1,20 @@
-!define APPNAME "PromptImageManager"
+﻿!define APPNAME "PromptImageManager"
 
-!define APPVERSION "2.5.17"
+!define APPVERSION "2.5.18"
 
 !define APPEXE "PromptImageManager.exe"
+
+!define APPDISPLAYNAME "生图提示词管理器"
 
 !define LEGACYDATA "$APPDATA\${APPNAME}\legacy-install-data"
 
 
 
-Name "生图提示词管理器 ${APPVERSION}"
+Name "${APPDISPLAYNAME} ${APPVERSION}"
+
+Caption "${APPDISPLAYNAME} ${APPVERSION} 安装向导"
+
+UninstallCaption "${APPDISPLAYNAME} ${APPVERSION} 卸载向导"
 
 InstallDir "$LOCALAPPDATA\${APPNAME}"
 
@@ -29,6 +35,32 @@ UninstallIcon "icon.ico"
 
 
 !define MUI_ABORTWARNING
+
+!define MUI_TEXT_ABORTWARNING "确定要退出${APPDISPLAYNAME}安装向导吗？"
+
+!define MUI_WELCOMEPAGE_TITLE "欢迎安装${APPDISPLAYNAME}"
+
+!define MUI_WELCOMEPAGE_TEXT "安装向导将引导你完成${APPDISPLAYNAME}的安装。$\r$\n$\r$\n建议在安装前关闭其他应用程序，以便更新系统文件时无需重启。$\r$\n$\r$\n点击「下一步」继续。"
+
+!define MUI_DIRECTORYPAGE_TEXT_TOP "安装向导将把${APPDISPLAYNAME}安装到以下文件夹。若要安装到其他文件夹，请点击「浏览」更改路径。点击「下一步」继续。"
+
+!define MUI_INSTFILESPAGE_FINISHHEADER_TEXT "安装完成"
+
+!define MUI_INSTFILESPAGE_FINISHHEADER_SUBTEXT "${APPDISPLAYNAME}已成功安装到你的电脑。"
+
+!define MUI_FINISHPAGE_TITLE "${APPDISPLAYNAME} 安装完成"
+
+!define MUI_FINISHPAGE_TEXT "安装向导已完成${APPDISPLAYNAME}的安装。$\r$\n$\r$\n点击「完成」关闭安装向导。"
+
+!define MUI_FINISHPAGE_RUN
+
+!define MUI_FINISHPAGE_RUN_FUNCTION LaunchInstalledApp
+
+!define MUI_FINISHPAGE_RUN_TEXT "立即启动${APPDISPLAYNAME}"
+
+!define MUI_UNCONFIRMPAGE_TEXT_TOP "安装向导将从你的电脑卸载${APPDISPLAYNAME}。"
+
+!define MUI_UNCONFIRMPAGE_TEXT_LOCATION "将从以下位置卸载："
 
 
 
@@ -52,6 +84,66 @@ UninstallIcon "icon.ico"
 
 
 
+; 强制中文系统字符串，避免语言包缺失时回落英文
+
+LangString ^Name ${LANG_SIMPCHINESE} "${APPDISPLAYNAME}"
+
+LangString ^SetupCaption ${LANG_SIMPCHINESE} "${APPDISPLAYNAME} ${APPVERSION} 安装向导"
+
+LangString ^UninstallCaption ${LANG_SIMPCHINESE} "${APPDISPLAYNAME} ${APPVERSION} 卸载向导"
+
+LangString ^ClickNext ${LANG_SIMPCHINESE} "点击「下一步」继续。"
+
+LangString ^ClickInstall ${LANG_SIMPCHINESE} "点击「安装」开始安装。"
+
+LangString ^ClickFinish ${LANG_SIMPCHINESE} "点击「完成」退出安装向导。"
+
+LangString ^Next ${LANG_SIMPCHINESE} "下一步(&N) >"
+
+LangString ^Back ${LANG_SIMPCHINESE} "上一步(&B)"
+
+LangString ^Cancel ${LANG_SIMPCHINESE} "取消(&C)"
+
+LangString ^Close ${LANG_SIMPCHINESE} "关闭(&C)"
+
+LangString ^Finish ${LANG_SIMPCHINESE} "完成(&F)"
+
+LangString ^Install ${LANG_SIMPCHINESE} "安装(&I)"
+
+LangString ^Uninstall ${LANG_SIMPCHINESE} "卸载(&U)"
+
+LangString ^Abort ${LANG_SIMPCHINESE} "中止"
+
+LangString ^Retry ${LANG_SIMPCHINESE} "重试(&R)"
+
+LangString ^Ignore ${LANG_SIMPCHINESE} "忽略(&I)"
+
+LangString ^Yes ${LANG_SIMPCHINESE} "是(&Y)"
+
+LangString ^No ${LANG_SIMPCHINESE} "否(&N)"
+
+LangString ^AbortWarning ${LANG_SIMPCHINESE} "确定要退出${APPDISPLAYNAME}安装向导吗？"
+
+LangString ^UninstallWarning ${LANG_SIMPCHINESE} "确定要从你的电脑卸载${APPDISPLAYNAME}吗？"
+
+LangString ^UninstallText ${LANG_SIMPCHINESE} "安装向导将从你的电脑卸载${APPDISPLAYNAME}。$\r$\n$\r$\n点击「卸载」开始卸载。"
+
+
+
+Function LaunchInstalledApp
+
+    ; 静默安装（含应用内自动更新 /S）不拉起应用，避免与更新重启逻辑冲突
+
+    IfSilent skip_launch
+
+        Exec "$INSTDIR\${APPEXE}"
+
+    skip_launch:
+
+FunctionEnd
+
+
+
 Section "Install"
 
     SetOutPath $INSTDIR
@@ -64,15 +156,15 @@ Section "Install"
 
 
 
-    CreateDirectory "$SMPROGRAMS\生图提示词管理器"
+    CreateDirectory "$SMPROGRAMS\${APPDISPLAYNAME}"
 
-    CreateShortCut "$SMPROGRAMS\生图提示词管理器\生图提示词管理器.lnk" "$INSTDIR\${APPEXE}" "" "$INSTDIR\icon.ico" 0
+    CreateShortCut "$SMPROGRAMS\${APPDISPLAYNAME}\${APPDISPLAYNAME}.lnk" "$INSTDIR\${APPEXE}" "" "$INSTDIR\icon.ico" 0
 
-    CreateShortCut "$SMPROGRAMS\生图提示词管理器\卸载生图提示词管理器.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\icon.ico" 0
+    CreateShortCut "$SMPROGRAMS\${APPDISPLAYNAME}\卸载${APPDISPLAYNAME}.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\icon.ico" 0
 
 
 
-    CreateShortCut "$DESKTOP\生图提示词管理器.lnk" "$INSTDIR\${APPEXE}" "" "$INSTDIR\icon.ico" 0
+    CreateShortCut "$DESKTOP\${APPDISPLAYNAME}.lnk" "$INSTDIR\${APPEXE}" "" "$INSTDIR\icon.ico" 0
 
 
 
@@ -82,7 +174,7 @@ Section "Install"
 
     WriteRegStr HKCU "Software\${APPNAME}" "InstallDir" $INSTDIR
 
-    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "生图提示词管理器 ${APPVERSION}"
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "DisplayName" "${APPDISPLAYNAME} ${APPVERSION}"
 
     WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}" "UninstallString" "$INSTDIR\uninstall.exe"
 
@@ -138,15 +230,15 @@ Section "Uninstall"
 
 
 
-    Delete "$SMPROGRAMS\生图提示词管理器\生图提示词管理器.lnk"
+    Delete "$SMPROGRAMS\${APPDISPLAYNAME}\${APPDISPLAYNAME}.lnk"
 
-    Delete "$SMPROGRAMS\生图提示词管理器\卸载生图提示词管理器.lnk"
+    Delete "$SMPROGRAMS\${APPDISPLAYNAME}\卸载${APPDISPLAYNAME}.lnk"
 
-    RMDir "$SMPROGRAMS\生图提示词管理器"
+    RMDir "$SMPROGRAMS\${APPDISPLAYNAME}"
 
 
 
-    Delete "$DESKTOP\生图提示词管理器.lnk"
+    Delete "$DESKTOP\${APPDISPLAYNAME}.lnk"
 
 
 
@@ -165,4 +257,3 @@ Section "Uninstall"
         DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPNAME}"
 
 SectionEnd
-
