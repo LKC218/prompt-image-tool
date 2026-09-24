@@ -2,7 +2,7 @@
 ; 正式安装包由 npx tauri build 产出，见 docs/构建方案/PC发包规范-Tauri主路径.md。
 !define APPNAME "PromptImageManager"
 
-!define APPVERSION "2.5.26"
+!define APPVERSION "2.5.27"
 
 !define APPEXE "PromptImageManager.exe"
 
@@ -134,6 +134,8 @@ LangString ^UninstallText ${LANG_SIMPCHINESE} "安装向导将从你的电脑卸
 
 !macro KillPromptImageManagerProcesses
     nsExec::ExecToLog 'cmd /c taskkill /F /T /IM 生图提示词管理器.exe'
+    Pop $0
+    nsExec::ExecToLog 'cmd /c taskkill /F /T /IM app.exe'
     Pop $0
     nsExec::ExecToLog 'cmd /c taskkill /F /T /IM PromptImageManager.exe'
     Pop $0

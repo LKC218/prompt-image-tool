@@ -39,6 +39,7 @@ _jobs: dict[str, dict[str, Any]] = {}
 MAIN_APP_EXE_CANDIDATES = (
     "生图提示词管理器.exe",
     "PromptImageManager.exe",
+    "app.exe",
 )
 MAIN_APP_IMAGE_NAMES = MAIN_APP_EXE_CANDIDATES
 # 兼容旧调用/测试；解析目标请用 resolve_target_exe
@@ -63,9 +64,16 @@ while ((Get-Date) -lt $deadline) {
   Start-Sleep -Milliseconds 500
 }
 if ($SettleSec -gt 0) { Start-Sleep -Seconds $SettleSec }
+if ([string]::IsNullOrWhiteSpace($TargetExe)) {
+  try {
+    $logPath = Join-Path ([System.IO.Path]::GetTempPath()) 'prompt-image-update.log'
+    Add-Content -LiteralPath $logPath -Value ('[{0}] helper TargetExe empty, abort relaunch' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
+  } catch {}
+  exit 0
+}
 if (-not (Test-Path -LiteralPath $TargetExe)) {
   $exeDirHint = Split-Path -Parent $TargetExe
-  foreach ($name in @('生图提示词管理器.exe','PromptImageManager.exe')) {
+  foreach ($name in @('生图提示词管理器.exe','PromptImageManager.exe','app.exe')) {
     $cand = Join-Path $exeDirHint $name
     if (Test-Path -LiteralPath $cand) { $TargetExe = $cand; break }
   }
@@ -644,6 +652,19 @@ def resolve_target_exe(install_dir: str) -> str:
         candidate = os.path.join(install_dir, name)
         if os.path.isfile(candidate):
             return os.path.abspath(candidate)
+    # 兜底：目录内任一非 Server/卸载 exe（应对未来 mainBinaryName 变更）
+    try:
+        for entry in sorted(os.listdir(install_dir)):
+            low = entry.lower()
+            if not low.endswith(".exe"):
+                continue
+            if low.startswith("promptimagemanager-server") or low.startswith("uninstall"):
+                continue
+            candidate = os.path.join(install_dir, entry)
+            if os.path.isfile(candidate):
+                return os.path.abspath(candidate)
+    except OSError:
+        pass
     return ""
 
 
@@ -697,7 +718,7 @@ def resolve_install_dir() -> str:
     if parent_exe:
         parent_name = os.path.basename(parent_exe)
         parent_dir = os.path.dirname(parent_exe)
-        parent_is_main = parent_name in MAIN_APP_EXE_CANDIDATES
+        parent_is_main = parent_name in MAIN_APP_EXE_CANDIDATES or parent_name.lower() == "app.exe"
         if parent_dir and os.path.isdir(parent_dir) and not _is_server_only_dir(parent_dir):
             if parent_is_main or resolve_target_exe(parent_dir):
                 return parent_dir
@@ -809,7 +830,7 @@ def kill_main_app_for_install() -> None:
     """按镜像名结束主程序；不带 /T，避免杀掉作为子进程的 Sidecar。"""
     if os.name != "nt":
         return
-    for image_name in MAIN_APP_EXE_CANDIDATES:
+    for image_name in (*MAIN_APP_EXE_CANDIDATES, "app.exe"):
         try:
             subprocess.run(
                 ["taskkill", "/F", "/IM", image_name],
@@ -819,6 +840,33 @@ def kill_main_app_for_install() -> None:
             )
         except Exception:
             pass
+
+
+def run_uninstall_existing(install_dir: str) -> dict[str, Any]:
+    """静默卸载已有安装（Tauri uninstall.exe /S），降低覆盖写文件锁失败率。"""
+    if os.name != "nt" or not install_dir:
+        return {"attempted": False}
+    uninstaller = os.path.join(install_dir, "uninstall.exe")
+    if not os.path.isfile(uninstaller):
+        _append_update_log("skip uninstall: uninstall.exe missing")
+        return {"attempted": False, "reason": "no uninstaller"}
+    try:
+        proc = subprocess.Popen(
+            f'"{uninstaller}" /S',
+            cwd=install_dir,
+            close_fds=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
+            shell=False,
+        )
+        try:
+            proc.wait(timeout=90)
+        except Exception:
+            pass
+        _append_update_log(f"uninstall existing done pid={getattr(proc, 'pid', None)}")
+        return {"attempted": True, "uninstallPid": getattr(proc, "pid", None)}
+    except Exception as exc:
+        _append_update_log(f"uninstall existing failed: {exc}")
+        return {"attempted": True, "error": str(exc)}
 
 
 def _append_update_log(message: str) -> None:
@@ -859,6 +907,12 @@ def run_installer(
         popen_arg = subprocess.list2cmdline([path, "/S"])
         if use_custom_dir:
             popen_arg = f"{popen_arg} /D={install_dir}"
+
+    # 先静默卸载旧版（降低覆盖写锁失败）；卸载器 hook 会清 app.exe/Sidecar
+    uninstall_info: dict[str, Any] = {"attempted": False}
+    if install_dir:
+        uninstall_info = run_uninstall_existing(install_dir)
+        time.sleep(1.0)
 
     # 禁止在 Popen 之前 taskkill 主程序：Tauri Exit 会连带杀掉本 Sidecar，导致安装器/helper 未拉起
     proc = subprocess.Popen(
@@ -901,6 +955,7 @@ def run_installer(
                 "useCustomDir": use_custom_dir,
                 "targetExe": target_exe,
                 "helperTargetExe": helper_target_exe,
+                "uninstall": uninstall_info,
                 "cmd": popen_arg if isinstance(popen_arg, str) else list(popen_arg),
                 **{k: result[k] for k in ("installerPid", "helperSpawned", "autoRestart")},
             },

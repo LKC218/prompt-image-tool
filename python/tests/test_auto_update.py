@@ -16,6 +16,8 @@ import auto_update
 from auto_update import (
     APP_EXE_NAME,
     MAIN_APP_EXE_CANDIDATES,
+    resolve_target_exe,
+    run_uninstall_existing,
     DownloadCancelled,
     _download_url_candidates,
     _friendly_network_error,
@@ -393,6 +395,17 @@ def test_resolve_target_exe_prefers_chinese_name(tmp_path):
 
 def test_resolve_target_exe_empty_when_missing(tmp_path):
     assert resolve_target_exe(str(tmp_path)) == ""
+
+
+def test_resolve_target_exe_finds_app_exe(tmp_path):
+    app = tmp_path / "app.exe"
+    app.write_bytes(b"stub")
+    assert resolve_target_exe(str(tmp_path)) == os.path.abspath(str(app))
+
+
+def test_run_uninstall_existing_missing_uninstaller(tmp_path):
+    result = run_uninstall_existing(str(tmp_path))
+    assert result["attempted"] is False
 
 
 def test_resolve_install_dir_prefers_parent_tauri_root(monkeypatch, tmp_path):

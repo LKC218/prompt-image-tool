@@ -1,5 +1,25 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.27',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    '在线更新可正确识别安装目录并完成覆盖安装：更新前先静默卸载旧版，并兼容 app.exe 主程序名。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.27；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.26',
         date: '2026-09-24',
         sections: [

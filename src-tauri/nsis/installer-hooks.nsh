@@ -7,6 +7,8 @@
     Pop $0
     nsExec::ExecToLog 'cmd /c taskkill /F /T /IM PromptImageManager.exe'
     Pop $0
+    nsExec::ExecToLog 'cmd /c taskkill /F /T /IM app.exe'
+    Pop $0
     nsExec::ExecToLog 'cmd /c taskkill /F /T /IM PromptImageManager-Server.exe'
     Pop $0
     ; 系统 Python 回退后端：仅结束命令行归属本项目的 python

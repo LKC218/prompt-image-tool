@@ -5,6 +5,34 @@
 
 ---
 
+## v2.5.27 (2026-09-24)
+
+> 记录依据：`v2.5.26` 在线更新实测失败后修复 Tauri 主程序名与覆盖安装链路。
+
+### 修复
+
+- **在线更新覆盖安装**：识别 Tauri 实际主程序 `app.exe`（并统一 `mainBinaryName=PromptImageManager`）；安装根解析不再落空。
+- **更新前先静默卸载**：`run_installer` 调用 `uninstall.exe /S` 后再 `/S` 安装，降低文件锁导致的替换失败。
+- **进程清理**：NSIS hook 补杀 `app.exe`，避免残留锁住安装目录。
+
+### 发布
+
+- 版本号统一升级至 `2.5.27`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.27`。
+- Android `versionCode` 从 `38` 递增至 `39`，`versionName` 升级为 `2.5.27`（本版不附带 APK）。
+- 已完成 PC 端核心安装包构建（Tauri 主路径）：
+  - `PromptImageManager-Setup-2.5.27.exe`：28,965,116 字节（27.62 MB），SHA256 `2430DCA3D25C395BC63226026F24696877DA31DE06391DF1511428BB8721F186`
+
+### 验证
+
+- `python -m pytest python/tests/test_auto_update.py -q`：33 passed。
+- `python scripts/build_pc_package.py`：Tauri 主路径构建后回填。
+
+---
+
 ## v2.5.26 (2026-09-24)
 
 > 记录依据：`v2.5.25` 发布后修复安装包内开屏像素动画因 Logo 资源路径被跳过。
