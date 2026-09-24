@@ -2,7 +2,7 @@
 ; 正式安装包由 npx tauri build 产出，见 docs/构建方案/PC发包规范-Tauri主路径.md。
 !define APPNAME "PromptImageManager"
 
-!define APPVERSION "2.5.25"
+!define APPVERSION "2.5.26"
 
 !define APPEXE "PromptImageManager.exe"
 

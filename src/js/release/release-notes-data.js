@@ -1,5 +1,25 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.26',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    '开屏像素聚合动画在安装包中可正常播放；此前图标路径导致动画被跳过。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.26；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.25',
         date: '2026-09-24',
         sections: [

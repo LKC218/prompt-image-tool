@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#FFFDF8">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="version" content="2.5.25">
+    <meta name="version" content="2.5.26">
     <title>提示词管家</title>
     <link rel="icon" type="image/svg+xml" href="./assets/icons/图标.svg">
     <style>
@@ -107,7 +107,6 @@
     <div id="mobileApp"></div>
     <script>
         (function () {
-            var LOGO_SRC = './assets/icons/图标.svg';
             var LOGO_CSS = 64;
             var GRID = 24;
             var DURATION_MS = 2200;
@@ -116,6 +115,8 @@
             var iconEl = document.getElementById('splashIcon');
             var titleEl = document.getElementById('splashTitle');
             var canvas = document.getElementById('splashPixelCanvas');
+            // 优先用 <img> 上经 Vite 改写后的真实地址；硬编码路径在 dist 会被 hash 改名导致 onerror 跳过动画
+            var LOGO_SRC = (iconEl && (iconEl.currentSrc || iconEl.src)) || './assets/icons/图标.svg';
             var settled = false;
             var settleResolve;
             var settlePromise = new Promise(function (resolve) {

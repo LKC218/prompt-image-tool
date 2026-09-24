@@ -5,6 +5,32 @@
 
 ---
 
+## v2.5.26 (2026-09-24)
+
+> 记录依据：`v2.5.25` 发布后修复安装包内开屏像素动画因 Logo 资源路径被跳过。
+
+### 修复
+
+- **开屏像素聚合动画**：安装包中 Logo 采样地址改为 Vite 真实产物路径，并保证 `assets/icons/图标.svg` 可访问，像素飞入聚合不再被静默跳过。
+
+### 发布
+
+- 版本号统一升级至 `2.5.26`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.26`。
+- Android `versionCode` 从 `37` 递增至 `38`，`versionName` 升级为 `2.5.26`（本版不附带 APK）。
+- 已完成 PC 端核心安装包构建（Tauri 主路径）：
+  - `PromptImageManager-Setup-2.5.26.exe`：28,964,334 字节（27.62 MB），SHA256 `8EE026499DCB31171D2B376D159D39847409471E53EBEDFA4F8E48DBC2FF74AA`
+
+### 验证
+
+- `npm test`：393 passed / 45 files（含开屏动画 4 例）。
+- `python scripts/build_pc_package.py`：Tauri 主路径构建后回填。
+
+---
+
 ## v2.5.25 (2026-09-24)
 
 > 记录依据：`v2.5.24` 发布后收敛打包规范为 Tauri 主路径（`cb10f68`）。

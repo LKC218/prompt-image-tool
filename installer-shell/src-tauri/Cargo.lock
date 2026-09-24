@@ -2292,7 +2292,7 @@ dependencies = [
 
 [[package]]
 name = "prompt_image_manager_installer_shell"
-version = "2.5.25"
+version = "2.5.26"
 dependencies = [
  "serde",
  "tauri",
