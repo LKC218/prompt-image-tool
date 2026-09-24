@@ -1,7 +1,7 @@
 {
   "$schema": "../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "提示词管家安装向导",
-  "version": "2.5.24",
+  "version": "2.5.25",
   "identifier": "com.promptimagemanager.installershell",
   "build": {
     "frontendDist": "../src"

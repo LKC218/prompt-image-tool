@@ -1,5 +1,25 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.25',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '安装包全面切换为 Tauri 主路径打包，窗口与自动更新行为一致。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.25；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.24',
         date: '2026-09-24',
         sections: [

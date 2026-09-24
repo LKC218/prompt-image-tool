@@ -5,6 +5,33 @@
 
 ---
 
+## v2.5.25 (2026-09-24)
+
+> 记录依据：`v2.5.24` 发布后收敛打包规范为 Tauri 主路径（`cb10f68`）。
+
+### 优化
+
+- **安装包产线统一**：Windows Setup 改为 Tauri + Sidecar 打包，与无边框窗口、应用内自动更新契约一致。
+
+### 发布
+
+- 版本号统一升级至 `2.5.25`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.25`。
+- Android `versionCode` 从 `36` 递增至 `37`，`versionName` 升级为 `2.5.25`（本版不附带 APK）。
+- 已完成 PC 端核心安装包构建（Tauri 主路径）：
+  - `PromptImageManager-Setup-2.5.25.exe`：28,964,409 字节（27.62 MB），SHA256 `51B3A0CB1C6CE7BFA9223E9264997A0B608A1A10C464F00DEF9CCD21B4A0D66F`
+
+### 验证
+
+- `npm test`：393 passed / 45 files。
+- `python -m pytest python/tests -q`：88 passed。
+- `python scripts/build_pc_package.py`：Tauri 主路径通过，产出约 27.6MB Setup。
+
+---
+
 ## v2.5.24 (2026-09-24)
 
 > 记录依据：`v2.5.23` 发布提交 `352d20c` 之后的自动更新安装/替换/重启契约修复。
