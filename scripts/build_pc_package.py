@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+"""Tauri 主路径 PC 发包封装（唯一正式发包入口）。
+
+DEPRECATED 全量 PyInstaller + pywebview 应急壳：禁止使用 build/app.spec、
+build/app_main.py、build/installer.nsi 产出正式安装包。
+规范见 docs/构建方案/PC发包规范-Tauri主路径.md。
+"""
+
 import argparse
 import json
 import shutil
@@ -15,24 +22,22 @@ if hasattr(sys.stderr, "reconfigure"):
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 BUILD_DIR = ROOT_DIR / "build"
-DIST_DIR = ROOT_DIR / "dist"
-PYINSTALLER_APP_DIR = BUILD_DIR / "dist" / "PromptImageManager"
+SERVER_DIST = ROOT_DIR / "build" / "dist-server"
+SIDECAR_SRC = SERVER_DIST / "PromptImageManager-Server.exe"
+SIDECAR_DST = ROOT_DIR / "src-tauri" / "server" / "PromptImageManager-Server.exe"
+NSIS_DIR = ROOT_DIR / "src-tauri" / "target" / "release" / "bundle" / "nsis"
 RELEASES_DIR = ROOT_DIR / "releases"
-INSTALLER_SCRIPT = BUILD_DIR / "installer.nsi"
-INSTALLER_ICON = BUILD_DIR / "icon.ico"
-UNINSTALL_MANIFEST = BUILD_DIR / "_uninstall_files.nsh"
+RELEASE_SETUP_NAME = "PromptImageManager-Setup-{version}.exe"
 
 
 def resolve_command(command: str) -> str:
     found = shutil.which(command)
     if found:
         return found
-
     if sys.platform == "win32" and not command.lower().endswith(".cmd"):
         found = shutil.which(f"{command}.cmd")
         if found:
             return found
-
     return command
 
 
@@ -49,188 +54,139 @@ def require_file(path: Path, message: str) -> None:
         raise SystemExit(f"[失败] {message}：{path}")
 
 
-def require_text(text: str, needle: str, message: str) -> None:
-    if needle not in text:
-        raise SystemExit(f"[失败] {message}：缺少 {needle}")
-
-
 def get_package_version() -> str:
-    package_path = ROOT_DIR / "package.json"
-    with package_path.open("r", encoding="utf-8") as file:
-        package_data = json.load(file)
-    version = package_data.get("version")
-    if not version:
-        raise SystemExit("[失败] package.json 缺少 version 字段")
-    return str(version)
-
-
-def validate_pc_installer_config() -> None:
-    require_file(INSTALLER_SCRIPT, "NSIS 安装脚本缺失")
-    require_file(INSTALLER_ICON, "PC 安装包图标缺失")
-
-    installer_text = INSTALLER_SCRIPT.read_text(encoding="utf-8")
-    required_items = [
-        ("Unicode true", "NSIS 未启用 Unicode"),
-        ('!insertmacro MUI_LANGUAGE "SimpChinese"', "NSIS 未声明简体中文语言"),
-        ('!define APPDISPLAYNAME "生图提示词管理器"', "安装器未声明中文产品名"),
-        ("Caption \"${APPDISPLAYNAME}", "安装向导标题未汉化"),
-        ("UninstallCaption \"${APPDISPLAYNAME}", "卸载向导标题未汉化"),
-        ('!define MUI_WELCOMEPAGE_TITLE', "欢迎页标题未汉化"),
-        ('!define MUI_FINISHPAGE_RUN', "完成页缺少安装后启动选项"),
-        ('!define MUI_FINISHPAGE_RUN_FUNCTION LaunchInstalledApp', "完成页启动未走可控函数"),
-        ('IfSilent skip_launch', "静默安装未禁止自动启动"),
-        ('立即启动${APPDISPLAYNAME}', "完成页启动文案未配置"),
-        ('LangString ^Next ${LANG_SIMPCHINESE}', "安装向导按钮未强制中文"),
-        ('Icon "icon.ico"', "安装器未声明图标"),
-        ('UninstallIcon "icon.ico"', "卸载器未声明图标"),
-        ('File "icon.ico"', "安装目录未复制图标"),
-        ('CreateShortCut "$DESKTOP\\${APPDISPLAYNAME}.lnk"', "桌面快捷方式未配置"),
-        ('CreateShortCut "$SMPROGRAMS\\${APPDISPLAYNAME}\\${APPDISPLAYNAME}.lnk"', "开始菜单快捷方式未配置"),
-        ('"$INSTDIR\\icon.ico" 0', "快捷方式未绑定安装目录图标"),
-        ('"DisplayIcon" "$INSTDIR\\icon.ico"', "卸载项图标未配置"),
-        ('!include "_uninstall_files.nsh"', "卸载文件清单未配置"),
-    ]
-    for needle, message in required_items:
-        require_text(installer_text, needle, message)
-
-    if 'RMDir /r "$INSTDIR"' in installer_text:
-        raise SystemExit("[失败] 卸载脚本不得递归删除整个安装目录")
-
-
-def check_environment(skip_nsis: bool) -> None:
-    checks = [
-        ["node", "--version"],
-        ["npm", "--version"],
-        ["python", "--version"],
-        ["python", "-m", "PyInstaller", "--version"],
-        ["python", "-c", "import webview; print('pywebview ok')"],
-        ["python", "-c", "import pythonnet; print('pythonnet ok')"],
-    ]
-    if not skip_nsis:
-        checks.append(["makensis", "/VERSION"])
-
-    for command in checks:
-        run_command(command)
+    data = json.loads((ROOT_DIR / "package.json").read_text(encoding="utf-8"))
+    return str(data["version"]).strip()
 
 
 def build_frontend() -> None:
-    run_command(["npm", "run", "build"])
-    require_file(DIST_DIR / "index.html", "前端构建产物缺失")
+    run_command(["npx", "vite", "build"])
 
 
-def build_pyinstaller() -> None:
+def build_sidecar() -> None:
     run_command(
         [
-            "python",
+            sys.executable,
             "-m",
             "PyInstaller",
-            "build\\app.spec",
+            "build/server.spec",
             "--workpath",
-            "build\\build",
+            "build/build-server",
             "--distpath",
-            "build\\dist",
+            "build/dist-server",
             "--clean",
             "-y",
         ]
     )
+    require_file(SIDECAR_SRC, "Sidecar 可执行文件缺失")
 
 
-def generate_uninstall_manifest() -> None:
-    require_file(PYINSTALLER_APP_DIR, "PyInstaller 可执行目录缺失")
-    files = sorted(
-        path
-        for path in PYINSTALLER_APP_DIR.rglob("*")
-        if path.is_file() and not path.is_symlink()
-    )
-    if not files:
-        raise SystemExit("[失败] PyInstaller 可执行目录中未找到可卸载文件")
+def copy_sidecar() -> None:
+    require_file(SIDECAR_SRC, "Sidecar 源文件缺失，请先构建 server.spec")
+    SIDECAR_DST.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(SIDECAR_SRC, SIDECAR_DST)
+    require_file(SIDECAR_DST, "Sidecar 拷贝到 Tauri 资源失败")
+    print(f"[完成] Sidecar → {SIDECAR_DST}")
 
-    relative_files = [path.relative_to(PYINSTALLER_APP_DIR) for path in files]
-    relative_dirs = sorted(
-        {
-            parent
-            for relative_file in relative_files
-            for parent in relative_file.parents
-            if parent != Path(".")
-        },
-        key=lambda path: (len(path.parts), path.as_posix()),
-        reverse=True,
-    )
 
-    def nsis_path(path: Path) -> str:
-        return str(path).replace("/", "\\")
+def build_tauri() -> None:
+    run_command(["npx", "tauri", "build"])
+    require_file(NSIS_DIR, "Tauri NSIS 输出目录缺失")
 
-    lines = [f'Delete "$INSTDIR\\{nsis_path(path)}"' for path in relative_files]
-    lines.extend(f'RMDir "$INSTDIR\\{nsis_path(path)}"' for path in relative_dirs)
-    UNINSTALL_MANIFEST.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    require_file(UNINSTALL_MANIFEST, "卸载文件清单生成失败")
-    require_file(PYINSTALLER_APP_DIR / "PromptImageManager.exe", "PyInstaller 主程序缺失")
-    require_file(
-        PYINSTALLER_APP_DIR / "_internal" / "frontend" / "index.html",
-        "PyInstaller 内置前端资源缺失",
+
+def pick_nsis_setup(version: str) -> Path:
+    candidates = sorted(NSIS_DIR.glob("*.exe"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not candidates:
+        raise SystemExit(f"[失败] 未找到 Tauri NSIS 安装包：{NSIS_DIR}")
+    for path in candidates:
+        if version in path.name:
+            return path
+    names = ", ".join(p.name for p in candidates[:5])
+    raise SystemExit(
+        f"[失败] NSIS 目录无含版本 {version} 的安装包（禁止误用其它版本/旧壳）。候选：{names}"
     )
 
 
-def build_nsis(version: str) -> Path:
-    generate_uninstall_manifest()
-    run_command(["makensis", "/INPUTCHARSET", "UTF8", "installer.nsi"], cwd=BUILD_DIR)
-    setup_path = BUILD_DIR / f"PromptImageManager-Setup-{version}.exe"
-    require_file(setup_path, "NSIS 安装包缺失")
-    return setup_path
-
-
-def copy_to_releases(setup_path: Path) -> Path:
+def copy_to_releases(setup_path: Path, version: str) -> Path:
     RELEASES_DIR.mkdir(exist_ok=True)
-    release_path = RELEASES_DIR / setup_path.name
+    release_path = RELEASES_DIR / RELEASE_SETUP_NAME.format(version=version)
     shutil.copy2(setup_path, release_path)
     require_file(release_path, "发布目录安装包缺失")
+    size = release_path.stat().st_size
+    print(f"[完成] 发布副本：{release_path}（{size} 字节）")
+    if size < 20 * 1024 * 1024:
+        print("[警告] 体积异常偏小，请确认是否为 Tauri 包")
     return release_path
 
 
-def print_summary(setup_path: Path | None, release_path: Path | None) -> None:
-    print("\n[完成] PC 独立安装包构建流程结束")
-    print(f"- 可执行目录：{PYINSTALLER_APP_DIR}")
-    print(f"- 主程序：{PYINSTALLER_APP_DIR / 'PromptImageManager.exe'}")
-    if setup_path:
-        print(f"- 安装包：{setup_path} ({setup_path.stat().st_size} 字节)")
-    if release_path:
-        print(f"- 发布副本：{release_path} ({release_path.stat().st_size} 字节)")
-
-
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="构建 PC 独立安装包")
+    parser = argparse.ArgumentParser(
+        description="Tauri 主路径构建 PC 安装包（唯一正式发包入口）"
+    )
     parser.add_argument(
-        "--skip-nsis",
+        "--skip-frontend",
         action="store_true",
-        help="只生成 PyInstaller 可执行目录，不生成 NSIS 安装包",
+        help="跳过 vite build（已有 dist 时）",
+    )
+    parser.add_argument(
+        "--skip-sidecar",
+        action="store_true",
+        help="跳过 Sidecar 构建（已有 dist-server 时）",
+    )
+    parser.add_argument(
+        "--skip-tauri",
+        action="store_true",
+        help="跳过 npx tauri build（仅整理已有 NSIS 产物到 releases/）",
     )
     parser.add_argument(
         "--skip-env-check",
         action="store_true",
-        help="跳过环境检查，直接执行构建",
+        help="跳过环境检查",
     )
     return parser.parse_args()
+
+
+def check_environment() -> None:
+    for cmd, hint in (
+        ("npx", "Node.js"),
+        ("cargo", "Rust https://rustup.rs/"),
+        ("python", "Python 3.9+"),
+    ):
+        if not shutil.which(cmd) and not shutil.which(f"{cmd}.cmd" if cmd == "npx" else cmd):
+            raise SystemExit(f"[失败] 未找到 {cmd}，请安装 {hint}")
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "PyInstaller", "--version"],
+            check=True,
+            capture_output=True,
+        )
+    except Exception as exc:
+        raise SystemExit("[失败] 未找到 PyInstaller（Sidecar 需要）") from exc
 
 
 def main() -> None:
     args = parse_args()
     version = get_package_version()
-    print(f"[开始] PromptImageManager v{version} PC 独立安装包构建")
-    validate_pc_installer_config()
+    print(f"[开始] PromptImageManager v{version} Tauri 主路径发包")
+    print("[提示] 禁止使用 build/app.spec 全量旧壳；规范见 docs/构建方案/PC发包规范-Tauri主路径.md")
 
     if not args.skip_env_check:
-        check_environment(args.skip_nsis)
+        check_environment()
 
-    build_frontend()
-    build_pyinstaller()
+    if not args.skip_frontend:
+        build_frontend()
+    if not args.skip_sidecar:
+        build_sidecar()
+    copy_sidecar()
+    if not args.skip_tauri:
+        build_tauri()
 
-    setup_path = None
-    release_path = None
-    if not args.skip_nsis:
-        setup_path = build_nsis(version)
-        release_path = copy_to_releases(setup_path)
-
-    print_summary(setup_path, release_path)
+    setup = pick_nsis_setup(version)
+    release_path = copy_to_releases(setup, version)
+    print("\n[完成] Tauri 主路径发包流程结束")
+    print(f"- 版本：{version}")
+    print(f"- Tauri 原始：{setup}")
+    print(f"- 发布文件：{release_path}")
 
 
 if __name__ == "__main__":

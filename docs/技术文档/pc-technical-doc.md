@@ -139,7 +139,7 @@ Tauri 启动
 ### 5.1 技术架构
 
 - **HTTP 服务器**：`http.server.HTTPRequestHandler` + `socketserver.ThreadingTCPServer`
-- **监听地址**：开发后端默认 `0.0.0.0:8888`；PyInstaller 安装包入口优先使用 `8888`，端口占用时按顺序切换到 `8889-8897`（支持局域网访问）
+- **监听地址**：开发后端默认 `0.0.0.0:8888`；Sidecar 安装包入口优先使用 `8888`，端口占用时按顺序切换到 `8889-8897`（支持局域网访问）
 - **数据存储**：JSON 文件 + 图片文件
 - **并发处理**：多线程；安装包入口使用独占端口绑定，避免 Windows 下与已有开发后端共享同一端口后加载到目录列表
 
@@ -235,7 +235,7 @@ PC 新建/编辑页的提示词长度限制由 `src/js/pc/pc-editor.js` 前端�
 
 ### 5.9 安装包后端入口
 
-PC 独立安装包通过 `build/app.spec` 打包 `build/app_main.py`，该入口需要与 `python/main.py` 的局域网同步协议保持对齐。安装包后端优先监听 `0.0.0.0:8888`，如果端口已被开发后端或旧进程占用，则使用独占绑定检测并按顺序切换到 `8889-8897`；本机 WebView 始终加载实际端口的 `http://127.0.0.1:{port}`。
+PC 正式安装包为 **Tauri + Sidecar**（`build/server.spec` → `PromptImageManager-Server.exe`，见 [PC发包规范-Tauri主路径](../构建方案/PC发包规范-Tauri主路径.md)）。Sidecar 与 `python/main.py` 的局域网同步协议保持对齐。安装包后端优先监听 `0.0.0.0:8888`，如果端口已被开发后端或旧进程占用，则使用独占绑定检测并按顺序切换到 `8889-8897`；本机 WebView 始终加载实际端口的 `http://127.0.0.1:{port}`。
 
 `build/app_main.py` 需要覆盖以下局域网互通接口：
 
@@ -372,7 +372,7 @@ PC 端同步服务默认优先使用 `8888`。独立安装包发现端口被占�
 | 输出格式 | exe 文件夹 / NSIS 安装包 | NSIS 安装包 |
 | 推荐场景 | 快速打包、无需 Rust 环境 | 追求专业桌面应用体验 |
 
-### 8.2 方式 A：PyInstaller 构建
+### 8.2 方式 A：PyInstaller 构建（DEPRECATED，禁止发包）
 
 ```bash
 # 一键构建
@@ -398,7 +398,7 @@ build/dist/PromptImageManager/
     └── ...                     # Python 运行时依赖
 ```
 
-### 8.3 方式 B：Tauri 构建（推荐）
+### 8.3 方式 B：Tauri 构建（唯一正式路径）
 
 ```bash
 # 一键构建

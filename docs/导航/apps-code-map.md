@@ -29,7 +29,7 @@
 | `installer-shell/` | Tauri 自定义安装器壳 |
 | `scripts/` | 构建、开发、维护脚本；`publish_release.ps1` 一键发布（版本一致性校验 + Release 完整分节更新说明）；`normalize_changelog.py` 规范化 changelog 章节词表；`gen_release_body.py` / `backfill_release_notes.py` 生成或回填 Release 正文；`capture_readme_previews.py` 重拍 README 预览图；`verify-*.mjs` 为本地功能核验脚本 |
 | `.mimocode/skills/release-publish/` | 项目技能：一键发布安装包并更新首页 README 版本信息 |
-| `build/` | PyInstaller / NSIS 打包配置与中间产物（安装包不入 Git） |
+| `build/` | Sidecar `server.spec`、Tauri 发包相关与图标（安装包不入 Git）；`app.spec`/`app_main.py`/`installer.nsi` 为 DEPRECATED 旧壳 |
 | `releases/` | 本地发布产物落点（不入 Git）；日常仅保留 `latest.json` 与最新 Setup 包 |
 | `docs/` | 技术 / 设计 / 计划 / 模块 / 版本文档 |
 | `UI设计稿/` | 历史 UI 复刻稿与图标插画源资产（旁支，不参与运行时） |
@@ -154,8 +154,9 @@
 | --- | --- |
 | `python/main.py` | 开发用 HTTP API + 静态资源 |
 | `python/auto_update.py` | 更新检查/异步下载 Job/静默安装模块；Tauri 安装根/主 exe 解析与 helper 重启（`build/auto_update.py` 同步副本） |
-| `build/app_main.py` | PyInstaller 独立包入口 |
-| `build/installer.nsi` | NSIS 安装脚本（中文向导 + 完成页「立即启动」；静默 `/S` 不拉起应用） |
+| `build/app_main.py` | DEPRECATED：PyInstaller 全量旧壳入口（禁止发包） |
+| `build/app.spec` / `build/installer.nsi` | DEPRECATED：全量旧壳 PyInstaller/NSIS（禁止发包） |
+| `build/server.spec` | Tauri Sidecar 无头后端打包规格 |
 | `src-tauri/` | PC 窗口、拉起 Python |
 | `installer-shell/` | 自定义安装向导壳 |
 | `capacitor.config.ts` / `android/` | Android 工程 |

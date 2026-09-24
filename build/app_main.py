@@ -1,6 +1,8 @@
 """应急旧壳（PyInstaller + pywebview）入口 — 已冻结。
 
-Windows 正式桌面壳已收敛为 Tauri 2（见 src-tauri/ 与 docs/计划与规格/03-UI页面重构/桌面无边框窗口壳Tauri收敛实施计划-260924.md）。
+# DEPRECATED：PyInstaller + pywebview 全量应急壳入口，禁止用于正式发包。
+# 正式发包仅 Tauri + Sidecar，见 docs/构建方案/PC发包规范-Tauri主路径.md。
+# Windows 正式桌面壳已收敛为 Tauri 2（见 src-tauri/）。
 本文件仅作应急回退，不再投入窗口黑边/尺寸等问题修复；数据 API 逻辑与 python/main.py 同步维护。
 """
 

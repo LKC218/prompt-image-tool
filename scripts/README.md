@@ -8,7 +8,7 @@
 - `patch-java-version.ps1`：将 Capacitor 相关 Gradle 配置中的 Java 版本从 21 修补为 17。该脚本会修改 `android` 和 `node_modules` 下的 Gradle 文件，仅在 Android 构建遇到 Java 版本兼容问题时使用。
 - `start_dev_server.py`：本地开发服务器启动入口，优先复用现有 `5173/8888` 服务，缺失时启动 Python 后端与 Vite 前端，并验证 PC / 移动端预览地址和实际数据目录。
 - `一键启动-服务器和网页.bat`：Windows 双击入口，直接调用 `scripts/start_dev_server.py --pc-only`，一键启动后端和前端并打开 PC 预览页。
-- `build_pc_package.py`：非交互式 PC 独立安装包构建入口，按 `Vite -> PyInstaller -> NSIS -> releases` 顺序执行，并在每一步校验关键产物。
+- `build_pc_package.py`：**Tauri 主路径**非交互式 PC 发包入口（`vite → server.spec Sidecar → npx tauri build → releases/PromptImageManager-Setup-<ver>.exe`）。禁止 `app.spec` 全量旧壳。
 - `build_installer_shell_package.py`：Tauri 安装器壳发布产物构建入口，可将现有 NSIS 安装核心嵌入自定义安装器壳，并输出到 `releases/`。
 - `build_android_package.py`：非交互式 Android 安装包构建入口，按 `Vite -> Capacitor sync -> Java 版本修补 -> Gradle assembleRelease -> releases` 顺序执行，并校验版本、签名配置和 APK 产物。
 - `build_release_packages.py`：发布包总构建入口，可构建 PC、Android 或全部安装包。
@@ -47,11 +47,8 @@ Windows 默认使用 `%APPDATA%\PromptImageManager\data`。需要隔离测试数
 python scripts\build_pc_package.py
 ```
 
-只生成 PyInstaller 可执行目录、不生成 NSIS 安装包时使用：
-
-```powershell
-python scripts\build_pc_package.py --skip-nsis
-```
+可选参数：`--skip-frontend` / `--skip-sidecar` / `--skip-tauri` / `--skip-env-check`。  
+产物固定 `releases\PromptImageManager-Setup-<version>.exe`（Tauri 约 28MB）。
 
 ## Tauri 安装器壳打包
 
@@ -61,7 +58,7 @@ python scripts\build_pc_package.py --skip-nsis
 python scripts\build_installer_shell_package.py
 ```
 
-只复用已有 `build\PromptImageManager-Setup-{version}.exe` 时使用：
+只复用已有核心安装包时使用（查找 `releases\` 优先，其次 `build\`）：
 
 ```powershell
 python scripts\build_installer_shell_package.py --skip-pc-build

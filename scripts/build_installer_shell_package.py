@@ -67,6 +67,18 @@ def get_package_version() -> str:
     return str(version)
 
 
+def resolve_core_setup(version: str) -> Path:
+    """核心安装包查找：releases/（Tauri 主路径落点）→ build/（兼容）。"""
+    installer_name = f"PromptImageManager-Setup-{version}.exe"
+    for directory in (RELEASES_DIR, BUILD_DIR):
+        candidate = directory / installer_name
+        if candidate.is_file():
+            return candidate
+    raise SystemExit(
+        f"[失败] 未找到核心安装包 {installer_name}（请先 python scripts/build_pc_package.py）"
+    )
+
+
 def sync_shell_metadata(version: str) -> None:
     shell_package_path = INSTALLER_SHELL_DIR / "package.json"
     shell_tauri_config_path = INSTALLER_SHELL_TAURI_DIR / "tauri.conf.json"
@@ -160,7 +172,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-pc-build",
         action="store_true",
-        help="复用现有 build/PromptImageManager-Setup-{version}.exe，不重新构建 PC 安装核心",
+        help="复用 releases/ 或 build/ 中的 PromptImageManager-Setup-{version}.exe，不重新构建",
     )
     parser.add_argument(
         "--skip-env-check",
@@ -173,15 +185,20 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     version = get_package_version()
-    core_installer = BUILD_DIR / f"PromptImageManager-Setup-{version}.exe"
 
     print(f"[开始] PromptImageManager v{version} Tauri 安装器壳构建")
-    sync_shell_metadata(version)
 
     if not args.skip_pc_build:
         build_pc_installer(args.skip_env_check)
 
-    require_file(core_installer, "NSIS 安装核心缺失，无法嵌入安装器壳")
+    core_installer = resolve_core_setup(version)
+    # 资源路径仍指向 build/；确保副本存在
+    build_copy = BUILD_DIR / core_installer.name
+    if core_installer.resolve() != build_copy.resolve():
+        shutil.copy2(core_installer, build_copy)
+        core_installer = build_copy
+
+    sync_shell_metadata(version)
     run_static_checks()
     build_tauri_shell()
     shell_build_path, release_path = copy_shell_package(version)

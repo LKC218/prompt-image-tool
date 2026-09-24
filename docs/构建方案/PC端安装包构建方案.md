@@ -1,7 +1,10 @@
 # 生图提示词管理器 - PC端安装包构建方案
 
+> **DEPRECATED 说明**：本文原「PyInstaller + NSIS 全量 pywebview」方案已废止。  
+> **正式发包唯一规范**见 [PC发包规范-Tauri主路径](./PC发包规范-Tauri主路径.md)。下文仅作历史对照，禁止用于发包。
+
 > 适用版本：v2.3.2+  
-> 构建方案：PyInstaller + NSIS  
+> 构建方案：DEPRECATED（原 PyInstaller + NSIS 全量旧壳，禁止发包）
 > 最后更新：2026-05-09
 
 ---

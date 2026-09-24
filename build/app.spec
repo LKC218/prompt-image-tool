@@ -1,4 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
+# DEPRECATED：PyInstaller 全量 pywebview 应急壳打包配置，禁止用于正式发包。
+# 正式 Sidecar 请用 build/server.spec；正式安装包见 docs/构建方案/PC发包规范-Tauri主路径.md。
 import os
 
 block_cipher = None

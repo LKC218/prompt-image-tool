@@ -68,30 +68,39 @@ NSIS 用于生成带安装向导的 `.exe` 安装包。不安装 NSIS 也可以�
 
 ---
 
-## 三、两种PC端构建方式对比
+## 三、PC 正式发包（唯一主路径）
 
-| | 方式A：PyInstaller + pywebview | 方式B：Tauri + Python Sidecar |
-|---|---|---|
-| **定位** | **应急旧壳**（窗口问题不再投入） | **正式主路径**（Windows 安装包） |
-| **窗口技术** | pywebview（系统WebView） | Tauri 2 无边框窗口 |
-| **是否跳转浏览器** | 否，独立窗口 | 否，独立窗口 |
-| **需要Rust** | 不需要 | 需要 |
-| **Python 依赖** | 打进包（pywebview） | Sidecar 无头后端（`server.spec`） |
-| **构建速度** | 较快（~30秒） | 较慢（需编译Rust） |
-| **输出格式** | exe文件夹 / NSIS安装包 | NSIS 安装包 |
-| **推荐场景** | 仅应急回退 | 正式发布、日常构建 |
+**Windows 正式安装包只有 Tauri + Python Sidecar 一条链。**  
+完整步骤与验收见 **[PC发包规范-Tauri主路径](./PC发包规范-Tauri主路径.md)**（唯一 SOP）。
 
-> **主路径**：`build.bat` 选项 1 = Tauri + Python Sidecar。原 PyInstaller 全量包为选项 2，仅作应急。
+摘要：
+
+```text
+vite build → PyInstaller server.spec（仅 Sidecar）→ 拷入 src-tauri/server/
+  → npx tauri build → 重命名为 releases/PromptImageManager-Setup-<ver>.exe
+  → publish_release.ps1
+```
+
+| 项 | 说明 |
+|---|---|
+| 窗口 | Tauri 2 无边框 + 自绘顶栏 |
+| 后端 | `PromptImageManager-Server.exe`（`build/server.spec`） |
+| 发布名 | `PromptImageManager-Setup-<ver>.exe` |
+| 废止 | PyInstaller 全量 pywebview 壳（`app.spec` / `app_main.py` / `installer.nsi`）仅存档，禁止发包 |
+
+`build.bat` 选项 1 即上述主路径；菜单中已无「应急旧壳」。
 
 ---
 
-## 四、方式A：PyInstaller + pywebview（应急旧壳）
+## 四、历史说明（DEPRECATED）
 
-### 4.1 一键构建
+> 下文「方式 A / PyInstaller + pywebview」步骤已废止，仅供排障对照，**不得**作为发包依据。正式发包见 [PC发包规范-Tauri主路径](./PC发包规范-Tauri主路径.md)。
+
+### 4.1 一键构建（历史）
 
 ```bash
-build.bat
-# 选择 2 → 构建 PC 应急旧壳（PyInstaller + pywebview）
+# 已从 build.bat 移除；仅存档说明，禁止发包
+# 原：build.bat → 选项 2（PyInstaller + pywebview 应急旧壳）
 ```
 
 ### 4.2 标准构建流程（手动）

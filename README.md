@@ -82,15 +82,15 @@ Windows 一键启动：
 
 ## 构建
 
+正式 PC 安装包仅 **Tauri + Python Sidecar** 一条链，见 [PC发包规范-Tauri主路径](./docs/构建方案/PC发包规范-Tauri主路径.md)。
+
 ```powershell
-# PC 安装包
+# PC 安装包（Tauri 主路径）
 python scripts\build_pc_package.py
+# 或 build.bat → 选项 1
 
 # Android 安装包
 python scripts\build_android_package.py
-
-# 双端发布包
-python scripts\build_release_packages.py
 ```
 
 ## 目录说明
@@ -103,7 +103,7 @@ python scripts\build_release_packages.py
 | `android/` | Capacitor Android 原生工程 |
 | `installer-shell/` | Tauri 自定义安装器壳工程 |
 | `scripts/` | 构建、维护、发布脚本与 README 预览截图脚本 |
-| `build/` | PyInstaller/NSIS 打包源与本地安装包落点（产物不入 Git） |
+| `build/` | Sidecar `server.spec`、Tauri 发包相关与图标；全量旧壳 `app.spec` 等已 DEPRECATED |
 | `docs/` | 工程指南、技术、设计、计划、质量与版本文档（见文档中心） |
 | `UI设计稿/` | 设计稿、插画与视觉参考（不参与构建） |
 | `releases/` | 本地发布产物落点，安装包不提交到 Git |

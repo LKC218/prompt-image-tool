@@ -3,115 +3,26 @@ chcp 65001 >nul
 title 生图提示词管理器 - 构建
 
 echo ╔══════════════════════════════════════════╗
-echo ║       生图提示词管理器 v2.5.24 构建脚本     ║
+echo ║     生图提示词管理器 · Tauri 主路径构建脚本   ║
 echo ╚══════════════════════════════════════════╝
 echo.
 
 :menu
 echo 请选择构建目标：
-echo   1. 构建 PC 安装包（Tauri + Python Sidecar）★推荐
-echo   2. 构建 PC 应急旧壳（PyInstaller + pywebview）
-echo   3. 构建 Android 端（Capacitor）
-echo   4. 仅构建前端（Vite）
-echo   5. 开发模式（前端 + Python 后端）
-echo   6. 退出
+echo   1. 构建 PC 安装包（Tauri + Python Sidecar）★唯一正式发包路径
+echo   2. 构建 Android 端（Capacitor）
+echo   3. 仅构建前端（Vite）
+echo   4. 开发模式（前端 + Python 后端）
+echo   5. 退出
 echo.
-set /p choice=请输入选项 (1-6):
+set /p choice=请输入选项 (1-5):
 
 if "%choice%"=="1" goto build_tauri
-if "%choice%"=="2" goto build_pc
-if "%choice%"=="3" goto build_android
-if "%choice%"=="4" goto build_frontend
-if "%choice%"=="5" goto dev_mode
-if "%choice%"=="6" goto end
+if "%choice%"=="2" goto build_android
+if "%choice%"=="3" goto build_frontend
+if "%choice%"=="4" goto dev_mode
+if "%choice%"=="5" goto end
 echo 无效选项
-goto menu
-
-:build_pc
-echo.
-echo ══════════════════════════════════════════
-echo   构建 PC 安装包（PyInstaller + NSIS）
-echo ══════════════════════════════════════════
-echo.
-
-where python >nul 2>nul
-if %errorlevel% neq 0 (
-    echo ❌ 未找到 Python，请先安装 Python 3.9+
-    goto menu
-)
-
-where pip >nul 2>nul
-if %errorlevel% neq 0 (
-    echo ❌ 未找到 pip
-    goto menu
-)
-
-echo [1/4] 检查/安装 PyInstaller...
-pip show pyinstaller >nul 2>nul
-if %errorlevel% neq 0 (
-    echo 正在安装 PyInstaller...
-    pip install pyinstaller
-    if %errorlevel% neq 0 (
-        echo ❌ PyInstaller 安装失败
-        goto menu
-    )
-)
-echo ✅ PyInstaller 已就绪
-
-echo [2/4] 构建前端（Vite）...
-call npx vite build
-if %errorlevel% neq 0 (
-    echo ❌ 前端构建失败
-    goto menu
-)
-echo ✅ 前端构建完成
-
-echo [3/4] 构建 PyInstaller 可执行文件...
-python -m PyInstaller build\app.spec --workpath build\build --distpath build\dist --clean -y
-if %errorlevel% neq 0 (
-    echo ❌ PyInstaller 构建失败
-    goto menu
-)
-echo ✅ PyInstaller 构建完成
-
-if not exist build\dist\PromptImageManager\_internal\frontend (
-    echo ⚠️ 警告：前端文件未包含在构建输出中
-    echo 检查 dist/ 目录是否存在前端文件...
-    if exist dist\index.html (
-        echo dist/ 目录存在，但 PyInstaller 未正确打包
-    ) else (
-        echo dist/ 目录不存在，请先运行前端构建
-    )
-    goto menu
-)
-
-echo [4/4] 构建 NSIS 安装包...
-where makensis >nul 2>nul
-if %errorlevel% neq 0 (
-    echo ⚠️ 未找到 makensis，跳过安装包构建
-    echo 可执行文件位于：build\dist\PromptImageManager\
-    echo 如需构建安装包，请安装 NSIS: https://nsis.sourceforge.io/
-    goto menu
-)
-pushd build
-makensis /INPUTCHARSET UTF8 installer.nsi
-set NSIS_RESULT=%errorlevel%
-popd
-if %NSIS_RESULT% neq 0 (
-    echo ❌ NSIS 安装包构建失败
-    goto menu
-)
-echo.
-echo ✅ PC 安装包构建完成！
-echo 安装包：build\PromptImageManager-Setup-2.5.24.exe
-if not exist releases mkdir releases
-copy /Y build\PromptImageManager-Setup-2.5.24.exe releases\PromptImageManager-Setup-2.5.24.exe >nul
-if %errorlevel% neq 0 (
-    echo ⚠️ 安装包复制到 releases 失败，请手动复制
-) else (
-    echo 发布副本：releases\PromptImageManager-Setup-2.5.24.exe
-)
-echo.
 goto menu
 
 :build_tauri
@@ -168,10 +79,25 @@ echo.
 echo ✅ PC 安装包构建完成！
 echo 输出目录：src-tauri\target\release\bundle\nsis\
 if not exist releases mkdir releases
-for %%F in ("src-tauri\target\release\bundle\nsis\*.exe") do (
-    copy /Y "%%F" "releases\%%~nxF" >nul
-    echo 发布副本：releases\%%~nxF
+rem 规范发布名：PromptImageManager-Setup-<package.json version>.exe（用 Python 读 version，避免 cmd 引号坑）
+for /f "usebackq delims=" %%V in (`python -c "import json;print(json.load(open('package.json',encoding='utf-8'))['version'])"`) do set VER=%%V
+if not defined VER (
+    echo ❌ 无法从 package.json 读取 version
+    goto menu
 )
+set SETUPNAME=PromptImageManager-Setup-%VER%.exe
+set FOUND=
+for %%F in ("src-tauri\target\release\bundle\nsis\*.exe") do (
+    if not defined FOUND (
+        copy /Y "%%F" "releases\%SETUPNAME%" >nul
+        set FOUND=1
+        echo 发布副本：releases\%SETUPNAME%（源：%%~nxF）
+    )
+)
+if not defined FOUND (
+    echo ❌ 未找到 Tauri NSIS 安装包
+)
+echo 规范见 docs\构建方案\PC发包规范-Tauri主路径.md
 echo.
 goto menu
 

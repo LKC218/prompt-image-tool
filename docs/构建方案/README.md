@@ -1,38 +1,27 @@
 # 构建方案索引
 
-本目录存放项目构建、安装包和平台打包方案。
+## 正式发包（唯一）
 
-## 文档清单
+- [PC发包规范-Tauri主路径](./PC发包规范-Tauri主路径.md)：**Windows 正式安装包唯一 SOP**（Tauri + Sidecar → `PromptImageManager-Setup-<ver>.exe`）。
+- [PC独立安装包快速打包流程](./PC独立安装包快速打包流程.md)：日常速查与 `build_pc_package.py` 参数。
 
-- [PC端安装包构建方案](./PC端安装包构建方案.md)：PC 端 PyInstaller + NSIS 完整构建方案，包含架构、环境、产物和常见问题。
-- [PC独立安装包快速打包流程](./PC独立安装包快速打包流程.md)：面向日常发版的非交互式快速打包流程，对应 `scripts/build_pc_package.py`。
-- [PC端构建流程](./PC端构建流程.md)：PC 端构建、调试和产物检查流程。
-- [Android安装包构建方案](./Android安装包构建方案.md)：Android 端 Capacitor + Gradle 构建方案。
+## 架构与开发
 
-## 常用命令
+- [PC端构建流程](./PC端构建流程.md)：架构说明、环境准备、开发模式。
+- [Android安装包构建方案](./Android安装包构建方案.md)：Capacitor + Gradle。
 
-PC 独立安装包：
+## DEPRECATED
+
+- [PC端安装包构建方案](./PC端安装包构建方案.md)：原 PyInstaller + NSIS 全量旧壳，已废止，禁止发包。
+
+## 快速命令
 
 ```powershell
+# 正式 PC 包（Tauri 主路径）
 python scripts\build_pc_package.py
+
+# 或
+build.bat   # 选项 1
 ```
 
-仅生成 PC 可执行目录：
-
-```powershell
-python scripts\build_pc_package.py --skip-nsis
-```
-
-Android 安装包仍按 Android 构建方案执行。
-
-Android 安装包：
-
-```powershell
-python scripts\build_android_package.py
-```
-
-PC 与 Android 发布包总入口：
-
-```powershell
-python scripts\build_release_packages.py
-```
+Android 见 Android 构建方案。
