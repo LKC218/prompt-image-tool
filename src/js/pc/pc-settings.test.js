@@ -17,6 +17,7 @@ const navigatorStorageDescriptor = Object.getOwnPropertyDescriptor(navigator, 's
 vi.mock('../core/storage.js', () => ({
     getStorage: storageMocks.getStorage,
     isCapacitor: false,
+    resolveApiBase: vi.fn(async () => ''),
 }));
 
 vi.mock('./pc-app.js', () => ({
@@ -53,10 +54,12 @@ vi.mock('./pc-icon-assets.js', () => ({
 
 const autoUpdaterMocks = vi.hoisted(() => ({
     runManualUpdateCheck: vi.fn(async () => ({ success: true, hasUpdate: false })),
+    formatUpdateCheckHint: vi.fn(() => '已是最新 v2.5.20'),
 }));
 
 vi.mock('../release/auto-updater.js', () => ({
     runManualUpdateCheck: autoUpdaterMocks.runManualUpdateCheck,
+    formatUpdateCheckHint: autoUpdaterMocks.formatUpdateCheckHint,
 }));
 
 function createStorage(size = 1024) {

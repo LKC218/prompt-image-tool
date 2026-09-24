@@ -1,4 +1,4 @@
-import { getStorage, isCapacitor } from '../core/storage.js';
+import { getStorage, isCapacitor, resolveApiBase } from '../core/storage.js';
 import { navigate } from './pc-app.js';
 import { showToast, showConfirmModal, escapeHtml, formatBytes, copyToClipboard } from './pc-utils.js';
 import { resetPlant } from '../plant/plant-persist.js';
@@ -8,7 +8,7 @@ import { buildExportSuccessMessage, exportBackup, exportZipBackup, getErrorMessa
 import { clearDownloadHistory, formatDownloadHistoryTime, getDownloadHistory, getDownloadHistoryLocationLabel, getDownloadHistoryMethodLabel } from '../shared/download-history.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { renderVersionInfo } from '../core/version-info.js';
-import { runManualUpdateCheck } from '../release/auto-updater.js';
+import { runManualUpdateCheck, formatUpdateCheckHint } from '../release/auto-updater.js';
 import {
     isPromptImageToolImportStorageError,
     normalizeChatGptVaultConversationImport,
@@ -341,12 +341,13 @@ async function loadNetworkInfo(pageEl) {
     const capabilityEl = pageEl.querySelector('#pcSyncCapabilityLine');
     try {
         const storage = getStorage();
+        const apiBase = await resolveApiBase();
         const info = storage.getNetworkInfo
             ? await storage.getNetworkInfo()
-            : await fetch('/api/network-info').then(res => res.json());
+            : await fetch(`${apiBase}/api/network-info`).then(res => res.json());
         const capabilities = storage.getSyncCapabilities
             ? await storage.getSyncCapabilities()
-            : await fetch('/api/sync/capabilities').then(res => res.ok ? res.json() : null).catch(() => null);
+            : await fetch(`${apiBase}/api/sync/capabilities`).then(res => res.ok ? res.json() : null).catch(() => null);
         const ip = info.ip || '无法获取';
         const port = info.port || 8888;
         const address = ip === '无法获取' ? '' : `http://${ip}:${port}`;
@@ -494,9 +495,9 @@ function setupSettingsEvents(pageEl) {
         if (btn) btn.disabled = true;
         if (hint) hint.textContent = '正在检查更新…';
         try {
-            await runManualUpdateCheck();
+            const result = await runManualUpdateCheck();
             if (hint) {
-                hint.textContent = `已检查 · ${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`;
+                hint.textContent = formatUpdateCheckHint(result);
             }
         } finally {
             if (btn) btn.disabled = false;

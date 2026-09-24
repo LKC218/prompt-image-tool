@@ -131,7 +131,7 @@
 | `src/assets/pc/plant/` | 镜面草四阶段图 + 单叶精灵 |
 | `src/css/mobile.css` | 移动端样式入口 |
 | `src/js/core/version-info.js` | 版本号读取与展示 |
-| `src/js/release/auto-updater.js` | PC 应用内更新：检查 / 启动下载 / 轮询进度 / 取消 / 安装；会话互斥 |
+| `src/js/release/auto-updater.js` | PC 应用内更新：检查 / 启动下载 / 轮询进度 / 取消 / 安装；会话互斥；经 `resolveApiBase` 访问 Sidecar |
 | `src/js/release/update-progress-modal.js` | 阶段式更新进度弹窗（百分比、阶段列表、取消/重试；按钮按 mode 缓存） |
 | `src/js/release/release-notes.js` / `release-notes-data.js` | 更新记录弹窗与正文数据；左侧版本阶段轨（scroll 映射跟随 + 精确跳转） |
 | `src/js/pc/pc-utils.js` / `mobile/mobile-utils.js` | 端侧 Toast/Modal/ActionSheet（PC `showConfirmModal` 返回 Promise） |

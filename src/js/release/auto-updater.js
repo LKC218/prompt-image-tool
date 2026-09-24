@@ -1,14 +1,21 @@
 import { getVersion } from '../core/version-info.js';
+import { resolveApiBase } from '../core/storage.js';
 import { showToast, showConfirmModal, escapeHtml } from '../pc/pc-utils.js';
 import { openUpdateProgressModal } from './update-progress-modal.js';
 
-const CHECK_URL = '/api/update/check';
-const DOWNLOAD_URL = '/api/update/download';
-const CANCEL_URL = '/api/update/download/cancel';
-const PROGRESS_URL = '/api/update/progress';
-const INSTALL_URL = '/api/update/install';
+const CHECK_PATH = '/api/update/check';
+const DOWNLOAD_PATH = '/api/update/download';
+const CANCEL_PATH = '/api/update/download/cancel';
+const PROGRESS_PATH = '/api/update/progress';
+const INSTALL_PATH = '/api/update/install';
 const LAST_SKIP_KEY = 'pc-update-skip-version';
 const POLL_INTERVAL_MS = 250;
+
+/** Tauri 壳下页面源与 Python Sidecar 不同源，必须拼 resolveApiBase 后的绝对地址。 */
+async function apiFetch(path, options) {
+    const base = await resolveApiBase();
+    return fetch(`${base}${path}`, options);
+}
 
 const TERMINAL_PHASES = new Set(['ready', 'failed', 'cancelled']);
 
@@ -36,9 +43,9 @@ let updateSessionActive = false;
 
 export async function checkForUpdate({ silent = false, localVersion } = {}) {
     const local = localVersion || getVersion();
-    const url = `${CHECK_URL}?localVersion=${encodeURIComponent(local)}`;
+    const path = `${CHECK_PATH}?localVersion=${encodeURIComponent(local)}`;
     try {
-        const response = await fetch(url, { method: 'GET' });
+        const response = await apiFetch(path, { method: 'GET' });
         const data = await readJson(response);
         return data;
     } catch (error) {
@@ -53,7 +60,7 @@ export async function startDownloadUpdate(latest) {
     if (!latest?.url || !latest?.sha256) {
         throw new Error('更新元数据不完整');
     }
-    const response = await fetch(DOWNLOAD_URL, {
+    const response = await apiFetch(DOWNLOAD_PATH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: latest.url, sha256: latest.sha256 }),
@@ -70,7 +77,7 @@ export async function fetchUpdateProgress(jobId) {
     if (!jobId) {
         throw new Error('缺少下载任务 ID');
     }
-    const response = await fetch(`${PROGRESS_URL}?jobId=${encodeURIComponent(jobId)}`, {
+    const response = await apiFetch(`${PROGRESS_PATH}?jobId=${encodeURIComponent(jobId)}`, {
         method: 'GET',
     });
     return readJson(response);
@@ -80,7 +87,7 @@ export async function cancelUpdateDownload(jobId) {
     if (!jobId) {
         throw new Error('缺少下载任务 ID');
     }
-    const response = await fetch(CANCEL_URL, {
+    const response = await apiFetch(CANCEL_PATH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ jobId }),
@@ -110,7 +117,7 @@ export async function installDownloadedUpdate(installerPath, options = {}) {
         throw new Error('缺少安装包路径');
     }
     const expectedVersion = String(options?.expectedVersion || options?.version || '').trim();
-    const response = await fetch(INSTALL_URL, {
+    const response = await apiFetch(INSTALL_PATH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: installerPath, expectedVersion }),
@@ -283,13 +290,26 @@ export async function runManualUpdateCheck() {
     showToast('正在检查更新…', 'info');
     const result = await checkForUpdate({ silent: false });
     if (!result.success) {
-        return result;
+        return { ...result, status: 'failed' };
     }
     if (!result.hasUpdate) {
         showToast(`已是最新版本 v${result.localVersion}`);
-        return result;
+        return { ...result, status: 'up-to-date' };
     }
     clearSkippedUpdateVersion();
     await promptAndInstallUpdate(result.latest);
-    return result;
+    return { ...result, status: 'update-available' };
+}
+
+export function formatUpdateCheckHint(result) {
+    const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    if (!result?.success) {
+        return `检查失败 · ${time}`;
+    }
+    if (result.hasUpdate || result.status === 'update-available') {
+        const version = result.latest?.version || '';
+        return `${version ? `可更新到 v${version}` : '发现新版本'} · ${time}`;
+    }
+    const local = result.localVersion || getVersion();
+    return `已是最新 v${local} · ${time}`;
 }

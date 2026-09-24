@@ -7,6 +7,7 @@ import {
     cancelUpdateDownload,
     promptAndInstallUpdate,
     runUpdateWithProgressModal,
+    formatUpdateCheckHint,
 } from './auto-updater.js';
 import { formatUpdateProgressLine, openUpdateProgressModal } from './update-progress-modal.js';
 import { showConfirmModal } from '../pc/pc-utils.js';
@@ -171,6 +172,58 @@ describe('download job client', () => {
 
         expect(cancelBodies).toContain('job-b');
         document.getElementById('pcUpdateProgressCloseBtn')?.click();
+    });
+});
+
+describe('formatUpdateCheckHint', () => {
+    it('检查失败显示失败态', () => {
+        const text = formatUpdateCheckHint({ success: false, hasUpdate: false, error: 'network' });
+        expect(text).toContain('检查失败');
+    });
+
+    it('已是最新显示本地版本', () => {
+        const text = formatUpdateCheckHint({ success: true, hasUpdate: false, localVersion: '2.5.20' });
+        expect(text).toContain('已是最新 v2.5.20');
+    });
+
+    it('可更新显示远程版本', () => {
+        const text = formatUpdateCheckHint({
+            success: true,
+            hasUpdate: true,
+            status: 'update-available',
+            latest: { version: '2.5.21' },
+        });
+        expect(text).toContain('可更新到 v2.5.21');
+    });
+});
+
+describe('Tauri API base', () => {
+    beforeEach(() => {
+        vi.resetModules();
+        vi.stubGlobal('fetch', vi.fn());
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        vi.resetModules();
+    });
+
+    it('checkForUpdate 走 resolveApiBase 拼接后的地址', async () => {
+        vi.doMock('../core/storage.js', () => ({
+            resolveApiBase: async () => 'http://localhost:8888',
+            isTauri: true,
+            isCapacitor: false,
+        }));
+        fetch.mockResolvedValue({
+            ok: true,
+            json: async () => ({ success: true, hasUpdate: false, localVersion: '2.5.20' }),
+        });
+        const { checkForUpdate } = await import('./auto-updater.js');
+        await checkForUpdate({ silent: true, localVersion: '2.5.20' });
+        expect(fetch).toHaveBeenCalledWith(
+            'http://localhost:8888/api/update/check?localVersion=2.5.20',
+            expect.any(Object)
+        );
     });
 });
 
