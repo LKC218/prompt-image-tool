@@ -31,14 +31,16 @@ export const MINDMAP_ORTHO_OPTIONS = { stub: 22, radius: 8 };
 const PRIORITY_CLASS_SET = new Set(['high', 'medium', 'low']);
 
 const DEFAULT_LAYOUT_OPTIONS = {
-    nodeMinWidth: 120,
+    nodeMinWidth: 160,
     nodeMinHeight: 40,
     nodeMaxWidth: 360,
     hGap: 48,
     vGap: 16,
     padding: 32,
     titleCharWidth: 12,
-    titleChrome: 56,
+    // 状态点 + 进度胶囊 + 导入图按钮 + padding/gap 的真实占宽
+    titleChrome: 132,
+    titleMinWidth: 72,
     titlePadY: 14,
     lineHeight: 18
 };
@@ -72,8 +74,10 @@ export function estimateNodeSize(title = '', options = {}) {
     const s = String(title || '');
     let units = 0;
     for (const ch of s) units += isWideTitleChar(ch) ? 1 : 0.55;
-    const textW = Math.max(24, units * opts.titleCharWidth);
-    const maxTitleW = Math.max(48, opts.nodeMaxWidth - opts.titleChrome);
+    const rawTextW = Math.max(24, units * opts.titleCharWidth);
+    const titleMinW = Math.max(48, opts.titleMinWidth);
+    const maxTitleW = Math.max(titleMinW, opts.nodeMaxWidth - opts.titleChrome);
+    const textW = Math.min(Math.max(rawTextW, titleMinW), maxTitleW);
     const lines = estimateMindmapTitleLines(s, maxTitleW, opts.titleCharWidth);
     const w = Math.max(opts.nodeMinWidth, Math.min(opts.nodeMaxWidth, textW + opts.titleChrome));
     const h = Math.max(opts.nodeMinHeight, opts.titlePadY + lines * opts.lineHeight);

@@ -1636,7 +1636,7 @@
 
 .pc-goal-mindmap-node-title {
     flex: 1;
-    min-width: 0;
+    min-width: 72px;
     overflow: visible;
     text-overflow: clip;
     white-space: normal;

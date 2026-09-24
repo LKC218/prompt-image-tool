@@ -80,7 +80,7 @@ layoutMindmap(nodes, hierarchyEdges, options?)
 ```
 
 - 水平树：按深度分列（列宽取该层最大节点宽），子树纵向堆叠。
-- 节点尺寸按标题估算：宽上限 360，高随折行增长（`estimateNodeSize` / `estimateMindmapTitleLines`），标题 CSS 换行完整显示不截断。空图返回最小画布。
+- 节点尺寸按标题估算：宽上限 360，chrome 预留 132、标题最小宽 72（防止被徽章压成竖排），高随折行增长（`estimateNodeSize` / `estimateMindmapTitleLines`），标题 CSS 换行完整显示不截断。空图返回最小画布。
 
 拖拽改层级（`resolveMindmapDropTarget` + `moveTaskInTree`）：节点中部=成子级，上下 30%=插兄弟，空白/根=成顶层；禁止拖入自身子树。
 

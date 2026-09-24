@@ -5,6 +5,33 @@
 
 ---
 
+## v2.5.23 (2026-09-24)
+
+> 记录依据：`v2.5.22` 发布后修复导图短标题被 chrome 挤压成竖排单字。
+
+### 优化
+
+- **导图标题横排可读**：节点预留状态点、进度胶囊与导入图按钮的真实宽度，短标题至少保留约 6 个汉字宽度，不再被压成一字一行。
+
+### 发布
+
+- 版本号统一升级至 `2.5.23`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.23`。
+- Android `versionCode` 从 `34` 递增至 `35`，`versionName` 升级为 `2.5.23`（本版不附带 APK）。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.23.exe`：39,456,443 字节（37.63 MB），SHA256 `82C2738EEE7E3F4B09B6FFA2FE4C649E60FB1552D4A59930559191C8AE35935B`
+
+### 验证
+
+- `npm test`：391 passed / 45 files。
+- `python -m pytest python/tests -q`：83 passed。
+- `npx vite build` + `python -m PyInstaller build/app.spec` + `makensis installer.nsi`：通过，产出 NSIS 安装包。
+
+---
+
 ## v2.5.22 (2026-09-24)
 
 > 记录依据：`v2.5.21` 发布后修复卸载/退出残留 Sidecar 导致覆盖安装写文件失败（分支 `fix/auto-update-bugs`）。

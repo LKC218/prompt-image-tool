@@ -1,5 +1,25 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.23',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '思维导图短标题不再被状态、进度和按钮挤成竖排单字，标题保持横排完整可读。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.23；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.22',
         date: '2026-09-24',
         sections: [

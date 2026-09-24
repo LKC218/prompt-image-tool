@@ -127,6 +127,13 @@ describe('layoutMindmap', () => {
         expect(long.w).toBeLessThanOrEqual(360);
         expect(estimateMindmapTitleLines(longTitle, 300)).toBeGreaterThan(1);
     });
+
+    it('短标题也预留标题最小宽，避免被 chrome 压成竖排', () => {
+        // 回归：chrome≈132 时标题仍至少 72px，节点总宽 ≥ 204
+        const size = estimateNodeSize('控制');
+        expect(size.w).toBeGreaterThanOrEqual(204);
+        expect(size.h).toBeGreaterThanOrEqual(40);
+    });
 });
 
 describe('resolveMindmapDropTarget', () => {
