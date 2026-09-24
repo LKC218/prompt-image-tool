@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "python")
 import auto_update
 from auto_update import (
     APP_EXE_NAME,
+    MAIN_APP_EXE_CANDIDATES,
     DownloadCancelled,
     _download_url_candidates,
     _friendly_network_error,
@@ -30,6 +31,7 @@ from auto_update import (
     read_local_app_version,
     reset_download_jobs_for_tests,
     resolve_install_dir,
+    resolve_target_exe,
     run_installer,
     spawn_relaunch_helper,
     start_download_job,
@@ -79,6 +81,7 @@ def test_run_installer_windows_dd_unquoted(monkeypatch, tmp_path):
     setup.write_bytes(b"mz")
     install_dir = tmp_path / "App Local" / "PromptImageManager"
     install_dir.mkdir(parents=True)
+    (install_dir / APP_EXE_NAME).write_bytes(b"stub")
 
     monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
     monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(install_dir))
@@ -86,15 +89,21 @@ def test_run_installer_windows_dd_unquoted(monkeypatch, tmp_path):
     monkeypatch.setattr("auto_update.os.name", "nt")
 
     seen = {}
+    killed_before_popen = []
 
     class _Proc:
         pid = 1
+
+    def fake_run(cmd, **kwargs):
+        killed_before_popen.append(list(cmd))
+        return None
 
     def fake_popen(cmd, **kwargs):
         seen["cmd"] = cmd
         seen["kwargs"] = kwargs
         return _Proc()
 
+    monkeypatch.setattr("auto_update.subprocess.run", fake_run)
     monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
     monkeypatch.setattr("auto_update.spawn_relaunch_helper", lambda *a, **k: {"success": True})
 
@@ -105,6 +114,37 @@ def test_run_installer_windows_dd_unquoted(monkeypatch, tmp_path):
     assert cmdline.rstrip().endswith(f"/D={install_dir}")
     assert f'"/D=' not in cmdline
     assert f"' /D=" not in cmdline
+    # Popen 前不得 taskkill（避免 Tauri Exit 自杀竞态）
+    assert killed_before_popen == []
+
+
+def test_run_installer_untrusted_dir_omits_dd(monkeypatch, tmp_path):
+    setup = tmp_path / "setup.exe"
+    setup.write_bytes(b"mz")
+    empty_dir = tmp_path / "EmptyNoMainExe"
+    empty_dir.mkdir()
+
+    monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
+    monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(empty_dir))
+    monkeypatch.setattr("auto_update.time.sleep", lambda *_: None)
+
+    seen = {}
+
+    class _Proc:
+        pid = 3
+
+    def fake_popen(cmd, **kwargs):
+        seen["cmd"] = cmd
+        return _Proc()
+
+    monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
+    monkeypatch.setattr("auto_update.spawn_relaunch_helper", lambda *a, **k: {"success": True})
+    result = run_installer(str(setup))
+    cmdline = seen["cmd"]
+    assert isinstance(cmdline, str)
+    assert "/S" in cmdline
+    assert "/D=" not in cmdline
+    assert result["targetExe"] == ""
 
 
 PAYLOAD_BYTES = 1024 * 64
@@ -340,28 +380,78 @@ def test_fetch_latest_meta_all_fail_raises_friendly(monkeypatch):
     assert "SSL" in str(exc.value)
 
 
+def test_resolve_target_exe_prefers_chinese_name(tmp_path):
+    zh = tmp_path / MAIN_APP_EXE_CANDIDATES[0]
+    en = tmp_path / APP_EXE_NAME
+    en.write_bytes(b"en")
+    assert resolve_target_exe(str(tmp_path)) == str(en.resolve()) or resolve_target_exe(
+        str(tmp_path)
+    ) == os.path.abspath(str(en))
+    zh.write_bytes(b"zh")
+    assert resolve_target_exe(str(tmp_path)) == os.path.abspath(str(zh))
+
+
+def test_resolve_target_exe_empty_when_missing(tmp_path):
+    assert resolve_target_exe(str(tmp_path)) == ""
+
+
+def test_resolve_install_dir_prefers_parent_tauri_root(monkeypatch, tmp_path):
+    install_dir = tmp_path / "TauriApp"
+    install_dir.mkdir()
+    main_exe = install_dir / MAIN_APP_EXE_CANDIDATES[0]
+    main_exe.write_bytes(b"stub")
+    parent_exe = install_dir / MAIN_APP_EXE_CANDIDATES[0]
+
+    monkeypatch.setattr("auto_update._parent_process_exe_path", lambda: str(parent_exe))
+    assert resolve_install_dir() == str(install_dir)
+
+
+def test_resolve_install_dir_skips_server_only_sidecar_dir(monkeypatch, tmp_path):
+    install_dir = tmp_path / "AppRoot"
+    install_dir.mkdir()
+    main_exe = install_dir / APP_EXE_NAME
+    main_exe.write_bytes(b"main")
+    server_dir = install_dir / "server"
+    server_dir.mkdir()
+    (server_dir / "PromptImageManager-Server.exe").write_bytes(b"srv")
+
+    monkeypatch.setattr("auto_update._parent_process_exe_path", lambda: None)
+    monkeypatch.setattr("auto_update.sys.frozen", True, raising=False)
+    monkeypatch.setattr("auto_update.sys.executable", str(server_dir / "PromptImageManager-Server.exe"))
+    monkeypatch.setattr("auto_update._read_install_dir_from_registry", lambda: None)
+    assert resolve_install_dir() == str(install_dir)
+
+
 def test_resolve_install_dir_prefers_frozen_exe_dir(monkeypatch, tmp_path):
     install_dir = tmp_path / "PromptImageManager"
     install_dir.mkdir()
     exe = install_dir / "PromptImageManager.exe"
     exe.write_bytes(b"stub")
 
+    monkeypatch.setattr("auto_update._parent_process_exe_path", lambda: None)
     monkeypatch.setattr("auto_update.sys.frozen", True, raising=False)
     monkeypatch.setattr("auto_update.sys.executable", str(exe))
     assert resolve_install_dir() == str(install_dir)
 
 
-def test_resolve_install_dir_fallback_local_appdata(monkeypatch, tmp_path):
+def test_resolve_install_dir_fallback_requires_main_exe(monkeypatch, tmp_path):
+    monkeypatch.setattr("auto_update._parent_process_exe_path", lambda: None)
     monkeypatch.setattr("auto_update.sys.frozen", False, raising=False)
     monkeypatch.setattr("auto_update._read_install_dir_from_registry", lambda: None)
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
-    resolved = resolve_install_dir()
-    assert resolved == os.path.join(str(tmp_path), "PromptImageManager")
+    assert resolve_install_dir() == ""
+
+    en_dir = tmp_path / "PromptImageManager"
+    en_dir.mkdir()
+    (en_dir / APP_EXE_NAME).write_bytes(b"stub")
+    assert resolve_install_dir() == str(en_dir)
 
 
 def test_resolve_install_dir_prefers_registry_over_local_appdata(monkeypatch, tmp_path):
     reg_dir = tmp_path / "FromRegistry"
     reg_dir.mkdir()
+    (reg_dir / APP_EXE_NAME).write_bytes(b"stub")
+    monkeypatch.setattr("auto_update._parent_process_exe_path", lambda: None)
     monkeypatch.setattr("auto_update.sys.frozen", False, raising=False)
     monkeypatch.setattr(
         "auto_update._read_install_dir_from_registry",
@@ -380,6 +470,9 @@ def test_build_relaunch_helper_script_contains_contract():
     assert "Start-Process" in text
     assert "frontend\\index.html" in text or "frontend/index.html" in text
     assert "_internal" in text
+    # 软校验：禁止因 meta 不一致直接 exit 0 拒绝重启；mismatch 须写日志
+    assert "if ($readAny -and -not $matched) { exit 0 }" not in text
+    assert "soft version mismatch" in text
 
 
 def test_run_installer_dev_skips_helper(monkeypatch, tmp_path):
@@ -387,7 +480,6 @@ def test_run_installer_dev_skips_helper(monkeypatch, tmp_path):
     setup.write_bytes(b"mz")
     monkeypatch.setattr("auto_update._should_auto_restart", lambda: False)
     monkeypatch.setattr("auto_update.time.sleep", lambda *_: None)
-    monkeypatch.setattr("auto_update.kill_main_app_for_install", lambda: None)
 
     calls = []
 
@@ -427,7 +519,6 @@ def test_run_installer_frozen_windows_spawns_helper(monkeypatch, tmp_path):
     monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
     monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(install_dir))
     monkeypatch.setattr("auto_update.time.sleep", lambda *_: None)
-    monkeypatch.setattr("auto_update.kill_main_app_for_install", lambda: None)
 
     calls = []
 
@@ -522,6 +613,8 @@ def test_spawn_relaunch_helper_invokes_powershell(monkeypatch, tmp_path):
     assert str(script) in seen["cmd"]
     assert "2.5.9" in seen["cmd"]
     assert "-SettleSec" in seen["cmd"]
+    settle_idx = seen["cmd"].index("-SettleSec")
+    assert seen["cmd"][settle_idx + 1] == "3"
     assert seen["kwargs"].get("close_fds") is True
     if os.name == "nt":
         assert seen["kwargs"].get("creationflags") == auto_update._HELPER_CREATIONFLAGS
@@ -541,17 +634,20 @@ def test_spawn_relaunch_helper_cleans_script_on_popen_failure(monkeypatch, tmp_p
 
 
 def test_kill_main_app_for_install_calls_taskkill(monkeypatch):
-    seen = {}
+    seen = []
 
     def fake_run(cmd, **kwargs):
-        seen["cmd"] = list(cmd)
-        seen["kwargs"] = kwargs
+        seen.append({"cmd": list(cmd), "kwargs": kwargs})
         return None
 
     monkeypatch.setattr("auto_update.subprocess.run", fake_run)
     kill_main_app_for_install()
     if os.name == "nt":
-        assert seen["cmd"][0] == "taskkill"
-        assert APP_EXE_NAME in seen["cmd"]
+        assert seen, "taskkill should be invoked on nt"
+        for item in seen:
+            assert item["cmd"][0] == "taskkill"
+            assert "/T" not in item["cmd"]
+            assert item["cmd"][-1] in MAIN_APP_EXE_CANDIDATES
+        assert any(APP_EXE_NAME in item["cmd"] for item in seen)
     else:
-        assert "cmd" not in seen
+        assert seen == []

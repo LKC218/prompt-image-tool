@@ -3,6 +3,8 @@
 
 !macro KillPromptImageManagerProcesses
     ; 主程序 + Python Sidecar（含子进程树）
+    nsExec::ExecToLog 'cmd /c taskkill /F /T /IM 生图提示词管理器.exe'
+    Pop $0
     nsExec::ExecToLog 'cmd /c taskkill /F /T /IM PromptImageManager.exe'
     Pop $0
     nsExec::ExecToLog 'cmd /c taskkill /F /T /IM PromptImageManager-Server.exe'

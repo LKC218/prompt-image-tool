@@ -385,6 +385,35 @@ describe('showConfirmModal Promise 闭环', () => {
     });
 });
 
+describe('closeShellAfterInstall', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
+    });
+
+    it('优先调用 Tauri getCurrentWindow().close', async () => {
+        const close = vi.fn().mockResolvedValue(undefined);
+        vi.stubGlobal('window', {
+            ...window,
+            __TAURI__: { window: { getCurrentWindow: () => ({ close }) } },
+            close: vi.fn(),
+        });
+        const { closeShellAfterInstall } = await import('./auto-updater.js');
+        const ok = await closeShellAfterInstall();
+        expect(ok).toBe(true);
+        expect(close).toHaveBeenCalled();
+    });
+
+    it('无 Tauri 时退回 window.close', async () => {
+        const close = vi.fn();
+        vi.stubGlobal('window', { ...window, __TAURI__: undefined, close });
+        const { closeShellAfterInstall } = await import('./auto-updater.js');
+        const ok = await closeShellAfterInstall();
+        expect(ok).toBe(true);
+        expect(close).toHaveBeenCalled();
+    });
+});
+
 describe('update session 互斥', () => {
     beforeEach(() => {
         document.body.innerHTML = '<div id="pcApp"></div>';

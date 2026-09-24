@@ -39,6 +39,34 @@ function confirmUpdate(version) {
     );
 }
 
+/** 安装已拉起后关闭 Tauri 主窗，触发 RunEvent::Exit 回收 Sidecar；失败则退回 window.close。 */
+export async function closeShellAfterInstall() {
+    try {
+        if (window.__TAURI__?.window?.getCurrentWindow) {
+            const win = window.__TAURI__.window.getCurrentWindow();
+            if (win?.close) {
+                await win.close();
+                return true;
+            }
+        }
+    } catch {
+        // fall through
+    }
+    try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window');
+        await getCurrentWindow().close();
+        return true;
+    } catch {
+        // fall through
+    }
+    try {
+        window.close();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 let updateSessionActive = false;
 
 export async function checkForUpdate({ silent = false, localVersion } = {}) {
@@ -256,8 +284,11 @@ async function runUpdateSessionInternal(latest) {
             modal.setProgress({ ...progress, phase: 'installing' });
             await installDownloadedUpdate(progress.path, { expectedVersion: latest?.version });
             modal.setProgress({ ...progress, phase: 'ready' });
-            showToast('安装程序已启动，完成后将自动重启进入新版本');
-            setTimeout(() => modal.close(), 1200);
+            showToast('安装程序已启动，应用即将退出并自动重启进入新版本');
+            setTimeout(() => modal.close(), 800);
+            setTimeout(() => {
+                void closeShellAfterInstall();
+            }, 1200);
             return { updated: true };
         } catch (error) {
             if (error?.name === 'AbortError' || session.cancelled) {

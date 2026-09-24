@@ -36,10 +36,16 @@ JOB_PHASES_ACTIVE = frozenset({"pending", "downloading", "verifying"})
 _jobs_lock = threading.Lock()
 _jobs: dict[str, dict[str, Any]] = {}
 
+MAIN_APP_EXE_CANDIDATES = (
+    "生图提示词管理器.exe",
+    "PromptImageManager.exe",
+)
+MAIN_APP_IMAGE_NAMES = MAIN_APP_EXE_CANDIDATES
+# 兼容旧调用/测试；解析目标请用 resolve_target_exe
 APP_EXE_NAME = "PromptImageManager.exe"
 REGISTRY_APP_KEY = r"Software\PromptImageManager"
 HELPER_DEFAULT_TIMEOUT_SEC = 900
-HELPER_SETTLE_SEC = 2
+HELPER_SETTLE_SEC = 3  # 杀进程后句柄释放
 # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
 _HELPER_CREATIONFLAGS = 0x00000008 | 0x00000200 | 0x08000000
 
@@ -48,7 +54,7 @@ RELAUNCH_HELPER_SCRIPT = r"""param(
   [Parameter(Mandatory=$true)][string]$TargetExe,
   [string]$ExpectedVersion = "",
   [int]$TimeoutSec = 900,
-  [int]$SettleSec = 2
+  [int]$SettleSec = 3
 )
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
 while ((Get-Date) -lt $deadline) {
@@ -57,8 +63,16 @@ while ((Get-Date) -lt $deadline) {
   Start-Sleep -Milliseconds 500
 }
 if ($SettleSec -gt 0) { Start-Sleep -Seconds $SettleSec }
+if (-not (Test-Path -LiteralPath $TargetExe)) {
+  $exeDirHint = Split-Path -Parent $TargetExe
+  foreach ($name in @('生图提示词管理器.exe','PromptImageManager.exe')) {
+    $cand = Join-Path $exeDirHint $name
+    if (Test-Path -LiteralPath $cand) { $TargetExe = $cand; break }
+  }
+}
 if (-not (Test-Path -LiteralPath $TargetExe)) { exit 0 }
 $exeDir = Split-Path -Parent $TargetExe
+# ExpectedVersion 仅作软校验日志：Tauri 布局无 frontend/index.html，硬门闩会误杀重启
 if ($ExpectedVersion -ne "") {
   $candidates = @(
     (Join-Path $exeDir 'frontend\index.html'),
@@ -75,12 +89,17 @@ if ($ExpectedVersion -ne "") {
       if ($html -match '(?i)name=["'']version["'']\s+content=["'']([^"'']+)["'']') {
         $readAny = $true
         $found = [string]$Matches[1]
-        $found = $found.Trim()
-        if ($found -eq $ExpectedVersion.Trim()) { $matched = $true }
+        if ($found.Trim() -eq $ExpectedVersion.Trim()) { $matched = $true }
       }
     } catch {}
   }
-  if ($readAny -and -not $matched) { exit 0 }
+  if ($readAny -and -not $matched) {
+    try {
+      $logPath = Join-Path ([System.IO.Path]::GetTempPath()) 'prompt-image-update.log'
+      $line = '[{0}] helper soft version mismatch expected={1} (still relaunch)' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $ExpectedVersion
+      Add-Content -LiteralPath $logPath -Value $line -Encoding UTF8
+    } catch {}
+  }
 }
 Start-Process -FilePath $TargetExe -WorkingDirectory $exeDir
 try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}
@@ -576,24 +595,156 @@ def _read_install_dir_from_registry() -> str | None:
         if candidate and os.path.isdir(candidate):
             return candidate
     except OSError:
+        pass
+
+    uninstall_roots = (
+        r"Software\Microsoft\Windows\CurrentVersion\Uninstall",
+    )
+    keywords = ("promptimagemanager", "生图提示词管理器", "com.promptimagemanager")
+    try:
+        for root in uninstall_roots:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, root) as base_key:
+                i = 0
+                while True:
+                    try:
+                        sub_name = winreg.EnumKey(base_key, i)
+                    except OSError:
+                        break
+                    i += 1
+                    lowered = sub_name.lower()
+                    if not any(k in lowered for k in keywords):
+                        continue
+                    try:
+                        with winreg.OpenKey(base_key, sub_name) as sub_key:
+                            for value_name in ("InstallLocation", "DisplayIcon", "UninstallString"):
+                                try:
+                                    raw, _ = winreg.QueryValueEx(sub_key, value_name)
+                                except OSError:
+                                    continue
+                                text = str(raw or "").strip().strip('"')
+                                if not text:
+                                    continue
+                                candidate = text
+                                if value_name != "InstallLocation":
+                                    if text.lower().endswith(".exe"):
+                                        candidate = os.path.dirname(text)
+                                if candidate and os.path.isdir(candidate):
+                                    return os.path.abspath(candidate)
+                    except OSError:
+                        continue
+    except OSError:
         return None
     return None
 
 
+def resolve_target_exe(install_dir: str) -> str:
+    if not install_dir:
+        return ""
+    for name in MAIN_APP_EXE_CANDIDATES:
+        candidate = os.path.join(install_dir, name)
+        if os.path.isfile(candidate):
+            return os.path.abspath(candidate)
+    return ""
+
+
+def _is_server_only_dir(directory: str) -> bool:
+    if not directory or not os.path.isdir(directory):
+        return False
+    if resolve_target_exe(directory):
+        return False
+    for name in ("PromptImageManager-Server.exe", "PromptImageManager-Server"):
+        if os.path.isfile(os.path.join(directory, name)):
+            return True
+    return False
+
+
+def _parent_process_exe_path() -> str | None:
+    if os.name != "nt":
+        return None
+    ppid = os.getppid()
+    if not ppid:
+        return None
+    try:
+        output = subprocess.check_output(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                f"(Get-CimInstance Win32_Process -Filter \"ProcessId={int(ppid)}\").ExecutablePath",
+            ],
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            timeout=5,
+        )
+    except Exception:
+        return None
+    text = (output or b"").decode("utf-8", errors="ignore").strip().strip('"')
+    if text and os.path.isfile(text):
+        return os.path.abspath(text)
+    return None
+
+
+def _expected_target_exe(install_dir: str) -> str:
+    existing = resolve_target_exe(install_dir)
+    if existing:
+        return existing
+    if install_dir:
+        return os.path.join(os.path.abspath(install_dir), MAIN_APP_EXE_CANDIDATES[0])
+    return ""
+
+
 def resolve_install_dir() -> str:
+    parent_exe = _parent_process_exe_path()
+    if parent_exe:
+        parent_name = os.path.basename(parent_exe)
+        parent_dir = os.path.dirname(parent_exe)
+        parent_is_main = parent_name in MAIN_APP_EXE_CANDIDATES
+        if parent_dir and os.path.isdir(parent_dir) and not _is_server_only_dir(parent_dir):
+            if parent_is_main or resolve_target_exe(parent_dir):
+                return parent_dir
+
+    start = os.path.dirname(os.path.abspath(sys.executable if getattr(sys, "frozen", False) else __file__))
+    current = start
+    for _ in range(4):
+        if resolve_target_exe(current):
+            return current
+        if _is_server_only_dir(current):
+            parent = os.path.dirname(current)
+            if parent != current:
+                current = parent
+                continue
+        parent = os.path.dirname(current)
+        if parent == current:
+            break
+        current = parent
+
     if getattr(sys, "frozen", False):
         exe_dir = os.path.dirname(os.path.abspath(sys.executable))
-        if exe_dir and os.path.isdir(exe_dir):
+        if (
+            exe_dir
+            and os.path.isdir(exe_dir)
+            and not _is_server_only_dir(exe_dir)
+            and resolve_target_exe(exe_dir)
+        ):
             return exe_dir
+
     from_registry = _read_install_dir_from_registry()
-    if from_registry:
+    if from_registry and not _is_server_only_dir(from_registry) and resolve_target_exe(from_registry):
         return from_registry
+
     base = (
         os.environ.get("LOCALAPPDATA")
         or os.environ.get("APPDATA")
         or tempfile.gettempdir()
     )
-    return os.path.join(os.path.abspath(os.path.expandvars(base)), "PromptImageManager")
+    base = os.path.abspath(os.path.expandvars(base))
+    zh_dir = os.path.join(base, "生图提示词管理器")
+    if os.path.isdir(zh_dir) and not _is_server_only_dir(zh_dir) and resolve_target_exe(zh_dir):
+        return zh_dir
+    en_dir = os.path.join(base, "PromptImageManager")
+    if os.path.isdir(en_dir) and not _is_server_only_dir(en_dir) and resolve_target_exe(en_dir):
+        return en_dir
+    # 无主 exe 时不猜测安装根，避免 /D= 装到无关目录
+    return ""
 
 
 def build_relaunch_helper_script_text() -> str:
@@ -655,16 +806,27 @@ def spawn_relaunch_helper(
 
 
 def kill_main_app_for_install() -> None:
-    """覆盖安装前结束主程序；Sidecar 由 NSIS PREINSTALL 清理，避免本进程自杀。"""
+    """按镜像名结束主程序；不带 /T，避免杀掉作为子进程的 Sidecar。"""
     if os.name != "nt":
         return
+    for image_name in MAIN_APP_EXE_CANDIDATES:
+        try:
+            subprocess.run(
+                ["taskkill", "/F", "/IM", image_name],
+                capture_output=True,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                check=False,
+            )
+        except Exception:
+            pass
+
+
+def _append_update_log(message: str) -> None:
     try:
-        subprocess.run(
-            ["taskkill", "/F", "/T", "/IM", APP_EXE_NAME],
-            capture_output=True,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-            check=False,
-        )
+        log_path = os.path.join(tempfile.gettempdir(), "prompt-image-update.log")
+        stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(log_path, "a", encoding="utf-8") as handle:
+            handle.write(f"[{stamp}] {message}\n")
     except Exception:
         pass
 
@@ -678,13 +840,15 @@ def run_installer(
     if not path or not os.path.isfile(path):
         raise FileNotFoundError("安装包不存在")
 
-    kill_main_app_for_install()
     auto_restart = _should_auto_restart()
     install_dir = resolve_install_dir() if auto_restart else ""
-    target_exe = os.path.join(install_dir, APP_EXE_NAME) if install_dir else ""
+    target_exe = resolve_target_exe(install_dir) if install_dir else ""
+    helper_target_exe = _expected_target_exe(install_dir) if install_dir else ""
+    # 仅当安装根可信（目录内已有主 exe 且不是 server 旁路）才传 /D=
+    use_custom_dir = bool(install_dir) and bool(target_exe) and not _is_server_only_dir(install_dir)
 
     cmd = [path, "/S"]
-    if install_dir:
+    if use_custom_dir:
         cmd.append(f"/D={install_dir}")
 
     creationflags = 0
@@ -693,9 +857,10 @@ def run_installer(
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
         # NSIS /D= 必须是最后一段且不带引号（即使路径含空格），list2cmdline 会加引号导致失效
         popen_arg = subprocess.list2cmdline([path, "/S"])
-        if install_dir:
+        if use_custom_dir:
             popen_arg = f"{popen_arg} /D={install_dir}"
 
+    # 禁止在 Popen 之前 taskkill 主程序：Tauri Exit 会连带杀掉本 Sidecar，导致安装器/helper 未拉起
     proc = subprocess.Popen(
         popen_arg,
         cwd=os.path.dirname(path) or None,
@@ -710,22 +875,39 @@ def run_installer(
         try:
             spawn_relaunch_helper(
                 getattr(proc, "pid", 0),
-                target_exe,
+                helper_target_exe,
                 expected_version,
             )
             helper_spawned = True
         except Exception:
             helper_spawned = False
 
-    return {
+    result = {
         "success": True,
         "message": "installer launched",
         "installerPid": getattr(proc, "pid", None),
-        "installDir": install_dir,
+        "installDir": install_dir if use_custom_dir else (install_dir or ""),
         "targetExe": target_exe,
+        "helperTargetExe": helper_target_exe,
         "helperSpawned": helper_spawned,
         "autoRestart": auto_restart,
     }
+    _append_update_log(
+        "run_installer "
+        + json.dumps(
+            {
+                "expectedVersion": expected_version,
+                "installDir": install_dir,
+                "useCustomDir": use_custom_dir,
+                "targetExe": target_exe,
+                "helperTargetExe": helper_target_exe,
+                "cmd": popen_arg if isinstance(popen_arg, str) else list(popen_arg),
+                **{k: result[k] for k in ("installerPid", "helperSpawned", "autoRestart")},
+            },
+            ensure_ascii=False,
+        )
+    )
+    return result
 
 
 def exit_app_after_install() -> None:
