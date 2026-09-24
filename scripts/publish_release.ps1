@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
   One-click release for PromptImageManager:
@@ -210,7 +210,7 @@ function Update-ReadmeVersion([string]$Root, [string]$Ver, [string[]]$AssetPaths
 
     # "当前最新"
     $latestLabel = [string]([char]0x5F53) + [char]0x524D + [char]0x6700 + [char]0x65B0
-    $latestPattern = [regex]::Escape($latestLabel) + ':\s*\[v[^\]]+\]\(https://github\.com/[^/]+/[^/]+/releases/latest\)'
+    $latestPattern = [regex]::Escape($latestLabel) + '[:：]\s*\[v[^\]]+\]\(https://github\.com/[^/]+/[^/]+/releases/latest\)'
     $latestReplace = ("{0}：[v{1}](https://github.com/{2}/releases/latest)" -f $latestLabel, $Ver, $Repo)
     $text = [regex]::Replace($text, $latestPattern, $latestReplace)
 
@@ -386,7 +386,13 @@ if (-not $SkipRelease) {
         }
 
         $tag = "v{0}" -f $ver
-        $existing = gh release view $tag --json tagName 2>$null
+        $existing = $null
+        try {
+            $existing = gh release view $tag --json tagName 2>$null
+        } catch {
+            $existing = $null
+        }
+        if ($LASTEXITCODE -ne 0) { $existing = $null }
         if ($existing) {
             Write-Warn2 ("Release {0} exists, upload missing assets" -f $tag)
             foreach ($meta in $assetMeta) {
