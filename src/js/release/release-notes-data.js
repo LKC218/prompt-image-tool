@@ -1,5 +1,34 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.20',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '新增',
+                tone: 'pink',
+                items: [
+                    '目标计划支持拖拽调整任务层级：列表与思维导图均可成子级、插到上下或放到顶层。'
+                ]
+            },
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '思维导图长标题自动换行完整显示，节点高度随内容增长。',
+                    '更新记录阶段轨滚动更跟手，点击刻度精确停在对应版本。',
+                    '开屏增加像素聚合 Logo 动画，减弱动态时自动退回静态。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.20；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.19',
         date: '2026-09-23',
         sections: [

@@ -32,18 +32,116 @@ const PRIORITY_CLASS_SET = new Set(['high', 'medium', 'low']);
 
 const DEFAULT_LAYOUT_OPTIONS = {
     nodeMinWidth: 120,
-    nodeHeight: 40,
+    nodeMinHeight: 40,
+    nodeMaxWidth: 360,
     hGap: 48,
     vGap: 16,
     padding: 32,
     titleCharWidth: 12,
-    titleMaxExtra: 160
+    titleChrome: 56,
+    titlePadY: 14,
+    lineHeight: 18
 };
 
-function estimateNodeWidth(title = '', options = DEFAULT_LAYOUT_OPTIONS) {
-    const chars = String(title || '').length;
-    const est = chars * options.titleCharWidth + 28;
-    return Math.max(options.nodeMinWidth, Math.min(est, options.nodeMinWidth + options.titleMaxExtra));
+function isWideTitleChar(ch) {
+    const code = ch.codePointAt(0) || 0;
+    return (
+        (code >= 0x1100 && code <= 0x115f) ||
+        (code >= 0x2e80 && code <= 0xa4cf) ||
+        (code >= 0xac00 && code <= 0xd7a3) ||
+        (code >= 0xf900 && code <= 0xfaff) ||
+        (code >= 0xfe30 && code <= 0xfe4f) ||
+        (code >= 0xff00 && code <= 0xff60) ||
+        (code >= 0xffe0 && code <= 0xffe6) ||
+        (code >= 0x4e00 && code <= 0x9fff)
+    );
+}
+
+/** 按中西文宽度估算标题折行数；高度随行数增长，保证全文可显示不截断。 */
+export function estimateMindmapTitleLines(title, maxTitleWidth, titleCharWidth = 12) {
+    const s = String(title || '');
+    if (!s) return 1;
+    const unitsPerLine = Math.max(4, (Number(maxTitleWidth) || 200) / (Number(titleCharWidth) || 12));
+    let units = 0;
+    for (const ch of s) units += isWideTitleChar(ch) ? 1 : 0.55;
+    return Math.max(1, Math.ceil(units / unitsPerLine));
+}
+
+export function estimateNodeSize(title = '', options = {}) {
+    const opts = { ...DEFAULT_LAYOUT_OPTIONS, ...options };
+    const s = String(title || '');
+    let units = 0;
+    for (const ch of s) units += isWideTitleChar(ch) ? 1 : 0.55;
+    const textW = Math.max(24, units * opts.titleCharWidth);
+    const maxTitleW = Math.max(48, opts.nodeMaxWidth - opts.titleChrome);
+    const lines = estimateMindmapTitleLines(s, maxTitleW, opts.titleCharWidth);
+    const w = Math.max(opts.nodeMinWidth, Math.min(opts.nodeMaxWidth, textW + opts.titleChrome));
+    const h = Math.max(opts.nodeMinHeight, opts.titlePadY + lines * opts.lineHeight);
+    return { w, h };
+}
+
+function isMindmapNodeDescendant(childrenMap, rootId, candidateId) {
+    if (rootId === candidateId) return true;
+    const stack = [rootId];
+    const seen = new Set();
+    while (stack.length) {
+        const id = stack.pop();
+        if (seen.has(id)) continue;
+        seen.add(id);
+        if (id === candidateId) return true;
+        for (const childId of childrenMap.get(id) || []) stack.push(childId);
+    }
+    return false;
+}
+
+/**
+ * 解析导图拖拽落点。
+ * 点在节点上：上 30% 插入前兄弟 / 下 30% 插入后兄弟 / 中部成为子级。
+ * 点在空白或根节点：成为顶层任务。
+ * 禁止拖入自身子树，返回 null。
+ */
+export function resolveMindmapDropTarget(dragId, point, nodes, positions) {
+    const list = nodes || [];
+    const posMap = positions?.get ? positions : new Map();
+    const px = Number(point?.x);
+    const py = Number(point?.y);
+    if (!Number.isFinite(px) || !Number.isFinite(py)) return null;
+
+    const childrenMap = new Map();
+    for (const node of list) {
+        const parent = node.parentId == null ? '' : node.parentId;
+        if (!childrenMap.has(parent)) childrenMap.set(parent, []);
+        childrenMap.get(parent).push(node.id);
+    }
+
+    let hitId = null;
+    for (let i = list.length - 1; i >= 0; i -= 1) {
+        const node = list[i];
+        const pos = posMap.get(node.id);
+        if (!pos) continue;
+        if (px >= pos.x && px <= pos.x + pos.w && py >= pos.y && py <= pos.y + pos.h) {
+            hitId = node.id;
+            break;
+        }
+    }
+
+    if (!hitId || hitId === MINDMAP_ROOT_ID) {
+        return { type: 'root', parentId: null };
+    }
+    if (isMindmapNodeDescendant(childrenMap, dragId, hitId)) return null;
+
+    const hit = list.find(n => n.id === hitId);
+    const pos = posMap.get(hitId);
+    const relY = (py - pos.y) / Math.max(1, pos.h);
+    const parentOfHit = hit?.parentId == null || hit.parentId === MINDMAP_ROOT_ID ? null : hit.parentId;
+
+    if (relY < 0.3) {
+        return { type: 'sibling', parentId: parentOfHit, beforeId: hitId };
+    }
+    if (relY > 0.7) {
+        return { type: 'sibling', parentId: parentOfHit, afterId: hitId };
+    }
+    return { type: 'child', parentId: hitId };
 }
 
 function buildNodesFromTasks(tasks, parentId, depth, nodes) {
@@ -245,8 +343,13 @@ export function layoutMindmap(nodes, hierarchyEdges, options = {}) {
     }
 
     const depthWidth = new Map();
+    const sizeCache = new Map();
+    const sizeOf = (node) => {
+        if (!sizeCache.has(node.id)) sizeCache.set(node.id, estimateNodeSize(node.title || '', opts));
+        return sizeCache.get(node.id);
+    };
     for (const node of list) {
-        const w = estimateNodeWidth(node.title, opts);
+        const { w } = sizeOf(node);
         depthWidth.set(node.depth || 0, Math.max(depthWidth.get(node.depth || 0) || 0, w));
     }
     const depthX = new Map();
@@ -265,14 +368,16 @@ export function layoutMindmap(nodes, hierarchyEdges, options = {}) {
     const placeSubtree = (id) => {
         const node = nodeMap.get(id);
         const childIds = childrenMap.get(id) || [];
-        const width = estimateNodeWidth(node?.title || '', opts);
+        const { w: width, h: height } = node
+            ? sizeOf(node)
+            : { w: opts.nodeMinWidth, h: opts.nodeMinHeight };
         const x = depthX.get(node?.depth || 0) ?? opts.padding;
 
         if (childIds.length === 0) {
             const y = cursorY;
-            cursorY += opts.nodeHeight + opts.vGap;
-            positions.set(id, { x, y, w: width, h: opts.nodeHeight });
-            return { top: y, bottom: y + opts.nodeHeight, width };
+            cursorY += height + opts.vGap;
+            positions.set(id, { x, y, w: width, h: height });
+            return { top: y, bottom: y + height, width };
         }
 
         const childBoxes = [];
@@ -281,11 +386,11 @@ export function layoutMindmap(nodes, hierarchyEdges, options = {}) {
         }
         const first = childBoxes[0];
         const last = childBoxes[childBoxes.length - 1];
-        const y = (first.top + last.bottom) / 2 - opts.nodeHeight / 2;
-        positions.set(id, { x, y, w: width, h: opts.nodeHeight });
+        const y = (first.top + last.bottom) / 2 - height / 2;
+        positions.set(id, { x, y, w: width, h: height });
         return {
             top: Math.min(y, first.top),
-            bottom: Math.max(y + opts.nodeHeight, last.bottom),
+            bottom: Math.max(y + height, last.bottom),
             width
         };
     };
@@ -295,14 +400,10 @@ export function layoutMindmap(nodes, hierarchyEdges, options = {}) {
     for (const node of list) {
         if (positions.has(node.id)) continue;
         const x = depthX.get(node.depth || 0) ?? opts.padding;
+        const { w: width, h: height } = sizeOf(node);
         const y = cursorY;
-        cursorY += opts.nodeHeight + opts.vGap;
-        positions.set(node.id, {
-            x,
-            y,
-            w: estimateNodeWidth(node.title, opts),
-            h: opts.nodeHeight
-        });
+        cursorY += height + opts.vGap;
+        positions.set(node.id, { x, y, w: width, h: height });
     }
 
     let maxX = 0;

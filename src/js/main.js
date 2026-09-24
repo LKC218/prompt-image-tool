@@ -24,6 +24,9 @@ async function init() {
 
         const ui = detectUI();
         const splash = document.getElementById('splashScreen');
+        const splashPlay = typeof window.__splashPlay === 'function'
+            ? window.__splashPlay()
+            : Promise.resolve();
 
         if (ui === 'mobile') {
             const mobileApp = document.getElementById('mobileApp');
@@ -36,6 +39,8 @@ async function init() {
             const { mount: mountPc } = await import('./pc/pc-app.js');
             await mountPc(pcApp);
         }
+
+        await splashPlay;
 
         if (splash) {
             splash.classList.add('splash-hide');

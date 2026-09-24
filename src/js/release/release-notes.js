@@ -39,6 +39,8 @@ function syncReleaseNotesUnreadBadge(container = document) {
     button.setAttribute('title', isUnread ? '更新记录（有未读更新）' : '更新记录');
 }
 
+let activeRailAbort = null;
+
 function prefersReducedMotion() {
     return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
 }
@@ -140,6 +142,11 @@ function renderReleaseNotes() {
 }
 
 function bindPhaseRail(modal) {
+    activeRailAbort?.abort();
+    const abort = new AbortController();
+    activeRailAbort = abort;
+    const { signal } = abort;
+
     const scroll = modal.querySelector('.pc-release-notes-scroll');
     const rail = modal.querySelector('.pc-release-phase-rail');
     const body = modal.querySelector('.pc-release-notes-body');
@@ -149,6 +156,16 @@ function bindPhaseRail(modal) {
     const ticks = Array.from(rail.querySelectorAll('.pc-release-phase-tick'));
     const phases = Array.from(modal.querySelectorAll('.pc-release-phase'));
     let hideTimer = 0;
+    let lastActiveStepId = null;
+    let programmaticScrollLock = false;
+    let scrollRafId = 0;
+    let settleRafId = 0;
+    let settleTimerId = 0;
+    let settleFrames = 0;
+    let lastSettleTop = -1;
+    let settleScrollEndHandler = null;
+    let settleTargetTop = null;
+    let phaseTops = [];
 
     ticks.forEach(tick => {
         if (tick.classList.contains('is-current')) {
@@ -156,20 +173,122 @@ function bindPhaseRail(modal) {
         }
     });
 
-    function setActiveVersion(stepId) {
-        if (!stepId) return;
+    function measurePhases() {
+        const scrollRect = scroll.getBoundingClientRect();
+        phaseTops = phases.map(phase => ({
+            stepId: phase.dataset.stepId,
+            top: phase.getBoundingClientRect().top - scrollRect.top + scroll.scrollTop
+        }));
+    }
+
+    function applyTickState(tick, active) {
+        const isAppCurrent = tick.dataset.phaseIsCurrent === 'true';
+        tick.classList.toggle('is-active', active);
+        tick.classList.toggle('is-current', isAppCurrent);
+        if (isAppCurrent) tick.setAttribute('aria-current', 'true');
+        else if (active) tick.setAttribute('aria-current', 'location');
+        else tick.removeAttribute('aria-current');
+    }
+
+    function setActiveVersion(stepId, { force = false } = {}) {
+        if (!stepId || (stepId === lastActiveStepId && !force)) return;
+        const prevId = lastActiveStepId;
+        lastActiveStepId = stepId;
+
         ticks.forEach(tick => {
-            const active = tick.dataset.stepId === stepId;
-            const isAppCurrent = tick.dataset.phaseIsCurrent === 'true';
-            tick.classList.toggle('is-active', active);
-            tick.classList.toggle('is-current', isAppCurrent);
-            if (isAppCurrent) tick.setAttribute('aria-current', 'true');
-            else if (active) tick.setAttribute('aria-current', 'location');
-            else tick.removeAttribute('aria-current');
+            const id = tick.dataset.stepId;
+            if (id === stepId) applyTickState(tick, true);
+            else if (id === prevId) applyTickState(tick, false);
         });
         phases.forEach(phase => {
-            phase.classList.toggle('is-active', phase.dataset.stepId === stepId);
+            const id = phase.dataset.stepId;
+            if (id === stepId) phase.classList.add('is-active');
+            else if (id === prevId) phase.classList.remove('is-active');
         });
+    }
+
+    function findActiveByScroll() {
+        if (!phaseTops.length) return phases[0]?.dataset.stepId;
+        const anchor = scroll.scrollTop + scroll.clientHeight * 0.33;
+        let active = phaseTops[0];
+        for (let i = 0; i < phaseTops.length; i++) {
+            if (phaseTops[i].top <= anchor) active = phaseTops[i];
+            else break;
+        }
+        return active?.stepId;
+    }
+
+    function syncActiveFromScroll() {
+        if (programmaticScrollLock) return;
+        setActiveVersion(findActiveByScroll());
+    }
+
+    function scheduleScrollSync() {
+        if (programmaticScrollLock) return;
+        if (scrollRafId) return;
+        scrollRafId = window.requestAnimationFrame(() => {
+            scrollRafId = 0;
+            if (!scroll.isConnected) return;
+            syncActiveFromScroll();
+        });
+    }
+
+    function clearSettleWatch() {
+        window.clearTimeout(settleTimerId);
+        window.cancelAnimationFrame(settleRafId);
+        settleRafId = 0;
+        settleTimerId = 0;
+        if (settleScrollEndHandler) {
+            scroll.removeEventListener('scrollend', settleScrollEndHandler);
+            settleScrollEndHandler = null;
+        }
+    }
+
+    function finishProgrammaticScroll() {
+        clearSettleWatch();
+        settleTargetTop = null;
+        if (!programmaticScrollLock) return;
+        programmaticScrollLock = false;
+        syncActiveFromScroll();
+    }
+
+    function checkSettled() {
+        if (!programmaticScrollLock || !scroll.isConnected) return;
+        const top = scroll.scrollTop;
+        const nearTarget = settleTargetTop != null && Math.abs(top - settleTargetTop) <= 1;
+        const delta = lastSettleTop < 0 ? Infinity : Math.abs(top - lastSettleTop);
+        if (nearTarget || delta < 1) {
+            settleFrames += 1;
+            if (nearTarget || settleFrames >= 2) {
+                finishProgrammaticScroll();
+                return;
+            }
+        } else {
+            settleFrames = 0;
+            lastSettleTop = top;
+        }
+        settleRafId = window.requestAnimationFrame(checkSettled);
+    }
+
+    function releaseLockWhenSettled(targetTop) {
+        clearSettleWatch();
+        settleFrames = 0;
+        lastSettleTop = -1;
+        settleTargetTop = targetTop;
+        const hasScrollEnd = 'onscrollend' in scroll;
+        if (hasScrollEnd) {
+            settleScrollEndHandler = () => {
+                // ignore stale scrollend from a previous jump still in the queue
+                if (settleTargetTop != null && Math.abs(scroll.scrollTop - settleTargetTop) > 2) return;
+                finishProgrammaticScroll();
+            };
+            scroll.addEventListener('scrollend', settleScrollEndHandler);
+            // safety net only: scrollend should fire first on long jumps
+            settleTimerId = window.setTimeout(finishProgrammaticScroll, 2000);
+        } else {
+            settleTimerId = window.setTimeout(finishProgrammaticScroll, 400);
+            settleRafId = window.requestAnimationFrame(checkSettled);
+        }
     }
 
     function showTooltip(tick) {
@@ -204,11 +323,17 @@ function bindPhaseRail(modal) {
             const stepId = tick.dataset.stepId;
             const phase = phases.find(item => item.dataset.stepId === stepId);
             if (!phase) return;
-            phase.scrollIntoView({
-                behavior: prefersReducedMotion() ? 'auto' : 'smooth',
-                block: 'start'
-            });
-            setActiveVersion(stepId);
+            const entry = phaseTops.find(item => item.stepId === stepId);
+            const top = Math.max(0, (entry?.top ?? phase.offsetTop) - 8);
+            setActiveVersion(stepId, { force: true });
+            // no-op scrollTo never fires scrollend; skip the lock entirely
+            if (Math.abs(scroll.scrollTop - top) <= 1) return;
+            programmaticScrollLock = true;
+            settleFrames = 0;
+            lastSettleTop = -1;
+            const behavior = prefersReducedMotion() ? 'auto' : 'smooth';
+            scroll.scrollTo({ top, behavior });
+            releaseLockWhenSettled(top);
         });
         tick.addEventListener('pointerenter', () => {
             tick.classList.add('is-hot');
@@ -245,34 +370,38 @@ function bindPhaseRail(modal) {
         });
     });
 
-    if (!('IntersectionObserver' in window)) {
-        setActiveVersion(phases[0]?.dataset.stepId);
-        return;
-    }
+    scroll.addEventListener('scroll', scheduleScrollSync, { passive: true, signal });
+    window.addEventListener('resize', () => {
+        if (!scroll.isConnected) {
+            abort.abort();
+            return;
+        }
+        measurePhases();
+        syncActiveFromScroll();
+    }, { signal });
 
-    const observer = new IntersectionObserver((entries) => {
-        const visible = entries
-            .filter(entry => entry.isIntersecting)
-            .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        if (!visible) return;
-        setActiveVersion(visible.target.dataset.stepId);
-    }, {
-        root: scroll,
-        threshold: [0.25, 0.5, 0.7],
-        rootMargin: '0px 0px -25% 0px'
-    });
+    measurePhases();
+    setActiveVersion(findActiveByScroll() || phases[0]?.dataset.stepId);
 
-    phases.forEach(phase => observer.observe(phase));
-    setActiveVersion(phases[0]?.dataset.stepId);
+    return () => {
+        clearSettleWatch();
+        window.cancelAnimationFrame(scrollRafId);
+        window.clearTimeout(hideTimer);
+        abort.abort();
+        if (activeRailAbort === abort) activeRailAbort = null;
+    };
 }
 
 function openReleaseNotes() {
     markCurrentReleaseNotesSeen();
     syncReleaseNotesUnreadBadge();
     const modal = showModal(renderReleaseNotes());
+    const disposeRail = bindPhaseRail(modal);
     const closeButtons = modal.querySelectorAll('[data-release-close]');
-    closeButtons.forEach(button => button.addEventListener('click', closeModal));
-    bindPhaseRail(modal);
+    closeButtons.forEach(button => button.addEventListener('click', () => {
+        disposeRail?.();
+        closeModal();
+    }));
     modal.querySelector('[data-release-close]')?.focus();
     return modal;
 }

@@ -54,8 +54,22 @@ describe('更新记录模块', () => {
         expect(scrollRule).toContain('overflow-y: auto');
         expect(scrollRule).toContain('scrollbar-width: none');
         expect(railRule).toContain('flex: 0 0 28px');
+        expect(railRule).toContain('justify-content: center');
+        expect(railRule).toContain('align-items: center');
+        expect(pcCss).not.toMatch(/\.pc-release-phase-rail::before/);
         expect(actionsRule).toContain('flex: 0 0 auto');
         expect(actionsRule).toContain('min-height: 86px');
+    });
+
+    it('阶段轨刻度居中排列，选中为高对比短横且无竖线', () => {
+        const tickMarkRule = pcCss.match(/\.pc-release-phase-tick-mark\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+        const selectedRule = pcCss.match(/\.pc-release-phase-tick\.is-active \.pc-release-phase-tick-mark,\s*\.pc-release-phase-tick\.is-current \.pc-release-phase-tick-mark\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+
+        expect(tickMarkRule).toContain('width: 10px');
+        expect(tickMarkRule).toContain('height: 2px');
+        expect(selectedRule).toContain('width: 24px');
+        expect(selectedRule).toContain('height: 3px');
+        expect(selectedRule).toContain('background: var(--pc-text)');
     });
 
     it('打开弹窗：阶段轨每个版本仅一条刻度，与版本卡一一对应', async () => {
@@ -132,5 +146,164 @@ describe('更新记录模块', () => {
         expect(rendered.innerHTML).not.toContain('稍后查看');
         expect(rendered.innerHTML).not.toContain('我知道了');
         expect(rendered.querySelectorAll('[data-release-later], [data-release-acknowledge]').length).toBe(0);
+    });
+
+    function mountReleaseRail(openReleaseNotes) {
+        const rendered = document.createElement('div');
+        document.body.appendChild(rendered);
+        pcUtilsMocks.showModal.mockImplementationOnce((html) => {
+            rendered.innerHTML = html;
+            return rendered;
+        });
+        openReleaseNotes();
+        const scroll = rendered.querySelector('.pc-release-notes-scroll');
+        const ticks = Array.from(rendered.querySelectorAll('.pc-release-phase-tick'));
+        const phases = Array.from(rendered.querySelectorAll('.pc-release-phase'));
+        scroll.getBoundingClientRect = () => ({ top: 0, left: 0, right: 320, bottom: 300, width: 320, height: 300, x: 0, y: 0 });
+        Object.defineProperty(scroll, 'clientHeight', { value: 300, configurable: true });
+        Object.defineProperty(scroll, 'scrollTop', { value: 0, writable: true, configurable: true });
+        Object.defineProperty(scroll, 'onscrollend', { value: null, configurable: true });
+        scroll.scrollTo = vi.fn();
+        phases.forEach((phase, index) => {
+            const top = index * 200;
+            phase.getBoundingClientRect = () => ({ top, left: 0, right: 280, bottom: top + 180, width: 280, height: 180, x: 0, y: top });
+            Object.defineProperty(phase, 'offsetTop', { value: top, configurable: true });
+        });
+        window.dispatchEvent(new Event('resize'));
+        return {
+            rendered,
+            scroll,
+            ticks,
+            phases,
+            cleanup: () => {
+                rendered.querySelector('[data-release-close]')?.click();
+                rendered.remove();
+            }
+        };
+    }
+
+    it('点击刻度精确滚动到版本卡顶部，并立即高亮目标', async () => {
+        const { openReleaseNotes } = await import('./release-notes.js');
+        vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1);
+
+        const mounted = mountReleaseRail(openReleaseNotes);
+        const { scroll, ticks, phases, cleanup } = mounted;
+
+        const targetTick = ticks[3];
+        const targetPhase = phases[3];
+        const expectedTop = targetPhase.offsetTop - 8;
+
+        targetTick.click();
+
+        expect(scroll.scrollTo).toHaveBeenCalledWith({ top: expectedTop, behavior: 'smooth' });
+        expect(targetTick.classList.contains('is-active')).toBe(true);
+        expect(targetPhase.classList.contains('is-active')).toBe(true);
+
+        cleanup();
+        vi.restoreAllMocks();
+    });
+
+    it('程序滚动期间不覆盖点击高亮，解锁后滚动映射恢复', async () => {
+        const { openReleaseNotes } = await import('./release-notes.js');
+        let rafQueue = [];
+        vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+            rafQueue.push(cb);
+            return rafQueue.length;
+        });
+        const flushRaf = () => {
+            const queue = rafQueue;
+            rafQueue = [];
+            queue.forEach((cb) => cb(0));
+        };
+
+        const { scroll, ticks, phases, cleanup } = mountReleaseRail(openReleaseNotes);
+        flushRaf();
+
+        const targetTick = ticks[2];
+        targetTick.click();
+        expect(targetTick.classList.contains('is-active')).toBe(true);
+
+        // user-scroll geometry shift must not steal active while programmatic scroll lock is held
+        scroll.scrollTop = 500;
+        scroll.dispatchEvent(new Event('scroll'));
+        flushRaf();
+        expect(targetTick.classList.contains('is-active')).toBe(true);
+        expect(phases[2].classList.contains('is-active')).toBe(true);
+
+        // arrive at the jump target, then scrollend unlocks and mapping resumes
+        scroll.scrollTop = phases[2].offsetTop - 8;
+        scroll.dispatchEvent(new Event('scrollend'));
+        scroll.scrollTop = 0;
+        scroll.dispatchEvent(new Event('scroll'));
+        flushRaf();
+        expect(ticks[0].classList.contains('is-active')).toBe(true);
+        expect(phases[0].classList.contains('is-active')).toBe(true);
+        expect(targetTick.classList.contains('is-active')).toBe(false);
+
+        cleanup();
+        vi.restoreAllMocks();
+    });
+
+    it('重复映射到同一版本时不重复写 DOM', async () => {
+        const { openReleaseNotes } = await import('./release-notes.js');
+        let rafQueue = [];
+        vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+            rafQueue.push(cb);
+            return rafQueue.length;
+        });
+        const flushRaf = () => {
+            const queue = rafQueue;
+            rafQueue = [];
+            queue.forEach((cb) => cb(0));
+        };
+
+        const { scroll, ticks, cleanup } = mountReleaseRail(openReleaseNotes);
+        flushRaf();
+        const activeTick = ticks.find(tick => tick.classList.contains('is-active'));
+        const before = activeTick.outerHTML;
+
+        scroll.dispatchEvent(new Event('scroll'));
+        flushRaf();
+        scroll.dispatchEvent(new Event('scroll'));
+        flushRaf();
+
+        expect(activeTick.outerHTML).toBe(before);
+
+        cleanup();
+        vi.restoreAllMocks();
+    });
+
+    it('点击已到位刻度不锁滚动映射（no-op scrollTo 无 scrollend）', async () => {
+        const { openReleaseNotes } = await import('./release-notes.js');
+        let rafQueue = [];
+        vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+            rafQueue.push(cb);
+            return rafQueue.length;
+        });
+        const flushRaf = () => {
+            const queue = rafQueue;
+            rafQueue = [];
+            queue.forEach((cb) => cb(0));
+        };
+
+        const { scroll, ticks, phases, cleanup } = mountReleaseRail(openReleaseNotes);
+        flushRaf();
+
+        // jump to index 2, settle via scrollend
+        ticks[2].click();
+        scroll.scrollTop = phases[2].offsetTop - 8;
+        scroll.dispatchEvent(new Event('scrollend'));
+
+        // click again at the same target: must not re-lock
+        ticks[2].click();
+        scroll.scrollTop = 0;
+        scroll.dispatchEvent(new Event('scroll'));
+        flushRaf();
+
+        expect(ticks[0].classList.contains('is-active')).toBe(true);
+        expect(scroll.scrollTo).toHaveBeenCalledTimes(1);
+
+        cleanup();
+        vi.restoreAllMocks();
     });
 });

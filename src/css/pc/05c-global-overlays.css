@@ -684,21 +684,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    gap: 14px;
-    padding: 20px 0;
+    justify-content: center;
+    gap: 5px;
+    padding: 16px 0;
     margin: 0;
-}
-
-.pc-release-phase-rail::before {
-    content: '';
-    position: absolute;
-    top: 24px;
-    bottom: 24px;
-    left: 50%;
-    width: 1px;
-    transform: translateX(-50%);
-    background: color-mix(in srgb, var(--pc-text3) 20%, transparent);
 }
 
 .pc-release-phase-tick {
@@ -708,7 +697,7 @@
     align-items: center;
     justify-content: center;
     width: 28px;
-    height: 16px;
+    height: 12px;
     padding: 0;
     border: none;
     background: transparent;
@@ -717,7 +706,7 @@
 
 .pc-release-phase-tick-mark {
     display: block;
-    width: 12px;
+    width: 10px;
     height: 2px;
     border-radius: 1px;
     background: color-mix(in srgb, var(--pc-text3) 55%, transparent);
@@ -727,8 +716,8 @@
 .pc-release-phase-tick:hover .pc-release-phase-tick-mark,
 .pc-release-phase-tick:focus-visible .pc-release-phase-tick-mark,
 .pc-release-phase-tick.is-hot .pc-release-phase-tick-mark {
-    width: 16px;
-    height: 3px;
+    width: 14px;
+    height: 2px;
     background: color-mix(in srgb, var(--pc-text) 72%, transparent);
 }
 
@@ -738,16 +727,11 @@
     border-radius: 4px;
 }
 
-.pc-release-phase-tick.is-active .pc-release-phase-tick-mark {
-    width: 18px;
-    height: 3px;
-    background: color-mix(in srgb, var(--pc-text) 80%, transparent);
-}
-
+.pc-release-phase-tick.is-active .pc-release-phase-tick-mark,
 .pc-release-phase-tick.is-current .pc-release-phase-tick-mark {
-    width: 20px;
+    width: 24px;
     height: 3px;
-    background: var(--pc-accent);
+    background: var(--pc-text);
 }
 
 .pc-release-phase-tooltip {
@@ -944,7 +928,7 @@
 
     .pc-release-phase-rail {
         flex-basis: 24px;
-        gap: 12px;
+        gap: 4px;
     }
 
     .pc-release-phase-tick {

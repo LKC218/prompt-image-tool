@@ -39,10 +39,10 @@ commits: pending
 ### 架构
 
 ```text
-goal-mindmap-core.js          纯函数：构图 / 布局 / 关联链接读写
+goal-mindmap-core.js          纯函数：构图 / 布局 / 关联链接 / 落点解析
         ▲
         │
-pc-goal-detail.js             视图切换 + 导图渲染与交互
+pc-goal-detail.js             视图切换 + 导图渲染交互 + 拖拽改层级
 pc-goal-projects.js           卡片菜单「查看思维导图」
 08-goal-plan.css              导图样式
 localStorage                  跨分支链接 + 视图偏好（PC 本地）
@@ -80,7 +80,9 @@ layoutMindmap(nodes, hierarchyEdges, options?)
 ```
 
 - 水平树：按深度分列（列宽取该层最大节点宽），子树纵向堆叠。
-- 节点宽度按标题长度估算；空图返回最小画布。
+- 节点尺寸按标题估算：宽上限 360，高随折行增长（`estimateNodeSize` / `estimateMindmapTitleLines`），标题 CSS 换行完整显示不截断。空图返回最小画布。
+
+拖拽改层级（`resolveMindmapDropTarget` + `moveTaskInTree`）：节点中部=成子级，上下 30%=插兄弟，空白/根=成顶层；禁止拖入自身子树。
 
 #### 跨分支链接
 
@@ -133,10 +135,12 @@ parseMindmapLinks / serializeMindmapLinks / normalizeMindmapLinks / toggleMindma
 ## [S3] Out of Scope
 
 - 跨分支链接的后端持久化与 PC/Android 同步。
-- 导图内直接编辑任务标题/拖拽改层级。
+- 导图内直接编辑任务标题。
 - 自动推断依赖。
 - 移动端导图专项适配。
 - 第三方导图库、协作光标、导出 PNG/SVG。
+
+> 后续已补齐：列表/导图拖拽改层级；导图标题完整换行显示。
 
 ## Tasks
 

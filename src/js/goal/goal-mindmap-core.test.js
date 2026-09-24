@@ -7,6 +7,9 @@ import {
     MINDMAP_BRANCH_COLORS,
     buildMindmapGraph,
     layoutMindmap,
+    estimateNodeSize,
+    estimateMindmapTitleLines,
+    resolveMindmapDropTarget,
     normalizeMindmapLinks,
     parseMindmapLinks,
     serializeMindmapLinks,
@@ -114,6 +117,46 @@ describe('layoutMindmap', () => {
         expect(result.positions.size).toBe(0);
         expect(result.width).toBeGreaterThan(0);
         expect(result.height).toBeGreaterThan(0);
+    });
+
+    it('长标题不截断：节点变高且宽度有上限', () => {
+        const longTitle = '结构化硬表面建模加少量细分曲面加实例化布置再补充一段很长的中文任务说明用于验证换行完整显示';
+        const short = estimateNodeSize('短标题');
+        const long = estimateNodeSize(longTitle);
+        expect(long.h).toBeGreaterThan(short.h);
+        expect(long.w).toBeLessThanOrEqual(360);
+        expect(estimateMindmapTitleLines(longTitle, 300)).toBeGreaterThan(1);
+    });
+});
+
+describe('resolveMindmapDropTarget', () => {
+    const longTasks = [
+        { id: 'a', title: 'A', children: [{ id: 'a1', title: 'A1', children: [] }] },
+        { id: 'b', title: 'B', children: [] }
+    ];
+    const graph = buildMindmapGraph(project, longTasks);
+    const { positions } = layoutMindmap(graph.nodes, graph.hierarchyEdges);
+
+    it('点在节点中部成为子级，上下为兄弟，空白为顶层', () => {
+        const b = positions.get('b');
+        const mid = resolveMindmapDropTarget('a1', { x: b.x + 10, y: b.y + b.h / 2 }, graph.nodes, positions);
+        expect(mid).toMatchObject({ type: 'child', parentId: 'b' });
+
+        const before = resolveMindmapDropTarget('a1', { x: b.x + 10, y: b.y + 2 }, graph.nodes, positions);
+        expect(before).toMatchObject({ type: 'sibling', beforeId: 'b' });
+
+        const after = resolveMindmapDropTarget('a1', { x: b.x + 10, y: b.y + b.h - 2 }, graph.nodes, positions);
+        expect(after).toMatchObject({ type: 'sibling', afterId: 'b' });
+
+        const empty = resolveMindmapDropTarget('a1', { x: -80, y: -80 }, graph.nodes, positions);
+        expect(empty).toMatchObject({ type: 'root' });
+    });
+
+    it('禁止拖入自身子树', () => {
+        const a = positions.get('a');
+        expect(resolveMindmapDropTarget('a', { x: a.x + 8, y: a.y + a.h / 2 }, graph.nodes, positions)).toBeNull();
+        const a1 = positions.get('a1');
+        expect(resolveMindmapDropTarget('a', { x: a1.x + 8, y: a1.y + a1.h / 2 }, graph.nodes, positions)).toBeNull();
     });
 });
 

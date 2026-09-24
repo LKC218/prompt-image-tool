@@ -78,6 +78,85 @@ export function buildTaskTree(flat, parentId = '') {
 }
 
 /**
+ * 在任务树中移动节点。
+ * target:
+ *  - { type: 'child', parentId }：成为 parentId 的子级（追加到末尾）
+ *  - { type: 'sibling', parentId, beforeId | afterId }：同级插入
+ *  - { type: 'root' }：成为顶层
+ * 禁止拖入自身子树；失败时返回原树引用。
+ */
+export function moveTaskInTree(tree, taskId, target) {
+    const list = Array.isArray(tree) ? tree : [];
+    if (!taskId || !target) return list;
+
+    const flat = flattenTasks(list);
+    if (!flat.some(t => t.id === taskId)) return list;
+
+    const subtree = new Set();
+    const collect = (id) => {
+        subtree.add(id);
+        for (const t of flat) {
+            if ((t.parentId || '') === id) collect(t.id);
+        }
+    };
+    collect(taskId);
+
+    let newParentId = '';
+    if (target.type === 'child') {
+        if (!target.parentId) return list;
+        newParentId = target.parentId;
+    } else if (target.type === 'sibling') {
+        newParentId = target.parentId || '';
+    } else if (target.type === 'root') {
+        newParentId = '';
+    } else {
+        return list;
+    }
+    if (newParentId && subtree.has(newParentId)) return list;
+
+    const byId = new Map(flat.map(t => [t.id, { ...t, parentId: t.parentId || '' }]));
+    byId.get(taskId).parentId = newParentId;
+
+    const siblingOrder = flat
+        .filter(t => (t.parentId || '') === newParentId && t.id !== taskId)
+        .map(t => t.id);
+
+    if (target.type === 'sibling') {
+        if (target.beforeId) {
+            const at = siblingOrder.indexOf(target.beforeId);
+            if (at >= 0) siblingOrder.splice(at, 0, taskId);
+            else siblingOrder.push(taskId);
+        } else if (target.afterId) {
+            const at = siblingOrder.indexOf(target.afterId);
+            if (at >= 0) siblingOrder.splice(at + 1, 0, taskId);
+            else siblingOrder.push(taskId);
+        } else {
+            siblingOrder.push(taskId);
+        }
+    } else {
+        siblingOrder.push(taskId);
+    }
+
+    const byParent = new Map();
+    for (const t of byId.values()) {
+        const p = t.parentId || '';
+        if (!byParent.has(p)) byParent.set(p, []);
+        byParent.get(p).push(t);
+    }
+    for (const [p, kids] of byParent) {
+        if (p === newParentId && siblingOrder.length) {
+            const rank = new Map(siblingOrder.map((id, i) => [id, i]));
+            kids.sort((a, b) => (rank.get(a.id) ?? 9999) - (rank.get(b.id) ?? 9999));
+        } else {
+            kids.sort((a, b) => (a.order || 0) - (b.order || 0));
+        }
+        kids.forEach((t, i) => { t.order = i; });
+    }
+
+    return buildTaskTree([...byId.values()], '');
+}
+
+/**
  * 按完成状态对任务列表排序：未完成的任务在前，已完成的任务在后。
  * 同组内保持原有 order 相对顺序；递归处理子任务并更新 order 字段。
  */

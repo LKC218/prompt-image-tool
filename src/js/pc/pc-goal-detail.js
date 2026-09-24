@@ -17,7 +17,8 @@ import {
     getTaskPriorityLabel,
     TASK_STATUS_EXECUTING,
     isTaskExecuting,
-    sortTasksByCompletion
+    sortTasksByCompletion,
+    moveTaskInTree
 } from '../goal/goal-utils.js';
 import {
     buildMindmapGraph,
@@ -48,6 +49,7 @@ import {
     interpolateMindmapTransform,
     stepMindmapInertia,
     estimateMindmapPanVelocity,
+    resolveMindmapDropTarget,
     MINDMAP_CAMERA_DURATION,
     MINDMAP_ROOT_ID,
     MINDMAP_DEFAULT_TRANSFORM
@@ -93,6 +95,8 @@ let mountParams = {};
 let selectedTaskId = null;
 let pendingMindmapFocusId = null;
 let mindmapFitToken = 0;
+let mindmapDragState = null;
+let mindmapSuppressClick = false;
 
 if (typeof document !== 'undefined') {
     document.addEventListener('paste', handleManagerPaste);
@@ -195,6 +199,8 @@ function unmount(pageEl) {
     mindmapGraph = null;
     mindmapLayoutResult = null;
     mindmapPanState = null;
+    mindmapDragState = null;
+    mindmapSuppressClick = false;
     mindmapPanSamples = [];
     mindmapMaximized = false;
     mountParams = {};
@@ -314,11 +320,9 @@ function renderTaskTree(tree, depth) {
                         ${iconImg(moreIcon)}
                     </button>
                 </div>
-                ${hasChildren && isExpanded ? `
-                    <div class="pc-goal-task-children">
-                        ${renderTaskTree(task.children, depth + 1)}
-                    </div>
-                ` : ''}
+                <div class="pc-goal-task-children" data-parent-id="${escapeHtml(task.id)}">
+                    ${isExpanded && hasChildren ? renderTaskTree(task.children, depth + 1) : ''}
+                </div>
             </div>
         `;
     }).join('');
@@ -410,8 +414,28 @@ function destroySortables(container) {
     });
 }
 
+let listDropTarget = null;
+let listExpandTimer = 0;
+
+function parentTaskIdFromEl(el) {
+    const host = el?.parentElement;
+    if (!host?.classList?.contains('pc-goal-task-children')) return '';
+    return host.dataset.parentId || host.closest('.pc-goal-task-item')?.dataset.taskId || '';
+}
+
+function clearListDropHints() {
+    pageElRef?.querySelectorAll('.pc-goal-task-item.is-drop-parent, .pc-goal-task-item.is-drop-before, .pc-goal-task-item.is-drop-after')
+        .forEach(el => el.classList.remove('is-drop-parent', 'is-drop-before', 'is-drop-after'));
+    pageElRef?.querySelector('#pcGoalTaskList')?.classList.remove('is-drop-root');
+    if (listExpandTimer) {
+        clearTimeout(listExpandTimer);
+        listExpandTimer = 0;
+    }
+}
+
 function bindSortable(container) {
     if (container._sortable) return;
+    const isRoot = container.id === 'pcGoalTaskList';
     container._sortable = Sortable.create(container, {
         group: {
             name: 'goal-tasks',
@@ -423,15 +447,92 @@ function bindSortable(container) {
         ghostClass: 'pc-goal-task-ghost',
         chosenClass: 'pc-goal-task-chosen',
         dragClass: 'pc-goal-task-drag',
+        emptyInsertThreshold: 24,
+        onStart: () => {
+            const list = pageElRef?.querySelector('#pcGoalTaskList');
+            list?.classList.add('is-dragging');
+            listDropTarget = null;
+        },
         onMove: (evt) => {
-            // 禁止将父任务拖入自己的子树中
-            return !evt.dragged.contains(evt.to);
+            const dragged = evt.dragged;
+            if (dragged.contains(evt.to)) return false;
+            if (evt.related && (dragged.contains(evt.related) || evt.related.contains?.(dragged))) return false;
+
+            clearListDropHints();
+            const list = pageElRef?.querySelector('#pcGoalTaskList');
+            list?.classList.add('is-dragging');
+
+            const related = evt.related;
+            const relatedItem = related?.closest?.('.pc-goal-task-item')
+                || (related?.classList?.contains('pc-goal-task-item') ? related : null);
+            const relatedChildren = related?.classList?.contains('pc-goal-task-children') ? related : null;
+
+            if (relatedChildren && relatedChildren.dataset.parentId) {
+                listDropTarget = { type: 'child', parentId: relatedChildren.dataset.parentId };
+                relatedChildren.closest('.pc-goal-task-item')?.classList.add('is-drop-parent');
+                return true;
+            }
+
+            if (relatedItem && !dragged.contains(relatedItem)) {
+                const row = relatedItem.querySelector(':scope > .pc-goal-task-row');
+                const rect = row?.getBoundingClientRect();
+                const clientY = evt.originalEvent?.clientY ?? (rect ? rect.top + rect.height / 2 : 0);
+                const rel = rect && rect.height > 0 ? (clientY - rect.top) / rect.height : 0.5;
+                const id = relatedItem.dataset.taskId;
+                const parentId = parentTaskIdFromEl(relatedItem);
+                if (rel < 0.28) {
+                    listDropTarget = { type: 'sibling', parentId, beforeId: id };
+                    relatedItem.classList.add('is-drop-before');
+                } else if (rel > 0.72) {
+                    listDropTarget = { type: 'sibling', parentId, afterId: id };
+                    relatedItem.classList.add('is-drop-after');
+                } else {
+                    listDropTarget = { type: 'child', parentId: id };
+                    relatedItem.classList.add('is-drop-parent');
+                    if (!expandedIds.has(id) && relatedItem.querySelector(':scope > .pc-goal-task-toggle:not(.is-leaf)')) {
+                        if (!listExpandTimer) {
+                            listExpandTimer = setTimeout(() => {
+                                listExpandTimer = 0;
+                                expandedIds.add(id);
+                                relatedItem.classList.add('is-expanded');
+                            }, 320);
+                        }
+                    } else {
+                        relatedItem.classList.add('is-expanded');
+                    }
+                }
+                return true;
+            }
+
+            if (isRoot || evt.to?.id === 'pcGoalTaskList') {
+                listDropTarget = { type: 'root' };
+                list?.classList.add('is-drop-root');
+            } else if (evt.to?.dataset?.parentId) {
+                listDropTarget = { type: 'child', parentId: evt.to.dataset.parentId };
+            }
+            return true;
         },
         onEnd: (evt) => {
-            if (evt.to === evt.from && evt.oldIndex === evt.newIndex) return;
-            const rootContainer = pageElRef?.querySelector('#pcGoalTaskList');
-            if (!rootContainer) return;
-            tasks = buildTaskTreeFromDOM(rootContainer);
+            clearListDropHints();
+            pageElRef?.querySelector('#pcGoalTaskList')?.classList.remove('is-dragging');
+            const target = listDropTarget;
+            listDropTarget = null;
+            const dragId = evt.item?.dataset?.taskId;
+            if (!dragId) return;
+            if (target) {
+                const next = moveTaskInTree(tasks, dragId, target);
+                if (next !== tasks) {
+                    tasks = next;
+                    if (target.type === 'child' && target.parentId) expandedIds.add(target.parentId);
+                    if (target.type === 'sibling' && target.parentId) expandedIds.add(target.parentId);
+                }
+            } else if (evt.to === evt.from && evt.oldIndex === evt.newIndex) {
+                return;
+            } else {
+                const rootContainer = pageElRef?.querySelector('#pcGoalTaskList');
+                if (!rootContainer) return;
+                tasks = buildTaskTreeFromDOM(rootContainer);
+            }
             flatTasks = flattenTasks(tasks);
             syncParentCompletion(tasks);
             renderTasks();
@@ -448,8 +549,11 @@ function buildTaskTreeFromDOM(container) {
         if (!task) return;
         const cloned = { ...task };
         const childrenContainer = item.querySelector(':scope > .pc-goal-task-children');
-        if (childrenContainer) {
+        const renderedKids = childrenContainer ? childrenContainer.querySelectorAll(':scope > .pc-goal-task-item') : [];
+        if (childrenContainer && renderedKids.length > 0) {
             cloned.children = buildTaskTreeFromDOM(childrenContainer);
+        } else if (childrenContainer && item.classList.contains('is-expanded')) {
+            cloned.children = [];
         } else {
             cloned.children = task.children ? task.children.map(c => ({ ...c })) : [];
         }
@@ -1775,6 +1879,62 @@ function openTaskInMindmapView(taskId) {
     }
 }
 
+function mindmapClientToWorld(stage, clientX, clientY) {
+    const rect = stage.getBoundingClientRect();
+    const scale = mindmapTransform.scale || 1;
+    return {
+        x: (clientX - rect.left - mindmapTransform.x) / scale,
+        y: (clientY - rect.top - mindmapTransform.y) / scale
+    };
+}
+
+function clearMindmapDropHints(container) {
+    container?.querySelectorAll('.pc-goal-mindmap-node.is-drop-child, .pc-goal-mindmap-node.is-drop-before, .pc-goal-mindmap-node.is-drop-after')
+        .forEach(el => el.classList.remove('is-drop-child', 'is-drop-before', 'is-drop-after'));
+    container?.querySelector('#pcGoalMindmapStage')?.classList.remove('is-drop-root');
+    container?.querySelector('.pc-goal-mindmap-drop-hint')?.remove();
+}
+
+function applyMindmapDropHints(container, target, clientX, clientY) {
+    clearMindmapDropHints(container);
+    if (!target) return;
+    const stage = container.querySelector('#pcGoalMindmapStage');
+    const hint = document.createElement('div');
+    hint.className = 'pc-goal-mindmap-drop-hint';
+    if (target.type === 'child') {
+        container.querySelector(`.pc-goal-mindmap-node[data-node-id="${CSS.escape(target.parentId)}"]`)?.classList.add('is-drop-child');
+        hint.textContent = '成子级';
+    } else if (target.type === 'sibling') {
+        const id = target.beforeId || target.afterId;
+        const cls = target.beforeId ? 'is-drop-before' : 'is-drop-after';
+        container.querySelector(`.pc-goal-mindmap-node[data-node-id="${CSS.escape(id)}"]`)?.classList.add(cls);
+        hint.textContent = target.beforeId ? '插到上方' : '插到下方';
+    } else {
+        stage?.classList.add('is-drop-root');
+        hint.textContent = '成顶层';
+    }
+    if (stage) {
+        const rect = stage.getBoundingClientRect();
+        hint.style.left = `${clientX - rect.left}px`;
+        hint.style.top = `${clientY - rect.top}px`;
+        stage.appendChild(hint);
+    }
+}
+
+function commitMindmapReparent(taskId, target) {
+    if (!taskId || !target || taskId === MINDMAP_ROOT_ID) return false;
+    const next = moveTaskInTree(tasks, taskId, target);
+    if (next === tasks) return false;
+    tasks = next;
+    if (target.type === 'child' && target.parentId) expandedIds.add(target.parentId);
+    if (target.type === 'sibling' && target.parentId) expandedIds.add(target.parentId);
+    flatTasks = flattenTasks(tasks);
+    syncParentCompletion(tasks);
+    renderTasks();
+    saveTasks();
+    return true;
+}
+
 function bindMindmapEvents(container) {
     container.querySelector('#pcGoalMindmapLinkMode')?.addEventListener('click', () => {
         mindmapLinkMode = !mindmapLinkMode;
@@ -1838,6 +1998,10 @@ function bindMindmapEvents(container) {
     container.querySelectorAll('.pc-goal-mindmap-node').forEach(nodeEl => {
         nodeEl.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (mindmapSuppressClick) {
+                mindmapSuppressClick = false;
+                return;
+            }
             if (e.target.closest('.pc-goal-mindmap-image') || e.target.closest('.pc-goal-mindmap-image-add')) return;
             handleMindmapNodeClick(nodeEl.dataset.nodeId, nodeEl);
         });
@@ -1848,6 +2012,68 @@ function bindMindmapEvents(container) {
             if (!id || id === MINDMAP_ROOT_ID) return;
             openTaskInListView(id);
         });
+        nodeEl.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0 || mindmapLinkMode) return;
+            if (e.target.closest('.pc-goal-mindmap-image') || e.target.closest('.pc-goal-mindmap-image-add')) return;
+            const nodeId = nodeEl.dataset.nodeId;
+            if (!nodeId || nodeId === MINDMAP_ROOT_ID) return;
+            mindmapDragState = {
+                nodeId,
+                el: nodeEl,
+                pointerId: e.pointerId,
+                startX: e.clientX,
+                startY: e.clientY,
+                active: false,
+                dropTarget: null
+            };
+            try { nodeEl.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+        });
+        nodeEl.addEventListener('pointermove', (e) => {
+            const state = mindmapDragState;
+            if (!state || state.nodeId !== nodeEl.dataset.nodeId) return;
+            const dx = e.clientX - state.startX;
+            const dy = e.clientY - state.startY;
+            if (!state.active && Math.hypot(dx, dy) > 4) {
+                state.active = true;
+                state.el.classList.add('is-dragging');
+                state.el.style.zIndex = '5';
+                cancelMindmapInertia();
+                cancelMindmapCameraAnimation();
+            }
+            if (!state.active) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const scale = mindmapTransform.scale || 1;
+            state.el.style.transform = `translate(${dx / scale}px, ${dy / scale}px)`;
+            const stage = container.querySelector('#pcGoalMindmapStage');
+            if (!stage) return;
+            const world = mindmapClientToWorld(stage, e.clientX, e.clientY);
+            state.dropTarget = resolveMindmapDropTarget(
+                state.nodeId,
+                world,
+                mindmapGraph?.nodes,
+                mindmapLayoutResult?.positions
+            );
+            applyMindmapDropHints(container, state.dropTarget, e.clientX, e.clientY);
+        });
+        const endMindmapDrag = () => {
+            const state = mindmapDragState;
+            if (!state || state.nodeId !== nodeEl.dataset.nodeId) return;
+            mindmapDragState = null;
+            state.el.classList.remove('is-dragging');
+            state.el.style.transform = '';
+            state.el.style.zIndex = '';
+            clearMindmapDropHints(container);
+            try { nodeEl.releasePointerCapture(state.pointerId); } catch { /* ignore */ }
+            if (state.active) {
+                mindmapSuppressClick = true;
+                if (state.dropTarget) {
+                    commitMindmapReparent(state.nodeId, state.dropTarget);
+                }
+            }
+        };
+        nodeEl.addEventListener('pointerup', endMindmapDrag);
+        nodeEl.addEventListener('pointercancel', endMindmapDrag);
     });
 
     const stage = container.querySelector('#pcGoalMindmapStage');
