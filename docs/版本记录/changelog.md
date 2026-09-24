@@ -5,6 +5,34 @@
 
 ---
 
+## v2.5.21 (2026-09-24)
+
+> 记录依据：`v2.5.20` 发布后定位并修复 Tauri 壳下应用内自动更新无法发现新版本（分支 `fix/auto-update-bugs`）。
+
+### 修复
+
+- **检查更新连不上后端**：Tauri 安装包页面源与 Python Sidecar 不同源，更新接口裸相对路径打回 WebView 源，导致 2.5.19/2.5.20 检查更新失败或像没有新版本。现经 `resolveApiBase()` 拼绝对地址，检查/下载/安装链路恢复。
+- **检查结果提示**：设置页「软件更新」不再只显示「已检查 · 时间」，改为「已是最新 v… / 可更新到 v… / 检查失败」。
+
+### 发布
+
+- 版本号统一升级至 `2.5.21`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.21`。
+- Android `versionCode` 从 `32` 递增至 `33`，`versionName` 升级为 `2.5.21`（本版不附带 APK）。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.21.exe`：28,951,868 字节（27.6 MB），SHA256 `C4C20ABFF7E928A885F5E37A09FB6D35D8B769B41C2813A164E17F50092D4215`
+
+### 验证
+
+- `npm test`：390 passed / 45 files（含 Tauri API base 与更新提示文案用例）。
+- `python -m pytest python/tests -q`：82 passed。
+- `npx vite build` + `python -m PyInstaller build/server.spec` + `npx tauri build`：通过，产出 NSIS 安装包。
+
+---
+
 ## v2.5.20 (2026-09-24)
 
 > 记录依据：`v2.5.19` 发布后工作区交付的目标计划拖拽调级、导图完整显示、更新记录阶段轨顺畅化与开屏像素聚合动画（分支 `fix/auto-update-bugs`）。

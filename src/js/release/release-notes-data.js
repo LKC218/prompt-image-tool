@@ -1,5 +1,26 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.21',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    'Tauri 安装包「检查更新」打不到本地后端，导致无法发现新版本；现已正确连上更新服务。',
+                    '检查结果提示更明确：显示「已是最新 / 可更新到 / 检查失败」，不再只显示时间。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.21；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.20',
         date: '2026-09-24',
         sections: [
