@@ -25,6 +25,7 @@ from auto_update import (
     fetch_latest_meta,
     get_download_job,
     is_remote_newer,
+    kill_main_app_for_install,
     parse_version_tuple,
     read_local_app_version,
     reset_download_jobs_for_tests,
@@ -386,6 +387,7 @@ def test_run_installer_dev_skips_helper(monkeypatch, tmp_path):
     setup.write_bytes(b"mz")
     monkeypatch.setattr("auto_update._should_auto_restart", lambda: False)
     monkeypatch.setattr("auto_update.time.sleep", lambda *_: None)
+    monkeypatch.setattr("auto_update.kill_main_app_for_install", lambda: None)
 
     calls = []
 
@@ -425,6 +427,7 @@ def test_run_installer_frozen_windows_spawns_helper(monkeypatch, tmp_path):
     monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
     monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(install_dir))
     monkeypatch.setattr("auto_update.time.sleep", lambda *_: None)
+    monkeypatch.setattr("auto_update.kill_main_app_for_install", lambda: None)
 
     calls = []
 
@@ -535,3 +538,20 @@ def test_spawn_relaunch_helper_cleans_script_on_popen_failure(monkeypatch, tmp_p
     with pytest.raises(RuntimeError):
         spawn_relaunch_helper(1, r"C:\x\PromptImageManager.exe", script_path=str(script))
     assert not script.exists()
+
+
+def test_kill_main_app_for_install_calls_taskkill(monkeypatch):
+    seen = {}
+
+    def fake_run(cmd, **kwargs):
+        seen["cmd"] = list(cmd)
+        seen["kwargs"] = kwargs
+        return None
+
+    monkeypatch.setattr("auto_update.subprocess.run", fake_run)
+    kill_main_app_for_install()
+    if os.name == "nt":
+        assert seen["cmd"][0] == "taskkill"
+        assert APP_EXE_NAME in seen["cmd"]
+    else:
+        assert "cmd" not in seen

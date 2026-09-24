@@ -194,13 +194,13 @@ build/dist/PromptImageManager/
 
 | 文件 | 当前值 | 位置 |
 |------|--------|------|
-| `package.json` / `package-lock.json` | `"version": "2.5.21"` | 第3行 / 第3、8行 |
-| `src/index.html` | `<meta name="version" content="2.5.21">` | 第9行 |
-| `build/installer.nsi` | `!define APPVERSION "2.5.21"` | 第3行 |
-| `build.bat` | `v2.5.21` 与 `PromptImageManager-Setup-2.5.21.exe` | 构建标题与发布路径 |
-| `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` / `src-tauri/Cargo.lock` | `2.5.21` | 主桌面端配置与锁文件 |
-| `installer-shell/` 下的包、Tauri 和 Cargo 文件 | `2.5.21` | 安装器壳配置与锁文件 |
-| `android/app/build.gradle` | `versionCode 33` / `versionName "2.5.21"` | 第16-17行 |
+| `package.json` / `package-lock.json` | `"version": "2.5.22"` | 第3行 / 第3、8行 |
+| `src/index.html` | `<meta name="version" content="2.5.22">` | 第9行 |
+| `build/installer.nsi` | `!define APPVERSION "2.5.22"` | 第3行 |
+| `build.bat` | `v2.5.22` 与 `PromptImageManager-Setup-2.5.22.exe` | 构建标题与发布路径 |
+| `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` / `src-tauri/Cargo.lock` | `2.5.22` | 主桌面端配置与锁文件 |
+| `installer-shell/` 下的包、Tauri 和 Cargo 文件 | `2.5.22` | 安装器壳配置与锁文件 |
+| `android/app/build.gradle` | `versionCode 34` / `versionName "2.5.22"` | 第16-17行 |
 
 ---
 

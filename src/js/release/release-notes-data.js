@@ -1,5 +1,25 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.22',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    '安装或卸载前自动结束残留的后台服务，覆盖安装不再因文件被占用而失败。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.22；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.21',
         date: '2026-09-24',
         sections: [

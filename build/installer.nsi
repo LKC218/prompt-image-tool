@@ -1,6 +1,6 @@
-﻿!define APPNAME "PromptImageManager"
+!define APPNAME "PromptImageManager"
 
-!define APPVERSION "2.5.21"
+!define APPVERSION "2.5.22"
 
 !define APPEXE "PromptImageManager.exe"
 
@@ -130,6 +130,19 @@ LangString ^UninstallText ${LANG_SIMPCHINESE} "安装向导将从你的电脑卸
 
 
 
+!macro KillPromptImageManagerProcesses
+    nsExec::ExecToLog 'cmd /c taskkill /F /T /IM PromptImageManager.exe'
+    Pop $0
+    nsExec::ExecToLog 'cmd /c taskkill /F /T /IM PromptImageManager-Server.exe'
+    Pop $0
+    nsExec::ExecToLog 'cmd /c taskkill /F /T /IM PromptImageManager-Server'
+    Pop $0
+    nsExec::ExecToLog 'cmd /c powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { ($_.Name -eq \"python.exe\" -or $_.Name -eq \"pythonw.exe\") -and ($_.CommandLine -like \"*PromptImageManager*\" -or $_.CommandLine -like \"*prompt-image-tool*\") } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"'
+    Pop $0
+    Sleep 400
+!macroend
+
+
 Function LaunchInstalledApp
 
     ; 静默安装（含应用内自动更新 /S）不拉起应用，避免与更新重启逻辑冲突
@@ -145,6 +158,8 @@ FunctionEnd
 
 
 Section "Install"
+
+    !insertmacro KillPromptImageManagerProcesses
 
     SetOutPath $INSTDIR
 
@@ -189,6 +204,8 @@ SectionEnd
 
 
 Section "Uninstall"
+
+    !insertmacro KillPromptImageManagerProcesses
 
     SetOutPath "$TEMP"
 

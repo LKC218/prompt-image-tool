@@ -5,6 +5,36 @@
 
 ---
 
+## v2.5.22 (2026-09-24)
+
+> 记录依据：`v2.5.21` 发布后修复卸载/退出残留 Sidecar 导致覆盖安装写文件失败（分支 `fix/auto-update-bugs`）。
+
+### 修复
+
+- **安装被残留进程锁死**：安装与卸载前自动结束 `PromptImageManager.exe`、`PromptImageManager-Server.exe` 及本项目 Python 后端，覆盖安装不再报「无法打开要写入的文件」。
+- **退出回收**：应用退出时按进程树结束 Sidecar，并按镜像名兜底，降低任务管理器残留。
+
+### 发布
+
+- 版本号统一升级至 `2.5.22`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.22`。
+- Android `versionCode` 从 `33` 递增至 `34`，`versionName` 升级为 `2.5.22`（本版不附带 APK）。
+- Tauri NSIS 增加 `nsis/installer-hooks.nsh`（`installerHooks`）：`NSIS_HOOK_PREINSTALL` / `NSIS_HOOK_PREUNINSTALL` 清进程；应急 `build/installer.nsi` 同步。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.22.exe`：28,957,699 字节（27.6 MB），SHA256 `63D73ED5A14BEC8499B8E571C5F1AE8564AB7EB0B4E67E7F066845E581533787`
+
+### 验证
+
+- `npm test`：390 passed / 45 files。
+- `python -m pytest python/tests -q`：83 passed。
+- Sidecar 运行中静默覆盖安装：安装器退出码 0，安装后 `PromptImageManager-Server.exe` 已结束。
+- `npx vite build` + `python -m PyInstaller build/server.spec` + `npx tauri build`：通过，产出 NSIS 安装包。
+
+---
+
 ## v2.5.21 (2026-09-24)
 
 > 记录依据：`v2.5.20` 发布后定位并修复 Tauri 壳下应用内自动更新无法发现新版本（分支 `fix/auto-update-bugs`）。

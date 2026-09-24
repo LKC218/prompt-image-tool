@@ -41,12 +41,41 @@ pub fn run() {
             if let tauri::RunEvent::Exit = event {
                 if let Ok(mut slot) = app_handle.state::<BackendChild>().0.lock() {
                     if let Some(mut child) = slot.take() {
-                        let _ = child.kill();
-                        let _ = child.wait();
+                        kill_backend_tree(&mut child);
                     }
                 }
+                kill_backend_by_image_name();
             }
         });
+}
+
+#[cfg(not(target_os = "android"))]
+fn kill_backend_tree(child: &mut Child) {
+    let pid = child.id();
+    let _ = child.kill();
+    let _ = child.wait();
+    #[cfg(target_os = "windows")]
+    {
+        if pid > 0 {
+            let _ = Command::new("taskkill")
+                .args(["/PID", &pid.to_string(), "/T", "/F"])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output();
+        }
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn kill_backend_by_image_name() {
+    #[cfg(target_os = "windows")]
+    {
+        for image in ["PromptImageManager-Server.exe", "PromptImageManager-Server"] {
+            let _ = Command::new("taskkill")
+                .args(["/F", "/T", "/IM", image])
+                .creation_flags(CREATE_NO_WINDOW)
+                .output();
+        }
+    }
 }
 
 #[cfg(not(target_os = "android"))]

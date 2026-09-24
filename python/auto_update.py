@@ -654,6 +654,21 @@ def spawn_relaunch_helper(
     return {"success": True, "helperPath": helper_script}
 
 
+def kill_main_app_for_install() -> None:
+    """覆盖安装前结束主程序；Sidecar 由 NSIS PREINSTALL 清理，避免本进程自杀。"""
+    if os.name != "nt":
+        return
+    try:
+        subprocess.run(
+            ["taskkill", "/F", "/T", "/IM", APP_EXE_NAME],
+            capture_output=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            check=False,
+        )
+    except Exception:
+        pass
+
+
 def run_installer(
     installer_path: str,
     *,
@@ -663,6 +678,7 @@ def run_installer(
     if not path or not os.path.isfile(path):
         raise FileNotFoundError("安装包不存在")
 
+    kill_main_app_for_install()
     auto_restart = _should_auto_restart()
     install_dir = resolve_install_dir() if auto_restart else ""
     target_exe = os.path.join(install_dir, APP_EXE_NAME) if install_dir else ""
