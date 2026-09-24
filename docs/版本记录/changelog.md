@@ -5,6 +5,34 @@
 
 ---
 
+## v2.5.24 (2026-09-24)
+
+> 记录依据：`v2.5.23` 发布提交 `352d20c` 之后的自动更新安装/替换/重启契约修复。
+
+### 修复
+
+- **自动更新覆盖安装**：正确识别 Tauri 安装根与主程序，静默安装会覆盖替换旧版本，不再装到错误目录或留下双份文件。
+- **更新后自动重启**：安装结束后自动进入新版本；修正安装前误杀自身导致更新中断、装完不重启的问题。
+
+### 发布
+
+- 版本号统一升级至 `2.5.24`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.24`。
+- Android `versionCode` 从 `35` 递增至 `36`，`versionName` 升级为 `2.5.24`（本版不附带 APK）。
+- 已完成 PC 端核心安装包构建：
+  - `PromptImageManager-Setup-2.5.24.exe`：39,461,558 字节（37.63 MB），SHA256 `E8260FBC904616754E55F2CAC96122506F7A021C8A7CB3D0BA511D1CDF9077D5`
+
+### 验证
+
+- `npm test`：393 passed / 45 files。
+- `python -m pytest python/tests -q`：88 passed。
+- `python -m PyInstaller build/app.spec` + `makensis /INPUTCHARSET UTF8 installer.nsi`：通过，产出 NSIS 安装包。
+
+---
+
 ## v2.5.23 (2026-09-24)
 
 > 记录依据：`v2.5.22` 发布后修复导图短标题被 chrome 挤压成竖排单字。

@@ -1,5 +1,25 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.24',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    '应用内更新能正确覆盖安装旧版本，并在安装完成后自动重启进入新版本。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.24；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.23',
         date: '2026-09-24',
         sections: [
