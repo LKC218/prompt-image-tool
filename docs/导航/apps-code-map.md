@@ -82,7 +82,7 @@
 | `pc-editor.js` | `/editor/:id` | 新建/编辑、多版本、图片、草稿 |
 | `pc-category.js` | `/category` | 文件夹与标签管理 |
 | `pc-goal-projects.js` | `/goals` | 目标计划项目列表 |
-| `pc-goal-detail.js` | `/goals/:id` | 任务树、进度、任务图片；列表/导图拖拽改层级 |
+| `pc-goal-detail.js` | `/goals/:id` | 任务树、进度、任务图片；列表/导图拖拽改层级（含落点提示与 window 收尾）；任务菜单分组调用 `buildTaskContextMenuItems` |
 | `pc-games-hub.js` | `/games` | 摸鱼时间游戏中心卡片 |
 | `pc-tetris.js` | `/tetris` | 俄罗斯方块小游戏页（Canvas、键盘与按钮） |
 | `pc-plane.js` | `/plane` | 飞机大战小游戏页 |
@@ -118,7 +118,7 @@
 | `src/css/pc/05e-page-late-overrides.css` | 页面后置覆盖（待收敛） |
 | `src/css/pc/06-responsive-overrides.css` | 响应式 |
 | `src/css/pc/07-theme-toggle.css` | 主题切换 |
-| `src/css/pc/08-goal-plan.css` | 目标计划列表/导图样式（含拖拽落点与标题换行） |
+| `src/css/pc/08-goal-plan.css` | 目标计划列表/导图样式（含拖拽落点、标题换行；导图 `stage::after` 仅四边羽化） |
 | `src/css/pc/09-tetris.css` | 俄罗斯方块小游戏页 |
 | `src/css/pc/10-plane.css` | 摸鱼中心与飞机大战 |
 | `src/css/pc/11-plant.css` | 首页挂机种植物（横幅槽/养护气泡/debug） |
@@ -132,12 +132,12 @@
 | `src/css/mobile.css` | 移动端样式入口 |
 | `src/js/core/version-info.js` | 版本号读取与展示 |
 | `src/js/release/auto-updater.js` | PC 应用内更新：检查 / 启动下载 / 轮询进度 / 取消 / 安装；会话互斥；经 `resolveApiBase` 访问 Sidecar；安装后 `closeShellAfterInstall` 关闭 Tauri 主窗 |
-| `src/js/release/update-progress-modal.js` | 阶段式更新进度弹窗（百分比、阶段列表、取消/重试；按钮按 mode 缓存） |
+| `src/js/release/update-progress-modal.js` | 更新进度弹窗（紧凑步进器、去拟态）：大号百分比、细进度条、垂直时间轴三阶段、取消/重试；按钮按 mode 缓存 |
 | `src/js/release/release-notes.js` / `release-notes-data.js` | 更新记录弹窗与正文数据；左侧版本阶段轨（scroll 映射跟随 + 精确跳转） |
 | `src/js/pc/pc-utils.js` / `mobile/mobile-utils.js` | 端侧 Toast/Modal/ActionSheet（PC `showConfirmModal` 返回 Promise） |
 | `src/js/pc/pc-cursor.js` | PC 自定义圆环光标 |
 | `src/js/shared/ripple.js` | 涟漪 |
-| `src/js/goal/goal-utils.js` / `goal-image-preview.js` | 目标计划共享工具；`moveTaskInTree` 支持拖拽改层级 |
+| `src/js/goal/goal-utils.js` / `goal-image-preview.js` | 目标计划共享工具；`moveTaskInTree` 支持拖拽改层级；`buildTaskContextMenuItems` 组装任务菜单分组 |
 | `src/js/goal/goal-mindmap-core.js` / `goal-mindmap-core.test.js` | 导图构图/自适应布局/落点解析/关联链接纯函数 |
 
 ### 3.6 React 微试点

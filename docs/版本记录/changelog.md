@@ -5,6 +5,36 @@
 
 ---
 
+## v2.5.28 (2026-09-24)
+
+> 记录依据：`v2.5.27` 发布提交 `2a0bf0c` 之后的工作区优化（更新进度弹窗、任务菜单分组、导图拖拽落点反馈）。
+
+### 优化
+
+- **更新进度弹窗**：改为紧凑步进器，大号百分比与细进度条更易读，阶段轨垂直排布；去掉拟态阴影，视觉更干净。
+- **任务菜单分组**：目标计划任务右键/更多菜单按状态、结构编辑、资源与定位、危险操作分组，并用细线分隔，查找更快。
+- **导图拖拽落点反馈**：插上/下、成子级、放到顶层的提示更明确，拖拽跟手，结束后自动清理落点提示。
+
+### 发布
+
+- 版本号统一升级至 `2.5.28`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.28`。
+- Android `versionCode` 从 `39` 递增至 `40`，`versionName` 升级为 `2.5.28`（本版不附带 APK）。
+- 已完成 PC 端核心安装包构建（Tauri 主路径）：
+  - `PromptImageManager-Setup-2.5.28.exe`：28,968,254 字节（27.63 MB），SHA256 `633DDBB9D0142923CE347BDCE65E0096FB7C22E83559966BB1CD5DAFB811B5EE`
+
+### 验证
+
+- `npm test`：396 passed / 46 files。
+- `python -m pytest python/tests/test_auto_update.py -q`：33 passed。
+- `node scripts/verify-ui-encoding.mjs`：PASS。
+- `python scripts/build_pc_package.py`：Tauri 主路径构建成功。
+
+---
+
 ## v2.5.27 (2026-09-24)
 
 > 记录依据：`v2.5.26` 在线更新实测失败后修复 Tauri 主程序名与覆盖安装链路。

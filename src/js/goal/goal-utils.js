@@ -21,6 +21,45 @@ export function isTaskExecuting(task) {
     return task?.status === TASK_STATUS_EXECUTING;
 }
 
+/**
+ * 任务右键菜单数据（不含图标 HTML）。
+ * 分组：状态 → 结构编辑 → 资源与定位 → 危险；`{ divider: true }` 与提示词「更多」菜单一致。
+ */
+export function buildTaskContextMenuItems(task, options = {}) {
+    const completed = !!task?.completed;
+    const executing = isTaskExecuting(task);
+    const hasImages = options.hasImages ?? Boolean(task?.images?.length);
+    const fromMindmap = options.source === 'mindmap';
+    const currentPriority = task?.priority || '';
+    const priorityChildren = [
+        { action: 'priority-none', label: '无', selected: currentPriority === '' },
+        ...TASK_PRIORITIES.map(p => ({
+            action: `priority-${p.key}`,
+            label: p.label,
+            selected: currentPriority === p.key
+        }))
+    ];
+
+    return [
+        { action: 'toggle-complete', label: completed ? '标记为未完成' : '标记为已完成' },
+        { action: 'toggle-executing', label: executing ? '取消执行中' : '标记为执行中' },
+        { divider: true },
+        { action: 'add-child', label: '添加子任务' },
+        { action: 'rename', tone: 'rename', label: '重命名' },
+        { action: 'copy', tone: 'copy', label: '复制' },
+        { divider: true },
+        { action: 'set-priority', label: '设置优先级', children: priorityChildren },
+        { action: 'import-image', label: '导入图片' },
+        { action: 'image-manager', label: '图片管理' },
+        ...(hasImages ? [{ action: 'view-images', label: '查看图片' }] : []),
+        fromMindmap
+            ? { action: 'locate-list', label: '在列表中定位' }
+            : { action: 'locate-mindmap', label: '在导图中定位' },
+        { divider: true },
+        { action: 'delete', tone: 'delete', label: '删除', danger: true }
+    ];
+}
+
 export function calcTaskTreeStats(tasks) {
     const flat = flattenTasks(tasks);
     const total = flat.length;

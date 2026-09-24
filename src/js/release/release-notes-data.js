@@ -1,5 +1,27 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.28',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '更新进度改为紧凑步进器：大号百分比、细进度条与垂直阶段轨，阅读更轻松。',
+                    '任务右键与更多菜单按功能分组，状态、结构、资源和危险操作一目了然。',
+                    '思维导图拖拽落点提示更清晰，拖动更跟手。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.28；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.27',
         date: '2026-09-24',
         sections: [

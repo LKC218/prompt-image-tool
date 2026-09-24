@@ -13,12 +13,12 @@ import {
     compressToWebp,
     getGoalThumbUrl,
     releaseGoalThumbUrls,
-    TASK_PRIORITIES,
     getTaskPriorityLabel,
     TASK_STATUS_EXECUTING,
     isTaskExecuting,
     sortTasksByCompletion,
-    moveTaskInTree
+    moveTaskInTree,
+    buildTaskContextMenuItems
 } from '../goal/goal-utils.js';
 import {
     buildMindmapGraph,
@@ -97,6 +97,7 @@ let pendingMindmapFocusId = null;
 let mindmapFitToken = 0;
 let mindmapDragState = null;
 let mindmapSuppressClick = false;
+let mindmapDragWindowBound = false;
 
 if (typeof document !== 'undefined') {
     document.addEventListener('paste', handleManagerPaste);
@@ -194,13 +195,13 @@ function unmount(pageEl) {
         if (detailPage) delete detailPage.dataset.view;
     }
     document.body.classList.remove('pc-goal-mindmap-max-open');
+    unbindMindmapDragWindow();
+    finishMindmapDrag({ commit: false });
     pageElRef = null;
     projectId = null;
     mindmapGraph = null;
     mindmapLayoutResult = null;
     mindmapPanState = null;
-    mindmapDragState = null;
-    mindmapSuppressClick = false;
     mindmapPanSamples = [];
     mindmapMaximized = false;
     mountParams = {};
@@ -764,43 +765,33 @@ async function showTaskMenu(id, anchorEl, options = {}) {
 
     const hasImages = task.images && task.images.length > 0;
     const rect = anchorEl.getBoundingClientRect();
-    const currentPriority = task.priority || '';
-    const priorityChildren = [
-        { action: 'priority-none', icon: currentPriority === '' ? iconImg(checkIcon) : '', label: '无' },
-        ...TASK_PRIORITIES.map(p => ({
-            action: `priority-${p.key}`,
-            icon: currentPriority === p.key ? iconImg(checkIcon) : '',
-            label: p.label
-        }))
-    ];
-
-    const executing = isTaskExecuting(task);
     const fromMindmap = options.source === 'mindmap';
-
-    const items = [
-        { action: 'toggle-complete', icon: iconImg(checkIcon), label: task.completed ? '标记为未完成' : '标记为已完成' },
-        { action: 'add-child', icon: iconImg(plusIcon), label: '添加子任务' },
-        { action: 'rename', icon: iconImg(renameIcon), tone: 'rename', label: '重命名' },
-        { action: 'copy', icon: iconImg(copyIcon), tone: 'copy', label: '复制' },
-        { action: 'set-priority', icon: iconImg(moreIcon), label: '设置优先级', children: priorityChildren },
-        { action: 'toggle-executing', icon: '', label: executing ? '取消执行中' : '标记为执行中' }
-    ];
-    if (!fromMindmap) {
-        items.push({ action: 'import-image', icon: iconImg(imageIcon), label: '导入图片' });
-        items.push({ action: 'image-manager', icon: iconImg(imageIcon), label: '图片管理' });
-        if (hasImages) {
-            items.push({ action: 'view-images', icon: iconImg(imageIcon), label: '查看图片' });
-        }
-        items.push({ action: 'locate-mindmap', icon: iconImg(mapIcon), label: '在导图中定位' });
-    } else {
-        items.push({ action: 'import-image', icon: iconImg(imageIcon), label: '导入图片' });
-        items.push({ action: 'image-manager', icon: iconImg(imageIcon), label: '图片管理' });
-        if (hasImages) {
-            items.push({ action: 'view-images', icon: iconImg(imageIcon), label: '查看图片' });
-        }
-        items.push({ action: 'locate-list', icon: iconImg(chevronDownIcon), label: '在列表中定位' });
-    }
-    items.push({ action: 'delete', icon: iconImg(deleteIcon), tone: 'delete', label: '删除', danger: true });
+    const iconByAction = {
+        'toggle-complete': iconImg(checkIcon),
+        'toggle-executing': '',
+        'add-child': iconImg(plusIcon),
+        'rename': iconImg(renameIcon),
+        'copy': iconImg(copyIcon),
+        'set-priority': iconImg(moreIcon),
+        'import-image': iconImg(imageIcon),
+        'image-manager': iconImg(imageIcon),
+        'view-images': iconImg(imageIcon),
+        'locate-mindmap': iconImg(mapIcon),
+        'locate-list': iconImg(chevronDownIcon),
+        'delete': iconImg(deleteIcon)
+    };
+    const items = buildTaskContextMenuItems(task, { hasImages, source: options.source }).map(item => {
+        if (item.divider) return item;
+        const children = item.children?.map(child => ({
+            ...child,
+            icon: child.selected ? iconImg(checkIcon) : ''
+        }));
+        return {
+            ...item,
+            icon: iconByAction[item.action] ?? '',
+            ...(children ? { children } : {})
+        };
+    });
 
     // 不用 source:'more'：prepareMoreButton 会把锚点 innerHTML 换成三点，破坏导图节点标题
     const action = await showContextMenu(rect.right + 8, rect.bottom + 8, items, {
@@ -1911,13 +1902,51 @@ function applyMindmapDropHints(container, target, clientX, clientY) {
         hint.textContent = target.beforeId ? '插到上方' : '插到下方';
     } else {
         stage?.classList.add('is-drop-root');
-        hint.textContent = '成顶层';
+        hint.textContent = '放到空白处成为顶层';
     }
     if (stage) {
         const rect = stage.getBoundingClientRect();
         hint.style.left = `${clientX - rect.left}px`;
         hint.style.top = `${clientY - rect.top}px`;
         stage.appendChild(hint);
+    }
+}
+
+function bindMindmapDragWindow() {
+    if (mindmapDragWindowBound || typeof window === 'undefined') return;
+    mindmapDragWindowBound = true;
+    window.addEventListener('pointerup', handleMindmapDragWindowEnd);
+    window.addEventListener('pointercancel', handleMindmapDragWindowEnd);
+}
+
+function unbindMindmapDragWindow() {
+    if (!mindmapDragWindowBound || typeof window === 'undefined') return;
+    mindmapDragWindowBound = false;
+    window.removeEventListener('pointerup', handleMindmapDragWindowEnd);
+    window.removeEventListener('pointercancel', handleMindmapDragWindowEnd);
+}
+
+function handleMindmapDragWindowEnd() {
+    finishMindmapDrag({ commit: true });
+}
+
+function finishMindmapDrag({ commit = false } = {}) {
+    const state = mindmapDragState;
+    if (!state) return;
+    mindmapDragState = null;
+    unbindMindmapDragWindow();
+    state.el?.classList.remove('is-dragging');
+    if (state.el) {
+        state.el.style.transform = '';
+        state.el.style.zIndex = '';
+    }
+    clearMindmapDropHints(pageElRef?.querySelector('#pcGoalMindmap'));
+    try { state.el?.releasePointerCapture(state.pointerId); } catch { /* ignore */ }
+    if (commit && state.active) {
+        mindmapSuppressClick = true;
+        if (state.dropTarget) {
+            commitMindmapReparent(state.nodeId, state.dropTarget);
+        }
     }
 }
 
@@ -2037,6 +2066,7 @@ function bindMindmapEvents(container) {
                 state.active = true;
                 state.el.classList.add('is-dragging');
                 state.el.style.zIndex = '5';
+                bindMindmapDragWindow();
                 cancelMindmapInertia();
                 cancelMindmapCameraAnimation();
             }
@@ -2057,20 +2087,8 @@ function bindMindmapEvents(container) {
             applyMindmapDropHints(container, state.dropTarget, e.clientX, e.clientY);
         });
         const endMindmapDrag = () => {
-            const state = mindmapDragState;
-            if (!state || state.nodeId !== nodeEl.dataset.nodeId) return;
-            mindmapDragState = null;
-            state.el.classList.remove('is-dragging');
-            state.el.style.transform = '';
-            state.el.style.zIndex = '';
-            clearMindmapDropHints(container);
-            try { nodeEl.releasePointerCapture(state.pointerId); } catch { /* ignore */ }
-            if (state.active) {
-                mindmapSuppressClick = true;
-                if (state.dropTarget) {
-                    commitMindmapReparent(state.nodeId, state.dropTarget);
-                }
-            }
+            if (!mindmapDragState || mindmapDragState.nodeId !== nodeEl.dataset.nodeId) return;
+            finishMindmapDrag({ commit: true });
         };
         nodeEl.addEventListener('pointerup', endMindmapDrag);
         nodeEl.addEventListener('pointercancel', endMindmapDrag);

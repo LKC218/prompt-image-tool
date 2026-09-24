@@ -1663,6 +1663,11 @@
 .pc-goal-mindmap-node.is-dragging {
     opacity: 0.55;
     cursor: grabbing;
+    transition: none;
+}
+
+.pc-goal-mindmap-node.is-dragging:hover {
+    transform: none;
 }
 
 .pc-goal-mindmap-node.is-drop-child {
@@ -1672,30 +1677,25 @@
         0 0 0 3px color-mix(in srgb, var(--pc-accent) 35%, transparent) !important;
 }
 
+/* 落点条画在节点内侧，避免 box-shadow 外扩到画布边缘 */
 .pc-goal-mindmap-node.is-drop-before {
     box-shadow:
-        0 -3px 0 0 var(--pc-accent),
+        inset 0 3px 0 0 var(--pc-accent),
         var(--pc-control-raised-shadow) !important;
 }
 
 .pc-goal-mindmap-node.is-drop-after {
     box-shadow:
-        0 3px 0 0 var(--pc-accent),
+        inset 0 -3px 0 0 var(--pc-accent),
         var(--pc-control-raised-shadow) !important;
 }
 
-.pc-goal-mindmap-stage.is-drop-root::after {
-    content: '放到空白处成为顶层';
-    position: absolute;
-    left: 12px;
-    bottom: 12px;
-    z-index: 2;
-    padding: 4px 8px;
-    border-radius: 8px;
-    font-size: 12px;
-    color: var(--pc-accent);
-    background: color-mix(in srgb, var(--pc-accent) 12%, var(--pc-neu-bg));
-    pointer-events: none;
+/* 顶层落点：stage 描边反馈；文案只放在 drop-hint，禁止占用 ::after（与四边羽化冲突） */
+.pc-goal-mindmap-stage.is-drop-root {
+    box-shadow:
+        inset 6px 6px 14px var(--pc-neu-dark),
+        inset -6px -6px 14px var(--pc-neu-light),
+        inset 0 0 0 2px color-mix(in srgb, var(--pc-accent) 45%, transparent);
 }
 
 .pc-goal-mindmap-drop-hint {
@@ -2244,7 +2244,7 @@ body.pc-goal-mindmap-max-open .pc-goal-detail-page.is-mindmap-maximized .pc-goal
     flex-shrink: 0;
 }
 
-/* 图例压住四边羽化，避免字被渐变吃掉 */
+/* 图例压住四边羽化，避免字被渐变吃掉（::after 仅归羽化，勿写 content 文案） */
 .pc-goal-mindmap-stage::after {
     z-index: 2;
 }

@@ -69,28 +69,28 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
         <div class="pc-update-progress-modal" role="dialog" aria-modal="true" aria-labelledby="pcUpdateProgressTitle" aria-describedby="pcUpdateProgressStatus">
             <h3 id="pcUpdateProgressTitle">正在更新</h3>
             <p class="pc-update-progress-desc" id="pcUpdateProgressStatus" aria-live="polite">准备下载…</p>
-            <div class="pc-update-progress-row">
-                <div
-                    class="pc-update-progress-bar"
-                    id="pcUpdateProgressBar"
-                    role="progressbar"
-                    aria-label="更新进度"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                    aria-valuenow="0"
-                >
-                    <div class="pc-update-progress-fill" id="pcUpdateProgressFill"></div>
-                    <div class="pc-update-progress-indeterminate" id="pcUpdateProgressIndeterminate" hidden></div>
-                </div>
-                <strong class="pc-update-progress-percent" id="pcUpdateProgressPercent">0%</strong>
+            <strong class="pc-update-progress-percent" id="pcUpdateProgressPercent">—</strong>
+            <div
+                class="pc-update-progress-bar"
+                id="pcUpdateProgressBar"
+                role="progressbar"
+                aria-label="更新进度"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                aria-valuenow="0"
+            >
+                <div class="pc-update-progress-fill" id="pcUpdateProgressFill"></div>
+                <div class="pc-update-progress-indeterminate" id="pcUpdateProgressIndeterminate" hidden></div>
             </div>
             <p class="pc-update-progress-meta" id="pcUpdateProgressMeta"></p>
             <ul class="pc-update-stage-list" id="pcUpdateStageList" aria-label="更新阶段">
                 ${STAGE_LABELS.map((stage) => `
                     <li data-stage="${stage.key}" class="waiting">
                         <span class="stage-dot" aria-hidden="true"></span>
-                        <span class="stage-label">${stage.label}</span>
-                        <strong class="stage-status">等待中</strong>
+                        <div class="stage-copy">
+                            <span class="stage-label">${stage.label}</span>
+                            <strong class="stage-status">等待中</strong>
+                        </div>
                     </li>
                 `).join('')}
             </ul>
@@ -223,7 +223,7 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
             if (indeterminate) {
                 fillEl.style.width = phase === 'ready' || phase === 'installing' || phase === 'verifying' ? '100%' : '0%';
                 indeterminateEl.hidden = false;
-                percentEl.textContent = phase === 'ready' ? '完成' : '';
+                percentEl.textContent = phase === 'ready' ? '完成' : '—';
             } else {
                 indeterminateEl.hidden = true;
                 fillEl.style.width = `${Math.min(100, Math.max(0, percent))}%`;

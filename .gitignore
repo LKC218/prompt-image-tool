@@ -83,6 +83,7 @@ credentials*
 *.codebuddy/
 
 # 临时 / 备份 / 生成检查文件
+.mimocode/temp/
 build/_*.txt
 build/_*.py
 docs/*.bak
