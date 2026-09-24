@@ -5,6 +5,34 @@
 
 ---
 
+## v2.5.29 (2026-09-24)
+
+> 记录依据：`v2.5.28` 发布提交 `5d837fd` 之后的自动更新安装链路修复（安装脱离 Sidecar 生命周期）。
+
+### 修复
+
+- **在线更新安装失败**：下载完成后应用退出但安装程序未执行；改为在独立 bootstrap 中完成卸载、静默安装与自动重启，不再被主程序退出连带取消。
+
+### 发布
+
+- 版本号统一升级至 `2.5.29`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.29`。
+- Android `versionCode` 从 `40` 递增至 `41`，`versionName` 升级为 `2.5.29`（本版不附带 APK）。
+- 已完成 PC 端核心安装包构建（Tauri 主路径）：
+  - `PromptImageManager-Setup-2.5.29.exe`：28,901,528 字节（27.56 MB），SHA256 `FD3BA9FF7ACB3FCB5D1B22AC0435AB13D5DCC2C2AAE3DA126744F2B9E6EDD22B`
+
+### 验证
+
+- `npm test`：396 passed / 46 files。
+- `python -m pytest python/tests/test_auto_update.py -q`：36 passed。
+- `node scripts/verify-ui-encoding.mjs`：PASS。
+- `python scripts/build_pc_package.py`：Tauri 主路径构建成功。
+
+---
+
 ## v2.5.28 (2026-09-24)
 
 > 记录依据：`v2.5.27` 发布提交 `2a0bf0c` 之后的工作区优化（更新进度弹窗、任务菜单分组、导图拖拽落点反馈）。

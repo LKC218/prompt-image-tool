@@ -1,5 +1,25 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.29',
+        date: '2026-09-24',
+        sections: [
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    '在线更新下载完成后会正确执行安装并自动重启；此前应用退出会导致安装程序未运行。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.29；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.28',
         date: '2026-09-24',
         sections: [

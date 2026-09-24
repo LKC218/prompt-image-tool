@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "生图提示词管理器",
   "mainBinaryName": "PromptImageManager",
-  "version": "2.5.28",
+  "version": "2.5.29",
   "identifier": "com.promptimagemanager",
   "build": {
     "frontendDist": "../dist",
