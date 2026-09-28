@@ -420,7 +420,7 @@ html.pc-prompt-detail-open .pc-window-chrome {
     min-width: 0;
     flex-shrink: 0;
     pointer-events: auto;
-    background: color-mix(in srgb, var(--pc-neu-bg) 88%, transparent);
+    background: var(--pc-neu-bg);
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
 }
@@ -457,11 +457,12 @@ html.pc-prompt-detail-open .pc-window-chrome-left {
 }
 
 .pc-window-chrome-detail-btn {
-    height: 26px;
-    padding: 0 10px;
-    border: 1px dashed color-mix(in srgb, var(--pc-text) 16%, transparent);
-    border-radius: 8px;
-    background: transparent;
+    height: 28px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 10px;
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-soft-shadow);
     color: var(--pc-text2);
     font-family: inherit;
     font-size: 11px;
@@ -471,7 +472,7 @@ html.pc-prompt-detail-open .pc-window-chrome-left {
     cursor: pointer;
     pointer-events: auto;
     white-space: nowrap;
-    transition: color var(--pc-neu-transition, 0.15s), border-color var(--pc-neu-transition, 0.15s), background var(--pc-neu-transition, 0.15s);
+    transition: box-shadow var(--pc-neu-transition, 0.15s), color var(--pc-neu-transition, 0.15s), transform var(--pc-neu-transition, 0.15s);
 }
 
 .pc-window-chrome-detail-btn svg {
@@ -483,15 +484,18 @@ html.pc-prompt-detail-open .pc-window-chrome-left {
 .pc-window-chrome-detail-btn:hover,
 .pc-window-chrome-detail-btn:focus-visible {
     color: var(--pc-text);
-    border-color: color-mix(in srgb, var(--pc-text) 28%, transparent);
-    background: color-mix(in srgb, var(--pc-text) 6%, transparent);
+    box-shadow: var(--pc-control-raised-shadow);
+}
+
+.pc-window-chrome-detail-btn:active {
+    color: var(--pc-text);
+    box-shadow: var(--pc-control-pressed-shadow);
+    transform: translateY(1px);
 }
 
 .pc-window-chrome-detail-close:hover,
 .pc-window-chrome-detail-close:focus-visible {
     color: var(--pc-danger);
-    border-color: color-mix(in srgb, var(--pc-danger) 55%, transparent);
-    background: transparent;
 }
 
 .pc-window-chrome-detail-btn:focus-visible {
