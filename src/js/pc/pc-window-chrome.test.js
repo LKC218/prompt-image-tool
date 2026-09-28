@@ -39,35 +39,19 @@ describe('pc-window-chrome', () => {
         cleanup();
     });
 
-    it('shows detail crumb and product chips when chrome detail context is set', () => {
-        const onCollapse = vi.fn();
-        const onClose = vi.fn();
-        setChromeDetailContext({ title: 'GIT推送/汇总工作', onCollapse, onClose });
+    it('shows breadcrumb only when chrome detail context is set', () => {
+        setChromeDetailContext({ title: 'GIT推送/汇总工作' });
 
         const chrome = document.getElementById(CHROME_ID);
         expect(chrome.classList.contains('pc-window-chrome-detail-mode')).toBe(true);
         expect(chrome.querySelector('.pc-window-chrome-detail')?.hidden).toBe(false);
         expect(chrome.querySelector('.pc-window-chrome-crumb-title')?.textContent).toBe('GIT推送/汇总工作');
+        expect(chrome.querySelector('[data-detail-action]')).toBeNull();
         expect(document.documentElement.classList.contains('pc-prompt-detail-open')).toBe(true);
     });
 
-    it('invokes detail collapse and close callbacks from product chips', async () => {
-        const root = document.querySelector('.pc-app');
-        const cleanup = mountWindowChrome(root);
-        const onCollapse = vi.fn();
-        const onClose = vi.fn();
-        setChromeDetailContext({ title: '标题A', onCollapse, onClose });
-
-        root.querySelector('[data-detail-action="collapse"]').click();
-        root.querySelector('[data-detail-action="close"]').click();
-
-        expect(onCollapse).toHaveBeenCalledTimes(1);
-        expect(onClose).toHaveBeenCalledTimes(1);
-        cleanup();
-    });
-
     it('restores default chrome after clearing detail context', () => {
-        setChromeDetailContext({ title: '标题B', onCollapse: () => {}, onClose: () => {} });
+        setChromeDetailContext({ title: '标题B' });
         setChromeDetailContext(null);
 
         const chrome = document.getElementById(CHROME_ID);
@@ -77,7 +61,7 @@ describe('pc-window-chrome', () => {
     });
 
     it('syncs detail title for dual-window focus switches', () => {
-        setChromeDetailContext({ title: '旧标题', onCollapse: () => {}, onClose: () => {} });
+        setChromeDetailContext({ title: '旧标题' });
         syncChromeDetailTitle('新标题');
         expect(document.querySelector('.pc-window-chrome-crumb-title')?.textContent).toBe('新标题');
     });

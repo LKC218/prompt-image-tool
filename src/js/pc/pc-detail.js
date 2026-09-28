@@ -39,6 +39,8 @@ function render(params = {}) {
                 <div class="pc-detail-top-nav-actions">
                     <button class="pc-detail-top-nav-btn" id="pcDetailStar" title="收藏" aria-pressed="false" aria-label="收藏" type="button">${pcIcon('star', 'pc-detail-button-icon')}<span>收藏</span></button>
                     <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-more" id="pcDetailMoreTop" title="更多" aria-label="更多" aria-haspopup="menu" aria-expanded="false" type="button"><span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span></button>
+                    <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-icon" data-detail-action="collapse" title="收起到托盘" aria-label="收起到托盘" type="button"><svg class="pc-detail-button-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-close-detail" data-detail-action="close" title="关闭详情窗" aria-label="关闭详情窗" type="button">${pcIcon('x', 'pc-detail-button-icon')}<span>关闭详情</span></button>
                 </div>
             </div>
             <div class="pc-detail-page" id="pcDetailContent">

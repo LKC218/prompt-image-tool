@@ -3169,6 +3169,49 @@
     transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
+/* 详情窗产品动作：仅弹窗内出现（独立详情页走面包屑返回） */
+.pc-detail-top-nav-btn[data-detail-action] {
+    display: none;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-top-nav-btn[data-detail-action] {
+    display: inline-flex;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-top-nav-btn {
+    border: none;
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-soft-shadow);
+    transition: box-shadow var(--pc-neu-transition, 0.15s), color var(--pc-neu-transition, 0.15s), transform var(--pc-neu-transition, 0.15s);
+}
+
+.pc-prompt-detail-modal-content .pc-detail-top-nav-btn:hover,
+.pc-prompt-detail-modal-content .pc-detail-top-nav-btn:focus-visible {
+    box-shadow: var(--pc-control-raised-shadow);
+    color: var(--pc-text);
+}
+
+.pc-prompt-detail-modal-content .pc-detail-top-nav-btn:active {
+    box-shadow: var(--pc-control-pressed-shadow);
+    transform: translateY(1px);
+}
+
+.pc-detail-top-nav-btn-icon {
+    width: 40px;
+    padding: 0;
+}
+
+.pc-detail-top-nav-btn-close-detail:hover,
+.pc-detail-top-nav-btn-close-detail:focus-visible {
+    color: var(--pc-danger);
+}
+
+.pc-detail-top-nav-btn svg.pc-detail-button-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
 .pc-detail-top-nav-btn-more {
     width: 40px;
     padding: 0;

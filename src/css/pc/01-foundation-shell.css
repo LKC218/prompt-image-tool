@@ -416,7 +416,7 @@ html.pc-prompt-detail-open .pc-window-chrome {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 10px 0 8px;
+    padding: 0 12px;
     min-width: 0;
     flex-shrink: 0;
     pointer-events: auto;
@@ -442,7 +442,7 @@ html.pc-prompt-detail-open .pc-window-chrome-left {
     align-items: center;
     gap: 6px;
     min-width: 0;
-    max-width: min(280px, 24vw);
+    max-width: min(360px, 32vw);
     font-size: 11px;
     color: var(--pc-text2);
 }
@@ -454,53 +454,6 @@ html.pc-prompt-detail-open .pc-window-chrome-left {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.pc-window-chrome-detail-btn {
-    height: 28px;
-    padding: 0 12px;
-    border: none;
-    border-radius: 10px;
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-control-soft-shadow);
-    color: var(--pc-text2);
-    font-family: inherit;
-    font-size: 11px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    pointer-events: auto;
-    white-space: nowrap;
-    transition: box-shadow var(--pc-neu-transition, 0.15s), color var(--pc-neu-transition, 0.15s), transform var(--pc-neu-transition, 0.15s);
-}
-
-.pc-window-chrome-detail-btn svg {
-    width: 12px;
-    height: 12px;
-    display: block;
-}
-
-.pc-window-chrome-detail-btn:hover,
-.pc-window-chrome-detail-btn:focus-visible {
-    color: var(--pc-text);
-    box-shadow: var(--pc-control-raised-shadow);
-}
-
-.pc-window-chrome-detail-btn:active {
-    color: var(--pc-text);
-    box-shadow: var(--pc-control-pressed-shadow);
-    transform: translateY(1px);
-}
-
-.pc-window-chrome-detail-close:hover,
-.pc-window-chrome-detail-close:focus-visible {
-    color: var(--pc-danger);
-}
-
-.pc-window-chrome-detail-btn:focus-visible {
-    outline: 2px solid var(--pc-accent);
-    outline-offset: 1px;
 }
 
 .pc-window-chrome-drag {

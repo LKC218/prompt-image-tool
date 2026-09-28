@@ -12,10 +12,6 @@ function getFocusableElements(container) {
         .filter(element => !element.hidden && element.getClientRects().length > 0);
 }
 
-function getDetailChromeFocusables() {
-    return getFocusableElements(document.querySelector('.pc-window-chrome-detail') || document.createElement('div'));
-}
-
 function restoreTriggerFocus(triggerElement) {
     if (!triggerElement?.isConnected || typeof triggerElement.focus !== 'function') return;
     if (triggerElement.tabIndex < 0 && !triggerElement.hasAttribute('tabindex')) triggerElement.setAttribute('tabindex', '-1');
@@ -99,10 +95,21 @@ function syncChromeDetailContext() {
         setChromeDetailContext(null);
         return;
     }
-    setChromeDetailContext({
-        title: active.title || '提示词详情',
-        onCollapse: () => { minimizePromptDetail(active.id); },
-        onClose: () => { closePromptDetail(active.id); },
+    setChromeDetailContext({ title: active.title || '提示词详情' });
+}
+
+function bindDetailPanelActions(session) {
+    const root = session.panel;
+    root.querySelectorAll('[data-detail-action]').forEach((btn) => {
+        if (btn.dataset.detailBound === '1') return;
+        btn.dataset.detailBound = '1';
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const action = btn.dataset.detailAction;
+            if (action === 'collapse') minimizePromptDetail(session.id);
+            else if (action === 'close') closePromptDetail(session.id);
+        });
     });
 }
 
@@ -408,6 +415,7 @@ async function openPromptDetail(id, options = {}) {
     await mount(content, { id, onEdit: minimizeAllPromptDetails });
     content.querySelector('.pc-detail-breadcrumb')?.remove();
     session.title = content.querySelector('.pc-detail-page-name')?.textContent?.trim() || '提示词详情';
+    bindDetailPanelActions(session);
     panel.addEventListener('pointerdown', () => activatePromptDetail(id));
     activatePromptDetail(id);
     syncDeck();
@@ -439,7 +447,7 @@ document.addEventListener('keydown', event => {
         return;
     }
     if (event.key !== 'Tab') return;
-    const focusable = [...getFocusableElements(session.panel), ...getDetailChromeFocusables()];
+    const focusable = getFocusableElements(session.panel);
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];

@@ -5,13 +5,24 @@ import { resolve } from 'node:path';
 const overlayCss = readFileSync(resolve(process.cwd(), 'src/css/pc/05c-global-overlays.css'), 'utf8');
 
 const detailMocks = vi.hoisted(() => ({
-    render: vi.fn(() => '<div class="pc-detail-page-title">详情标题</div><div class="pc-detail-page-name">详情标题</div><div class="pc-detail-breadcrumb"></div>'),
+    render: vi.fn(() => `
+        <div class="pc-detail-page-title">详情标题</div>
+        <div class="pc-detail-page-name">详情标题</div>
+        <div class="pc-detail-breadcrumb"></div>
+        <div class="pc-detail-top-nav-actions">
+            <button class="pc-detail-top-nav-btn" id="pcDetailStar" type="button">收藏</button>
+            <button class="pc-detail-top-nav-btn" id="pcDetailMoreTop" type="button">更多</button>
+            <button class="pc-detail-top-nav-btn" data-detail-action="collapse" type="button">收起</button>
+            <button class="pc-detail-top-nav-btn" data-detail-action="close" type="button">关闭详情</button>
+        </div>
+    `),
     mount: vi.fn(async () => {}),
     unmount: vi.fn(),
 }));
 
 function minimizeActiveDetail() {
-    document.querySelector('[data-detail-action="collapse"]')?.click();
+    document.querySelector('.pc-prompt-detail-modal:not(.pc-prompt-detail-modal-minimized) [data-detail-action="collapse"]')
+        ?.click();
 }
 
 vi.mock('gsap', () => ({
@@ -165,7 +176,7 @@ describe('pc-detail-modal merged chrome (M1)', () => {
         expect(document.querySelector('[data-window-action="close"]')).toBeTruthy();
     });
 
-    it('详情打开时 chrome 显示面包屑与产品芯片，并提升层级类', async () => {
+    it('详情打开时 chrome 仅显示面包屑，产品动作在面板头', async () => {
         const { openPromptDetail } = await import('./pc-detail-modal.js');
         await openPromptDetail('prompt-1');
 
@@ -173,16 +184,17 @@ describe('pc-detail-modal merged chrome (M1)', () => {
         expect(detailBar).toBeTruthy();
         expect(detailBar.hidden).toBe(false);
         expect(document.querySelector('.pc-window-chrome-crumb-title')?.textContent).toBe('详情标题');
-        expect(document.querySelector('[data-detail-action="collapse"]')).toBeTruthy();
-        expect(document.querySelector('[data-detail-action="close"]')).toBeTruthy();
+        expect(document.querySelector('.pc-window-chrome-detail [data-detail-action]')).toBeNull();
+        expect(document.querySelector('.pc-prompt-detail-modal [data-detail-action="collapse"]')).toBeTruthy();
+        expect(document.querySelector('.pc-prompt-detail-modal [data-detail-action="close"]')).toBeTruthy();
         expect(document.documentElement.classList.contains('pc-prompt-detail-open')).toBe(true);
     });
 
-    it('chrome 关闭详情芯片关闭活动窗口', async () => {
+    it('面板头关闭详情按钮关闭活动窗口', async () => {
         const { openPromptDetail } = await import('./pc-detail-modal.js');
         await openPromptDetail('prompt-1');
 
-        document.querySelector('[data-detail-action="close"]').click();
+        document.querySelector('.pc-prompt-detail-modal [data-detail-action="close"]').click();
         await Promise.resolve();
         await Promise.resolve();
 
@@ -191,7 +203,7 @@ describe('pc-detail-modal merged chrome (M1)', () => {
         expect(document.documentElement.classList.contains('pc-prompt-detail-open')).toBe(false);
     });
 
-    it('chrome 收起芯片将详情收进托盘', async () => {
+    it('面板头收起按钮将详情收进托盘', async () => {
         const { openPromptDetail } = await import('./pc-detail-modal.js');
         await openPromptDetail('prompt-1');
 
@@ -204,13 +216,13 @@ describe('pc-detail-modal merged chrome (M1)', () => {
         expect(document.querySelector('.pc-window-chrome-detail')?.hidden).toBe(true);
     });
 
-    it('Tab 焦点环包含 chrome 收起/关闭详情，键盘可操作', async () => {
+    it('Tab 焦点环包含面板头收起/关闭详情', async () => {
         const { openPromptDetail } = await import('./pc-detail-modal.js');
         await openPromptDetail('prompt-1');
 
         const panel = document.querySelector('.pc-prompt-detail-modal');
-        const collapse = document.querySelector('[data-detail-action="collapse"]');
-        const closeDetail = document.querySelector('[data-detail-action="close"]');
+        const collapse = panel.querySelector('[data-detail-action="collapse"]');
+        const closeDetail = panel.querySelector('[data-detail-action="close"]');
         expect(panel).toBeTruthy();
         expect(collapse).toBeTruthy();
         expect(closeDetail).toBeTruthy();
