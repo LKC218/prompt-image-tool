@@ -154,7 +154,7 @@
 | 路径 | 职责 |
 | --- | --- |
 | `python/main.py` | 开发用 HTTP API + 静态资源 |
-| `python/auto_update.py` | 更新检查/异步下载 Job/静默安装模块；Tauri 安装根/主 exe 解析与 detached 安装 bootstrap（`build/auto_update.py` 同步副本） |
+| `python/auto_update.py` | 更新检查/异步下载 Job/可见安装向导启动（`CREATE_BREAKAWAY_FROM_JOB`）；Tauri 安装根/主 exe 解析（`build/auto_update.py` 同步副本） |
 | `build/app_main.py` | DEPRECATED：PyInstaller 全量旧壳入口（禁止发包） |
 | `build/app.spec` / `build/installer.nsi` | DEPRECATED：全量旧壳 PyInstaller/NSIS（禁止发包） |
 | `build/server.spec` | Tauri Sidecar 无头后端打包规格 |

@@ -29,7 +29,7 @@ async function readJson(response) {
 
 function confirmUpdate(version) {
     return showConfirmModal(
-        `当前版本 v${escapeHtml(getVersion())}，可更新到 v${escapeHtml(version)}。是否下载并安装？安装完成后应用会自动退出，并尝试重启进入新版本。`,
+        `当前版本 v${escapeHtml(getVersion())}，可更新到 v${escapeHtml(version)}。是否下载并打开安装向导？应用将退出以释放文件，请按向导完成安装。`,
         undefined,
         {
             confirmText: '下载安装',
@@ -284,7 +284,7 @@ async function runUpdateSessionInternal(latest) {
             modal.setProgress({ ...progress, phase: 'installing' });
             await installDownloadedUpdate(progress.path, { expectedVersion: latest?.version });
             modal.setProgress({ ...progress, phase: 'ready' });
-            showToast('安装程序已启动，应用即将退出并自动重启进入新版本');
+            showToast('安装向导已打开，请按向导完成安装');
             setTimeout(() => modal.close(), 800);
             setTimeout(() => {
                 void closeShellAfterInstall();

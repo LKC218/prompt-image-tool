@@ -45,195 +45,10 @@ MAIN_APP_IMAGE_NAMES = MAIN_APP_EXE_CANDIDATES
 # 兼容旧调用/测试；解析目标请用 resolve_target_exe
 APP_EXE_NAME = "PromptImageManager.exe"
 REGISTRY_APP_KEY = r"Software\PromptImageManager"
-HELPER_DEFAULT_TIMEOUT_SEC = 900
-HELPER_SETTLE_SEC = 3  # 杀进程后句柄释放
-# DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
-_HELPER_CREATIONFLAGS = 0x00000008 | 0x00000200 | 0x08000000
+# CREATE_BREAKAWAY_FROM_JOB | CREATE_NEW_PROCESS_GROUP
+# 必须 BREAKAWAY：DETACHED_PROCESS 仍留在 Job 内，主程序退出/KILL_ON_JOB_CLOSE 会带走安装向导。
+_INSTALLER_CREATIONFLAGS = 0x01000000 | 0x00000200
 
-# 安装链路 bootstrap：在脱离 Sidecar 的进程里完成 卸载→安装→重启。
-# 禁止在 Sidecar 内直接跑 uninstall/Setup：卸载 hook 会杀掉 Sidecar，Tauri Exit /T 会杀掉子进程 Setup。
-INSTALL_BOOTSTRAP_SCRIPT = r"""param(
-  [Parameter(Mandatory=$true)][string]$InstallerPath,
-  [string]$InstallDir = "",
-  [string]$TargetExe = "",
-  [string]$UninstallExe = "",
-  [string]$ExpectedVersion = "",
-  [int]$TimeoutSec = 900,
-  [int]$SettleSec = 3
-)
-$ErrorActionPreference = 'Continue'
-function Write-UpdateLog([string]$Message) {
-  try {
-    $logPath = Join-Path ([System.IO.Path]::GetTempPath()) 'prompt-image-update.log'
-    $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
-    Add-Content -LiteralPath $logPath -Value ('[{0}] {1}' -f $stamp, $Message) -Encoding UTF8
-  } catch {}
-}
-function Start-ProcHidden([string]$FilePath, [string]$Arguments) {
-  $psi = New-Object System.Diagnostics.ProcessStartInfo
-  $psi.FileName = $FilePath
-  $psi.Arguments = $Arguments
-  $psi.UseShellExecute = $false
-  $psi.CreateNoWindow = $true
-  $psi.WorkingDirectory = Split-Path -Parent $FilePath
-  return [System.Diagnostics.Process]::Start($psi)
-}
-Write-UpdateLog ("bootstrap start installer={0} installDir={1} target={2} uninstall={3}" -f $InstallerPath, $InstallDir, $TargetExe, $UninstallExe)
-if (-not (Test-Path -LiteralPath $InstallerPath)) {
-  Write-UpdateLog "bootstrap abort: installer missing"
-  exit 1
-}
-if ($UninstallExe -and (Test-Path -LiteralPath $UninstallExe)) {
-  try {
-    Write-UpdateLog ("bootstrap uninstall existing: {0}" -f $UninstallExe)
-    $un = Start-ProcHidden -FilePath $UninstallExe -Arguments '/S'
-    if ($un) {
-      [void]$un.WaitForExit(90000)
-      Write-UpdateLog ("bootstrap uninstall exit={0}" -f $un.ExitCode)
-    }
-    Start-Sleep -Seconds 1
-  } catch {
-    Write-UpdateLog ("bootstrap uninstall failed: {0}" -f $_.Exception.Message)
-  }
-} else {
-  Write-UpdateLog 'bootstrap skip uninstall'
-}
-# NSIS /D= 必须末尾且不带引号；用 ProcessStartInfo.Arguments 原样拼接
-$setupArgs = '/S'
-if ($InstallDir -and $InstallDir.Trim() -ne '') {
-  $setupArgs = '/S /D=' + $InstallDir
-}
-try {
-  Write-UpdateLog ("bootstrap launch setup args={0}" -f $setupArgs)
-  $setup = Start-ProcHidden -FilePath $InstallerPath -Arguments $setupArgs
-  if ($setup) {
-    $deadline = (Get-Date).AddSeconds($TimeoutSec)
-    while ((Get-Date) -lt $deadline) {
-      $alive = Get-Process -Id $setup.Id -ErrorAction SilentlyContinue
-      if (-not $alive) { break }
-      Start-Sleep -Milliseconds 500
-    }
-    Write-UpdateLog ("bootstrap setup ended pid={0} exit={1}" -f $setup.Id, $setup.ExitCode)
-  } else {
-    Write-UpdateLog 'bootstrap setup start returned null'
-  }
-} catch {
-  Write-UpdateLog ("bootstrap setup failed: {0}" -f $_.Exception.Message)
-}
-if ($SettleSec -gt 0) { Start-Sleep -Seconds $SettleSec }
-if ([string]::IsNullOrWhiteSpace($TargetExe)) {
-  Write-UpdateLog 'bootstrap TargetExe empty, abort relaunch'
-  try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}
-  exit 0
-}
-if (-not (Test-Path -LiteralPath $TargetExe)) {
-  $exeDirHint = Split-Path -Parent $TargetExe
-  foreach ($name in @('生图提示词管理器.exe','PromptImageManager.exe','app.exe')) {
-    $cand = Join-Path $exeDirHint $name
-    if (Test-Path -LiteralPath $cand) { $TargetExe = $cand; break }
-  }
-}
-if (-not (Test-Path -LiteralPath $TargetExe)) {
-  Write-UpdateLog 'bootstrap target missing after install'
-  try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}
-  exit 0
-}
-$exeDir = Split-Path -Parent $TargetExe
-if ($ExpectedVersion -ne "") {
-  $candidates = @(
-    (Join-Path $exeDir 'frontend\index.html'),
-    (Join-Path $exeDir '_internal\frontend\index.html')
-  )
-  $readAny = $false
-  $matched = $false
-  foreach ($htmlPath in $candidates) {
-    if (-not (Test-Path -LiteralPath $htmlPath)) { continue }
-    try {
-      $html = Get-Content -LiteralPath $htmlPath -Raw -Encoding UTF8
-      if ($null -eq $html) { $html = '' }
-      if ($html.Length -gt 8000) { $html = $html.Substring(0, 8000) }
-      if ($html -match '(?i)name=["'']version["'']\s+content=["'']([^"'']+)["'']') {
-        $readAny = $true
-        $found = [string]$Matches[1]
-        if ($found.Trim() -eq $ExpectedVersion.Trim()) { $matched = $true }
-      }
-    } catch {}
-  }
-  if ($readAny -and -not $matched) {
-    Write-UpdateLog ("bootstrap soft version mismatch expected={0} (still relaunch)" -f $ExpectedVersion)
-  }
-}
-try {
-  Start-Process -FilePath $TargetExe -WorkingDirectory $exeDir
-  Write-UpdateLog ("bootstrap relaunched {0}" -f $TargetExe)
-} catch {
-  Write-UpdateLog ("bootstrap relaunch failed: {0}" -f $_.Exception.Message)
-}
-try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}
-"""
-
-RELAUNCH_HELPER_SCRIPT = r"""param(
-  [Parameter(Mandatory=$true)][int]$InstallerPid,
-  [Parameter(Mandatory=$true)][string]$TargetExe,
-  [string]$ExpectedVersion = "",
-  [int]$TimeoutSec = 900,
-  [int]$SettleSec = 3
-)
-$deadline = (Get-Date).AddSeconds($TimeoutSec)
-while ((Get-Date) -lt $deadline) {
-  $proc = Get-Process -Id $InstallerPid -ErrorAction SilentlyContinue
-  if (-not $proc) { break }
-  Start-Sleep -Milliseconds 500
-}
-if ($SettleSec -gt 0) { Start-Sleep -Seconds $SettleSec }
-if ([string]::IsNullOrWhiteSpace($TargetExe)) {
-  try {
-    $logPath = Join-Path ([System.IO.Path]::GetTempPath()) 'prompt-image-update.log'
-    Add-Content -LiteralPath $logPath -Value ('[{0}] helper TargetExe empty, abort relaunch' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')) -Encoding UTF8
-  } catch {}
-  exit 0
-}
-if (-not (Test-Path -LiteralPath $TargetExe)) {
-  $exeDirHint = Split-Path -Parent $TargetExe
-  foreach ($name in @('生图提示词管理器.exe','PromptImageManager.exe','app.exe')) {
-    $cand = Join-Path $exeDirHint $name
-    if (Test-Path -LiteralPath $cand) { $TargetExe = $cand; break }
-  }
-}
-if (-not (Test-Path -LiteralPath $TargetExe)) { exit 0 }
-$exeDir = Split-Path -Parent $TargetExe
-# ExpectedVersion 仅作软校验日志：Tauri 布局无 frontend/index.html，硬门闩会误杀重启
-if ($ExpectedVersion -ne "") {
-  $candidates = @(
-    (Join-Path $exeDir 'frontend\index.html'),
-    (Join-Path $exeDir '_internal\frontend\index.html')
-  )
-  $readAny = $false
-  $matched = $false
-  foreach ($htmlPath in $candidates) {
-    if (-not (Test-Path -LiteralPath $htmlPath)) { continue }
-    try {
-      $html = Get-Content -LiteralPath $htmlPath -Raw -Encoding UTF8
-      if ($null -eq $html) { $html = '' }
-      if ($html.Length -gt 8000) { $html = $html.Substring(0, 8000) }
-      if ($html -match '(?i)name=["'']version["'']\s+content=["'']([^"'']+)["'']') {
-        $readAny = $true
-        $found = [string]$Matches[1]
-        if ($found.Trim() -eq $ExpectedVersion.Trim()) { $matched = $true }
-      }
-    } catch {}
-  }
-  if ($readAny -and -not $matched) {
-    try {
-      $logPath = Join-Path ([System.IO.Path]::GetTempPath()) 'prompt-image-update.log'
-      $line = '[{0}] helper soft version mismatch expected={1} (still relaunch)' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $ExpectedVersion
-      Add-Content -LiteralPath $logPath -Value $line -Encoding UTF8
-    } catch {}
-  }
-}
-Start-Process -FilePath $TargetExe -WorkingDirectory $exeDir
-try { Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue } catch {}
-"""
 
 
 def parse_version_tuple(version: str) -> tuple[int, ...]:
@@ -707,10 +522,6 @@ def reset_download_jobs_for_tests() -> None:
         _jobs.clear()
 
 
-def _should_auto_restart() -> bool:
-    return os.name == "nt" and bool(getattr(sys, "frozen", False))
-
-
 def _read_install_dir_from_registry() -> str | None:
     if os.name != "nt":
         return None
@@ -826,15 +637,6 @@ def _parent_process_exe_path() -> str | None:
     return None
 
 
-def _expected_target_exe(install_dir: str) -> str:
-    existing = resolve_target_exe(install_dir)
-    if existing:
-        return existing
-    if install_dir:
-        return os.path.join(os.path.abspath(install_dir), MAIN_APP_EXE_CANDIDATES[0])
-    return ""
-
-
 def resolve_install_dir() -> str:
     parent_exe = _parent_process_exe_path()
     if parent_exe:
@@ -890,176 +692,6 @@ def resolve_install_dir() -> str:
     return ""
 
 
-def build_install_bootstrap_script_text() -> str:
-    return INSTALL_BOOTSTRAP_SCRIPT
-
-
-def build_relaunch_helper_script_text() -> str:
-    return RELAUNCH_HELPER_SCRIPT
-
-
-def write_install_bootstrap_script(directory: str | None = None) -> str:
-    directory = directory or tempfile.gettempdir()
-    os.makedirs(directory, exist_ok=True)
-    path = os.path.join(
-        directory,
-        f"prompt-image-update-bootstrap-{uuid.uuid4().hex[:8]}.ps1",
-    )
-    with open(path, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(INSTALL_BOOTSTRAP_SCRIPT)
-    return path
-
-
-def write_relaunch_helper_script(directory: str | None = None) -> str:
-    directory = directory or tempfile.gettempdir()
-    os.makedirs(directory, exist_ok=True)
-    path = os.path.join(
-        directory,
-        f"prompt-image-update-relaunch-{uuid.uuid4().hex[:8]}.ps1",
-    )
-    with open(path, "w", encoding="utf-8", newline="\n") as handle:
-        handle.write(RELAUNCH_HELPER_SCRIPT)
-    return path
-
-
-def spawn_install_bootstrap(
-    *,
-    installer_path: str,
-    install_dir: str = "",
-    target_exe: str = "",
-    uninstall_exe: str = "",
-    expected_version: str | None = None,
-    timeout_sec: int = HELPER_DEFAULT_TIMEOUT_SEC,
-    settle_sec: int = HELPER_SETTLE_SEC,
-    script_path: str | None = None,
-) -> dict[str, Any]:
-    """在脱离 Sidecar 的进程里执行卸载→安装→重启；调用方随后可安全自杀。"""
-    bootstrap_script = script_path or write_install_bootstrap_script()
-    args = [
-        "powershell",
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        bootstrap_script,
-        "-InstallerPath",
-        installer_path,
-        "-InstallDir",
-        install_dir or "",
-        "-TargetExe",
-        target_exe or "",
-        "-UninstallExe",
-        uninstall_exe or "",
-        "-ExpectedVersion",
-        expected_version or "",
-        "-TimeoutSec",
-        str(int(timeout_sec)),
-        "-SettleSec",
-        str(int(settle_sec)),
-    ]
-    creationflags = _HELPER_CREATIONFLAGS if os.name == "nt" else 0
-    try:
-        proc = subprocess.Popen(
-            args,
-            close_fds=True,
-            creationflags=creationflags,
-            cwd=os.path.dirname(bootstrap_script) or None,
-        )
-    except Exception:
-        _remove_file_quiet(bootstrap_script)
-        raise
-    return {
-        "success": True,
-        "bootstrapPath": bootstrap_script,
-        "bootstrapPid": getattr(proc, "pid", None),
-    }
-
-
-def spawn_relaunch_helper(
-    installer_pid: int,
-    target_exe: str,
-    expected_version: str | None = None,
-    *,
-    timeout_sec: int = HELPER_DEFAULT_TIMEOUT_SEC,
-    settle_sec: int = HELPER_SETTLE_SEC,
-    script_path: str | None = None,
-) -> dict[str, Any]:
-    helper_script = script_path or write_relaunch_helper_script()
-    args = [
-        "powershell",
-        "-NoProfile",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-File",
-        helper_script,
-        "-InstallerPid",
-        str(int(installer_pid)),
-        "-TargetExe",
-        str(target_exe),
-        "-ExpectedVersion",
-        str(expected_version or ""),
-        "-TimeoutSec",
-        str(int(timeout_sec)),
-        "-SettleSec",
-        str(int(settle_sec)),
-    ]
-    creationflags = _HELPER_CREATIONFLAGS if os.name == "nt" else 0
-    try:
-        subprocess.Popen(
-            args,
-            close_fds=True,
-            creationflags=creationflags,
-            cwd=os.path.dirname(helper_script) or None,
-        )
-    except Exception:
-        _remove_file_quiet(helper_script)
-        raise
-    return {"success": True, "helperPath": helper_script}
-
-
-def kill_main_app_for_install() -> None:
-    """按镜像名结束主程序；不带 /T，避免杀掉作为子进程的 Sidecar。"""
-    if os.name != "nt":
-        return
-    for image_name in (*MAIN_APP_EXE_CANDIDATES, "app.exe"):
-        try:
-            subprocess.run(
-                ["taskkill", "/F", "/IM", image_name],
-                capture_output=True,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-                check=False,
-            )
-        except Exception:
-            pass
-
-
-def run_uninstall_existing(install_dir: str) -> dict[str, Any]:
-    """静默卸载已有安装（Tauri uninstall.exe /S），降低覆盖写文件锁失败率。"""
-    if os.name != "nt" or not install_dir:
-        return {"attempted": False}
-    uninstaller = os.path.join(install_dir, "uninstall.exe")
-    if not os.path.isfile(uninstaller):
-        _append_update_log("skip uninstall: uninstall.exe missing")
-        return {"attempted": False, "reason": "no uninstaller"}
-    try:
-        proc = subprocess.Popen(
-            f'"{uninstaller}" /S',
-            cwd=install_dir,
-            close_fds=True,
-            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000),
-            shell=False,
-        )
-        try:
-            proc.wait(timeout=90)
-        except Exception:
-            pass
-        _append_update_log(f"uninstall existing done pid={getattr(proc, 'pid', None)}")
-        return {"attempted": True, "uninstallPid": getattr(proc, "pid", None)}
-    except Exception as exc:
-        _append_update_log(f"uninstall existing failed: {exc}")
-        return {"attempted": True, "error": str(exc)}
-
-
 def _append_update_log(message: str) -> None:
     try:
         log_path = os.path.join(tempfile.gettempdir(), "prompt-image-update.log")
@@ -1070,60 +702,90 @@ def _append_update_log(message: str) -> None:
         pass
 
 
+def _shell_execute_open(path: str) -> int | None:
+    """ShellExecuteW 回退：尽量把安装包交给 shell 启动，减少与 Sidecar 进程树耦合。"""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+
+        workdir = os.path.dirname(os.path.abspath(path)) or None
+        rc = ctypes.windll.shell32.ShellExecuteW(
+            None,
+            "open",
+            path,
+            None,
+            workdir,
+            1,  # SW_SHOWNORMAL
+        )
+        # ShellExecuteW 返回值 > 32 表示成功
+        if rc and int(rc) > 32:
+            return int(rc)
+        return None
+    except Exception:
+        return None
+
+
+def launch_installer_wizard(installer_path: str) -> dict[str, Any]:
+    """拉起可见安装向导（无 /S）。进程带 CREATE_BREAKAWAY_FROM_JOB，主程序可安全退出。"""
+    path = (installer_path or "").strip()
+    if not path or not os.path.isfile(path):
+        raise FileNotFoundError("安装包不存在")
+    path = os.path.abspath(path)
+    workdir = os.path.dirname(path) or None
+
+    creationflags = _INSTALLER_CREATIONFLAGS if os.name == "nt" else 0
+    installer_pid = None
+    shell_handle = None
+    launch_mode = "popen"
+    try:
+        proc = subprocess.Popen(
+            [path],
+            cwd=workdir,
+            close_fds=True,
+            creationflags=creationflags,
+        )
+        installer_pid = getattr(proc, "pid", None)
+    except Exception as popen_error:
+        shell_rc = _shell_execute_open(path)
+        if shell_rc is None:
+            _append_update_log(f"installer wizard launch failed: {popen_error}")
+            raise
+        launch_mode = "shellexecute"
+        shell_handle = shell_rc
+
+    result = {
+        "success": True,
+        "message": "installer wizard launched",
+        "mode": "wizard",
+        "installerPid": installer_pid,
+        "installerPath": path,
+        "launchMode": launch_mode,
+        "shellHandle": shell_handle,
+    }
+    _append_update_log(
+        "launch_installer_wizard "
+        + json.dumps(result, ensure_ascii=False)
+    )
+    return result
+
+
 def run_installer(
     installer_path: str,
     *,
     expected_version: str | None = None,
 ) -> dict[str, Any]:
-    path = (installer_path or "").strip()
-    if not path or not os.path.isfile(path):
-        raise FileNotFoundError("安装包不存在")
-
-    auto_restart = _should_auto_restart()
-    install_dir = resolve_install_dir() if auto_restart else ""
-    target_exe = resolve_target_exe(install_dir) if install_dir else ""
-    helper_target_exe = _expected_target_exe(install_dir) if install_dir else ""
-    # 仅当安装根可信（目录内已有主 exe 且不是 server 旁路）才传 /D=
-    use_custom_dir = bool(install_dir) and bool(target_exe) and not _is_server_only_dir(install_dir)
-    bootstrap_install_dir = install_dir if use_custom_dir else ""
-    uninstall_exe = ""
-    if install_dir:
-        candidate = os.path.join(install_dir, "uninstall.exe")
-        if os.path.isfile(candidate):
-            uninstall_exe = candidate
-
-    # 安装链路全部放进 detached bootstrap，Sidecar 随后自杀也不影响 Setup
-    bootstrap = spawn_install_bootstrap(
-        installer_path=path,
-        install_dir=bootstrap_install_dir,
-        target_exe=helper_target_exe if auto_restart else "",
-        uninstall_exe=uninstall_exe,
-        expected_version=expected_version,
-    )
-
-    result = {
-        "success": True,
-        "message": "install bootstrap launched",
-        "bootstrapPid": bootstrap.get("bootstrapPid"),
-        "bootstrapPath": bootstrap.get("bootstrapPath"),
-        "installDir": install_dir if use_custom_dir else (install_dir or ""),
-        "targetExe": target_exe,
-        "helperTargetExe": helper_target_exe,
-        "helperSpawned": True,
-        "autoRestart": auto_restart,
-    }
+    """应用内更新入口：打开可见安装向导。expected_version 仅签名兼容，不参与安装。"""
+    result = launch_installer_wizard(installer_path)
     _append_update_log(
         "run_installer "
         + json.dumps(
             {
                 "expectedVersion": expected_version,
-                "installDir": install_dir,
-                "useCustomDir": use_custom_dir,
-                "targetExe": target_exe,
-                "helperTargetExe": helper_target_exe,
-                "uninstallExe": uninstall_exe,
-                "bootstrapPath": bootstrap.get("bootstrapPath"),
-                **{k: result[k] for k in ("bootstrapPid", "helperSpawned", "autoRestart")},
+                "mode": result.get("mode"),
+                "installerPid": result.get("installerPid"),
+                "installerPath": result.get("installerPath"),
+                "launchMode": result.get("launchMode"),
             },
             ensure_ascii=False,
         )

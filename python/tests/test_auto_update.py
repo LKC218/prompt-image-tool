@@ -16,28 +16,22 @@ import auto_update
 from auto_update import (
     APP_EXE_NAME,
     MAIN_APP_EXE_CANDIDATES,
-    resolve_target_exe,
-    run_uninstall_existing,
     DownloadCancelled,
     _download_url_candidates,
     _friendly_network_error,
     _meta_candidate_urls,
-    build_install_bootstrap_script_text,
-    build_relaunch_helper_script_text,
     cancel_download_job,
     download_installer,
     fetch_latest_meta,
     get_download_job,
     is_remote_newer,
-    kill_main_app_for_install,
+    launch_installer_wizard,
     parse_version_tuple,
     read_local_app_version,
     reset_download_jobs_for_tests,
     resolve_install_dir,
     resolve_target_exe,
     run_installer,
-    spawn_install_bootstrap,
-    spawn_relaunch_helper,
     start_download_job,
 )
 
@@ -80,62 +74,39 @@ def test_read_local_app_version_reads_upto_8000(tmp_path):
     assert read_local_app_version(str(tmp_path)) == "9.9.9-test"
 
 
-def test_run_installer_windows_dd_unquoted(monkeypatch, tmp_path):
+def test_launch_installer_wizard_no_silent_args(monkeypatch, tmp_path):
     setup = tmp_path / "PromptImageManager-Setup.exe"
     setup.write_bytes(b"mz")
-    install_dir = tmp_path / "App Local" / "PromptImageManager"
-    install_dir.mkdir(parents=True)
-    (install_dir / APP_EXE_NAME).write_bytes(b"stub")
-    uninstaller = install_dir / "uninstall.exe"
-    uninstaller.write_bytes(b"mz")
+    seen = {}
 
-    monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
-    monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(install_dir))
+    class _Proc:
+        pid = 1
+
+    def fake_popen(cmd, **kwargs):
+        seen["cmd"] = list(cmd)
+        seen["kwargs"] = kwargs
+        return _Proc()
+
+    monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
     monkeypatch.setattr("auto_update.os.name", "nt")
-
-    captured = {}
-
-    def fake_spawn(**kwargs):
-        captured.update(kwargs)
-        return {"success": True, "bootstrapPath": "x.ps1", "bootstrapPid": 1}
-
-    monkeypatch.setattr("auto_update.spawn_install_bootstrap", fake_spawn)
-    result = run_installer(str(setup), expected_version="1.0.0")
+    result = launch_installer_wizard(str(setup))
 
     assert result["success"] is True
-    assert result["helperSpawned"] is True
-    assert captured["installer_path"] == str(setup)
-    assert captured["install_dir"] == str(install_dir)
-    assert captured["uninstall_exe"] == str(uninstaller)
-    assert captured["expected_version"] == "1.0.0"
-    text = build_install_bootstrap_script_text()
-    # NSIS /D= 在 bootstrap 内用 ProcessStartInfo 原样拼接，末尾无引号
-    assert "$setupArgs = '/S /D=' + $InstallDir" in text
+    assert result["mode"] == "wizard"
+    assert result["installerPid"] == 1
+    assert seen["cmd"] == [str(setup.resolve())]
+    # 可见向导：禁止静默与自定义目录参数
+    joined = " ".join(seen["cmd"])
+    assert "/S" not in joined
+    assert "/D=" not in joined
+    if os.name == "nt":
+        assert seen["kwargs"].get("creationflags") == auto_update._INSTALLER_CREATIONFLAGS
+    assert seen["kwargs"].get("close_fds") is True
 
 
-def test_run_installer_untrusted_dir_omits_dd(monkeypatch, tmp_path):
-    setup = tmp_path / "setup.exe"
-    setup.write_bytes(b"mz")
-    empty_dir = tmp_path / "EmptyNoMainExe"
-    empty_dir.mkdir()
-
-    monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
-    monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(empty_dir))
-
-    captured = {}
-
-    def fake_spawn(**kwargs):
-        captured.update(kwargs)
-        return {"success": True, "bootstrapPath": "x.ps1", "bootstrapPid": 3}
-
-    monkeypatch.setattr("auto_update.spawn_install_bootstrap", fake_spawn)
-    result = run_installer(str(setup))
-
-    assert result["targetExe"] == ""
-    assert captured["install_dir"] == ""
-    # 不可信目录不传 /D=，但仍记录安装后期望主程序路径供 bootstrap 软重启
-    assert captured["target_exe"].endswith(MAIN_APP_EXE_CANDIDATES[0])
-    assert captured["uninstall_exe"] == ""
+def test_run_installer_missing_path_raises(tmp_path):
+    with pytest.raises(FileNotFoundError, match="安装包不存在"):
+        run_installer(str(tmp_path / "missing-setup.exe"))
 
 
 PAYLOAD_BYTES = 1024 * 64
@@ -392,11 +363,6 @@ def test_resolve_target_exe_finds_app_exe(tmp_path):
     assert resolve_target_exe(str(tmp_path)) == os.path.abspath(str(app))
 
 
-def test_run_uninstall_existing_missing_uninstaller(tmp_path):
-    result = run_uninstall_existing(str(tmp_path))
-    assert result["attempted"] is False
-
-
 def test_resolve_install_dir_prefers_parent_tauri_root(monkeypatch, tmp_path):
     install_dir = tmp_path / "TauriApp"
     install_dir.mkdir()
@@ -463,115 +429,44 @@ def test_resolve_install_dir_prefers_registry_over_local_appdata(monkeypatch, tm
     assert resolve_install_dir() == str(reg_dir)
 
 
-def test_build_relaunch_helper_script_contains_contract():
-    text = build_relaunch_helper_script_text()
-    assert "InstallerPid" in text
-    assert "TargetExe" in text
-    assert "ExpectedVersion" in text
-    assert "SettleSec" in text
-    assert "Start-Process" in text
-    assert "frontend\\index.html" in text or "frontend/index.html" in text
-    assert "_internal" in text
-    # 软校验：禁止因 meta 不一致直接 exit 0 拒绝重启；mismatch 须写日志
-    assert "if ($readAny -and -not $matched) { exit 0 }" not in text
-    assert "soft version mismatch" in text
-
-
-def test_build_install_bootstrap_script_contains_contract():
-    text = build_install_bootstrap_script_text()
-    assert "InstallerPath" in text
-    assert "InstallDir" in text
-    assert "TargetExe" in text
-    assert "UninstallExe" in text
-    assert "ExpectedVersion" in text
-    assert "Start-ProcHidden" in text
-    assert "$setupArgs = '/S /D=' + $InstallDir" in text
-    assert "soft version mismatch" in text
-    # 卸载/安装/重启必须全在 bootstrap 内，不能要求 Sidecar 存活
-    assert "uninstall existing" in text
-    assert "bootstrap relaunched" in text
-
-
-def test_run_installer_dev_skips_helper(monkeypatch, tmp_path):
-    setup = tmp_path / "PromptImageManager-Setup.exe"
-    setup.write_bytes(b"mz")
-    monkeypatch.setattr("auto_update._should_auto_restart", lambda: False)
-
-    captured = {}
-
-    def fake_spawn(**kwargs):
-        captured.update(kwargs)
-        return {"success": True, "bootstrapPath": "dev.ps1", "bootstrapPid": 4242}
-
-    monkeypatch.setattr("auto_update.spawn_install_bootstrap", fake_spawn)
-    result = run_installer(str(setup), expected_version="2.5.9")
-    assert result["success"] is True
-    assert result["autoRestart"] is False
-    assert result["helperSpawned"] is True
-    assert result["installDir"] == ""
-    assert captured["install_dir"] == ""
-    assert captured["target_exe"] == ""
-    assert captured["expected_version"] == "2.5.9"
-
-
-def test_run_installer_frozen_windows_spawns_bootstrap(monkeypatch, tmp_path):
-    setup = tmp_path / "PromptImageManager-Setup-2.5.9.exe"
-    setup.write_bytes(b"mz")
-    install_dir = tmp_path / "AppLocal" / "PromptImageManager"
-    install_dir.mkdir(parents=True)
-    target_exe = install_dir / APP_EXE_NAME
-    target_exe.write_bytes(b"stub")
-
-    monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
-    monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(install_dir))
-
-    captured = {}
-
-    def fake_spawn(**kwargs):
-        captured.update(kwargs)
-        return {"success": True, "bootstrapPath": "boot.ps1", "bootstrapPid": 9911}
-
-    monkeypatch.setattr("auto_update.spawn_install_bootstrap", fake_spawn)
-    result = run_installer(str(setup), expected_version="2.5.9")
-    assert result["success"] is True
-    assert result["autoRestart"] is True
-    assert result["helperSpawned"] is True
-    assert result["installDir"] == str(install_dir)
-    assert result["targetExe"] == str(target_exe)
-    assert result["bootstrapPid"] == 9911
-    assert captured["installer_path"] == str(setup)
-    assert captured["install_dir"] == str(install_dir)
-    assert captured["target_exe"] == str(target_exe)
-    assert captured["expected_version"] == "2.5.9"
-
-
-def test_run_installer_bootstrap_failure_raises(monkeypatch, tmp_path):
+def test_launch_installer_wizard_shellexecute_fallback(monkeypatch, tmp_path):
     setup = tmp_path / "setup.exe"
     setup.write_bytes(b"mz")
-    install_dir = tmp_path / "inst"
-    install_dir.mkdir()
-    (install_dir / APP_EXE_NAME).write_bytes(b"stub")
+    monkeypatch.setattr("auto_update.os.name", "nt")
 
-    monkeypatch.setattr("auto_update._should_auto_restart", lambda: True)
-    monkeypatch.setattr("auto_update.resolve_install_dir", lambda: str(install_dir))
+    def boom(*_a, **_k):
+        raise RuntimeError("popen blocked")
 
-    def boom(*_args, **_kwargs):
-        raise RuntimeError("bootstrap blocked")
+    monkeypatch.setattr("auto_update.subprocess.Popen", boom)
+    monkeypatch.setattr("auto_update._shell_execute_open", lambda path: 42)
+    result = launch_installer_wizard(str(setup))
+    assert result["success"] is True
+    assert result["mode"] == "wizard"
+    assert result["launchMode"] == "shellexecute"
+    assert result["installerPid"] is None
+    assert result["shellHandle"] == 42
 
-    monkeypatch.setattr("auto_update.spawn_install_bootstrap", boom)
+
+def test_launch_installer_wizard_launch_failure_raises(monkeypatch, tmp_path):
+    setup = tmp_path / "setup.exe"
+    setup.write_bytes(b"mz")
+
+    def boom(*_a, **_k):
+        raise RuntimeError("popen blocked")
+
+    monkeypatch.setattr("auto_update.subprocess.Popen", boom)
+    monkeypatch.setattr("auto_update._shell_execute_open", lambda path: None)
     with pytest.raises(RuntimeError):
-        run_installer(str(setup))
+        launch_installer_wizard(str(setup))
 
 
-def test_spawn_install_bootstrap_invokes_powershell(monkeypatch, tmp_path):
-    script = tmp_path / "bootstrap.ps1"
-    script.write_text("# bootstrap", encoding="utf-8")
+def test_run_installer_returns_wizard_mode(monkeypatch, tmp_path):
     setup = tmp_path / "setup.exe"
     setup.write_bytes(b"mz")
     seen = {}
 
     class _Proc:
-        pid = 55
+        pid = 9
 
     def fake_popen(cmd, **kwargs):
         seen["cmd"] = list(cmd)
@@ -579,106 +474,10 @@ def test_spawn_install_bootstrap_invokes_powershell(monkeypatch, tmp_path):
         return _Proc()
 
     monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
-    result = spawn_install_bootstrap(
-        installer_path=str(setup),
-        install_dir=r"C:\App Local\PIM",
-        target_exe=r"C:\App Local\PIM\PromptImageManager.exe",
-        uninstall_exe=r"C:\App Local\PIM\uninstall.exe",
-        expected_version="2.5.9",
-        script_path=str(script),
-    )
+    result = run_installer(str(setup), expected_version="2.5.31")
     assert result["success"] is True
-    assert result["bootstrapPath"] == str(script)
-    assert result["bootstrapPid"] == 55
-    assert seen["cmd"][0] == "powershell"
-    assert str(script) in seen["cmd"]
-    assert "-InstallerPath" in seen["cmd"]
-    assert str(setup) in seen["cmd"]
-    assert "-InstallDir" in seen["cmd"]
-    assert r"C:\App Local\PIM" in seen["cmd"]
-    assert "-UninstallExe" in seen["cmd"]
-    assert "2.5.9" in seen["cmd"]
-    assert seen["kwargs"].get("close_fds") is True
-    if os.name == "nt":
-        assert seen["kwargs"].get("creationflags") == auto_update._HELPER_CREATIONFLAGS
-
-
-def test_spawn_install_bootstrap_cleans_script_on_popen_failure(monkeypatch, tmp_path):
-    script = tmp_path / "bootstrap-fail.ps1"
-    script.write_text("# bootstrap", encoding="utf-8")
-    setup = tmp_path / "setup.exe"
-    setup.write_bytes(b"mz")
-
-    def boom(*_args, **_kwargs):
-        raise RuntimeError("popen failed")
-
-    monkeypatch.setattr("auto_update.subprocess.Popen", boom)
-    with pytest.raises(RuntimeError):
-        spawn_install_bootstrap(installer_path=str(setup), script_path=str(script))
-    assert not script.exists()
-
-
-def test_spawn_relaunch_helper_invokes_powershell(monkeypatch, tmp_path):
-    script = tmp_path / "helper.ps1"
-    script.write_text("# helper", encoding="utf-8")
-    seen = {}
-
-    class _Proc:
-        pid = 55
-
-    def fake_popen(cmd, **kwargs):
-        seen["cmd"] = list(cmd)
-        seen["kwargs"] = kwargs
-        return _Proc()
-
-    monkeypatch.setattr("auto_update.subprocess.Popen", fake_popen)
-    result = spawn_relaunch_helper(
-        55,
-        r"C:\Apps\PromptImageManager\PromptImageManager.exe",
-        "2.5.9",
-        script_path=str(script),
-    )
-    assert result["success"] is True
-    assert result["helperPath"] == str(script)
-    assert seen["cmd"][0] == "powershell"
-    assert str(script) in seen["cmd"]
-    assert "2.5.9" in seen["cmd"]
-    assert "-SettleSec" in seen["cmd"]
-    settle_idx = seen["cmd"].index("-SettleSec")
-    assert seen["cmd"][settle_idx + 1] == "3"
-    assert seen["kwargs"].get("close_fds") is True
-    if os.name == "nt":
-        assert seen["kwargs"].get("creationflags") == auto_update._HELPER_CREATIONFLAGS
-
-
-def test_spawn_relaunch_helper_cleans_script_on_popen_failure(monkeypatch, tmp_path):
-    script = tmp_path / "helper-fail.ps1"
-    script.write_text("# helper", encoding="utf-8")
-
-    def boom(*_args, **_kwargs):
-        raise RuntimeError("popen failed")
-
-    monkeypatch.setattr("auto_update.subprocess.Popen", boom)
-    with pytest.raises(RuntimeError):
-        spawn_relaunch_helper(1, r"C:\x\PromptImageManager.exe", script_path=str(script))
-    assert not script.exists()
-
-
-def test_kill_main_app_for_install_calls_taskkill(monkeypatch):
-    seen = []
-
-    def fake_run(cmd, **kwargs):
-        seen.append({"cmd": list(cmd), "kwargs": kwargs})
-        return None
-
-    monkeypatch.setattr("auto_update.subprocess.run", fake_run)
-    kill_main_app_for_install()
-    if os.name == "nt":
-        assert seen, "taskkill should be invoked on nt"
-        for item in seen:
-            assert item["cmd"][0] == "taskkill"
-            assert "/T" not in item["cmd"]
-            assert item["cmd"][-1] in MAIN_APP_EXE_CANDIDATES
-        assert any(APP_EXE_NAME in item["cmd"] for item in seen)
-    else:
-        assert seen == []
+    assert result["mode"] == "wizard"
+    assert result["installerPid"] == 9
+    assert seen["cmd"] == [str(setup.resolve())]
+    # expected_version 仅兼容签名，不进入命令行
+    assert "2.5.31" not in seen["cmd"]

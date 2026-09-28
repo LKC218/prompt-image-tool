@@ -296,6 +296,20 @@ describe('update progress modal', () => {
         expect(document.getElementById('pcUpdateProgressRetryBtn')).toBeNull();
         modal.close();
     });
+
+    it('installing/ready 文案为安装向导语义，不含自动重启', () => {
+        const modal = openUpdateProgressModal({});
+        modal.setProgress({ phase: 'installing', percent: 100 });
+        const status = document.getElementById('pcUpdateProgressStatus');
+        expect(status.textContent).toContain('安装向导');
+        expect(status.textContent).not.toContain('自动重启');
+        modal.setProgress({ phase: 'ready', percent: 100 });
+        expect(status.textContent).toContain('安装向导');
+        expect(status.textContent).not.toContain('自动重启');
+        const stages = document.getElementById('pcUpdateStageList');
+        expect(stages.textContent).toContain('启动安装向导');
+        modal.close();
+    });
 });
 
 describe('showConfirmModal Promise 闭环', () => {

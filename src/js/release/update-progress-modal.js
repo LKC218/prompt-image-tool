@@ -3,7 +3,7 @@ import { closeModal, escapeHtml } from '../pc/pc-utils.js';
 const STAGE_LABELS = [
     { key: 'downloading', label: '下载安装包' },
     { key: 'verifying', label: '校验完整性' },
-    { key: 'installing', label: '启动安装' },
+    { key: 'installing', label: '启动安装向导' },
 ];
 
 const PHASE_TO_STAGE = {
@@ -211,9 +211,9 @@ export function openUpdateProgressModal({ onCancel, onRetry } = {}) {
             } else if (phase === 'verifying') {
                 statusEl.textContent = '正在校验安装包完整性…';
             } else if (phase === 'installing') {
-                statusEl.textContent = '正在启动安装程序…';
+                statusEl.textContent = '正在启动安装向导…';
             } else if (phase === 'ready') {
-                statusEl.textContent = '安装程序已启动，应用即将退出并自动重启';
+                statusEl.textContent = '安装向导已打开，请按向导完成安装';
             } else if (phase === 'failed') {
                 statusEl.textContent = '更新失败';
             } else if (phase === 'cancelled') {
