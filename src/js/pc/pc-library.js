@@ -9,6 +9,7 @@ import { pcIcon } from './pc-icon-assets.js';
 import { playPcFavoriteFeedback } from './pc-favorite-feedback.js';
 import { aggregateTags, getLibraryTagStyleClass, getPcTagStyleClass } from '../shared/tag-utils.js';
 import { openPromptDetail } from './pc-detail-modal.js';
+import { bindNeuSelect, renderNeuSelect } from './pc-neu-select.js';
 
 let libraryData = null;
 let currentFilter = 'all';
@@ -280,6 +281,7 @@ function renderLibraryContent(pageEl) {
         preview.innerHTML = renderPreviewPanel(selectedItem);
         loadLibraryImages(tbody);
         loadLibraryImages(preview);
+        bindLibraryPageSizeSelect(pageEl);
         window.requestAnimationFrame(() => setupNameMarquee(container));
         ensureSelectedDetail(pageEl, selectedItem.id);
         return;
@@ -313,6 +315,7 @@ function renderLibraryContent(pageEl) {
     `;
 
     loadLibraryImages(container);
+    bindLibraryPageSizeSelect(pageEl);
     window.requestAnimationFrame(() => setupNameMarquee(container));
     ensureSelectedDetail(pageEl, selectedItem.id);
 }
@@ -399,10 +402,14 @@ function renderPagination(total, pageCount) {
             <div class="pc-library-page-left">
                 <span>共 ${total} 条</span>
                 <label class="pc-library-page-size-label">
-                    <select class="pc-library-page-size" id="pcLibraryPageSize" aria-label="每页数量">
-                        ${PAGE_SIZE_OPTIONS.map(size => `<option value="${size}" ${size === pageSize ? 'selected' : ''}>${size}条/页</option>`).join('')}
-                    </select>
-                    <span class="pc-library-page-size-icon">${ICONS.chevronDown}</span>
+                    ${renderNeuSelect({
+                        id: 'pcLibraryPageSize',
+                        value: pageSize,
+                        label: '每页数量',
+                        className: 'pc-library-page-size',
+                        align: 'end',
+                        options: PAGE_SIZE_OPTIONS.map(size => ({ value: size, label: `${size}条/页` })),
+                    })}
                 </label>
             </div>
             <div class="pc-library-page-center">
@@ -420,6 +427,19 @@ function renderPagination(total, pageCount) {
             </div>
         </div>
     `;
+}
+
+function bindLibraryPageSizeSelect(pageEl) {
+    const root = pageEl?.querySelector('#pcLibraryPageSize');
+    if (!root) return;
+    if (typeof pageEl._pageSizeSelectDispose === 'function') {
+        pageEl._pageSizeSelectDispose();
+    }
+    pageEl._pageSizeSelectDispose = bindNeuSelect(root, (value) => {
+        pageSize = PAGE_SIZE_OPTIONS.includes(Number(value)) ? Number(value) : 20;
+        currentPage = Math.min(currentPage, getPageCount(getFilteredItems().length));
+        renderLibraryContent(pageEl);
+    });
 }
 
 function buildPageList(pageCount, activePage) {
@@ -638,14 +658,6 @@ function setupLibraryEvents(pageEl) {
         if (pageInput) {
             const pageCount = getPageCount(getFilteredItems().length);
             currentPage = Math.min(pageCount, Math.max(1, Number(pageInput.value) || 1));
-            renderLibraryContent(pageEl);
-            return;
-        }
-
-        const pageSizeSelect = e.target.closest('#pcLibraryPageSize');
-        if (pageSizeSelect) {
-            pageSize = PAGE_SIZE_OPTIONS.includes(Number(pageSizeSelect.value)) ? Number(pageSizeSelect.value) : 20;
-            currentPage = Math.min(currentPage, getPageCount(getFilteredItems().length));
             renderLibraryContent(pageEl);
         }
     });

@@ -51,7 +51,7 @@
     padding: 20px 24px;
     border-radius: 16px;
     background: var(--color-surface-raised, #fff);
-    box-shadow: var(--pc-sidebar-neu-shadow, 4px 4px 10px rgba(174, 174, 192, 0.4));
+    box-shadow: var(--pc-control-float-shadow, 0 8px 24px var(--color-shadow-dark));
 }
 
 .pc-tetris-overlay-title {

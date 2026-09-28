@@ -87,6 +87,7 @@
 | `pc-tetris.js` | `/tetris` | 俄罗斯方块小游戏页（Canvas、键盘与按钮） |
 | `pc-plane.js` | `/plane` | 飞机大战小游戏页 |
 | `pc-settings.js` | `/settings` | 外观、备份、同步、下载历史、检查更新 |
+| `pc-neu-select.js` | — | 轻拟态 listbox 下拉公共组件 |
 
 ### 3.4 移动页面模块
 
@@ -108,7 +109,7 @@
 | `src/css/theme-tokens.css` | 语义 Token 唯一定义处 |
 | `src/css/pc.css` | PC 样式入口（聚合 `src/css/pc/*`） |
 | `src/css/pc/01-foundation-shell.css` | 壳与基础 |
-| `src/css/pc/02-settings-compat.css` | 设置兼容 |
+| `src/css/pc/02-settings-compat.css` | 设置页轻拟态与外观模式下拉 |
 | `src/css/pc/03-shared-components.css` | 共享组件 |
 | `src/css/pc/04-settings-page.css` | 设置页 |
 | `src/css/pc/05a-legacy-page-primitives.css` | 遗留页面原语 |

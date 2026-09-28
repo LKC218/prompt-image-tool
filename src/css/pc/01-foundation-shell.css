@@ -111,6 +111,8 @@
     --pc-control-raised-shadow: var(--color-shadow-control-raised);
     --pc-control-pressed-shadow: var(--color-shadow-control-pressed);
     --pc-control-soft-shadow: var(--color-shadow-control-soft);
+    /* 浮层壳：单向抬升 + 顶部细高光；禁止左上外白光，避免遮罩上出现外发光 */
+    --pc-control-float-shadow: 0 8px 24px var(--color-shadow-dark), inset 0 1px 0 color-mix(in srgb, var(--color-shadow-highlight) 55%, transparent);
 
     /* 悬浮软块滚动条（方案 B）：默认近隐形，悬停浮出新拟态软胶囊 */
     --pc-scroll-width: 10px;
@@ -1241,7 +1243,7 @@ body.pc-goal-mindmap-max-open .pc-goal-mindmap.is-maximized {
 .pc-sidebar-settings-item:hover {
     background: color-mix(in srgb, var(--pc-surface2) 86%, var(--pc-accent));
     color: var(--pc-text);
-    box-shadow: var(--pc-shadow-sm);
+    box-shadow: var(--pc-sidebar-nav-pressed-shadow);
     transform: translateY(-1px);
 }
 

@@ -11,11 +11,11 @@
 
 .pc-toast {
     padding: var(--pc-space-md) var(--pc-space-xl);
-    border-radius: var(--pc-radius-sm);
+    border-radius: var(--pc-neu-radius);
     font: var(--pc-font-body);
     color: var(--color-text-on-solid);
     background: var(--pc-text);
-    box-shadow: var(--pc-shadow-lg);
+    box-shadow: var(--pc-control-float-shadow);
     transform: translateX(120%);
     transition: transform 0.3s ease;
     max-width: 360px;
@@ -57,7 +57,7 @@
     width: min(560px, calc(100vw - 48px));
     min-width: min(400px, calc(100vw - 48px));
     max-width: 560px;
-    box-shadow: 0 8px 24px color-mix(in srgb, var(--pc-neu-dark) 50%, transparent);
+    box-shadow: var(--pc-control-float-shadow);
     transform: scale(0.95);
     transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
@@ -323,7 +323,7 @@
     overflow-y: auto;
     border-radius: 14px;
     background: var(--pc-neu-bg);
-    box-shadow: var(--pc-shadow-lg);
+    box-shadow: var(--pc-control-float-shadow);
     display: grid;
     gap: 4px;
 }
@@ -382,7 +382,7 @@
     font: 600 13px/1.2 var(--pc-font-family);
     text-align: left;
     cursor: pointer;
-    box-shadow: var(--pc-shadow-lg);
+    box-shadow: var(--pc-control-float-shadow);
     display: inline-grid;
     grid-template-columns: 20px minmax(0, 1fr) auto;
     align-items: center;

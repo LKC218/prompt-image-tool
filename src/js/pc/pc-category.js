@@ -2,6 +2,7 @@ import { getStorage } from '../core/storage.js';
 import { navigate } from './pc-app.js';
 import { debounce } from '../core/utils.js';
 import { showToast, showModal, closeModal, showConfirmModal, showContextMenu, escapeHtml } from './pc-utils.js';
+import { bindNeuSelect, renderNeuSelect } from './pc-neu-select.js';
 import { aggregateTags, getCustomTags, getPcTagStyleClass, removeCustomTag, saveCustomTag } from '../shared/tag-utils.js';
 import { getFolderColor } from '../shared/folder-color.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
@@ -797,17 +798,25 @@ function showMergeFolderDialog(pageEl) {
         <h3>合并分类</h3>
         <div class="pc-form-group">
             <label class="pc-form-label">源分类（将被清空）</label>
-            <select class="pc-input" id="pcMergeSource">
-                <option value="">选择源分类...</option>
-                ${sortedFolders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
-            </select>
+            ${renderNeuSelect({
+                id: 'pcMergeSource',
+                value: '',
+                label: '源分类',
+                className: 'pc-merge-select',
+                placeholder: '选择源分类...',
+                options: [{ value: '', label: '选择源分类...' }, ...sortedFolders.map(f => ({ value: f.id, label: f.name }))],
+            })}
         </div>
         <div class="pc-form-group">
             <label class="pc-form-label">目标分类（提示词将移入）</label>
-            <select class="pc-input" id="pcMergeTarget">
-                <option value="">选择目标分类...</option>
-                ${sortedFolders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('')}
-            </select>
+            ${renderNeuSelect({
+                id: 'pcMergeTarget',
+                value: '',
+                label: '目标分类',
+                className: 'pc-merge-select',
+                placeholder: '选择目标分类...',
+                options: [{ value: '', label: '选择目标分类...' }, ...sortedFolders.map(f => ({ value: f.id, label: f.name }))],
+            })}
         </div>
         <div class="pc-modal-actions">
             <button class="pc-btn pc-btn-secondary" id="pcMergeCancel">取消</button>
@@ -815,8 +824,8 @@ function showMergeFolderDialog(pageEl) {
         </div>
     `);
 
-    modal.querySelector('#pcMergeSource').addEventListener('change', (e) => { sourceId = e.target.value; });
-    modal.querySelector('#pcMergeTarget').addEventListener('change', (e) => { targetId = e.target.value; });
+    bindNeuSelect(modal.querySelector('#pcMergeSource'), (value) => { sourceId = value; });
+    bindNeuSelect(modal.querySelector('#pcMergeTarget'), (value) => { targetId = value; });
 
     const doMerge = async () => {
         if (!sourceId || !targetId) { showToast('请选择源分类和目标分类', 'error'); return; }

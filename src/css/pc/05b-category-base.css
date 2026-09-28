@@ -394,7 +394,7 @@
 
 .pc-quick-action-btn:hover {
     transform: translateY(-1px);
-    box-shadow: var(--pc-shadow-sm);
+    box-shadow: var(--pc-control-soft-shadow);
 }
 
 .pc-quick-action-icon {

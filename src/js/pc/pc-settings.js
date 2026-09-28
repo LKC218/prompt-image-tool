@@ -23,6 +23,13 @@ import downloadHistoryIcon from '../../assets/icons/pc/download.svg';
 
 let settingsData = null;
 
+const APPEARANCE_LABELS = {
+    light: '浅色',
+    dark: '深色',
+    system: '跟随系统',
+    scheduled: '定时切换',
+};
+
 function iconImg(icon, alt = '') {
     return `<img src="${icon}" alt="${alt}" aria-hidden="${alt ? 'false' : 'true'}">`;
 }
@@ -55,9 +62,20 @@ function render(params = {}) {
                         </div>
                         <div class="pc-settings-list-row">
                             <div class="pc-settings-list-left"><span>外观模式</span></div>
-                            <select class="pc-theme-appearance-select" id="pcAppearancePicker" aria-label="外观模式">
-                                ${APPEARANCE_PREFERENCES.map(value => `<option value="${value}" ${value === themeState.appearancePreference ? 'selected' : ''}>${({ light: '浅色', dark: '深色', system: '跟随系统', scheduled: '定时切换' })[value]}</option>`).join('')}
-                            </select>
+                            <div class="pc-theme-appearance-select" id="pcAppearancePicker" data-value="${themeState.appearancePreference}">
+                                <button type="button" class="pc-theme-appearance-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="外观模式">
+                                    <span class="pc-theme-appearance-value">${APPEARANCE_LABELS[themeState.appearancePreference]}</span>
+                                    <span class="pc-theme-appearance-arrow" aria-hidden="true"></span>
+                                </button>
+                                <ul class="pc-theme-appearance-menu" role="listbox" aria-label="外观模式" hidden>
+                                    ${APPEARANCE_PREFERENCES.map(value => `
+                                        <li class="pc-theme-appearance-option" role="option" data-value="${value}" aria-selected="${value === themeState.appearancePreference ? 'true' : 'false'}" tabindex="-1">
+                                            <span class="pc-theme-appearance-option-label">${APPEARANCE_LABELS[value]}</span>
+                                            <span class="pc-theme-appearance-option-check" aria-hidden="true"></span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -408,6 +426,107 @@ function loadDeviceInfo(pageEl) {
     }
 }
 
+function setupAppearanceSelect(pageEl) {
+    const root = pageEl.querySelector('#pcAppearancePicker');
+    if (!root) return;
+
+    const trigger = root.querySelector('.pc-theme-appearance-trigger');
+    const menu = root.querySelector('.pc-theme-appearance-menu');
+    const valueEl = root.querySelector('.pc-theme-appearance-value');
+    const options = Array.from(root.querySelectorAll('.pc-theme-appearance-option'));
+    if (!trigger || !menu || !valueEl || !options.length) return;
+
+    let activeIndex = Math.max(0, options.findIndex(option => option.dataset.value === root.dataset.value));
+
+    const setOpen = (open) => {
+        root.classList.toggle('pc-theme-appearance-open', open);
+        trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+        menu.hidden = !open;
+        if (open) {
+            activeIndex = Math.max(0, options.findIndex(option => option.dataset.value === root.dataset.value));
+            options.forEach((option, index) => option.classList.toggle('pc-theme-appearance-option-active', index === activeIndex));
+        }
+    };
+
+    const commitValue = (value) => {
+        const label = APPEARANCE_LABELS[value] || value;
+        root.dataset.value = value;
+        valueEl.textContent = label;
+        options.forEach(option => {
+            const selected = option.dataset.value === value;
+            option.setAttribute('aria-selected', selected ? 'true' : 'false');
+            option.classList.toggle('pc-theme-appearance-option-active', selected);
+        });
+        setAppearancePreference(value);
+        showToast('外观模式已更新');
+        setOpen(false);
+        trigger.focus();
+    };
+
+    trigger.addEventListener('click', () => {
+        setOpen(menu.hidden);
+    });
+
+    trigger.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setOpen(true);
+            options[activeIndex]?.focus();
+            return;
+        }
+        if (e.key === 'Escape') setOpen(false);
+    });
+
+    options.forEach((option, index) => {
+        option.addEventListener('click', () => commitValue(option.dataset.value));
+        option.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const delta = e.key === 'ArrowDown' ? 1 : -1;
+                activeIndex = (index + delta + options.length) % options.length;
+                options.forEach((item, i) => item.classList.toggle('pc-theme-appearance-option-active', i === activeIndex));
+                options[activeIndex].focus();
+                return;
+            }
+            if (e.key === 'Home') {
+                e.preventDefault();
+                activeIndex = 0;
+                options[0].focus();
+                return;
+            }
+            if (e.key === 'End') {
+                e.preventDefault();
+                activeIndex = options.length - 1;
+                options[activeIndex].focus();
+                return;
+            }
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                commitValue(option.dataset.value);
+                return;
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                setOpen(false);
+                trigger.focus();
+                return;
+            }
+            if (e.key === 'Tab') {
+                setOpen(false);
+            }
+        });
+    });
+
+    const onDocPointerDown = (e) => {
+        if (!root.isConnected) {
+            document.removeEventListener('pointerdown', onDocPointerDown);
+            return;
+        }
+        if (!root.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDocPointerDown);
+}
+
 function setupSettingsEvents(pageEl) {
     pageEl.querySelector('#pcThemePicker')?.addEventListener('click', async (e) => {
         const dot = e.target.closest('.pc-theme-dot');
@@ -423,10 +542,7 @@ function setupSettingsEvents(pageEl) {
         showToast(`已切换为${WORKBENCH_THEMES.find(item => item.key === theme)?.name || '新'}主题`);
     });
 
-    pageEl.querySelector('#pcAppearancePicker')?.addEventListener('change', (e) => {
-        setAppearancePreference(e.target.value);
-        showToast('外观模式已更新');
-    });
+    setupAppearanceSelect(pageEl);
 
     pageEl.querySelectorAll('[data-settings-action]').forEach(btn => {
         btn.addEventListener('click', async () => {

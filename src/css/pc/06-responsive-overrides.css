@@ -692,7 +692,7 @@
         .pc-home-page .pc-recent-item,
         .pc-home-category-card
     ):hover {
-        box-shadow: var(--pc-shadow-sm);
+        box-shadow: var(--pc-control-soft-shadow);
     }
 
     .td-ripple {
@@ -879,7 +879,7 @@
 .pc-library-action-btn,
 .pc-library-page-btn,
 .pc-library-page-input,
-.pc-library-page-size {
+.pc-library-page-size .pc-neu-select-trigger {
     border: 0;
     background: var(--pc-library-surface);
     box-shadow: var(--pc-library-neu-soft);

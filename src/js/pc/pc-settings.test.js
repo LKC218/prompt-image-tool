@@ -190,6 +190,51 @@ describe('PC 设置页下载历史', () => {
     });
 });
 
+describe('PC 设置页外观模式轻拟态下拉', () => {
+    beforeEach(() => {
+        storageMocks.getStorage.mockReturnValue(createStorage());
+        document.body.innerHTML = '<div id="pcApp"></div>';
+        localStorage.clear();
+    });
+
+    afterEach(() => {
+        settingsPage.unmount(document.body);
+        vi.clearAllMocks();
+        if (navigatorStorageDescriptor) {
+            Object.defineProperty(navigator, 'storage', navigatorStorageDescriptor);
+        } else {
+            delete navigator.storage;
+        }
+    });
+
+    it('渲染自定义下拉而非原生 select，并可选择外观模式', async () => {
+        const pageEl = await mountPage();
+        const root = pageEl.querySelector('#pcAppearancePicker');
+        const trigger = root.querySelector('.pc-theme-appearance-trigger');
+        const menu = root.querySelector('.pc-theme-appearance-menu');
+
+        expect(pageEl.querySelector('select.pc-theme-appearance-select')).toBeNull();
+        expect(root.classList.contains('pc-theme-appearance-select')).toBe(true);
+        expect(trigger.getAttribute('aria-haspopup')).toBe('listbox');
+        expect(menu.hidden).toBe(true);
+        expect(root.querySelectorAll('[role="option"]')).toHaveLength(4);
+
+        trigger.click();
+        expect(menu.hidden).toBe(false);
+        expect(root.classList.contains('pc-theme-appearance-open')).toBe(true);
+
+        const darkOption = root.querySelector('[data-value="dark"]');
+        darkOption.click();
+
+        expect(menu.hidden).toBe(true);
+        expect(root.dataset.value).toBe('dark');
+        expect(root.querySelector('.pc-theme-appearance-value').textContent).toBe('深色');
+        expect(darkOption.getAttribute('aria-selected')).toBe('true');
+        expect(localStorage.getItem('appearance-preference')).toBe('dark');
+        expect(pcUtilsMocks.showToast).toHaveBeenCalledWith('外观模式已更新');
+    });
+});
+
 describe('PC 设置页软件更新卡片', () => {
     beforeEach(() => {
         storageMocks.getStorage.mockReturnValue(createStorage());

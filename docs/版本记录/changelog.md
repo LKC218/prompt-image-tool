@@ -5,6 +5,39 @@
 
 ---
 
+## v2.5.30 (2026-09-28)
+
+> 记录依据：`v2.5.29` 发布提交 `f8b14e3` 之后的全局 UI 新拟态扫尾与下拉控件轻拟态改造。
+
+### 优化
+
+- **全局界面轻拟态统一**：卡片、按钮、输入框、Toast、弹窗壳与设置页控件统一为双向/内凹浅浮层阴影，浅深色观感一致，不再混搭扁平与拟态。
+- **下拉选择轻拟态**：外观模式、每页数量、合并分类改为自定义下拉，支持键盘上下选择与确认，不再依赖系统原生弹层。
+
+### 修复
+
+- **弹窗偶发不显示**：打开弹窗时正确重置遮罩显示状态，避免残留隐藏样式导致内容无法呈现。
+
+### 发布
+
+- 版本号统一升级至 `2.5.30`；发布 Windows Setup 安装包。
+
+### 版本与打包
+
+- 主应用、PC Tauri、Android、NSIS 安装器和安装器壳统一升级至 `2.5.30`。
+- Android `versionCode` 从 `41` 递增至 `42`，`versionName` 升级为 `2.5.30`（本版不附带 APK）。
+- 已完成 PC 端核心安装包构建（Tauri 主路径）：
+  - `PromptImageManager-Setup-2.5.30.exe`：28,968,890 字节（27.63 MB），SHA256 `CA1DB4DE62DC78449C295BE4DB64D7A942D4DE80CB0FF428CE8FF314EA284271`
+
+### 验证
+
+- `npm test`：399 passed / 47 files（含新拟态与 neu-select 用例）。
+- `node scripts/verify-global-neu-sweep.mjs`：`VISUAL_PASS`（32/32，浅色+深色）。
+- `node scripts/verify-neu-select-sweep.mjs` / `verify-neu-dropdown-audit.mjs`：`VISUAL_PASS`。
+- `python scripts/build_pc_package.py`：Tauri 主路径构建成功。
+
+---
+
 ## v2.5.29 (2026-09-24)
 
 > 记录依据：`v2.5.28` 发布提交 `5d837fd` 之后的自动更新安装链路修复（安装脱离 Sidecar 生命周期）。

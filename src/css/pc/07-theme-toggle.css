@@ -210,14 +210,14 @@
     bottom: calc(100% + 10px);
     z-index: 30;
     min-width: 148px;
-    padding: 6px;
-    border-radius: 14px;
-    background: var(--color-surface-floating);
-    border: 1px solid color-mix(in srgb, var(--pc-border) 80%, transparent);
-    box-shadow: var(--pc-shadow-md);
+    padding: 8px;
+    border-radius: var(--pc-radius-md);
+    background: var(--pc-neu-bg);
+    border: 0;
+    box-shadow: var(--pc-control-float-shadow);
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
     transform-origin: bottom right;
 }
 
@@ -246,19 +246,22 @@
     gap: 10px;
     width: 100%;
     min-height: 36px;
-    padding: 0 10px;
+    padding: 0 12px;
     border: 0;
-    border-radius: 10px;
+    border-radius: 12px;
     background: transparent;
     color: var(--pc-text2);
     cursor: pointer;
     text-align: left;
-    transition: background-color 0.14s ease, color 0.14s ease;
+    transition: background-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
 }
 
 .pc-sidebar-more-menu-item:hover {
-    background: color-mix(in srgb, var(--pc-surface2) 86%, var(--pc-accent));
-    color: var(--pc-text);
+    background: color-mix(in srgb, var(--pc-accent) 8%, var(--pc-neu-bg));
+    box-shadow:
+        3px 3px 8px color-mix(in srgb, var(--pc-neu-dark) 70%, transparent),
+        -3px -3px 8px var(--pc-neu-light);
+    color: var(--pc-accent);
 }
 
 .pc-sidebar-more-menu-item .pc-more-menu-label {

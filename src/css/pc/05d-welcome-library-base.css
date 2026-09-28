@@ -289,11 +289,9 @@
     display: flex;
     align-items: center;
     padding: 8px;
-    background: var(--pc-surface);
+    background: var(--pc-neu-bg);
     border-radius: 32px;
-    box-shadow:
-        9px 9px 18px rgba(120, 90, 50, 0.14),
-        -9px -9px 18px rgba(255, 255, 255, 0.95);
+    box-shadow: var(--pc-control-raised-shadow);
     transition: box-shadow 0.25s ease;
 }
 
@@ -303,10 +301,8 @@
     align-items: center;
     padding: 14px 20px;
     border-radius: 24px;
-    background: var(--pc-surface);
-    box-shadow:
-        inset 8px 8px 16px -6px rgba(120, 90, 50, 0.16),
-        inset -8px -8px 16px -6px rgba(255, 255, 255, 0.95);
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-pressed-shadow);
 }
 
 .pc-library-search__inner {
@@ -927,10 +923,10 @@
     top: 0;
     min-height: 620px;
     padding: 14px;
-    border: 1px solid rgba(233, 226, 218, 0.95);
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.95);
-    box-shadow: var(--pc-shadow-sm);
+    border: none;
+    border-radius: var(--pc-neu-radius);
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-soft-shadow);
 }
 
 .pc-library-preview-cover {
@@ -1140,38 +1136,29 @@
 }
 
 .pc-library-page-size {
-    min-width: 112px;
+    min-width: 128px;
+}
+
+.pc-library-page-size .pc-neu-select-trigger {
+    min-height: 46px;
     height: 46px;
-    display: inline-flex;
-    align-items: center;
-    padding: 0 40px 0 20px;
-    border: 1px solid var(--pc-border);
     border-radius: 14px;
-    background: #fff;
-    color: var(--pc-text);
+    padding: 0 18px 0 20px;
     font: 800 17px/1 var(--pc-font-family);
-    appearance: none;
-    cursor: pointer;
+    background: var(--pc-neu-bg);
+    border: 0;
+    box-shadow:
+        5px 5px 12px var(--pc-neu-dark),
+        -5px -5px 12px var(--pc-neu-light),
+        inset 1px 1px 1px color-mix(in srgb, var(--pc-neu-light) 55%, transparent);
+}
+
+.pc-library-page-size .pc-neu-select-menu {
+    min-width: 100%;
 }
 
 .pc-library-page-size-icon {
-    position: absolute;
-    right: 16px;
-    width: 15px;
-    height: 15px;
-    display: inline-flex;
-    color: var(--pc-text);
-    pointer-events: none;
-}
-
-.pc-library-page-size-icon svg {
-    width: 100%;
-    height: 100%;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    display: none;
 }
 
 .pc-library-page-btn {

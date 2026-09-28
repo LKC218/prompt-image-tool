@@ -5,18 +5,18 @@
 }
 
 .pc-quick-create-card {
-    background: var(--pc-surface);
-    border-radius: var(--pc-radius-md);
+    background: var(--pc-neu-bg);
+    border-radius: var(--pc-neu-radius);
     padding: var(--pc-space-2xl);
     text-align: center;
-    border: 1px solid var(--pc-border-light);
+    border: none;
+    box-shadow: var(--pc-control-soft-shadow);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: box-shadow 0.2s ease, transform 0.2s;
 }
 
 .pc-quick-create-card:hover {
-    border-color: var(--pc-accent);
-    box-shadow: var(--pc-shadow-md);
+    box-shadow: var(--pc-control-raised-shadow);
 }
 
 .pc-quick-create-icon {
@@ -46,17 +46,18 @@
     align-items: center;
     gap: var(--pc-space-md);
     padding: var(--pc-space-md);
-    background: var(--pc-surface);
-    border-radius: var(--pc-radius-md);
-    border: 1px solid var(--pc-border-light);
+    background: var(--pc-neu-bg);
+    border-radius: var(--pc-neu-radius);
+    border: none;
+    box-shadow: var(--pc-control-soft-shadow);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: box-shadow 0.2s ease, transform 0.15s;
     overflow: hidden;
 }
 
 .pc-recent-item:hover {
-    background: var(--pc-surface2);
-    border-color: var(--pc-accent);
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-raised-shadow);
 }
 
 .pc-recent-thumb {
@@ -111,16 +112,19 @@
 }
 
 .pc-star-btn {
-    background: none;
+    background: var(--pc-neu-bg);
     border: none;
     cursor: pointer;
     font-size: 18px;
     padding: 4px;
-    transition: transform 0.15s;
+    border-radius: var(--pc-neu-radius-full);
+    box-shadow: var(--pc-control-soft-shadow);
+    transition: transform 0.15s, box-shadow 0.2s ease;
 }
 
 .pc-star-btn:hover {
-    transform: scale(1.2);
+    transform: scale(1.1);
+    box-shadow: var(--pc-control-raised-shadow);
 }
 
 .pc-star-btn.pc-starred {
@@ -128,19 +132,21 @@
 }
 
 .pc-more-btn {
-    background: none;
+    background: var(--pc-neu-bg);
     border: none;
     cursor: pointer;
     font-size: 18px;
     color: var(--pc-text3);
     padding: 4px 8px;
-    border-radius: var(--pc-radius-full);
-    transition: all 0.15s;
+    border-radius: var(--pc-neu-radius-full);
+    box-shadow: var(--pc-control-soft-shadow);
+    transition: box-shadow 0.2s ease, color 0.15s, background 0.15s;
 }
 
 .pc-more-btn:hover {
-    background: var(--pc-surface2);
+    background: var(--pc-neu-bg);
     color: var(--pc-text);
+    box-shadow: var(--pc-control-raised-shadow);
 }
 
 .pc-empty-state {
@@ -234,7 +240,8 @@
 }
 
 .pc-editor-side .pc-editor-card {
-    border: 1px solid var(--pc-border-light);
+    border: none;
+    box-shadow: var(--pc-control-soft-shadow);
 }
 
 .pc-ratio-group {
@@ -245,29 +252,32 @@
 
 .pc-ratio-btn {
     padding: 6px 14px;
-    border-radius: var(--pc-radius-full);
+    border-radius: var(--pc-neu-radius-full);
     font: var(--pc-font-tag);
     color: var(--pc-text2);
-    background: var(--pc-surface2);
-    border: 1px solid transparent;
+    background: var(--pc-neu-bg);
+    border: none;
+    box-shadow: var(--pc-control-soft-shadow);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: box-shadow 0.2s ease, color 0.15s, background 0.15s;
 }
 
 .pc-ratio-btn:hover {
-    background: var(--pc-surface3);
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-raised-shadow);
 }
 
 .pc-ratio-btn.pc-ratio-active {
-    background: var(--pc-accent-bg);
+    background: var(--pc-neu-bg);
     color: var(--pc-accent);
-    border-color: var(--pc-accent);
+    box-shadow: var(--pc-control-pressed-shadow);
 }
 
 .pc-segment-control {
     display: flex;
-    background: var(--pc-surface2);
-    border-radius: var(--pc-radius-full);
+    background: var(--pc-neu-bg);
+    border-radius: var(--pc-neu-radius-full);
+    box-shadow: var(--pc-control-pressed-shadow);
     padding: 3px;
     margin-bottom: var(--pc-space-xl);
 }
@@ -285,9 +295,9 @@
 }
 
 .pc-segment-btn.pc-segment-active {
-    background: var(--pc-surface);
+    background: var(--pc-neu-bg);
     color: var(--pc-text);
-    box-shadow: var(--pc-shadow-sm);
+    box-shadow: var(--pc-control-pressed-shadow);
 }
 
 .pc-quick-actions {
@@ -302,16 +312,16 @@
     align-items: center;
     gap: var(--pc-space-sm);
     padding: var(--pc-space-xl);
-    border-radius: var(--pc-radius-md);
-    border: 1px solid var(--pc-border-light);
+    border-radius: var(--pc-neu-radius);
+    border: none;
     cursor: pointer;
-    transition: all 0.15s;
-    background: var(--pc-surface);
+    transition: box-shadow 0.2s ease, transform 0.15s;
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-soft-shadow);
 }
 
 .pc-quick-action-btn:hover {
-    border-color: var(--pc-accent);
-    box-shadow: var(--pc-shadow-sm);
+    box-shadow: var(--pc-control-raised-shadow);
 }
 
 .pc-quick-action-icon {
@@ -505,7 +515,7 @@
 
 .pc-tag-clickable:hover {
     transform: translateY(-1px);
-    box-shadow: var(--pc-shadow-sm);
+    box-shadow: var(--pc-control-soft-shadow);
 }
 
 .pc-tag-grid {
@@ -536,16 +546,16 @@
     align-items: center;
     gap: var(--pc-space-xs);
     padding: var(--pc-space-xl);
-    border-radius: var(--pc-radius-md);
-    border: 1px solid var(--pc-border-light);
+    border-radius: var(--pc-neu-radius);
+    border: none;
     cursor: pointer;
-    transition: all 0.15s;
-    background: var(--pc-surface);
+    transition: box-shadow 0.2s ease, transform 0.15s;
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-soft-shadow);
 }
 
 .pc-quick-action-btn:hover {
-    border-color: var(--pc-accent);
-    box-shadow: var(--pc-shadow-sm);
+    box-shadow: var(--pc-control-raised-shadow);
 }
 
 .pc-quick-action-icon {

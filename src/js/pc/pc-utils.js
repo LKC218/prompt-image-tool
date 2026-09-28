@@ -74,6 +74,10 @@ function showModal(content) {
     }
     const modal = document.getElementById('pcModalContent');
     modal.innerHTML = content;
+    overlay.hidden = false;
+    overlay.style.display = '';
+    overlay.style.pointerEvents = '';
+    overlay.style.opacity = '';
     overlay.classList.add('pc-modal-active');
     return modal;
 }

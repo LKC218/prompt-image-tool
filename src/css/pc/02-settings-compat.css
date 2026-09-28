@@ -1,8 +1,8 @@
 .pc-settings-page {
-    --pc-settings-neu-raised: -8px -8px 18px var(--pc-neu-light), 8px 8px 20px var(--pc-neu-dark), inset 1px 1px 1px rgba(255, 255, 255, 0.72);
-    --pc-settings-neu-raised-hover: -10px -10px 22px var(--pc-neu-light), 10px 10px 24px var(--pc-neu-dark-accent), inset 1px 1px 1px rgba(255, 255, 255, 0.78);
-    --pc-settings-neu-inset: inset 6px 6px 14px var(--pc-neu-dark), inset -6px -6px 14px var(--pc-neu-light);
-    --pc-settings-neu-inset-soft: inset 3px 3px 8px rgba(120, 90, 50, 0.1), inset -3px -3px 8px rgba(255, 255, 255, 0.8);
+    --pc-settings-neu-raised: var(--pc-control-raised-shadow), inset 1px 1px 1px color-mix(in srgb, var(--pc-neu-light) 70%, transparent);
+    --pc-settings-neu-raised-hover: calc(-1 * var(--pc-neu-offset) - 2px) calc(-1 * var(--pc-neu-offset) - 2px) calc(var(--pc-neu-blur) + 6px) var(--pc-neu-light), calc(var(--pc-neu-offset) + 2px) calc(var(--pc-neu-offset) + 2px) calc(var(--pc-neu-blur) + 8px) var(--pc-neu-dark-accent), inset 1px 1px 1px color-mix(in srgb, var(--pc-neu-light) 78%, transparent);
+    --pc-settings-neu-inset: var(--pc-control-pressed-shadow);
+    --pc-settings-neu-inset-soft: inset 3px 3px 8px color-mix(in srgb, var(--pc-neu-dark) 70%, transparent), inset -3px -3px 8px color-mix(in srgb, var(--pc-neu-light) 80%, transparent);
 }
 
 .pc-settings-panel {
@@ -40,41 +40,211 @@
 }
 
 .pc-theme-appearance-select {
+    position: relative;
+    flex: 0 0 auto;
+    min-width: 144px;
+    z-index: 40;
+}
+
+.pc-theme-appearance-trigger {
     appearance: none;
     -webkit-appearance: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    min-height: 38px;
     border: 0;
     border-radius: var(--pc-radius-sm);
-    background: var(--pc-surface);
+    background: var(--pc-neu-bg);
     color: var(--pc-text);
     font: var(--pc-font-caption);
-    padding-right: 36px;
+    padding: 8px 12px 8px 14px;
     cursor: pointer;
-    background-image: linear-gradient(45deg, transparent 50%, var(--pc-text) 50%), linear-gradient(135deg, var(--pc-text) 50%, transparent 50%);
-    background-position: calc(100% - 17px) 16px, calc(100% - 12px) 16px;
-    background-size: 5px 5px, 5px 5px;
-    background-repeat: no-repeat;
     box-shadow: var(--pc-settings-neu-raised);
     transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
-.pc-theme-appearance-select:hover {
+.pc-theme-appearance-trigger:hover {
     transform: translateY(-1px);
     box-shadow: var(--pc-settings-neu-raised-hover);
 }
 
-.pc-theme-appearance-select:active {
+.pc-theme-appearance-select.pc-theme-appearance-open .pc-theme-appearance-trigger,
+.pc-theme-appearance-trigger:active {
     transform: translateY(1px);
     box-shadow: var(--pc-settings-neu-inset-soft);
 }
 
-.pc-theme-appearance-select:focus-visible {
+.pc-theme-appearance-trigger:focus-visible {
     outline: var(--td-focus-outline);
     outline-offset: var(--td-focus-outline-offset);
 }
 
-.pc-theme-appearance-select option {
-    background: var(--pc-surface);
+.pc-theme-appearance-value {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pc-theme-appearance-arrow {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    margin-right: 2px;
+    border-right: 2px solid var(--pc-text2);
+    border-bottom: 2px solid var(--pc-text2);
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.pc-theme-appearance-select.pc-theme-appearance-open .pc-theme-appearance-arrow {
+    transform: rotate(225deg) translateY(-2px);
+    border-color: var(--pc-accent);
+}
+
+.pc-theme-appearance-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    left: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 8px;
+    list-style: none;
+    border-radius: var(--pc-radius-md);
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-control-float-shadow);
+    transform-origin: top center;
+    animation: pc-appearance-menu-in 0.18s cubic-bezier(.2, .8, .2, 1);
+}
+
+.pc-theme-appearance-menu[hidden] {
+    display: none;
+}
+
+@keyframes pc-appearance-menu-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.pc-theme-appearance-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 36px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
     color: var(--pc-text);
+    font: var(--pc-font-caption);
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.pc-theme-appearance-option:hover,
+.pc-theme-appearance-option.pc-theme-appearance-option-active {
+    background: color-mix(in srgb, var(--pc-accent) 8%, var(--pc-neu-bg));
+    box-shadow:
+        3px 3px 8px color-mix(in srgb, var(--pc-neu-dark) 70%, transparent),
+        -3px -3px 8px var(--pc-neu-light);
+    color: var(--pc-accent-strong);
+}
+
+.pc-theme-appearance-option[aria-selected="true"] {
+    background: var(--pc-neu-bg);
+    box-shadow: var(--pc-settings-neu-inset-soft);
+    color: var(--pc-accent);
+    font-weight: 600;
+}
+
+.pc-theme-appearance-option[aria-selected="true"]:hover,
+.pc-theme-appearance-option[aria-selected="true"].pc-theme-appearance-option-active {
+    box-shadow:
+        inset 3px 3px 8px var(--pc-neu-dark),
+        inset -3px -3px 8px var(--pc-neu-light);
+}
+
+.pc-theme-appearance-option:focus-visible {
+    outline: var(--td-focus-outline);
+    outline-offset: 1px;
+}
+
+.pc-theme-appearance-option-label {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.pc-theme-appearance-option-check {
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    opacity: 0;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    position: relative;
+}
+
+.pc-theme-appearance-option-check::after {
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 1px;
+    width: 4px;
+    height: 7px;
+    border: solid currentColor;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.pc-theme-appearance-option[aria-selected="true"] .pc-theme-appearance-option-check {
+    opacity: 1;
+    background: var(--pc-accent);
+    border-color: var(--pc-accent);
+    color: var(--color-text-on-brand);
+}
+
+:root[data-appearance="dark"] .pc-theme-appearance-trigger,
+:root[data-appearance="dark"] .pc-theme-appearance-menu {
+    background: var(--color-surface-raised);
+    box-shadow: var(--pc-control-soft-shadow);
+}
+
+:root[data-appearance="dark"] .pc-theme-appearance-menu {
+    background: var(--color-surface-floating);
+    box-shadow: var(--pc-control-float-shadow);
+}
+
+:root[data-appearance="dark"] .pc-theme-appearance-select.pc-theme-appearance-open .pc-theme-appearance-trigger,
+:root[data-appearance="dark"] .pc-theme-appearance-trigger:active {
+    box-shadow: var(--pc-control-pressed-shadow);
+}
+
+:root[data-appearance="dark"] .pc-theme-appearance-option:hover,
+:root[data-appearance="dark"] .pc-theme-appearance-option.pc-theme-appearance-option-active {
+    background: color-mix(in srgb, var(--pc-accent) 14%, var(--color-surface-raised));
+    box-shadow: var(--pc-control-soft-shadow);
+}
+
+:root[data-appearance="dark"] .pc-theme-appearance-option[aria-selected="true"] {
+    background: var(--color-surface-subtle);
+    box-shadow: var(--pc-control-pressed-shadow);
 }
 
 .pc-settings-storage-tile {
@@ -172,5 +342,20 @@
     .pc-settings-download-history-panel .pc-btn:hover,
     .pc-settings-sync-panel .pc-btn:hover {
         box-shadow: var(--pc-settings-neu-raised);
+    }
+
+    .pc-theme-appearance-trigger,
+    .pc-theme-appearance-option,
+    .pc-theme-appearance-arrow {
+        transition: none;
+    }
+
+    .pc-theme-appearance-menu {
+        animation: none;
+    }
+
+    .pc-theme-appearance-trigger:hover,
+    .pc-theme-appearance-select.pc-theme-appearance-open .pc-theme-appearance-trigger {
+        transform: none;
     }
 }

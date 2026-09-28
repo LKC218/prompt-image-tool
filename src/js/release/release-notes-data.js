@@ -1,5 +1,33 @@
 const RELEASE_NOTES = [
     {
+        version: '2.5.30',
+        date: '2026-09-28',
+        sections: [
+            {
+                title: '优化',
+                tone: 'blue',
+                items: [
+                    '全局界面统一为轻拟态观感：卡片、按钮、输入框、提示与设置页控件深浅色一致。',
+                    '外观模式、每页数量与合并分类改为自定义下拉，支持键盘选择。'
+                ]
+            },
+            {
+                title: '修复',
+                tone: 'yellow',
+                items: [
+                    '修复弹窗偶发无法显示的问题。'
+                ]
+            },
+            {
+                title: '发布',
+                tone: 'yellow',
+                items: [
+                    '版本号统一升级至 v2.5.30；发布 Windows Setup 安装包。'
+                ]
+            }
+        ]
+    },
+    {
         version: '2.5.29',
         date: '2026-09-24',
         sections: [
