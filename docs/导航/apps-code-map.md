@@ -49,6 +49,7 @@
 | `src/js/main.js` | `detectUI()`、主题初始化、存储初始化、挂载 PC/移动壳、等待开屏动画后隐藏 splash |
 | `src/js/splash-pixel-animation.test.js` | 开屏像素动画与启动时序回归 |
 | `src/js/pc/pc-app.js` | PC 侧边栏壳、导航、路由注册、主题切换、更新记录入口 |
+| `src/js/pc/pc-window-chrome.js` | 主窗顶栏：拖动区、软件最小化/最大化/关闭；详情态面包屑与收起/关闭详情产品芯片 |
 | `src/js/mobile/mobile-app.js` | 移动端底部 Tab、悬浮新建、返回键、路由注册 |
 | `src/js/pc/pc-router.js` | PC 路由（`history.pushState`） |
 | `src/js/mobile/mobile-router.js` | 移动路由 |
@@ -78,7 +79,7 @@
 | `pc-home.js` | `/` | 统计卡、最近使用、收藏分类、欢迎区、挂机植物启停 |
 | `pc-library.js` | `/library` | 搜索过滤、表格 + 预览、分页 |
 | `pc-detail.js` | `/detail/:id` | 版本、图片画廊、复制提示词 |
-| `pc-detail-modal.js` | — | 库内详情弹窗 |
+| `pc-detail-modal.js` | — | 库内详情弹窗；详情态对接 chrome（收起/关闭详情），面板无窗口按钮 |
 | `pc-editor.js` | `/editor/:id` | 新建/编辑、多版本、图片、草稿 |
 | `pc-category.js` | `/category` | 文件夹与标签管理 |
 | `pc-goal-projects.js` | `/goals` | 目标计划项目列表 |

@@ -76,7 +76,7 @@
     position: fixed;
     inset: 0;
     z-index: 8800;
-    padding: 24px;
+    padding: calc(var(--pc-window-chrome-height, 36px) + 12px) 24px 24px;
     pointer-events: none;
 }
 
@@ -114,8 +114,8 @@
     position: relative;
     pointer-events: auto;
     width: min(1200px, calc(100vw - 64px));
-    height: min(860px, calc(100dvh - 48px));
-    max-height: calc(100dvh - 48px);
+    height: min(860px, calc(100dvh - 84px));
+    max-height: calc(100dvh - 84px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -251,59 +251,6 @@
     box-shadow: none;
 }
 
-.pc-prompt-detail-modal-close {
-    position: absolute;
-    z-index: 4;
-    top: 12px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border: none;
-    border-radius: 12px;
-    color: var(--pc-text);
-    background: var(--pc-neu-bg);
-    font: 400 28px/1 var(--pc-font-family);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark) 76%, transparent), -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
-    transition: box-shadow var(--pc-neu-transition), color var(--pc-neu-transition), transform var(--pc-neu-transition);
-}
-
-.pc-prompt-detail-modal-actions {
-    position: absolute;
-    z-index: 4;
-    top: 12px;
-    right: 20px;
-    display: flex;
-    gap: 8px;
-}
-
-.pc-prompt-detail-modal-minimize {
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    border: none;
-    border-radius: 12px;
-    color: var(--pc-text);
-    background: var(--pc-neu-bg);
-    font: 400 28px/1 var(--pc-font-family);
-    cursor: pointer;
-    box-shadow: 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark) 76%, transparent), -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
-}
-
-.pc-prompt-detail-modal-actions .pc-prompt-detail-modal-close {
-    position: relative;
-    top: auto;
-    right: auto;
-}
-
-.pc-prompt-detail-modal-actions .pc-prompt-detail-modal-close::before {
-    display: none;
-}
-
 .pc-prompt-detail-minimized-tray {
     position: fixed;
     right: 24px;
@@ -424,30 +371,6 @@
 .pc-prompt-detail-minimized-button:active {
     transform: translateY(1px);
     box-shadow: inset 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark-accent) 76%, transparent), inset -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
-}
-
-.pc-prompt-detail-modal-close:hover,
-.pc-prompt-detail-modal-close:focus-visible {
-    color: var(--pc-accent);
-    background: var(--pc-neu-bg);
-    box-shadow: inset 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark-accent) 76%, transparent), inset -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent), 0 0 0 3px color-mix(in srgb, var(--pc-accent) 24%, transparent);
-    outline: none;
-}
-
-.pc-prompt-detail-modal-close:active {
-    transform: translateY(1px);
-    box-shadow: inset 4px 4px 10px color-mix(in srgb, var(--pc-neu-dark-accent) 76%, transparent), inset -4px -4px 10px color-mix(in srgb, var(--pc-neu-light) 92%, transparent);
-}
-
-.pc-prompt-detail-modal-close::before {
-    content: "";
-    position: absolute;
-    top: 8px;
-    bottom: 8px;
-    left: -13px;
-    width: 1px;
-    background: color-mix(in srgb, var(--pc-neu-dark) 46%, transparent);
-    pointer-events: none;
 }
 
 @media (max-width: 1180px) {

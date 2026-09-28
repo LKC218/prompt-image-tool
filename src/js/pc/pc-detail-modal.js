@@ -1,5 +1,6 @@
 import { gsap } from 'gsap';
 import { render, mount, unmount } from './pc-detail.js';
+import { setChromeDetailContext, syncChromeDetailTitle } from './pc-window-chrome.js';
 
 const sessions = new Map();
 let activeId = null;
@@ -9,6 +10,10 @@ let minimizedTrayOpen = false;
 function getFocusableElements(container) {
     return [...container.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
         .filter(element => !element.hidden && element.getClientRects().length > 0);
+}
+
+function getDetailChromeFocusables() {
+    return getFocusableElements(document.querySelector('.pc-window-chrome-detail') || document.createElement('div'));
 }
 
 function restoreTriggerFocus(triggerElement) {
@@ -68,10 +73,6 @@ function createPanel(id) {
     panel.setAttribute('aria-labelledby', `pcPromptDetailModalTitle-${id}`);
     panel.tabIndex = -1;
     panel.innerHTML = `
-        <div class="pc-prompt-detail-modal-actions">
-            <button class="pc-prompt-detail-modal-minimize" type="button" aria-label="最小化提示词详情">−</button>
-            <button class="pc-prompt-detail-modal-close" type="button" aria-label="关闭提示词详情">×</button>
-        </div>
         <div class="pc-prompt-detail-modal-content"></div>
     `;
     return panel;
@@ -86,7 +87,23 @@ function activatePromptDetail(id, focus = false) {
         item.panel.classList.toggle('pc-prompt-detail-modal-active', isActive);
         item.panel.setAttribute('aria-modal', String(isActive));
     });
+    syncChromeDetailContext();
+    syncChromeDetailTitle(session.title || '提示词详情');
     if (focus) session.panel.focus({ preventScroll: true });
+}
+
+function syncChromeDetailContext() {
+    const expanded = [...sessions.values()].filter(session => !session.minimized);
+    const active = expanded.find(session => session.id === activeId) || expanded[0];
+    if (!active) {
+        setChromeDetailContext(null);
+        return;
+    }
+    setChromeDetailContext({
+        title: active.title || '提示词详情',
+        onCollapse: () => { minimizePromptDetail(active.id); },
+        onClose: () => { closePromptDetail(active.id); },
+    });
 }
 
 function syncDeck() {
@@ -95,6 +112,7 @@ function syncDeck() {
     if (!host) return;
     host.classList.toggle('pc-prompt-detail-modal-host-dual', expanded.length === 2);
     host.classList.toggle('pc-prompt-detail-modal-host-active', expanded.length > 0);
+    syncChromeDetailContext();
     updateScrollLock();
 }
 
@@ -390,13 +408,11 @@ async function openPromptDetail(id, options = {}) {
     await mount(content, { id, onEdit: minimizeAllPromptDetails });
     content.querySelector('.pc-detail-breadcrumb')?.remove();
     session.title = content.querySelector('.pc-detail-page-name')?.textContent?.trim() || '提示词详情';
-    panel.querySelector('.pc-prompt-detail-modal-close').addEventListener('click', () => closePromptDetail(id));
-    panel.querySelector('.pc-prompt-detail-modal-minimize').addEventListener('click', () => minimizePromptDetail(id));
     panel.addEventListener('pointerdown', () => activatePromptDetail(id));
     activatePromptDetail(id);
     syncDeck();
     if (!prefersReducedMotion()) session.timeline = gsap.fromTo(panel, { autoAlpha: 0, scale: 0.97 }, { autoAlpha: 1, scale: 1, duration: 0.28, ease: 'power3.out' });
-    requestAnimationFrame(() => panel.querySelector('.pc-prompt-detail-modal-minimize')?.focus());
+    requestAnimationFrame(() => panel.focus({ preventScroll: true }));
 }
 
 document.addEventListener('keydown', event => {
@@ -423,7 +439,7 @@ document.addEventListener('keydown', event => {
         return;
     }
     if (event.key !== 'Tab') return;
-    const focusable = getFocusableElements(session.panel);
+    const focusable = [...getFocusableElements(session.panel), ...getDetailChromeFocusables()];
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
@@ -436,4 +452,4 @@ document.addEventListener('pointerdown', event => {
     if (minimizedTrayOpen && tray && !tray.contains(event.target)) closeMinimizedTray();
 }, true);
 
-export { openPromptDetail, closePromptDetail };
+export { openPromptDetail, closePromptDetail, minimizePromptDetail };

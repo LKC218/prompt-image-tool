@@ -299,6 +299,11 @@
     pointer-events: none;
 }
 
+/* 详情展开时顶栏必须压过详情浮层，保证软件三键可点 */
+html.pc-prompt-detail-open .pc-window-chrome {
+    z-index: 9000;
+}
+
 .pc-window-btn-icon {
     display: inline-flex;
     align-items: center;
@@ -407,6 +412,92 @@
     pointer-events: auto;
 }
 
+.pc-window-chrome-detail {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px 0 12px;
+    min-width: 0;
+    flex-shrink: 0;
+    pointer-events: auto;
+    background: color-mix(in srgb, var(--pc-neu-bg) 88%, transparent);
+    border-bottom-right-radius: 10px;
+}
+
+.pc-window-chrome-detail[hidden] {
+    display: none !important;
+}
+
+html.pc-prompt-detail-open .pc-window-chrome-left {
+    width: 0;
+    min-width: 0;
+    padding: 0;
+    border-right: none;
+    overflow: hidden;
+}
+
+.pc-window-chrome-crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: min(360px, 32vw);
+    font-size: 11px;
+    color: var(--pc-text2);
+}
+
+.pc-window-chrome-crumb-title {
+    color: var(--pc-text);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pc-window-chrome-detail-btn {
+    height: 26px;
+    padding: 0 10px;
+    border: 1px dashed color-mix(in srgb, var(--pc-text) 16%, transparent);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--pc-text2);
+    font-family: inherit;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    pointer-events: auto;
+    white-space: nowrap;
+    transition: color var(--pc-neu-transition, 0.15s), border-color var(--pc-neu-transition, 0.15s), background var(--pc-neu-transition, 0.15s);
+}
+
+.pc-window-chrome-detail-btn svg {
+    width: 12px;
+    height: 12px;
+    display: block;
+}
+
+.pc-window-chrome-detail-btn:hover,
+.pc-window-chrome-detail-btn:focus-visible {
+    color: var(--pc-text);
+    border-color: color-mix(in srgb, var(--pc-text) 28%, transparent);
+    background: color-mix(in srgb, var(--pc-text) 6%, transparent);
+}
+
+.pc-window-chrome-detail-close:hover,
+.pc-window-chrome-detail-close:focus-visible {
+    color: var(--pc-danger);
+    border-color: color-mix(in srgb, var(--pc-danger) 55%, transparent);
+    background: transparent;
+}
+
+.pc-window-chrome-detail-btn:focus-visible {
+    outline: 2px solid var(--pc-accent);
+    outline-offset: 1px;
+}
+
 .pc-window-chrome-drag {
     flex: 1;
     min-width: 0;
@@ -421,6 +512,12 @@
     background: transparent;
     margin-left: 4px;
     pointer-events: auto;
+}
+
+html.pc-prompt-detail-open .pc-window-controls {
+    background: color-mix(in srgb, var(--pc-neu-bg) 88%, transparent);
+    border-bottom-left-radius: 10px;
+    box-shadow: -2px 2px 10px color-mix(in srgb, var(--pc-neu-dark, #c5c0b8) 22%, transparent);
 }
 
 .pc-shell-body {

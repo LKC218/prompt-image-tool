@@ -94,10 +94,36 @@ const ICONS = {
     `,
 };
 
+const DETAIL_ICON_COLLAPSE = `
+    <svg viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M2.5 7.5h7M6 3.5v6" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+    </svg>
+`;
+const DETAIL_ICON_CLOSE = `
+    <svg viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M3.2 3.2l5.6 5.6M8.8 3.2L3.2 8.8" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+    </svg>
+`;
+
 export function renderWindowChrome() {
     return `
         <header class="pc-window-chrome" id="${CHROME_ID}">
             <div class="pc-window-chrome-left ${DRAG_CLASS}" ${DRAG_ATTR}></div>
+            <div class="pc-window-chrome-detail" hidden>
+                <div class="pc-window-chrome-crumb">
+                    <span class="pc-window-chrome-crumb-root">提示词详情</span>
+                    <span class="pc-window-chrome-crumb-sep" aria-hidden="true">/</span>
+                    <b class="pc-window-chrome-crumb-title"></b>
+                </div>
+                <button type="button" class="pc-window-chrome-detail-btn" data-detail-action="collapse" aria-label="收起详情窗" title="收起详情窗">
+                    ${DETAIL_ICON_COLLAPSE}
+                    <span>收起</span>
+                </button>
+                <button type="button" class="pc-window-chrome-detail-btn pc-window-chrome-detail-close" data-detail-action="close" aria-label="关闭详情窗" title="关闭详情窗">
+                    ${DETAIL_ICON_CLOSE}
+                    <span>关闭详情</span>
+                </button>
+            </div>
             <div class="pc-window-chrome-drag ${DRAG_CLASS}" ${DRAG_ATTR}></div>
             <div class="pc-window-controls" role="group" aria-label="窗口控制">
                 <button type="button" class="pc-window-btn" data-window-action="minimize" aria-label="最小化" title="最小化">
@@ -113,6 +139,56 @@ export function renderWindowChrome() {
             </div>
         </header>
     `;
+}
+
+let detailContext = null;
+
+function handleDetailAction(action) {
+    if (!detailContext) return;
+    if (action === 'collapse' && typeof detailContext.onCollapse === 'function') {
+        detailContext.onCollapse();
+        return;
+    }
+    if (action === 'close' && typeof detailContext.onClose === 'function') {
+        detailContext.onClose();
+    }
+}
+
+function bindDetailButtons(detailBar) {
+    detailBar.querySelectorAll('[data-detail-action]').forEach((btn) => {
+        if (btn.dataset.detailBound === '1') return;
+        btn.dataset.detailBound = '1';
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleDetailAction(btn.dataset.detailAction);
+        });
+    });
+}
+
+export function setChromeDetailContext(context) {
+    const chrome = document.getElementById(CHROME_ID) || document.querySelector('.pc-window-chrome');
+    const detailBar = chrome?.querySelector('.pc-window-chrome-detail');
+    if (!chrome || !detailBar) {
+        detailContext = context || null;
+        return;
+    }
+    detailContext = context || null;
+    const active = Boolean(detailContext);
+    detailBar.hidden = !active;
+    chrome.classList.toggle('pc-window-chrome-detail-mode', active);
+    document.documentElement.classList.toggle('pc-prompt-detail-open', active);
+    if (!active) return;
+    bindDetailButtons(detailBar);
+    const titleEl = detailBar.querySelector('.pc-window-chrome-crumb-title');
+    if (titleEl) titleEl.textContent = detailContext.title || '提示词详情';
+}
+
+export function syncChromeDetailTitle(title) {
+    if (!detailContext) return;
+    detailContext = { ...detailContext, title: title || detailContext.title };
+    const titleEl = document.querySelector('.pc-window-chrome-crumb-title');
+    if (titleEl) titleEl.textContent = detailContext.title || '提示词详情';
 }
 
 async function syncMaximizeState(root) {
@@ -202,7 +278,7 @@ export function mountWindowChrome(root) {
     };
 
     const onDragDoubleClick = (event) => {
-        if (event.target.closest('[data-window-action], [data-chrome-action]')) return;
+        if (event.target.closest('[data-window-action], [data-chrome-action], [data-detail-action]')) return;
         if (!event.target.closest(`[${DRAG_ATTR}], .${DRAG_CLASS}`)) return;
         handleWindowAction('maximize').finally(() => {
             syncMaximizeState(chrome);
