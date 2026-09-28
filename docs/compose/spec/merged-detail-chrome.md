@@ -3,7 +3,7 @@ feature: merged-detail-chrome
 status: delivered
 updated: 2026-09-28
 branch: feat/merged-detail-chrome
-commits: 797f89a..797f89a
+commits: 797f89a..812e0a8
 ---
 
 # 详情窗打开时主窗三键常驻 · 单排融合顶栏
