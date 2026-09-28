@@ -3,7 +3,7 @@ feature: visible-installer-update
 status: delivered
 updated: 2026-09-28
 branch: feat/visible-installer-update
-commits: 51e15eb..51e15eb # reviewed working tree on feat/visible-installer-update
+commits: 51e15eb..384254d # reviewed implementation range
 ---
 
 # 应用内更新改为可见安装向导
