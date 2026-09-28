@@ -109,6 +109,7 @@ export function renderWindowChrome() {
     return `
         <header class="pc-window-chrome" id="${CHROME_ID}">
             <div class="pc-window-chrome-left ${DRAG_CLASS}" ${DRAG_ATTR}></div>
+            <div class="pc-window-chrome-drag ${DRAG_CLASS}" ${DRAG_ATTR}></div>
             <div class="pc-window-chrome-detail" hidden>
                 <div class="pc-window-chrome-crumb">
                     <span class="pc-window-chrome-crumb-root">提示词详情</span>
@@ -124,7 +125,6 @@ export function renderWindowChrome() {
                     <span>关闭详情</span>
                 </button>
             </div>
-            <div class="pc-window-chrome-drag ${DRAG_CLASS}" ${DRAG_ATTR}></div>
             <div class="pc-window-controls" role="group" aria-label="窗口控制">
                 <button type="button" class="pc-window-btn" data-window-action="minimize" aria-label="最小化" title="最小化">
                     ${ICONS.minimize}

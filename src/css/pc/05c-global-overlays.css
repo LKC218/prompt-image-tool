@@ -197,23 +197,84 @@
     position: sticky;
     top: 0;
     z-index: 2;
-    min-height: 64px;
-    padding: 12px 20px 12px 32px;
+    min-height: 0;
+    padding: 10px 16px 10px 20px;
     border-bottom: none;
     background: var(--pc-neu-bg);
     box-shadow: 0 8px 18px color-mix(in srgb, var(--pc-neu-dark) 38%, transparent);
 }
 
+/* chrome 面包屑已承载标题，弹窗内视觉去重但保留无障碍名 */
 .pc-prompt-detail-modal-content .pc-detail-page-title {
     margin: 0;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-hero-copy {
     min-width: 0;
+    flex: 1;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-top-nav-actions {
-    margin-right: 100px;
+    margin-right: 0;
+    margin-left: auto;
+}
+
+/* 底部标题卡只保留标签/收藏，不再重复大标题 */
+.pc-prompt-detail-modal-content .pc-detail-title-row .pc-detail-title {
+    display: none;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-title-row {
+    padding: 14px 20px;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-title-left {
+    min-width: 0;
+    flex: 1;
+}
+
+/* 竖图不再撑出大片灰边：画布随图片收窄，限高居中 */
+.pc-prompt-detail-modal-content .pc-detail-cover {
+    aspect-ratio: auto;
+    width: fit-content;
+    max-width: 100%;
+    height: auto;
+    max-height: min(50vh, 520px);
+    min-height: 200px;
+    margin-inline: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-cover-img-wrap,
+.pc-prompt-detail-modal-content .pc-detail-cover-placeholder {
+    width: fit-content;
+    max-width: 100%;
+    height: auto;
+    max-height: min(50vh, 520px);
+    min-height: 184px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-cover-img-wrap img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: min(50vh, 520px);
+    object-fit: contain;
+    border-radius: inherit;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-top-nav-btn {

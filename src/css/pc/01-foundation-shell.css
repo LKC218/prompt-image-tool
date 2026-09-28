@@ -416,12 +416,13 @@ html.pc-prompt-detail-open .pc-window-chrome {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 4px 0 12px;
+    padding: 0 10px 0 8px;
     min-width: 0;
     flex-shrink: 0;
     pointer-events: auto;
     background: color-mix(in srgb, var(--pc-neu-bg) 88%, transparent);
-    border-bottom-right-radius: 10px;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
 }
 
 .pc-window-chrome-detail[hidden] {
@@ -441,7 +442,7 @@ html.pc-prompt-detail-open .pc-window-chrome-left {
     align-items: center;
     gap: 6px;
     min-width: 0;
-    max-width: min(360px, 32vw);
+    max-width: min(280px, 24vw);
     font-size: 11px;
     color: var(--pc-text2);
 }

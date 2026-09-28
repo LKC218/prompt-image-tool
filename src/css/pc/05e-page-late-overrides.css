@@ -4551,12 +4551,33 @@
     border: none;
     background: var(--pc-neu-bg);
     box-shadow: var(--pc-detail-neu-raised);
+    /* 覆盖默认 16:9 画布：竖图随内容收窄，避免大片灰边 */
+    aspect-ratio: auto;
+    width: fit-content;
+    max-width: 100%;
+    height: auto;
+    max-height: min(50vh, 520px);
+    min-height: 200px;
+    margin-inline: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-cover-img-wrap,
 .pc-prompt-detail-modal-content .pc-detail-cover-placeholder {
     border-radius: calc(var(--pc-radius-lg) - 8px);
-    box-shadow: var(--pc-detail-neu-inset);
+    box-shadow: none;
+    background: transparent;
+}
+
+.pc-prompt-detail-modal-content .pc-detail-cover-img-wrap img {
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: min(50vh, 520px);
+    margin: 0 auto;
+    object-fit: contain;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-image-thumbs,
