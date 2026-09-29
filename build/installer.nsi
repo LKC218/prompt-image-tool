@@ -1,8 +1,8 @@
-﻿; DEPRECATED：应急 pywebview 全量壳 NSIS，禁止用于正式发包。
+; DEPRECATED：应急 pywebview 全量壳 NSIS，禁止用于正式发包。
 ; 正式安装包由 npx tauri build 产出，见 docs/构建方案/PC发包规范-Tauri主路径.md。
 !define APPNAME "PromptImageManager"
 
-!define APPVERSION "2.5.30"
+!define APPVERSION "2.5.31"
 
 !define APPEXE "PromptImageManager.exe"
 
