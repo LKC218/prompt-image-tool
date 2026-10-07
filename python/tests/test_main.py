@@ -9,6 +9,8 @@ import threading
 import urllib.request
 import urllib.error
 import zipfile
+import socket
+import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -20,6 +22,18 @@ from main import (
     save_zip_backup_file, preview_zip_backup_file, clear_data_cache,
     get_storage_stats,
 )
+
+
+def test_occupied_reusable_port_is_not_selected():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as occupied:
+        occupied.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        occupied.bind(('127.0.0.1', 0))
+        occupied.listen()
+        port = occupied.getsockname()[1]
+        with pytest.raises(OSError):
+            main_module.find_free_port(port, 1)
+        with pytest.raises(OSError):
+            main_module.LocalThreadingTCPServer(('127.0.0.1', port), AppHandler)
 
 
 def start_test_server():

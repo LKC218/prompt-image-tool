@@ -1,3 +1,9 @@
+import sys
+if __name__ == '__main__' and len(sys.argv) == 3 and sys.argv[1] == '--image-worker':
+    from image_worker import main as run_image_worker
+    run_image_worker(sys.argv[2])
+    raise SystemExit
+
 import http.server
 import json
 import socketserver
@@ -18,6 +24,8 @@ import copy
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from png_compress import handle_request as handle_png_request
+from image_process import handle_request as handle_image_request
 try:
     from auto_update import (
         cancel_download_job,
@@ -32,13 +40,24 @@ except ImportError:
     HAS_AUTO_UPDATE = False
 
 
+class LocalThreadingTCPServer(socketserver.ThreadingTCPServer):
+    """Windows 下独占监听，禁止新旧后端接收同一端口的请求。"""
+    allow_reuse_address = False
+
+    def server_bind(self):
+        if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def find_free_port(preferred=8888, max_attempts=10):
     last_error = None
     for offset in range(max_attempts):
         port = preferred + offset
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
                 s.bind(('127.0.0.1', port))
                 return port
         except OSError as error:
@@ -1595,7 +1614,7 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Sync-Token, X-Device-Id, X-Device-Name')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Sync-Token, X-Device-Id, X-Device-Name, X-Png-Token')
         self.send_header('Access-Control-Max-Age', '86400')
         self.end_headers()
 
@@ -1603,7 +1622,11 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
-        if path == '/api/health':
+        if path == '/api/image-process/status':
+            handle_image_request(self)
+        elif path == '/api/png-compress/status':
+            handle_png_request(self)
+        elif path == '/api/health':
             self.handle_health()
         elif path == '/api/update/check':
             self.handle_update_check()
@@ -1656,6 +1679,12 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
+        if path == '/api/image-process' or path.startswith('/api/image-process/'):
+            handle_image_request(self)
+            return
+        if path in ('/api/png-compress', '/api/png-compress/cancel'):
+            handle_png_request(self)
+            return
         with DATA_LOCK:
             self._dispatch_post(path)
 
@@ -2646,8 +2675,7 @@ def main():
     SERVER_PORT = port
     write_runtime_port(port)
 
-    socketserver.ThreadingTCPServer.allow_reuse_address = True
-    with socketserver.ThreadingTCPServer(("127.0.0.1", port), AppHandler) as httpd:
+    with LocalThreadingTCPServer(("127.0.0.1", port), AppHandler) as httpd:
         ready = json.dumps({'status': 'ready', 'host': '127.0.0.1', 'port': port, 'dataDir': DATA_DIR})
         print(ready, flush=True)
         print(f"Python backend started on port {port}")

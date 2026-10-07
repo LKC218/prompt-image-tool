@@ -2,3 +2,5 @@ pyinstaller>=6.0
 pywebview>=5.0
 pythonnet>=3.0
 pytest>=9.0
+pypng==0.20220715.0
+Pillow==12.3.0

@@ -10,6 +10,7 @@ import navGoals from '../../assets/pc/nav-icons/目标计划.png';
 import navCategory from '../../assets/pc/nav-icons/category.png';
 import navGames from '../../assets/pc/nav-icons/games.png';
 import navSettings from '../../assets/pc/nav-icons/settings.png';
+import navCompress from '../../assets/icons/image.svg?no-inline';
 import { openReleaseNotes, showUnreadReleaseNotes, syncReleaseNotesUnreadBadge } from '../release/release-notes.js';
 import { runStartupUpdateCheck, runManualUpdateCheck } from '../release/auto-updater.js';
 import { initRipple } from '../shared/ripple.js';
@@ -21,6 +22,7 @@ import { initWindowSizePolicy } from './pc-window-size.js';
 const LAZY_ROUTES = {
     '/': () => import('./pc-home.js'),
     '/library': () => import('./pc-library.js'),
+    '/compress': () => import('./pc-compress.js'),
     '/detail/:id': () => import('./pc-detail.js'),
     '/editor/:id': () => import('./pc-editor.js'),
     '/category': () => import('./pc-category.js'),
@@ -47,6 +49,7 @@ const NAV_ITEMS = [
     { path: '/', icon: navHome, label: '首页' },
     { path: '/library', icon: navLibrary, label: '提示词库' },
     { path: '/editor/', icon: navEditor, label: '新建/编辑' },
+    { path: '/compress', icon: navCompress, label: '图片处理' },
     { path: '/goals', icon: navGoals, label: '目标计划' },
     { path: '/category', icon: navCategory, label: '分类与标签' },
     { path: '/games', icon: navGames, label: '摸鱼时间' }
@@ -92,7 +95,7 @@ const MORE_MENU_ICON = `
     </svg>
 `;
 
-const TAB_ROUTES = ['/', '/library', '/goals', '/category', '/games', '/settings'];
+const TAB_ROUTES = ['/', '/library', '/compress', '/goals', '/category', '/games', '/settings'];
 const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
 const SIDEBAR_STAGE_OPENING_CLASS = 'is-stagger-opening';
@@ -446,13 +449,14 @@ function setupSidebarNav() {
 
     nav.addEventListener('click', handleNavigation);
     settingsNav?.addEventListener('click', handleNavigation);
+    getSidebarMoreMenuElements().menu?.addEventListener('click', handleNavigation);
     setupSidebarMoreMenu();
 }
 
 function getSidebarMoreMenuElements() {
     const wrap = appEl?.querySelector('.pc-sidebar-more-wrap');
     const trigger = wrap?.querySelector('[data-more-menu]');
-    const menu = wrap?.querySelector('.pc-sidebar-more-menu');
+    const menu = appEl?.querySelector('.pc-sidebar-more-menu');
     return { wrap, trigger, menu };
 }
 
@@ -467,6 +471,25 @@ function openSidebarMoreMenu() {
     menu.hidden = false;
     trigger.setAttribute('aria-expanded', 'true');
     wrap.classList.add('is-open');
+    positionSidebarMoreMenu();
+    menu.classList.add('is-open');
+}
+
+function positionSidebarMoreMenu() {
+    const { trigger, menu } = getSidebarMoreMenuElements();
+    if (!trigger || !menu || menu.hidden) return;
+    const rect = trigger.getBoundingClientRect();
+    const margin = 12;
+    // 使用布局尺寸，避免入场缩放动画影响测量。
+    const width = menu.offsetWidth;
+    const height = menu.offsetHeight;
+    let left = isSidebarCollapsed ? rect.right + 10 : rect.right - width;
+    if (isSidebarCollapsed && left + width > window.innerWidth - margin) {
+        left = rect.left - width - 10;
+    }
+    const top = isSidebarCollapsed ? rect.bottom - height : rect.top - height - 10;
+    menu.style.left = `${Math.max(margin, Math.min(left, window.innerWidth - width - margin))}px`;
+    menu.style.top = `${Math.max(margin, Math.min(top, window.innerHeight - height - margin))}px`;
 }
 
 function closeSidebarMoreMenu() {
@@ -475,6 +498,7 @@ function closeSidebarMoreMenu() {
     menu.hidden = true;
     trigger.setAttribute('aria-expanded', 'false');
     wrap.classList.remove('is-open');
+    menu.classList.remove('is-open');
 }
 
 function toggleSidebarMoreMenu() {
@@ -496,11 +520,13 @@ function syncSidebarMoreBadge() {
 }
 
 function setupSidebarMoreMenu() {
-    const { wrap } = getSidebarMoreMenuElements();
-    if (!wrap) return;
+    const { wrap, menu } = getSidebarMoreMenuElements();
+    if (!wrap || !menu) return;
+    // 保留应用主题继承，同时离开侧栏的 overflow 与动画变换容器。
+    appEl.append(menu);
 
     const handleDocPointerDown = (event) => {
-        if (!wrap.contains(event.target)) closeSidebarMoreMenu();
+        if (!wrap.contains(event.target) && !menu.contains(event.target)) closeSidebarMoreMenu();
     };
     const handleKeyDown = (event) => {
         if (event.key === 'Escape' && isSidebarMoreMenuOpen()) {
@@ -511,9 +537,10 @@ function setupSidebarMoreMenu() {
 
     document.addEventListener('pointerdown', handleDocPointerDown);
     document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', positionSidebarMoreMenu);
 
-    const badgeSource = wrap.querySelector('.pc-release-notes-nav-badge');
-    const updateBadge = wrap.querySelector('.pc-check-update-nav-badge');
+    const badgeSource = menu.querySelector('.pc-release-notes-nav-badge');
+    const updateBadge = menu.querySelector('.pc-check-update-nav-badge');
     const observer = new MutationObserver(() => syncSidebarMoreBadge());
     if (badgeSource) {
         observer.observe(badgeSource.parentElement, { attributes: true, attributeFilter: ['class'] });
@@ -608,6 +635,7 @@ function setupSidebarToggle() {
 
     toggle.addEventListener('click', () => {
         if (toggle.classList.contains('is-flying') || isSidebarStageAnimating) return;
+        closeSidebarMoreMenu();
 
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
             applySidebarState(!isSidebarCollapsed, { persist: true });

@@ -205,10 +205,12 @@
 }
 
 .pc-sidebar-more-menu {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 10px);
+    position: fixed;
     z-index: 30;
+    box-sizing: border-box;
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    overflow: auto;
     min-width: 148px;
     padding: 8px;
     border-radius: var(--pc-radius-md);
@@ -225,7 +227,7 @@
     display: none;
 }
 
-.pc-sidebar-more-wrap.is-open .pc-sidebar-more-menu {
+.pc-sidebar-more-menu.is-open {
     animation: pc-sidebar-more-menu-in 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
@@ -318,9 +320,6 @@
 }
 
 .pc-app.pc-sidebar-collapsed .pc-sidebar-more-menu {
-    right: auto;
-    left: calc(100% + 10px);
-    bottom: 0;
     min-width: 0;
     width: max-content;
 }
@@ -367,7 +366,7 @@
     .pc-theme-toggle,
     .pc-theme-toggle-track,
     .pc-theme-toggle-thumb,
-    .pc-sidebar-more-wrap.is-open .pc-sidebar-more-menu {
+    .pc-sidebar-more-menu.is-open {
         animation: none !important;
         transition: none !important;
     }

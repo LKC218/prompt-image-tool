@@ -1,0 +1,567 @@
+[
+  {
+    "name": "单宽",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100
+    },
+    "expected": [
+      100,
+      50
+    ]
+  },
+  {
+    "name": "单高",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "height": 75
+    },
+    "expected": [
+      150,
+      75
+    ]
+  },
+  {
+    "name": "双边横",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100,
+      "height": 100
+    },
+    "expected": [
+      100,
+      50
+    ]
+  },
+  {
+    "name": "双边竖",
+    "source": [
+      200,
+      400
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100,
+      "height": 100
+    },
+    "expected": [
+      50,
+      100
+    ]
+  },
+  {
+    "name": "精确拉伸",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100,
+      "height": 100,
+      "lockRatio": false
+    },
+    "expected": [
+      100,
+      100
+    ]
+  },
+  {
+    "name": "逐轴仅缩小",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 800,
+      "height": 100,
+      "lockRatio": false
+    },
+    "expected": [
+      400,
+      100
+    ]
+  },
+  {
+    "name": "允许拉伸放大",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 800,
+      "height": 100,
+      "lockRatio": false,
+      "onlyShrink": false
+    },
+    "expected": [
+      800,
+      100
+    ]
+  },
+  {
+    "name": "百分比",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 25
+    },
+    "expected": [
+      100,
+      50
+    ]
+  },
+  {
+    "name": "小数百分比",
+    "source": [
+      300,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 33.33
+    },
+    "expected": [
+      100,
+      67
+    ]
+  },
+  {
+    "name": "最长边横",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "longest",
+      "longest": 120
+    },
+    "expected": [
+      120,
+      60
+    ]
+  },
+  {
+    "name": "最长边竖",
+    "source": [
+      200,
+      400
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "longest",
+      "longest": 120
+    },
+    "expected": [
+      60,
+      120
+    ]
+  },
+  {
+    "name": "限制放大",
+    "source": [
+      40,
+      20
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100
+    },
+    "expected": [
+      40,
+      20
+    ]
+  },
+  {
+    "name": "允许放大",
+    "source": [
+      40,
+      20
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100,
+      "onlyShrink": false
+    },
+    "expected": [
+      100,
+      50
+    ]
+  },
+  {
+    "name": "百分比不放大",
+    "source": [
+      40,
+      20
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 200
+    },
+    "expected": [
+      40,
+      20
+    ]
+  },
+  {
+    "name": "百分比允许放大",
+    "source": [
+      40,
+      20
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 200,
+      "onlyShrink": false
+    },
+    "expected": [
+      80,
+      40
+    ]
+  },
+  {
+    "name": "最长边不放大",
+    "source": [
+      40,
+      20
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "longest",
+      "longest": 120
+    },
+    "expected": [
+      40,
+      20
+    ]
+  },
+  {
+    "name": "最小像素",
+    "source": [
+      1,
+      1
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 0.01
+    },
+    "expected": [
+      1,
+      1
+    ]
+  },
+  {
+    "name": "半像素向上",
+    "source": [
+      5,
+      3
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 50
+    },
+    "expected": [
+      3,
+      2
+    ]
+  },
+  {
+    "name": "狭长取整",
+    "source": [
+      16000,
+      1
+    ],
+    "settings": {
+      "resize": true,
+      "width": 1
+    },
+    "expected": [
+      1,
+      1
+    ]
+  },
+  {
+    "name": "像素上限",
+    "source": [
+      4000,
+      4000
+    ],
+    "settings": {
+      "resize": true,
+      "width": 4000,
+      "height": 4000
+    },
+    "expected": [
+      4000,
+      4000
+    ]
+  },
+  {
+    "name": "关闭忽略旧输入",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": false,
+      "width": "bad"
+    },
+    "expected": [
+      400,
+      200
+    ]
+  },
+  {
+    "name": "空输入",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true
+    },
+    "expected": null
+  },
+  {
+    "name": "零",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 0
+    },
+    "expected": null
+  },
+  {
+    "name": "负数",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": -1
+    },
+    "expected": null
+  },
+  {
+    "name": "小数边长",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 1.5
+    },
+    "expected": null
+  },
+  {
+    "name": "指数输入",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": "1e2"
+    },
+    "expected": null
+  },
+  {
+    "name": "越界边长",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 16385
+    },
+    "expected": null
+  },
+  {
+    "name": "解锁缺边",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100,
+      "lockRatio": false
+    },
+    "expected": null
+  },
+  {
+    "name": "百分比零",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 0
+    },
+    "expected": null
+  },
+  {
+    "name": "百分比过大",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 1001
+    },
+    "expected": null
+  },
+  {
+    "name": "百分比精度",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 0.001
+    },
+    "expected": null
+  },
+  {
+    "name": "模式无效",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "bad"
+    },
+    "expected": null
+  },
+  {
+    "name": "布尔无效",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100,
+      "lockRatio": "yes"
+    },
+    "expected": null
+  },
+  {
+    "name": "非有限",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": "Infinity"
+    },
+    "expected": null
+  },
+  {
+    "name": "输入超像素",
+    "source": [
+      4001,
+      4000
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100
+    },
+    "expected": null
+  },
+  {
+    "name": "输出超像素",
+    "source": [
+      4000,
+      4000
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 200,
+      "onlyShrink": false
+    },
+    "expected": null
+  },
+  {
+    "name": "输出超边长",
+    "source": [
+      16000,
+      1
+    ],
+    "settings": {
+      "resize": true,
+      "resizeMode": "percent",
+      "percent": 200,
+      "onlyShrink": false
+    },
+    "expected": null
+  },
+  {
+    "name": "零输入",
+    "source": [
+      0,
+      200
+    ],
+    "settings": {
+      "resize": true,
+      "width": 100
+    },
+    "expected": null
+  },
+  {
+    "name": "字符串布尔",
+    "source": [
+      400,
+      200
+    ],
+    "settings": {
+      "resize": "true",
+      "width": "100",
+      "lockRatio": "true",
+      "onlyShrink": "false"
+    },
+    "expected": [
+      100,
+      50
+    ]
+  }
+]

@@ -250,7 +250,7 @@ describe('PC 侧边栏导航点击动效', () => {
 
         const primaryNav = app.querySelector('#pcSidebarNav');
         const utilityNav = app.querySelector('.pc-sidebar-utility-nav');
-        const releaseNotesItem = utilityNav.querySelector('[data-release-notes]');
+        const releaseNotesItem = app.querySelector('#pcSidebarMoreMenu [data-release-notes]');
         const settingsItem = utilityNav.querySelector('[data-nav="/settings"]');
 
         expect(primaryNav.querySelector('[data-nav="/settings"]')).toBeNull();
@@ -297,9 +297,9 @@ describe('PC 侧边栏导航点击动效', () => {
         const utilityNav = app.querySelector('.pc-sidebar-utility-nav');
         const toggle = utilityNav.querySelector('.pc-theme-toggle');
         const moreTrigger = utilityNav.querySelector('[data-more-menu]');
-        const moreMenu = utilityNav.querySelector('.pc-sidebar-more-menu');
+        const moreMenu = app.querySelector('.pc-sidebar-more-menu');
 
-        expect(utilityNav.querySelector('[data-release-notes]')).not.toBeNull();
+        expect(moreMenu.parentElement).toBe(app);
         expect(utilityNav.querySelector('[data-nav="/settings"]')).not.toBeNull();
         expect(utilityNav.querySelector('.pc-utility-divider')).not.toBeNull();
         expect(moreTrigger).not.toBeNull();
@@ -341,6 +341,37 @@ describe('PC 侧边栏导航点击动效', () => {
         expect(openReleaseNotes).toHaveBeenCalled();
         expect(moreTrigger.getAttribute('aria-expanded')).toBe('false');
         expect(moreMenu.hidden).toBe(true);
+    });
+
+    it('收起菜单独立定位并保留内部点击、外部关闭及 Esc 焦点归还', async () => {
+        localStorage.setItem('pc-sidebar-collapsed', 'true');
+        const { mount } = await import('./pc-app.js');
+        const app = document.getElementById('app');
+        await mount(app);
+        const trigger = app.querySelector('[data-more-menu]');
+        const menu = app.querySelector('.pc-sidebar-more-menu');
+        vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({ left: 20, right: 68, top: 400, bottom: 448 });
+        Object.defineProperty(menu, 'offsetWidth', { value: 64 });
+        Object.defineProperty(menu, 'offsetHeight', { value: 120 });
+        trigger.click();
+        expect(menu.parentElement).toBe(app);
+        expect(menu.style.left).toBe('78px');
+        expect(menu.style.top).toBe('328px');
+        menu.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        expect(menu.hidden).toBe(false);
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        expect(menu.hidden).toBe(true);
+        expect(document.activeElement).toBe(trigger);
+        trigger.click();
+        document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+        expect(menu.hidden).toBe(true);
+        trigger.click();
+        vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({ left: 1000, right: 1048, top: 0, bottom: 48 });
+        window.dispatchEvent(new Event('resize'));
+        expect(menu.style.left).toBe('926px');
+        expect(menu.style.top).toBe('12px');
+        app.querySelector('#pcSidebarToggle').click();
+        expect(menu.hidden).toBe(true);
     });
 
     it('折叠按钮在图标动效结束后保留最小化导航栏并持久化', async () => {

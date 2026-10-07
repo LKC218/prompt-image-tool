@@ -13,6 +13,11 @@ const PC_CSS_FILES = [
     '05e-page-late-overrides.css',
     '06-responsive-overrides.css',
     '07-theme-toggle.css',
+    '08-goal-plan.css',
+    '09-tetris.css',
+    '10-plane.css',
+    '11-plant.css',
+    '12-compress.css',
 ];
 
 export function readPcCss() {
