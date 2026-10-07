@@ -24,6 +24,11 @@
 | --- | --- |
 | `src/` | 前端源码（js / css / assets / react 试点 / index.html）；`src/js` 按 `core/shared/pc/mobile/plant/goal/games/release/sync` 分组 |
 | `python/` | Python 后端、数据目录占位、pytest |
+| `vendor/jpegoptim/` | JPEG 无损引擎来源、准备与许可边界；见图片处理模块 |
+| `scripts/prepare_release_sources.py` | 图片引擎源码分发附件与安装包材料；见 `docs/构建方案/第三方图片引擎分发说明.md` |
+| `scripts/verify_frozen_release.py` | 隔离数据运行冻结 Sidecar 并回读处理结果；见图片处理模块与 `scripts/README.md` |
+| `scripts/verify_release_package.py` | 发布元数据、安装资源白名单及源码附件校验；见 `scripts/README.md` |
+| `vendor/oxipng/` | 固定引擎的来源说明与本地准备产物；接口及构建入口见图片无损压缩模块 |
 | `src-tauri/` | Tauri PC 壳 |
 | `android/` | Capacitor Android 工程 |
 | `installer-shell/` | Tauri 自定义安装器壳 |
@@ -48,13 +53,14 @@
 | `src/index.html` | 双端入口与开屏；内联全屏像素自四周聚成 Logo（`window.__splashPlay`） |
 | `src/js/main.js` | `detectUI()`、主题初始化、存储初始化、挂载 PC/移动壳、等待开屏动画后隐藏 splash |
 | `src/js/splash-pixel-animation.test.js` | 开屏像素动画与启动时序回归 |
-| `src/js/pc/pc-app.js` | PC 侧边栏壳、导航、路由注册、主题切换、更新记录入口 |
+| `src/js/pc/pc-app.js` | PC 侧边栏壳、导航顺序（`NAV_ITEMS`）、路由注册、主题切换、更新记录入口；顺序约定见路由与启动模块 |
+| `scripts/verify-sidebar-more-menu.mjs` | 侧栏更多菜单的真实浏览器定位、遮挡命中与交互验收；文档落点：路由与启动模块、PC端样式模块 |
 | `src/js/pc/pc-window-chrome.js` | 主窗顶栏：拖动区、软件最小化/最大化/关闭；详情态面包屑与收起/关闭详情产品芯片 |
 | `src/js/mobile/mobile-app.js` | 移动端底部 Tab、悬浮新建、返回键、路由注册 |
 | `src/js/pc/pc-router.js` | PC 路由（`history.pushState`） |
 | `src/js/mobile/mobile-router.js` | 移动路由 |
 
-**PC 路由**：`/`、`/library`、`/detail/:id`、`/editor/:id`、`/category`、`/goals`、`/goals/:id`、`/games`、`/tetris`、`/plane`、`/settings`
+**PC 路由**：`/`、`/library`、`/compress`、`/detail/:id`、`/editor/:id`、`/category`、`/goals`、`/goals/:id`、`/games`、`/tetris`、`/plane`、`/settings`
 
 **移动路由**：`/`、`/library`、`/detail/:id`、`/editor/:id`、`/category`、`/settings`（暂无目标计划）
 
@@ -78,6 +84,7 @@
 | --- | --- | --- |
 | `pc-home.js` | `/` | 统计卡、最近使用、收藏分类、欢迎区、挂机植物启停 |
 | `pc-library.js` | `/library` | 搜索过滤、表格 + 预览、分页 |
+| `pc-compress.js` | `/compress` | PNG／JPEG／WebP 批量优化、转换与自定义尺寸、逐图预期及实际结果、按任务显隐的常用设置／高级参数与折叠说明、联动面板及独立滚动、增量列表、确认及导出；控件回归 `pc-compress.test.js`；横幅复用 `pc-welcome-banner.js`，HTTP 适配 `shared/png-compression.js`，尺寸规则 `shared/image-resize.js` 与 `python/image_resize.py`，共用测试样例 `tests/fixtures/image-resize-cases.json`；样式 `src/css/pc/12-compress.css`，服务 `python/image_process.py`、`image_worker.py`、`image_cache.py`，PNG 保真复用 `python/png_compress.py`；文档落点见图片处理模块 |
 | `pc-detail.js` | `/detail/:id` | 版本、图片画廊、复制提示词 |
 | `pc-detail-modal.js` | — | 库内详情弹窗；详情态对接 chrome（收起/关闭详情），面板无窗口按钮 |
 | `pc-editor.js` | `/editor/:id` | 新建/编辑、多版本、图片、草稿 |
@@ -179,6 +186,7 @@
 | `docs/技术文档/` | PC / 移动 / Web / API / 同步（路径稳定） |
 | `docs/设计系统/` | 主题令牌、全局组件与视觉规范 |
 | `docs/页面与UI/` | 页面级 UI 方案、端侧布局、复刻稿 |
+| `docs/页面与UI/交互预览/图片无损压缩-261007/` | PNG 批量压缩三版 HTML 设计提案；入口 `index.html`，说明见同目录 `README.md`；仅预览，不参与主应用构建 |
 | `docs/模块说明/` | 就近模块说明（路径稳定） |
 | `docs/构建方案/` | 打包与发布流程（路径稳定） |
 | `docs/版本记录/` | 更新记录规范、changelog 权威源、版本索引（路径稳定） |
@@ -191,6 +199,8 @@
 
 **就近模块说明**（改动后优先同步）：
 
+- [图片处理模块](../模块说明/图片处理模块.md)
+- [图片无损压缩模块](../模块说明/图片无损压缩模块.md)
 - [目标计划模块](../模块说明/目标计划模块.md)
 - [PC端样式模块](../模块说明/PC端样式模块.md)
 - [全局样式与主题模块](../模块说明/全局样式与主题模块.md)

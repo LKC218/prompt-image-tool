@@ -69,6 +69,8 @@ python scripts\build_pc_package.py
 
 ## 4. 发布（GitHub + 首页版本）
 
+需要验收软件内更新时，保留旧版客户端：先完成构建与包内容校验，再发布正式最新 Release（Setup、latest.json、对应源码附件），随后从旧版「检查更新」验证发现、下载和校验；安装向导经用户确认后完成。不要先覆盖旧版再声称已验证旧版在线更新。发布成功与安装成功分别记录。
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish_release.ps1 -DryRun
 # 确认附件与 SHA256 后去掉 -DryRun
@@ -82,7 +84,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish_release.ps
 
 ## 5. 验收清单
 
-- [ ] 产物体积约 **28MB 量级**（Tauri）；若约 **38MB** 说明误打了全量旧壳，**作废重打**  
+- [ ] 核对 Tauri / NSIS 构建记录和安装文件清单；图片引擎及对应源码会增加体积，不能仅凭历史包大小判断旧壳
+- [ ] `python` 资源仅包含源码，不包含 `data`、图片、测试输出或个人资料；`third-party` 包含图片引擎源码附件
+- [ ] Release 同时提供对应版本的第三方源码附件，见 [第三方图片引擎分发说明](./第三方图片引擎分发说明.md)
 - [ ] 安装后主程序为无边框自绘顶栏（无系统标题栏/顶栏黑边）  
 - [ ] 覆盖安装 + 应用内更新可自动重启进入新版本  
 - [ ] Release 含 Setup 与 `latest.json`；README「当前最新」已更新  

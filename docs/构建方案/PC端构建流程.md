@@ -203,13 +203,13 @@ build/dist/PromptImageManager/
 
 | 文件 | 当前值 | 位置 |
 |------|--------|------|
-| `package.json` / `package-lock.json` | `"version": "2.5.29"` | 第3行 / 第3、8行 |
-| `src/index.html` | `<meta name="version" content="2.5.29">` | 第9行 |
-| `build/installer.nsi` | `!define APPVERSION "2.5.29"` | 第3行 |
+| `package.json` / `package-lock.json` | `"version": "2.5.32"` | 根版本字段 |
+| `src/index.html` | `<meta name="version" content="2.5.32">` | 版本元数据 |
+| `build/installer.nsi` | `!define APPVERSION "2.5.32"` | 旧壳兼容配置，不用于正式发包 |
 | `build.bat` | 从 `package.json` 读取版本生成 `PromptImageManager-Setup-<version>.exe` | 发布路径 |
-| `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` / `src-tauri/Cargo.lock` | `2.5.29` | 主桌面端配置与锁文件 |
-| `installer-shell/` 下的包、Tauri 和 Cargo 文件 | `2.5.29` | 安装器壳配置与锁文件 |
-| `android/app/build.gradle` | `versionCode 41` / `versionName "2.5.29"` | 第16-17行 |
+| `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` / `src-tauri/Cargo.lock` | `2.5.32` | 主桌面端配置与锁文件 |
+| `installer-shell/` 下的包、Tauri 和 Cargo 文件 | `2.5.32` | 配置同步，本轮不产出安装器壳 |
+| `android/app/build.gradle` | `versionCode 44` / `versionName "2.5.32"` | 配置同步，本轮不产出 APK |
 
 ---
 

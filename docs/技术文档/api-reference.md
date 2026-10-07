@@ -1,7 +1,7 @@
 # 生图提示词管理器 — API 接口文档
 
 > 版本：2.2.1 | 最后更新：2026-05-04
-> 后端实现：[python/main.py](../../python/main.py)；PC 独立安装包后端入口为 [build/app_main.py](../../build/app_main.py)，同步协议接口需与源码后端保持一致。
+> 后端实现与 Tauri Sidecar 入口：[python/main.py](../../python/main.py)；打包配置为 [build/server.spec](../../build/server.spec)。`build/app_main.py` 属于已弃用的旧壳。
 
 ---
 
@@ -838,3 +838,13 @@ Access-Control-Max-Age: 86400
 ## 动态端口说明
 
 PC 同步服务默认优先使用 `8888`。PC 独立安装包检测到端口占用时会按顺序回退到 `8889-8897`，并在 `/api/health`、`/api/sync/capabilities` 和 `/api/network-info` 中返回当前实际 `port`。移动端搜索、手动输入和同步请求必须使用 `IP:port` 目标，不能假定端口永远是 `8888`。
+
+## PNG 本机压缩接口
+
+PC 图片压缩新增 `GET /api/png-compress/status`、`POST /api/png-compress` 和 `POST /api/png-compress/cancel`。它们不读写图库、不参与同步，只允许本机来源；写请求要求状态接口提供的 `X-Png-Token`。二进制请求、取消标识、返回状态及限制以 [图片无损压缩模块](../模块说明/图片无损压缩模块.md) 为准。
+
+## 多格式本机图片处理接口
+
+`GET /api/image-process/status` 返回引擎、令牌和专属缓存统计，并回收过期非活跃任务。`POST /api/image-process/inspect` 校验原始图片，`POST /api/image-process` 返回含 image 与 report 的 multipart/form-data。另有 `/cancel` 和 `/cache-clean` POST。均限制本机访问与写入令牌，不访问图库；格式、参数、元数据报告、体积和缓存边界见 [图片处理模块](../模块说明/图片处理模块.md)。
+
+自定义尺寸参数为 `resize`、`resizeMode`、`width`、`height`、`percent`、`longest`、`lockRatio`、`onlyShrink`；默认关闭，启用必须 `ack=true`。宽高／最长边限定 1–16384 整数，百分比 0.01–1000（最多两位小数），输入和最终输出均不超过 1600 万像素，编码结果不超过 32 MiB。识别结果的 width／height 为显示方向尺寸，storedWidth／storedHeight 为存储尺寸。实际缩放报告包含 `resized:true`、`output` 显示尺寸和原始元数据快照；JPEG 使用 quality 重新编码，尺寸变化后不得回退原图。关闭尺寸时原有接口行为不变，旧调用者无需新增参数。

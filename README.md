@@ -22,12 +22,16 @@
 
 ## 下载
 
-当前最新：[v2.5.31](https://github.com/LKC218/prompt-image-tool/releases/latest)
+开发验收：侧栏更多菜单的遮挡与交互回归见 [工具脚本说明](scripts/README.md#侧栏菜单验收)。
+
+图片引擎源码附件随 Windows 安装包提供，说明见 [第三方图片引擎分发说明](docs/构建方案/第三方图片引擎分发说明.md)。已安装软件可在设置页点击「检查更新」，下载后按可见安装向导完成升级。
+
+当前最新：[v2.5.32](https://github.com/LKC218/prompt-image-tool/releases/latest)
 
 普通用户直接下载发布版，无需安装 Python 或前端依赖。
 
 - [GitHub Releases](https://github.com/LKC218/prompt-image-tool/releases/latest)
-- Windows：`PromptImageManager-Setup-2.5.31.exe`
+- Windows：`PromptImageManager-Setup-2.5.32.exe`
 - Android：`PromptImageManager-v2.5.31-Android.apk`（若该版本未附带 APK，请继续使用 Release 页中可用的最新 Android 包）
 
 > Android 首次安装如被拦截，请在系统设置中允许安装未知来源应用。
@@ -49,6 +53,7 @@
 | 提示词库 | 保存、搜索、编辑和复用正向 / 反向提示词与创作参数 |
 | 分类与标签 | 用分类、颜色和标签整理项目、风格、场景和用途 |
 | 图片管理 | 为提示词绑定封面图、参考图和本地图片资源 |
+| 图片处理 | PC 支持 PNG／JPEG／静态 WebP 批量优化、格式转换、自定义尺寸，逐图预期尺寸与 ZIP 导出；常用参数按任务展示，精确参数与缓存收于高级设置。缩放改变像素，JPEG 缩放重新编码；详见 [图片处理模块](docs/模块说明/图片处理模块.md) |
 | 版本记录 | 保留修改历史；PC 支持详情弹窗与双提示词对比阅读 |
 | 目标计划 | 项目 → 任务两级清单，支持父子任务、优先级和任务图片 |
 | 数据备份 | 本地导入、导出、备份与迁移 |
@@ -64,7 +69,18 @@ npm install
 python scripts\start_dev_server.py
 ```
 
-仅启动前端：
+图片处理准备（PNG／JPEG／WebP）：
+
+图片压缩需要新版 Python 后端及本地引擎，仅启动前端无法压缩。首次使用请在后端所用 Python 环境执行：
+
+```powershell
+python -m pip install -r requirements.txt
+python scripts/prepare_image_engines.py
+```
+
+固定 Windows x64 引擎首次准备需要联网，运行时离线。支持混合批量优化、格式转换与过期缓存清理；图片处理页统一轻拟态控件、微交互与减少动态效果支持；原图不覆盖。JPEG 引擎为 GPL，对外分发前需履行对应源码提供义务；本次未发布安装包。详见 [图片处理模块](./docs/模块说明/图片处理模块.md)。
+
+仅启动前端命令：
 
 ```powershell
 npm run dev

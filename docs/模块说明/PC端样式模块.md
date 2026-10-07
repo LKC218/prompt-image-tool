@@ -2,6 +2,8 @@
 
 ## 职责
 
+侧栏更多菜单由 `07-theme-toggle.css` 提供固定定位浮层样式；菜单挂在 `.pc-app` 下，不在 `.pc-sidebar` 裁剪容器内。坐标由应用壳按按钮位置计算，保留折叠图标式菜单、主题令牌、视口边缘留白和低动效支持。不得通过放开整个侧栏的 `overflow` 修复菜单遮挡，以免破坏收展裁剪。
+
 为桌面端应用提供完整样式，并以固定的 CSS 级联顺序组织应用壳、通用组件、业务页面、动态弹层和末尾覆盖规则。
 
 ## 源码位置
@@ -20,7 +22,7 @@
 
 ## 加载方式
 
-`src/js/main.js` 先加载 `theme-tokens.css`，桌面端再动态加载 `src/js/pc/pc-app.js`。`pc-app.js` 导入 `pc.css`，入口依次导入六个子文件。
+`src/js/main.js` 先加载 `theme-tokens.css`，桌面端再动态加载 `src/js/pc/pc-app.js`。`pc-app.js` 导入 `pc.css`，入口按下表顺序导入子文件。
 
 `pc.css` 是对外稳定入口。HTML 演示页、JavaScript 模块和其他调用方不得直接改为导入子文件。`01-foundation-shell.css` 通过本地 `src/assets/fonts/乐米沐和圆体.ttf` 注册全局主字体，并由 `--pc-font-family` 保留系统字体回退链。
 
@@ -38,12 +40,22 @@
 | 05d | `05d-welcome-library-base.css` | 共享欢迎横幅背景展示策略、暗色文字对比保障、编辑器/提示词库基础实现及局部断点 |
 | 05e | `05e-page-late-overrides.css` | 文件夹弹窗、首页/详情/分类后续实现及后置补丁 |
 | 06 | `06-responsive-overrides.css` | 末尾全局交互、低动效、主题与布局补丁 |
+| 07 | `07-theme-toggle.css` | 主题切换与侧栏更多菜单 |
+| 08 | `08-goal-plan.css` | 目标计划页面 |
+| 09 | `09-tetris.css` | 俄罗斯方块页面 |
+| 10 | `10-plane.css` | 飞机大战页面 |
+| 11 | `11-plant.css` | 挂机植物展示 |
+| 12 | `12-compress.css` | 图片无损压缩，所有规则限定 `.pc-compress`，不覆盖其他页面 |
 
 数字前缀是级联顺序契约。不得按名称、路由或组件归属重排文件；首轮拆分保持了原始规则文本和顺序不变。
 
 ## 测试约束
 
-`src/js/pc/pc-css-test-utils.js` 按入口顺序读取六个子文件，供 CSS 文本断言测试使用。新增样式子文件或调整顺序时，必须同步更新该读取清单和相关测试。
+`src/js/pc/pc-css-test-utils.js` 按入口顺序读取全部子文件，供 CSS 文本断言测试使用。新增样式子文件或调整顺序时，必须同步更新该读取清单和相关测试。
+
+压缩页复用语义令牌和按钮，以单层浅外凸工作区、内凹模式切换实现精简方案一；列表独立滚动，底栏常驻，帮助按需展开。项目内可信 SVG 内联并继承 `currentColor`。页面 CSS 位于最后但严格作用域隔离，不取代全局覆盖层。视觉脚本为 `scripts/verify-png-compression.mjs`。
+
+压缩页横幅直接使用公共 `renderPcWelcomeBanner` 与 `pc-welcome-banner-category`，不覆盖背景和吉祥物定位。页内设置面板由 `12-compress.css` 控制：宽屏 285px 并排，容器不超过 950px 时覆盖式显示且内部滚动；主列表和设置面板独立滚动，保留底栏空间。优化滑块、预设与预算按钮使用现有主题令牌，参数锁定由 `fieldset` 承载。
 
 ## 关联文件
 
@@ -80,3 +92,13 @@
 - 第二轮已完成连续物理拆分；后续选择器去重、补丁收敛与视觉优化必须另立计划实施。
 - 欢迎横幅统一在 `05d-welcome-library-base.css` 使用等宽自适应尺寸与底部对齐定位；亮色使用 `home-bg.png`，暗色使用 `home-bg2.jpg`，且暗色不叠加渐变遮罩。暗色标题与副标题使用 `--color-text-primary`，并以低扩散深色阴影保障其经过浅色云层时仍清晰可读；页面级规则不得覆盖背景尺寸或定位。
 - PC 样式入口或子文件顺序变更时，必须执行全局 CSS 验收计划中的 CSS-01、CSS-02、CSS-06、CSS-07 与 PC 页面、动态弹层人工验收。
+
+图片处理页继续复用公共欢迎横幅。`12-compress.css` 新增目标格式、编码方式、条件质量／背景与元数据确认控件，均限定 `.pc-compress`；设置面板内部滚动，窄窗口覆盖，不新增全局主题规则。交互契约见 [图片处理模块](图片处理模块.md)。
+
+图片处理控件与动效集中在 `12-compress.css` 页内覆盖区，覆盖本文件早先的浏览器原生控件外观，不改公共主题令牌或全局 CSS 加载顺序。分段选中层使用 transform，新增／状态反馈使用 opacity 与短距离位移；进度条是局部宽度过渡。新增伪元素同样受减少动态效果规则控制。确认框及单条通知与页面同属 `.pc-compress`，避免影响其他模块。
+
+设置面板联动覆盖位于 `12-compress.css` 的“收展联动”区：局部 grid 占位过渡替换旧 flex 立即重排，固定内容宽度；窄容器覆盖模式禁用列宽过渡。独立滚动容器与 minmax(0,1fr) 行约束保证标题不滚动、底栏不被内容撑出。不修改全局 CSS 加载顺序。
+
+尺寸设置使用页内 `.image-resize-heading`、`.image-number-field`、`.image-dimension-grid`，数字框浅内凹并内置 px／% 单位；指定尺寸仅宽高双列，其余模式单字段。比例锁为可键盘操作的 aria-pressed 按钮，独立开关使用原生 checkbox 与 switch 语义。字段错误关联说明与 aria-invalid；模式展开沿用短淡入，减少动态效果直接切换。尺寸说明允许行内换行，已有结果单独标注，所有规则仍限定 `.pc-compress`。验收入口 `scripts/verify-image-resize.mjs`。
+
+设置精简使用 `.image-height-label` 将比例锁并入宽高标签行，数字框仍保留原高度与字号；`.image-encoding-state` 呈现固定编码状态，`.image-risk-details` 承载按需阅读的说明，`.image-cache-maintenance` 位于同一个高级折叠区。优化预设与精确滑块不再默认同时占位。没有新增全局样式、主题令牌或面板宽度覆盖；高度与视觉验收入口为 `scripts/verify-image-settings-density.mjs`。

@@ -64,6 +64,9 @@ def build_frontend() -> None:
 
 
 def build_sidecar() -> None:
+    run_command([sys.executable, 'scripts/prepare_image_engines.py'])
+    run_command([sys.executable, 'scripts/prepare_release_sources.py'])
+    run_command([sys.executable, '-c', 'import png; from PIL import Image'])
     run_command(
         [
             sys.executable,

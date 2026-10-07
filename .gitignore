@@ -40,6 +40,7 @@ android/app/debug/
 android/app/release/
 
 src-tauri/target/
+src-tauri/third-party/
 installer-shell/src-tauri/target/
 installer-shell/preview/
 installer-shell/preview/chrome-profile*/
@@ -64,6 +65,7 @@ build/app.log
 debug-backups/
 output/
 .dbg/
+.workbuddy/
 .worktrees/
 
 .DS_Store

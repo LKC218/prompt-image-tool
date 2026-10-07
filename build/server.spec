@@ -5,13 +5,17 @@ import os
 block_cipher = None
 
 project_root = os.path.abspath(SPECPATH + '/..')
+engine_dir = os.path.join(project_root, 'vendor', 'oxipng')
+jpeg_dir = os.path.join(project_root, 'vendor', 'jpegoptim')
+if not os.path.isfile(os.path.join(engine_dir, 'oxipng.exe')):
+    raise RuntimeError('请先运行 python scripts/prepare_png_engine.py')
 
 a = Analysis(
     [os.path.join(project_root, 'python', 'main.py')],
     pathex=[SPECPATH, os.path.join(project_root, 'python')],
-    binaries=[],
-    datas=[],
-    hiddenimports=['auto_update'],
+    binaries=[(os.path.join(engine_dir, 'oxipng.exe'), 'vendor/oxipng'), (os.path.join(jpeg_dir, 'jpegoptim.exe'), 'vendor/jpegoptim')],
+    datas=[(os.path.join(engine_dir, 'engine.json'), 'vendor/oxipng'), (os.path.join(engine_dir, 'LICENSE'), 'vendor/oxipng')] + [(os.path.join(jpeg_dir, name), 'vendor/jpegoptim') for name in ('engine.json', 'LICENSE', 'COPYRIGHT', 'README')],
+    hiddenimports=['auto_update', 'png_compress', 'png', 'image_process', 'image_worker', 'image_cache', 'PIL.PngImagePlugin', 'PIL.JpegImagePlugin', 'PIL.WebPImagePlugin'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
