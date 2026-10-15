@@ -1161,8 +1161,8 @@
 }
 
 .pc-welcome-banner-home {
-    height: 212px;
-    padding-top: calc(var(--pc-window-chrome-height, 36px) + 24px);
+    height: calc(212px - var(--pc-window-chrome-height, 36px));
+    padding-top: 24px;
     padding-bottom: 28px;
 }
 

@@ -1,7 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderWindowChrome, mountWindowChrome, setChromeDetailContext, syncChromeDetailTitle, CHROME_ID } from './pc-window-chrome.js';
+import { readPcCss } from './pc-css-test-utils.js';
 
 describe('pc-window-chrome', () => {
+    it('顶栏统一底色且左侧拖动区不再绘制独立分隔', () => {
+        const css = readPcCss();
+        const chrome = css.match(/\.pc-window-chrome\s*\{([^}]+)\}/)[1];
+        const left = css.match(/\.pc-window-chrome-left\s*\{([^}]+)\}/)[1];
+        expect(chrome).toContain('background: var(--pc-sidebar-bg)');
+        expect(chrome).toContain('box-sizing: border-box');
+        expect(left).toContain('background: transparent');
+        expect(left).not.toContain('border-right:');
+    });
     beforeEach(() => {
         document.body.innerHTML = `<div class="pc-app">${renderWindowChrome()}</div>`;
         document.documentElement.classList.remove('pc-prompt-detail-open');

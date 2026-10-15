@@ -4,9 +4,10 @@
     background-size: 100% auto;
     background-position: center bottom;
     background-repeat: no-repeat;
-    margin: calc((var(--pc-page-pad-y) + var(--pc-window-chrome-height, 36px)) * -1) calc(var(--pc-page-pad-x) * -1) 0;
-    padding: calc(var(--pc-window-chrome-height, 36px) + 24px) var(--pc-page-pad-x) 28px;
-    height: 212px;
+    /* 让出顶栏，同时扣除原有顶部留白，保持标题与横幅底边位置。 */
+    margin: calc(var(--pc-page-pad-y) * -1) calc(var(--pc-page-pad-x) * -1) 0;
+    padding: 24px var(--pc-page-pad-x) 28px;
+    height: calc(212px - var(--pc-window-chrome-height, 36px));
     position: relative;
     overflow: hidden;
     isolation: isolate;
@@ -148,8 +149,8 @@
 }
 
 .pc-welcome-banner-editor {
-    height: 212px;
-    padding-top: calc(var(--pc-window-chrome-height, 36px) + 24px);
+    height: calc(212px - var(--pc-window-chrome-height, 36px));
+    padding-top: 24px;
     padding-bottom: 28px;
 }
 
@@ -238,8 +239,8 @@
 }
 
 .pc-welcome-banner-library {
-    height: 212px;
-    padding-top: calc(var(--pc-window-chrome-height, 36px) + 24px);
+    height: calc(212px - var(--pc-window-chrome-height, 36px));
+    padding-top: 24px;
     padding-bottom: 28px;
 }
 

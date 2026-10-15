@@ -206,7 +206,7 @@
 
 .pc-sidebar-more-menu {
     position: fixed;
-    z-index: 30;
+    z-index: 2500;
     box-sizing: border-box;
     max-width: calc(100vw - 24px);
     max-height: calc(100vh - 24px);

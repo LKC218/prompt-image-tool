@@ -2,9 +2,31 @@
 
 本目录存放不属于运行时源码的一次性或专项维护脚本。
 
+## 产品官网验收
+
+在根目录安装现有依赖并执行 `npm --prefix website run build` 后，运行 `npm --prefix website test` 和 `node scripts/verify-website.mjs`。若官网预览服务已运行于 `5180`，追加 `--http`；可用 `WEBSITE_TEST_URL` 指定其他回环地址。
+
+验证范围为锚点、功能与平台边界、官方发布链接、隐私边界、生产资源白名单和文档。报告输出到已忽略的 `output/website/静态验收.json`；本脚本不会启动浏览器，不把 HTTP 或静态成功等同于视觉、交互验收。官网用法及浏览器验收范围见 [官网说明](../website/README.md)。
+
+## 侧栏密度与收起验收
+
+运行 `node scripts/verify-sidebar-collapse.mjs`，默认访问 `http://127.0.0.1:5173/?ui=pc`，可用 `SIDEBAR_TEST_URL` 覆盖。独立无头 Edge 核对 14px／短窗口 12px 间距、48px 按钮、20px 留白，逐帧记录文字退场、图标缩放、固定锚点和正文边界，并检查初始状态、反向取消、低动效、浅深色及短窗口末项命中。截图及原始采样报告输出至 `output/sidebar-collapse/`，已由 `.gitignore` 排除，不写业务数据。浏览器验收不代替原生 Tauri 壳验收。
+
+## 侧栏按钮微交互验收
+
+运行 `node scripts/verify-sidebar-micro-motion.mjs`，默认访问 `http://127.0.0.1:5173/?ui=pc`，可用 `SIDEBAR_TEST_URL` 覆盖。独立无头 Edge 验证悬停 1.06 倍与文字右移、按下 0.94 倍、释放回弹逐帧采样、固定点击区域、连续点击、键盘、菜单即时打开、齿轮反馈与低动效。截图和原始采样报告位于现有 `.gitignore` 已排除的 `output/sidebar-micro-motion/`，不写业务数据；截图用于检查视觉状态，动画过程以逐帧报告为证。原生 Tauri 壳仍需独立验收。
+
+## 悬停推开侧栏验收
+
+运行 `node scripts/verify-sidebar-hover.mjs`，默认使用 `http://127.0.0.1:5173/?ui=pc`，可由 `SIDEBAR_TEST_URL` 指定。独立无头 Edge 上下文验证 84px／280px 推开布局、逐帧连续让位、反向切换、残留鼠标焦点、键盘焦点、外置菜单、导航滚动、浅深色和 1280／800 宽度、减少动态效果及无悬停设备。截图和含坐标采样的 `验收报告.json` 输出至 `output/sidebar-hover/`，已有 `.gitignore` 精准排除整个输出目录，不提交业务资料。单元测试：`npx vitest run src/js/pc/pc-sidebar.test.js src/js/pc/pc-app-nav-motion.test.js src/js/pc/pc-window-chrome.test.js`。浏览器验收不替代原生 Tauri 壳验收。
+
+## 顶部衔接验收
+
+`node scripts/verify-window-header.mjs --baseline` 记录调整前的截图和坐标；修改样式后运行 `node scripts/verify-window-header.mjs` 验证。默认使用 `http://127.0.0.1:5173/?ui=pc`，可由 `HEADER_TEST_URL` 指定。覆盖浅深色、1280／800 宽度、收展侧栏和五个其他页面，确认窗口控件命中以及首页正文不下移。浏览器使用独立上下文；原生窗口拖动、最大化须在桌面壳另行验收。输出 `output/window-header/` 已被 `.gitignore` 排除，不提交截图或用户资料。单元测试入口为 `src/js/pc/pc-window-chrome.test.js`。
+
 ## 侧栏菜单验收
 
-运行 `node scripts/verify-sidebar-more-menu.mjs`，默认使用现有 `http://127.0.0.1:5174/?ui=pc`，可通过 `SIDEBAR_TEST_URL` 指定开发实例。独立浏览器上下文验证浅深色、收起／展开、视口缩放、菜单命中、外部关闭、Esc 焦点归还及更新记录入口。截图位于已由 `.gitignore` 排除的 `output/sidebar-more-menu/`，不修改业务数据。单元回归：`npx vitest run src/js/pc/pc-app-nav-motion.test.js`。
+运行 `node scripts/verify-sidebar-more-menu.mjs`，默认使用现有 `http://127.0.0.1:5173/?ui=pc`，可通过 `SIDEBAR_TEST_URL` 指定开发实例。独立浏览器上下文验证浅深色、悬停展开、视口缩放、菜单命中、外部关闭、Esc 焦点归还及更新记录入口。截图位于已由 `.gitignore` 排除的 `output/sidebar-more-menu/`，不修改业务数据。单元回归：`npx vitest run src/js/pc/pc-app-nav-motion.test.js`。
 
 ## 图片处理准备与验收
 

@@ -2,68 +2,17 @@
     --pc-sidebar-width: var(--pc-sidebar-collapsed-width);
 }
 
-.pc-app.pc-sidebar-collapsed .pc-sidebar-header {
-    padding: calc(var(--pc-window-chrome-height) + 10px) 6px 14px;
-}
-
-.pc-app.pc-sidebar-collapsed .pc-sidebar-header-top {
-    justify-content: center;
-    gap: 6px;
-}
-
-.pc-app.pc-sidebar-collapsed .pc-sidebar-logo {
-    flex: 0 0 auto;
-    gap: 0;
-}
-
-.pc-app.pc-sidebar-collapsed .pc-sidebar-logo-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-}
-
 .pc-app.pc-sidebar-collapsed .pc-sidebar-logo-copy {
     max-width: 0;
     opacity: 0;
     transform: translateX(-6px);
-    pointer-events: none;
-}
-
-.pc-app.pc-sidebar-collapsed .pc-sidebar-toggle-row {
-    justify-content: center;
-    margin-top: 14px;
-    margin-bottom: 0;
-}
-
-.pc-app.pc-sidebar-collapsed .pc-sidebar-toggle {
-    width: 44px;
-    height: 44px;
-    flex: 0 0 44px;
-    gap: 0;
-    padding: 0;
-    border-radius: 15px;
-    box-shadow:
-        0 1px 1px rgba(255, 255, 255, 0.4),
-        0 8px 16px rgba(0, 0, 0, 0.12),
-        0 3px 6px rgba(0, 0, 0, 0.08);
-}
-
-.pc-app.pc-sidebar-collapsed .pc-sidebar-toggle-icon svg {
-    transform: rotate(180deg);
-}
-
-.pc-app.pc-sidebar-collapsed .pc-sidebar-toggle-text {
-    max-width: 0;
-    opacity: 0;
-    transform: translateX(-4px);
+    transition: opacity 80ms ease-out, max-width 100ms ease-out, transform 90ms ease-out;
     pointer-events: none;
 }
 
 .pc-app.pc-sidebar-collapsed .pc-sidebar-nav {
     --pc-sidebar-nav-fade-y: 14px;
     --pc-sidebar-nav-fade-x: 10px;
-    padding: 14px 10px;
-    gap: 8px;
     scrollbar-width: none;
 }
 
@@ -71,27 +20,11 @@
     display: none;
 }
 
-.pc-app.pc-sidebar-collapsed .pc-nav-item {
-    width: 48px;
-    height: 48px;
-    min-height: 48px;
-    justify-content: center;
-    gap: 0;
-    padding: 0;
-    margin: 0 auto;
-    border-radius: var(--pc-sidebar-item-radius);
-}
-
-.pc-app.pc-sidebar-collapsed .pc-nav-icon {
-    width: 22px;
-    height: 22px;
-    flex-basis: 22px;
-}
-
-.pc-app.pc-sidebar-collapsed .pc-nav-label {
+.pc-app.pc-sidebar-collapsed .pc-sidebar-nav .pc-nav-label {
     max-width: 0;
     opacity: 0;
-    transform: translateX(-6px);
+    transform: translateX(-4px);
+    transition: opacity 80ms ease-out, max-width 100ms ease-out, transform 90ms ease-out;
     pointer-events: none;
 }
 
@@ -112,7 +45,8 @@
     margin: 0;
     padding: 0;
     opacity: 0;
-    transform: translateY(6px);
+    transform: scale(0.82) translateY(8px);
+    transition: opacity 90ms ease-out, transform 110ms ease-out, max-height 200ms cubic-bezier(0.2, 0.8, 0.2, 1), padding 200ms ease;
     pointer-events: none;
     box-shadow: none;
 }

@@ -1,5 +1,5 @@
 import { registerRoute, navigate, goBack, navigateToTab, getCurrentRoute, setRouteChangeCallback, initRouter, getRouteHandler, resolveRouteKey } from './pc-router.js';
-import { showToast, closeModal, closeImageViewer, copyToClipboard, escapeHtml, hideContextMenu } from './pc-utils.js';
+import { showToast, closeModal, closeImageViewer, copyToClipboard, hideContextMenu } from './pc-utils.js';
 import '../../css/pc.css';
 import corgiHome from '../../assets/mobile/mascots/corgi-home.png';
 import appIcon from '../../assets/pc/app-icon.png';
@@ -17,6 +17,7 @@ import { initRipple } from '../shared/ripple.js';
 import { initPcCursor } from './pc-cursor.js';
 import { getThemeState, setAppearancePreference, setWorkbenchTheme } from '../core/theme-service.js';
 import { renderWindowChrome, mountWindowChrome } from './pc-window-chrome.js';
+import { setupSidebarHover } from './pc-sidebar.js';
 import { initWindowSizePolicy } from './pc-window-size.js';
 
 const LAZY_ROUTES = {
@@ -42,8 +43,8 @@ let pageContainer = null;
 let activeNav = '/';
 let activePage = null;
 let currentAccent = 'sky';
-let isSidebarCollapsed = false;
-let isSidebarStageAnimating = false;
+let isSidebarCollapsed = true;
+let cleanupSidebarHover = null;
 
 const NAV_ITEMS = [
     { path: '/', icon: navHome, label: '首页' },
@@ -96,30 +97,10 @@ const MORE_MENU_ICON = `
 `;
 
 const TAB_ROUTES = ['/', '/library', '/compress', '/goals', '/category', '/games', '/settings'];
-const SIDEBAR_COLLAPSED_KEY = 'pc-sidebar-collapsed';
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
-const SIDEBAR_STAGE_OPENING_CLASS = 'is-stagger-opening';
-const SIDEBAR_STAGE_CLOSING_CLASS = 'is-stagger-closing';
-const SIDEBAR_STAGE_ACTIVE_CLASS = 'is-stagger-active';
-const SIDEBAR_COLLAPSING_CLASS = 'pc-sidebar-is-collapsing';
-const SIDEBAR_EXPANDING_CLASS = 'pc-sidebar-is-expanding';
 
 const navClickMotionCleanups = new WeakMap();
 let activeThemeTransition = null;
-
-const SIDEBAR_TOGGLE_ICON = `
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M15 6 9 12l6 6"></path>
-        <path d="M20 6 14 12l6 6"></path>
-    </svg>
-`;
-
-function splitTextToSpans(text) {
-    return text.split('').map((char, i) => {
-        const displayChar = char === ' ' ? '&nbsp;' : escapeHtml(char);
-        return `<span class="pc-sidebar-toggle-letter" style="--i:${i}">${displayChar}</span>`;
-    }).join('');
-}
 
 const CLOCK_MARKERS = Array.from({ length: 12 }, (_, i) => {
     const isMajor = i % 3 === 0;
@@ -136,38 +117,23 @@ function renderShell() {
         ${renderWindowChrome()}
         <div class="pc-shell-body">
         <div class="pc-sidebar-stage" id="pcSidebarStage">
-            <div class="pc-sidebar-underlay pc-sidebar-underlay-far" aria-hidden="true"></div>
-            <div class="pc-sidebar-underlay pc-sidebar-underlay-near" aria-hidden="true"></div>
             <aside class="pc-sidebar" id="pcSidebar">
             <div class="pc-sidebar-header">
                 <div class="pc-sidebar-header-top">
                     <div class="pc-sidebar-logo">
-                        <img class="pc-sidebar-logo-icon" src="${appIcon}" alt="图标">
+                        <div class="pc-sidebar-logo-badge">
+                            <img class="pc-sidebar-logo-icon" src="${appIcon}" alt="图标">
+                        </div>
                         <div class="pc-sidebar-logo-copy">
                             <div class="pc-sidebar-logo-text">提示词管家</div>
                             <div class="pc-sidebar-logo-sub">本地提示词管理器</div>
                         </div>
                     </div>
                 </div>
-                <div class="pc-sidebar-toggle-row">
-                    <button
-                        class="pc-sidebar-toggle"
-                        id="pcSidebarToggle"
-                        type="button"
-                        aria-controls="pcSidebar"
-                        aria-expanded="${String(!isSidebarCollapsed)}"
-                        aria-label="${isSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}"
-                        title="${isSidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}"
-                    >
-                        <span class="pc-sidebar-toggle-outline" aria-hidden="true"></span>
-                        <span class="pc-sidebar-toggle-icon">${SIDEBAR_TOGGLE_ICON}</span>
-                        <span class="pc-sidebar-toggle-text" aria-hidden="true">${splitTextToSpans(isSidebarCollapsed ? '展开侧栏' : '收起侧栏')}</span>
-                    </button>
-                </div>
             </div>
             <nav class="pc-sidebar-nav" id="pcSidebarNav">
-                ${NAV_ITEMS.map((item, index) => `
-                    <button class="pc-nav-item ${item.path === '/' ? 'pc-nav-active' : ''}" data-nav="${item.path}" aria-label="${item.label}" title="${item.label}" style="--pc-sidebar-stagger-index:${index}"${item.path === '/' ? ' aria-current="page"' : ''}>
+                ${NAV_ITEMS.map((item) => `
+                    <button class="pc-nav-item ${item.path === '/' ? 'pc-nav-active' : ''}" data-nav="${item.path}" data-ripple="false" aria-label="${item.label}" title="${item.label}"${item.path === '/' ? ' aria-current="page"' : ''}>
                         <div class="pc-nav-icon" aria-hidden="true" style="-webkit-mask-image:url(${item.icon});mask-image:url(${item.icon})"></div>
                         <span class="pc-nav-label">${item.label}</span>
                     </button>
@@ -226,6 +192,7 @@ function renderShell() {
             </div>
             </aside>
         </div>
+        <div class="pc-depth-dimmer" id="pcDepthDimmer" aria-hidden="true"></div>
         <main class="pc-main" id="pcMain"></main>
         </div>
     `;
@@ -286,7 +253,8 @@ function prefetchRouteModules() {
 
 async function mount(el) {
     appEl = el;
-    isSidebarCollapsed = readSidebarCollapsedState();
+    cleanupSidebarHover?.();
+    isSidebarCollapsed = !window.matchMedia?.('(hover: none)')?.matches;
     appEl.classList.add('pc-app');
     appEl.dataset.appVersion = document.querySelector('meta[name="version"]')?.content || 'unknown';
     applySidebarState(isSidebarCollapsed);
@@ -298,7 +266,10 @@ async function mount(el) {
     registerAppRoutes();
 
     setupSidebarNav();
-    setupSidebarToggle();
+    cleanupSidebarHover = setupSidebarHover(appEl, {
+        onStateChange: applySidebarState,
+        onLayoutChange: positionSidebarMoreMenu,
+    });
     setupKeyboardShortcuts();
     setupSidebarClock();
     mountWindowChrome(appEl);
@@ -326,63 +297,18 @@ async function mount(el) {
     }
     await createPage(resolveRouteKey(initialPath), initialRoute.params || {}, 'tab');
     prefetchRouteModules();
-    const initialSidebarStage = appEl.querySelector('#pcSidebarStage');
     window.requestAnimationFrame(() => {
         showUnreadReleaseNotes();
-        if (!isSidebarCollapsed && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-            playSidebarStageMotion(false, {
-                persist: false,
-                stage: initialSidebarStage,
-            });
-        }
         setTimeout(() => {
             runStartupUpdateCheck().catch(() => {});
         }, 2500);
     });
 }
 
-function readSidebarCollapsedState() {
-    try {
-        return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true';
-    } catch (e) {
-        return false;
-    }
-}
-
-function applySidebarState(collapsed, options = {}) {
+function applySidebarState(collapsed) {
     isSidebarCollapsed = collapsed === true;
-
-    if (appEl) {
-        appEl.classList.toggle('pc-sidebar-collapsed', isSidebarCollapsed);
-        appEl.setAttribute('data-sidebar', isSidebarCollapsed ? 'collapsed' : 'expanded');
-    }
-
-    const toggle = document.getElementById('pcSidebarToggle');
-    if (toggle) {
-        const label = isSidebarCollapsed ? '展开侧边栏' : '收起侧边栏';
-        toggle.setAttribute('aria-expanded', String(!isSidebarCollapsed));
-        toggle.setAttribute('aria-label', label);
-        toggle.setAttribute('title', label);
-
-        const toggleText = toggle.querySelector('.pc-sidebar-toggle-text');
-        if (toggleText) toggleText.innerHTML = splitTextToSpans(isSidebarCollapsed ? '展开侧栏' : '收起侧栏');
-    }
-
-    if (options.persist) {
-        try {
-            localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(isSidebarCollapsed));
-        } catch (e) {
-            console.warn('save sidebar state failed:', e);
-        }
-    }
-
-    if (isSidebarCollapsed) {
-        document.getElementById('pcSidebarStage')?.classList.remove(
-            SIDEBAR_STAGE_OPENING_CLASS,
-            SIDEBAR_STAGE_CLOSING_CLASS,
-            SIDEBAR_STAGE_ACTIVE_CLASS,
-        );
-    }
+    appEl?.classList.toggle('pc-sidebar-collapsed', isSidebarCollapsed);
+    appEl?.setAttribute('data-sidebar', isSidebarCollapsed ? 'collapsed' : 'expanded');
 }
 
 function setupSidebarNav() {
@@ -407,6 +333,7 @@ function setupSidebarNav() {
         if (moreToggle) {
             e.preventDefault();
             e.stopPropagation();
+            playNavIconClickMotion(moreToggle);
             toggleSidebarMoreMenu();
             return;
         }
@@ -447,6 +374,13 @@ function setupSidebarNav() {
         }
     };
 
+    // 再次按下时中断旧回弹，让按压样式立即接管，不积压动画。
+    const stopPreviousMotion = event => {
+        const item = event.target.closest('.pc-nav-item');
+        navClickMotionCleanups.get(item)?.();
+    };
+    nav.addEventListener('pointerdown', stopPreviousMotion);
+    settingsNav?.addEventListener('pointerdown', stopPreviousMotion);
     nav.addEventListener('click', handleNavigation);
     settingsNav?.addEventListener('click', handleNavigation);
     getSidebarMoreMenuElements().menu?.addEventListener('click', handleNavigation);
@@ -608,15 +542,18 @@ function playNavIconClickMotion(item) {
     const previousCleanup = navClickMotionCleanups.get(item);
     if (previousCleanup) previousCleanup();
 
+    const icon = item.querySelector('.pc-nav-icon, .pc-more-nav-icon');
+    if (!icon) return;
     let cleanup = null;
+    let cleanupTimer;
     function handleAnimationEnd(event) {
-        const isItemGlow = event.target === item;
-        const isIconBounce = event.target.classList?.contains('pc-nav-icon');
-        if (!isItemGlow && !isIconBounce) return;
+        // 扫光比回弹短；不能因伪元素结束而截断图标回弹。
+        if (event.target !== icon) return;
         cleanup();
     }
 
     cleanup = () => {
+        window.clearTimeout(cleanupTimer);
         item.classList.remove(NAV_CLICK_MOTION_CLASS);
         item.removeEventListener('animationend', handleAnimationEnd);
         navClickMotionCleanups.delete(item);
@@ -626,96 +563,9 @@ function playNavIconClickMotion(item) {
     void item.offsetWidth;
     item.classList.add(NAV_CLICK_MOTION_CLASS);
     item.addEventListener('animationend', handleAnimationEnd);
+    // 动画被系统低动效设置或样式切换取消时，也不会留下点击态。
+    cleanupTimer = window.setTimeout(cleanup, 450);
     navClickMotionCleanups.set(item, cleanup);
-}
-
-function setupSidebarToggle() {
-    const toggle = document.getElementById('pcSidebarToggle');
-    if (!toggle) return;
-
-    toggle.addEventListener('click', () => {
-        if (toggle.classList.contains('is-flying') || isSidebarStageAnimating) return;
-        closeSidebarMoreMenu();
-
-        if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-            applySidebarState(!isSidebarCollapsed, { persist: true });
-            return;
-        }
-
-        const nextCollapsed = !isSidebarCollapsed;
-        const icon = toggle.querySelector('.pc-sidebar-toggle-icon svg');
-        if (!icon) {
-            applySidebarState(nextCollapsed, { persist: true });
-            return;
-        }
-        const complete = (event) => {
-            if (event.target !== icon || event.animationName !== 'pc-sidebar-toggle-take-off') return;
-            toggle.classList.remove('is-flying');
-            toggle.removeAttribute('aria-busy');
-            icon.removeEventListener('animationend', complete);
-            playSidebarStageMotion(nextCollapsed);
-        };
-
-        toggle.classList.add('is-flying');
-        toggle.setAttribute('aria-busy', 'true');
-        icon.addEventListener('animationend', complete);
-    });
-}
-
-function playSidebarStageMotion(nextCollapsed, options = {}) {
-    const stage = options.stage || document.getElementById('pcSidebarStage');
-    const sidebar = stage?.querySelector('#pcSidebar');
-    if (!stage || !sidebar) {
-        applySidebarState(nextCollapsed, { persist: true });
-        return;
-    }
-
-    const opening = !nextCollapsed;
-    const motionClass = opening ? SIDEBAR_STAGE_OPENING_CLASS : SIDEBAR_STAGE_CLOSING_CLASS;
-    isSidebarStageAnimating = true;
-    stage.classList.remove(
-        SIDEBAR_STAGE_OPENING_CLASS,
-        SIDEBAR_STAGE_CLOSING_CLASS,
-        SIDEBAR_STAGE_ACTIVE_CLASS,
-        SIDEBAR_COLLAPSING_CLASS,
-        SIDEBAR_EXPANDING_CLASS,
-    );
-
-    if (opening) {
-        stage.classList.add(SIDEBAR_EXPANDING_CLASS, motionClass);
-        const complete = (event) => {
-            if (event.target !== sidebar || event.propertyName !== 'transform') return;
-            sidebar.removeEventListener('transitionend', complete);
-            sidebar.removeEventListener('transitioncancel', complete);
-            stage.classList.remove(SIDEBAR_STAGE_OPENING_CLASS, SIDEBAR_STAGE_ACTIVE_CLASS, SIDEBAR_EXPANDING_CLASS);
-            isSidebarStageAnimating = false;
-        };
-        sidebar.addEventListener('transitionend', complete);
-        sidebar.addEventListener('transitioncancel', complete);
-        void stage.offsetWidth;
-        applySidebarState(false, { persist: options.persist !== false });
-        window.requestAnimationFrame(() => {
-            if (!stage.isConnected) {
-                isSidebarStageAnimating = false;
-                return;
-            }
-            stage.classList.add(SIDEBAR_STAGE_ACTIVE_CLASS);
-        });
-        return;
-    }
-
-    stage.classList.add(SIDEBAR_COLLAPSING_CLASS);
-    const complete = (event) => {
-        if (event.target !== stage || event.propertyName !== 'width') return;
-        stage.removeEventListener('transitionend', complete);
-        stage.removeEventListener('transitioncancel', complete);
-        stage.classList.remove(SIDEBAR_COLLAPSING_CLASS);
-        isSidebarStageAnimating = false;
-    };
-    stage.addEventListener('transitionend', complete);
-    stage.addEventListener('transitioncancel', complete);
-    void stage.offsetWidth;
-    applySidebarState(true, { persist: true });
 }
 
 function setupKeyboardShortcuts() {

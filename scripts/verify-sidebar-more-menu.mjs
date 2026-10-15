@@ -1,19 +1,19 @@
 /* 独立浏览器上下文验证侧栏菜单，不修改业务数据。 */
 import { chromium } from 'playwright';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { strict as assert } from 'node:assert';
 
 const out = 'output/sidebar-more-menu';
+const { version } = JSON.parse(await readFile('package.json', 'utf8'));
 await mkdir(out, { recursive: true });
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
-    await page.addInitScript(() => {
+    await page.addInitScript(version => {
         localStorage.setItem('tutorial_completed', 'true');
-        localStorage.setItem('pc-release-notes-last-seen-version', '2.5.31');
-        localStorage.setItem('pc-sidebar-collapsed', 'true');
-    });
-    await page.goto(process.env.SIDEBAR_TEST_URL || 'http://127.0.0.1:5174/?ui=pc');
+        localStorage.setItem('pc-release-notes-last-seen-version', version);
+    }, version);
+    await page.goto(process.env.SIDEBAR_TEST_URL || 'http://127.0.0.1:5173/?ui=pc');
     await page.locator('#splashScreen').waitFor({ state: 'detached' });
     const trigger = page.locator('[data-more-menu]');
     const menu = page.locator('#pcSidebarMoreMenu');
@@ -37,7 +37,7 @@ try {
             await page.setViewportSize({ width, height: 680 });
             await trigger.click();
             await checkMenu();
-            await page.screenshot({ path: `${out}/收起-${theme}-${width}.png` });
+            await page.screenshot({ path: `${out}/悬停菜单-${theme}-${width}.png` });
             await page.setViewportSize({ width: width - 80, height: 600 });
             await checkMenu();
             await page.keyboard.press('Escape');
@@ -49,7 +49,7 @@ try {
     await page.locator('.pc-main').click({ position: { x: 10, y: 100 } });
     assert.equal(await menu.isVisible(), false);
     await trigger.click();
-    await page.locator('#pcSidebarToggle').click();
+    await page.locator('#pcSidebarNav [data-nav="/"]').click();
     assert.equal(await menu.isVisible(), false);
     await trigger.click();
     await checkMenu();
@@ -59,7 +59,8 @@ try {
     await page.locator('.pc-release-notes').waitFor({ state: 'visible' });
     await page.keyboard.press('Escape');
     await page.emulateMedia({ reducedMotion: 'no-preference' });
-    await page.locator('#pcSidebarToggle').click();
+    await page.locator('.pc-main').click({ position: { x: 10, y: 100 } });
+    await page.mouse.move(650, 180);
     await page.waitForFunction(() => document.querySelector('.pc-app.pc-sidebar-collapsed') && document.querySelector('#pcSidebarStage').className === 'pc-sidebar-stage');
     await trigger.click();
     await menu.evaluate(async el => { await Promise.all(el.getAnimations().map(animation => animation.finished)); });
