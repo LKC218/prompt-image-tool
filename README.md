@@ -22,7 +22,13 @@
 
 ## 下载
 
-开发验收：侧栏更多菜单的遮挡与交互回归见 [工具脚本说明](scripts/README.md#侧栏菜单验收)。
+PC 左侧导航默认显示窄图标栏，鼠标移入展开并推开正文，移出后延迟收起；键盘焦点及打开的更多菜单保持展开，无悬停设备常展开。不再提供收展按钮或记忆展开偏好。移动端导航不变。
+
+侧栏按钮采用悬停轻浮起、按下压感与点击单次回弹，导航立即响应；系统减少动态效果时保留颜色和焦点反馈。
+
+主导航按钮间距 14px，窗口高度不超过 740px 时为 12px，按钮保持 48px 高；减轻阴影，收起时文字先退场，图标在收窄末段轻落定，正文不回弹。
+
+开发验收：按钮微交互、悬停侧栏、更多菜单和顶部衔接的浏览器回归见 [工具脚本说明](scripts/README.md)。
 
 图片引擎源码附件随 Windows 安装包提供，说明见 [第三方图片引擎分发说明](docs/构建方案/第三方图片引擎分发说明.md)。已安装软件可在设置页点击「检查更新」，下载后按可见安装向导完成升级。
 
@@ -109,7 +115,18 @@ python scripts\build_pc_package.py
 python scripts\build_android_package.py
 ```
 
-## 目录说明
+## 产品官网预览
+
+独立亮色产品官网位于 `website/`，介绍提示词管理、版本记录、图片处理、目标计划与局域网同步。
+
+```powershell
+npm ci --prefix website
+npm --prefix website run dev
+```
+
+预览地址：`http://127.0.0.1:5180/`。官网不启动业务后端、不读取个人数据、不替换软件主界面；构建输出至 `website/dist/`。详情见 [官网说明](website/README.md) 与 [产品官网模块](docs/模块说明/产品官网模块.md)。
+
+## 项目目录
 
 | 路径 | 职责 |
 | --- | --- |
@@ -118,6 +135,7 @@ python scripts\build_android_package.py
 | `src-tauri/` | Tauri 桌面端工程 |
 | `android/` | Capacitor Android 原生工程 |
 | `installer-shell/` | Tauri 自定义安装器壳工程 |
+| `website/` | 独立产品介绍官网、原创三维工作室与官网构建 |
 | `scripts/` | 构建、维护、发布脚本与 README 预览截图脚本 |
 | `build/` | Sidecar `server.spec`、Tauri 发包相关与图标；全量旧壳 `app.spec` 等已 DEPRECATED |
 | `docs/` | 工程指南、技术、设计、计划、质量与版本文档（见文档中心） |

@@ -12,9 +12,9 @@
 | Windows 正式安装包 | `releases/PromptImageManager-Setup-<version>.exe` | **唯一** |
 | 应用内更新元数据 | `releases/latest.json` | 发布脚本生成 |
 | Android APK | `build_android_package.py` | 按需 |
-| PyInstaller 全量 pywebview 壳 | `build/app.spec` + `build/app_main.py` + `build/installer.nsi` | **DEPRECATED**，禁止发包 |
+| PyInstaller 全量 pywebview 壳 | `build/app.spec` + `build/app_main.py` + `build/installer.nsi` | **已废弃并完全下线清退**（禁止发包） |
 
-`build/server.spec` 仅用于打包 **无头 Sidecar**（`PromptImageManager-Server.exe`），属于 Tauri 主路径一步，**不是**全量旧壳。
+`build/server.spec` 用于打包 **无头 Sidecar**（`PromptImageManager-Server.exe`），属于 Tauri 主路径关键步骤，是唯一保留的打包规格。
 
 ---
 

@@ -32,11 +32,13 @@
 | `src-tauri/` | Tauri PC 壳 |
 | `android/` | Capacitor Android 工程 |
 | `installer-shell/` | Tauri 自定义安装器壳 |
+| `website/` | 独立亮色产品官网；入口 `index.html`、交互 `src/main.js`、三维工作室 `src/studio.js`；文档落点：产品官网模块、`website/README.md` |
 | `scripts/` | 构建、开发、维护脚本；`publish_release.ps1` 一键发布（版本一致性校验 + Release 完整分节更新说明）；`normalize_changelog.py` 规范化 changelog 章节词表；`gen_release_body.py` / `backfill_release_notes.py` 生成或回填 Release 正文；`capture_readme_previews.py` 重拍 README 预览图；`verify-*.mjs` 为本地功能核验脚本 |
 | `.mimocode/skills/release-publish/` | 项目技能：一键发布安装包并更新首页 README 版本信息 |
-| `build/` | Sidecar `server.spec`、Tauri 发包相关与图标（安装包不入 Git）；`app.spec`/`app_main.py`/`installer.nsi` 为 DEPRECATED 旧壳 |
-| `releases/` | 本地发布产物落点（不入 Git）；日常仅保留 `latest.json` 与最新 Setup 包 |
-| `docs/` | 技术 / 设计 / 计划 / 模块 / 版本文档 |
+| `build/` | Sidecar `server.spec`、Tauri 发包相关与图标（已清退旧壳配置与历史构建缓存，安装包不入 Git） |
+| `releases/` | 本地发布产物落点（不入 Git）；严格仅保留 `latest.json` 与当前最新正式版 Setup 包 |
+| `output/` | 本地测试产物、视觉验收快照、交互原型实验室（`preview/`）与发版验证归档（不入 Git） |
+| `docs/` | 技术 / 设计 / 计划与规格 / 模块 / 版本文档 |
 | `UI设计稿/` | 历史 UI 复刻稿与图标插画源资产（旁支，不参与运行时） |
 | `gpt本地档案馆工具/` | ChatGPT Vault 用户脚本旁支（与主应用弱耦合） |
 
@@ -55,7 +57,12 @@
 | `src/js/splash-pixel-animation.test.js` | 开屏像素动画与启动时序回归 |
 | `src/js/pc/pc-app.js` | PC 侧边栏壳、导航顺序（`NAV_ITEMS`）、路由注册、主题切换、更新记录入口；顺序约定见路由与启动模块 |
 | `scripts/verify-sidebar-more-menu.mjs` | 侧栏更多菜单的真实浏览器定位、遮挡命中与交互验收；文档落点：路由与启动模块、PC端样式模块 |
+| `src/js/pc/pc-sidebar.js`、`src/js/pc/pc-sidebar.test.js` | 悬停侧栏瞬时状态、键盘与无悬停设备适配；文档落点：路由与启动模块 |
+| `scripts/verify-sidebar-hover.mjs` | 侧栏推开布局逐帧采样、主题与窗口尺寸截图验收；文档落点：PC端样式模块、工具脚本说明 |
+| `scripts/verify-sidebar-micro-motion.mjs` | 按钮悬停、按压、回弹中间帧、点击区域稳定性及低动效验收；文档落点：PC端样式模块、路由与启动模块、工具脚本说明 |
+| `scripts/verify-sidebar-collapse.mjs` | 主导航间距、短窗口滚动、文字退场、图标落定与收起逐帧连续性验收；文档落点：PC端样式模块、路由与启动模块、工具脚本说明 |
 | `src/js/pc/pc-window-chrome.js` | 主窗顶栏：拖动区、软件最小化/最大化/关闭；详情态面包屑与收起/关闭详情产品芯片 |
+| `scripts/verify-window-header.mjs` | 顶栏连续底色、欢迎横幅起点、收展与主题切换的浏览器验收及前后坐标对比；文档落点：PC端样式模块 |
 | `src/js/mobile/mobile-app.js` | 移动端底部 Tab、悬浮新建、返回键、路由注册 |
 | `src/js/pc/pc-router.js` | PC 路由（`history.pushState`） |
 | `src/js/mobile/mobile-router.js` | 移动路由 |
@@ -163,9 +170,7 @@
 | --- | --- |
 | `python/main.py` | 开发用 HTTP API + 静态资源 |
 | `python/auto_update.py` | 更新检查/异步下载 Job/可见安装向导启动（`CREATE_BREAKAWAY_FROM_JOB`）；Tauri 安装根/主 exe 解析（`build/auto_update.py` 同步副本） |
-| `build/app_main.py` | DEPRECATED：PyInstaller 全量旧壳入口（禁止发包） |
-| `build/app.spec` / `build/installer.nsi` | DEPRECATED：全量旧壳 PyInstaller/NSIS（禁止发包） |
-| `build/server.spec` | Tauri Sidecar 无头后端打包规格 |
+| `build/server.spec` | Tauri Sidecar 无头后端打包规格（单一正式发包规格，旧壳已完全清退） |
 | `src-tauri/` | PC 窗口、拉起 Python |
 | `installer-shell/` | 自定义安装向导壳 |
 | `capacitor.config.ts` / `android/` | Android 工程 |
@@ -199,6 +204,7 @@
 
 **就近模块说明**（改动后优先同步）：
 
+- [产品官网模块](../模块说明/产品官网模块.md)
 - [图片处理模块](../模块说明/图片处理模块.md)
 - [图片无损压缩模块](../模块说明/图片无损压缩模块.md)
 - [目标计划模块](../模块说明/目标计划模块.md)
@@ -220,6 +226,7 @@
 
 | 路径 | 边界说明 |
 | --- | --- |
+| `website/` | 独立官网运行与构建，不注册主应用路由；验证入口 `scripts/verify-website.mjs` 和 `website/tests/website.test.mjs` |
 | `UI设计稿/` | 设计复刻文档与插画/图标源文件；运行时资源已迁至 `src/assets/`，此处仅作设计归档与素材源 |
 | `gpt本地档案馆工具/` | Tampermonkey 用户脚本，导出 ChatGPT 对话供本工具导入；不依赖、不打包进主应用 |
 | `docs/_归档/` | 已完成计划、过程稿与历史整理方案，不参与日常导航 |

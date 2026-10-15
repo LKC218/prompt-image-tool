@@ -4,7 +4,7 @@
 > 状态：**已交付**  
 > 项目仓：`LKC218/crt-profile-card`（本地 `G:\项目\LKC218-LKC218`，main `45bcb91`）  
 > Profile 仓：`LKC218/LKC218`（本地 `G:\项目\profile-LKC218`，main `1bc1e8c`）  
-> 参考规格：[docs/compose/spec/github-crt-profile-card.md](../../compose/spec/github-crt-profile-card.md)
+> 参考规格：[docs/计划与规格/compose-spec/github-crt-profile-card.md](../../../计划与规格/compose-spec/github-crt-profile-card.md)
 
 ---
 
