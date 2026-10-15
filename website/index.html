@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f7f2" />
+    <meta
+      name="description"
+      content="提示词管家是一款本地优先的创作资料管理工具。整理提示词、参考图和版本历史，批量处理图片，让 Windows 与 Android 在局域网内同步。"
+    />
+    <title>提示词管家 — 让灵感自由生长</title>
+    <link rel="icon" href="../docs/assets/readme/logo.png" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳转到正文</a>
+    <header class="header" id="top">
+      <a class="brand" href="#hero" aria-label="提示词管家，返回首页"
+        ><span class="brand-mark" aria-hidden="true">✳</span
+        ><span>提示词管家<span class="brand-dot">.</span></span></a
+      >
+      <nav class="nav" aria-label="主导航">
+        <a href="#features">功能一览</a><a href="#workflow">创作日常</a
+        ><a href="#questions">常见问题</a>
+      </nav>
+      <div class="header-actions">
+        <button
+          class="motion-toggle"
+          type="button"
+          aria-label="暂停动态效果"
+          aria-pressed="false"
+        >
+          <span></span><span></span><span></span><span></span></button
+        ><a class="nav-download" href="#download"
+          >获取软件 <span aria-hidden="true">↗</span></a
+        ><button
+          class="menu-toggle"
+          aria-label="展开导航"
+          aria-expanded="false"
+          aria-controls="mobile-nav"
+        >
+          <span></span><span></span>
+        </button>
+      </div>
+      <nav class="mobile-nav" id="mobile-nav" aria-label="移动端导航" hidden>
+        <a href="#features">功能一览</a><a href="#workflow">创作日常</a
+        ><a href="#questions">常见问题</a><a href="#download">获取软件</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section
+        class="hero section-shell"
+        id="hero"
+        aria-labelledby="hero-title"
+      >
+        <div class="pixel-field" aria-hidden="true"></div>
+        <div class="hero-copy">
+          <p class="eyebrow hero-intro">
+            <span class="status-dot"></span> 为每一个认真创作的你
+          </p>
+          <h1 id="hero-title">
+            <span class="hero-line"
+              >让
+              <span class="word-window" aria-hidden="true"
+                ><span class="word-track"
+                  ><span><i>✳</i> 灵感</span><span><i>⌘</i> 提示词</span
+                  ><span><i>▧</i> 参考图</span><span><i>✳</i> 灵感</span></span
+                ></span
+              ><span class="sr-only">灵感</span></span
+            ><span class="hero-line">井井有条，</span
+            ><span class="hero-line"
+              >自由生长<span class="title-period">.</span></span
+            >
+          </h1>
+          <div class="hero-description">
+            <p>
+              你好，这里是提示词管家
+              <span class="wave" aria-hidden="true">✺</span>
+            </p>
+            <p>你的灵感、提示词与参考图，都有自己的位置。</p>
+          </div>
+          <div class="hero-cta">
+            <a class="button button-blue" href="#features"
+              >探索所有功能 <span aria-hidden="true">↘</span></a
+            ><span class="wire-shape" aria-hidden="true"
+              ><svg viewBox="0 0 56 56" fill="none">
+                <path
+                  d="M5 12 48 5 40 47 5 12 31 24 48 5M31 24 40 47M5 12 26 6 31 24 44 26 40 47"
+                  stroke="currentColor"
+                  stroke-width="1.1"
+                /></svg
+            ></span>
+          </div>
+          <p class="hero-platforms">
+            Windows <span>·</span> Android <span>·</span> 本地优先
+          </p>
+        </div>
+        <div class="studio-area">
+          <div class="studio-heading">
+            <span><span class="tiny-dot"></span> 灵感工作室</span
+            ><span>01 / 创作进行时</span>
+          </div>
+          <div
+            class="studio"
+            id="studio"
+            role="img"
+            aria-label="可交互的明亮三维工作室，包含书桌、电脑、窗户、椅子和植物"
+          >
+            <div class="studio-fallback">
+              <img data-image="home" alt="提示词管家工作台界面预览" /><span
+                >给灵感，一个舒适的家。</span
+              >
+            </div>
+          </div>
+          <div class="studio-caption">
+            <span id="studio-hint">正在布置你的工作室</span
+            ><button
+              class="studio-reset"
+              type="button"
+              aria-label="重置工作室视角"
+            >
+              ↻ <span>重置视角</span>
+            </button>
+          </div>
+        </div>
+        <a class="scroll-cue" href="#features"
+          ><span class="scroll-line"></span> 向下探索 <span>↓</span></a
+        >
+      </section>
+
+      <div class="principles section-shell" aria-label="产品特点">
+        <p>创作的事，<strong>简单一点。</strong></p>
+        <span>本地存储</span><i>✳</i><span>灵感归档</span><i>✳</i
+        ><span>跨端同步</span><i>✳</i><span>自由复用</span>
+      </div>
+
+      <section
+        class="features section-shell section-space"
+        id="features"
+        aria-labelledby="features-title"
+      >
+        <div class="section-heading reveal">
+          <div>
+            <p class="eyebrow">
+              <span class="section-number">01 /</span> 你的创作工具箱
+            </p>
+            <h2 id="features-title">好灵感，值得被留下。</h2>
+          </div>
+          <p>
+            从一句提示词，到一整个创作项目。<br />把零散的素材，变成有序的积累。
+          </p>
+        </div>
+        <div class="showcase-grid">
+          <article class="feature-card feature-large reveal">
+            <button
+              class="feature-visual library-visual"
+              data-preview="library"
+              aria-label="放大提示词库界面预览"
+            >
+              <span class="visual-kicker">灵感有序，创作自由</span>
+              <div class="screenshot-frame">
+                <div class="window-bar">
+                  <i></i><i></i><i></i><span>提示词管家 / 提示词库</span>
+                </div>
+                <img
+                  data-image="library"
+                  loading="lazy"
+                  alt="提示词库中的分类、标签、搜索与收藏功能"
+                />
+              </div>
+              <span class="floating-label"
+                ><span>✳</span> 下一次创作，不必从零开始</span
+              ><span class="view-indicator" aria-hidden="true">↗</span>
+            </button>
+            <div class="feature-meta">
+              <span>01 — 灵感管理</span><span>Windows / Android</span>
+            </div>
+            <a class="feature-title" href="#detail-library"
+              ><h3>你的提示词，终于有了家。</h3>
+              <span aria-hidden="true">↗</span></a
+            >
+            <p>
+              正向与反向提示词、创作参数、参考图片，一起归档。用分类和标签建立秩序，再用搜索找回灵感。
+            </p>
+            <div class="tags">
+              <span>提示词库</span><span>分类标签</span><span>搜索收藏</span>
+            </div>
+          </article>
+          <div class="showcase-side">
+            <article class="feature-card reveal">
+              <div
+                class="feature-visual version-visual"
+                aria-label="版本历史功能示意"
+              >
+                <div class="version-mini">
+                  <div class="mini-top">
+                    <span>创作，始终可以回头。</span><span>↗</span>
+                  </div>
+                  <div class="version-row">
+                    <span class="version-point"></span><strong>初次灵感</strong
+                    ><span>版本 01</span>
+                  </div>
+                  <div class="version-row">
+                    <span class="version-point"></span
+                    ><strong>调整光线与构图</strong><span>版本 02</span>
+                  </div>
+                  <div class="version-row selected">
+                    <span class="version-point"></span
+                    ><strong>这次，刚刚好。 <i>✓</i></strong
+                    ><span>版本 03</span>
+                  </div>
+                </div>
+              </div>
+              <div class="feature-meta">
+                <span>02 — 版本记录</span><span>留住每次迭代</span>
+              </div>
+              <a class="feature-title" href="#detail-versions"
+                ><h3>每一次调整，都有迹可循。</h3>
+                <span aria-hidden="true">↗</span></a
+              >
+              <p>保留修改历史，PC 双提示词对比，让好的尝试不再丢失。</p>
+            </article>
+            <article class="feature-card reveal">
+              <div
+                class="feature-visual image-visual"
+                aria-label="批量图片处理功能示意"
+              >
+                <div class="image-stack">
+                  <div class="art-card art-back">
+                    <span>PNG</span>
+                    <div class="landscape-art"><i></i></div>
+                  </div>
+                  <div class="art-card art-front">
+                    <span>WebP</span>
+                    <div class="landscape-art"><i></i></div>
+                    <b>好画面，轻装上阵。</b>
+                  </div>
+                  <span class="image-convert">↗</span>
+                </div>
+                <div class="format-list">
+                  <span>PNG</span><span>JPEG</span><span>WebP</span>
+                </div>
+              </div>
+              <div class="feature-meta">
+                <span>03 — 图片处理</span><span>Windows</span>
+              </div>
+              <a class="feature-title" href="#detail-images"
+                ><h3>图片的事，也顺手做了。</h3>
+                <span aria-hidden="true">↗</span></a
+              >
+              <p>批量优化、格式转换、自定义尺寸与 ZIP 导出，原图不覆盖。</p>
+            </article>
+          </div>
+        </div>
+        <div class="secondary-grid">
+          <article class="feature-card reveal">
+            <button
+              class="feature-visual goals-visual"
+              data-preview="goals"
+              aria-label="放大目标计划界面预览"
+            >
+              <div class="screenshot-frame">
+                <div class="window-bar">
+                  <i></i><i></i><i></i><span>从想法，到完成</span>
+                </div>
+                <img
+                  data-image="goals"
+                  loading="lazy"
+                  alt="目标计划项目列表与任务进度"
+                />
+              </div>
+              <span class="view-indicator" aria-hidden="true">↗</span>
+            </button>
+            <div class="feature-meta">
+              <span>04 — 目标计划</span><span>Windows</span>
+            </div>
+            <a class="feature-title" href="#detail-goals"
+              ><h3>把「想做」变成「做到」。</h3>
+              <span aria-hidden="true">↗</span></a
+            >
+            <p>项目、任务、优先级与任务图片，让创作计划一步步落地。</p>
+          </article>
+          <article class="feature-card reveal">
+            <div class="feature-visual sync-visual">
+              <div class="sync-computer">
+                <span>我的灵感库</span>
+                <div class="sync-lines"><i></i><i></i><i></i></div>
+                <small>Windows</small>
+              </div>
+              <div class="sync-connection">
+                <span>⇄</span><small>同一局域网</small>
+              </div>
+              <div class="sync-phone">
+                <div></div>
+                <span>✳</span><small>Android</small>
+              </div>
+            </div>
+            <div class="feature-meta">
+              <span>05 — 局域网同步</span><span>PC ⇄ Android</span>
+            </div>
+            <a class="feature-title" href="#detail-sync"
+              ><h3>换个设备，灵感不掉线。</h3>
+              <span aria-hidden="true">↗</span></a
+            >
+            <p>同一局域网内拉取、回传或双向同步，资料仍由自己掌握。</p>
+          </article>
+        </div>
+        <p class="preview-note">
+          以上为产品界面预览与功能示意，具体界面以当前安装版本为准。
+        </p>
+      </section>
+
+      <section
+        class="workflow section-space"
+        id="workflow"
+        aria-labelledby="workflow-title"
+      >
+        <div class="section-shell">
+          <div class="section-heading reveal">
+            <div>
+              <p class="eyebrow">
+                <span class="section-number">02 /</span> 顺着你的创作节奏
+              </p>
+              <h2 id="workflow-title">少一点整理，<br />多一点心流。</h2>
+            </div>
+            <p>不用改变你的创作习惯。<br />只是让每一步，更从容。</p>
+          </div>
+          <div class="workflow-layout">
+            <div class="workflow-sticky reveal">
+              <span class="asterisk-large" aria-hidden="true">✳</span>
+              <p>好工具，<br />让灵感保持流动。</p>
+              <span>从记录，到下一次更好的创作。</span
+              ><a class="text-link" href="#download"
+                >把它加入你的工作台 <span>↗</span></a
+              >
+            </div>
+            <div class="timeline">
+              <article id="detail-library" class="timeline-item reveal">
+                <span class="timeline-icon">01</span>
+                <p class="eyebrow">捕捉 / 整理</p>
+                <h3>先留下，再慢慢打磨。</h3>
+                <p>
+                  保存一闪而过的提示词，附上参考图与创作参数。按项目、风格或场景分类，常用内容随手收藏。
+                </p>
+                <ul>
+                  <li>正向与反向提示词统一管理</li>
+                  <li>封面、参考图与参数一起保存</li>
+                  <li>分类、标签与搜索协同整理</li>
+                </ul>
+              </article>
+              <article id="detail-versions" class="timeline-item reveal">
+                <span class="timeline-icon">02</span>
+                <p class="eyebrow">迭代 / 复用</p>
+                <h3>留住过程，也留住好结果。</h3>
+                <p>
+                  每一次修改，都可以成为下一次灵感的起点。保留版本记录，PC
+                  端支持双提示词对比阅读。
+                </p>
+                <ul>
+                  <li>查看提示词修改历史</li>
+                  <li>复制并复用提示词内容</li>
+                  <li>PC 详情弹窗与对比阅读</li>
+                </ul>
+              </article>
+              <article id="detail-images" class="timeline-item reveal">
+                <span class="timeline-icon">03</span>
+                <p class="eyebrow">处理 / 输出</p>
+                <h3>让图片，准备好出发。</h3>
+                <p>
+                  在 PC 端完成 PNG、JPEG、静态 WebP
+                  的批量处理。按需要优化、转换或调整尺寸，处理后打包导出。
+                </p>
+                <ul>
+                  <li>自定义尺寸与逐图预期尺寸</li>
+                  <li>批量处理与 ZIP 导出</li>
+                  <li>保留原图；缩放会改变像素</li>
+                </ul>
+              </article>
+              <article id="detail-goals" class="timeline-item reveal">
+                <span class="timeline-icon">04</span>
+                <p class="eyebrow">计划 / 推进</p>
+                <h3>大想法，也能一步步完成。</h3>
+                <p>
+                  用项目组织任务，拆分父子任务，设定优先级并附上任务图片。让创作目标有清晰的下一步。
+                </p>
+                <ul>
+                  <li>项目与任务两级管理</li>
+                  <li>任务层级、优先级和进度</li>
+                  <li>PC 端列表与导图视图</li>
+                </ul>
+              </article>
+              <article id="detail-sync" class="timeline-item reveal">
+                <span class="timeline-icon">05</span>
+                <p class="eyebrow">同步 / 掌握</p>
+                <h3>设备可以变，资料由你掌握。</h3>
+                <p>
+                  PC 与 Android
+                  连接同一局域网，在配对后拉取、回传或双向同步。配合本地导入导出与备份，为创作积累留一份底。
+                </p>
+                <ul>
+                  <li>局域网同步，不是公网云同步</li>
+                  <li>本地备份、导入与导出</li>
+                  <li>Windows、Android 各有对应安装包</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="questions section-shell section-space"
+        id="questions"
+        aria-labelledby="questions-title"
+      >
+        <div class="section-heading reveal">
+          <div>
+            <p class="eyebrow">
+              <span class="section-number">03 /</span> 使用之前
+            </p>
+            <h2 id="questions-title">你可能想知道。</h2>
+          </div>
+        </div>
+        <div class="faq-list reveal">
+          <details>
+            <summary>
+              它是一个 AI 生图工具吗？<span aria-hidden="true">+</span>
+            </summary>
+            <p>
+              不是。提示词管家用来整理和复用提示词、参考图片与创作参数，不直接提供
+              AI 图片生成服务。你可以将收藏的提示词复制到自己使用的创作工具中。
+            </p>
+          </details>
+          <details>
+            <summary>
+              我的数据存在哪里？<span aria-hidden="true">+</span>
+            </summary>
+            <p>
+              软件采用本地优先的存储方式，创作资料保存在自己的设备上。请定期使用导出和备份功能；局域网同步不等同于备份，也不代表公网云同步。
+            </p>
+          </details>
+          <details>
+            <summary>
+              支持哪些设备？需要安装开发环境吗？<span aria-hidden="true"
+                >+</span
+              >
+            </summary>
+            <p>
+              提供 Windows 和 Android 安装包，普通用户无需安装 Python
+              或前端开发依赖。Web
+              版本用于开发运行，不是已托管的在线账户服务。Android
+              的可用版本以发布页实际附件为准。
+            </p>
+          </details>
+          <details>
+            <summary>
+              图片处理都是无损的吗？<span aria-hidden="true">+</span>
+            </summary>
+            <p>
+              不是所有处理都无损。图片优化、格式转换和尺寸调整是不同操作，缩放会改变像素，JPEG
+              缩放会重新编码。PC 图片处理保留原图，输出独立副本。
+            </p>
+          </details>
+          <details>
+            <summary>
+              手机和电脑怎样同步？<span aria-hidden="true">+</span>
+            </summary>
+            <p>
+              让 PC 与 Android 处于同一局域网，在手机端填写 PC
+              服务地址并完成配对。可以从 PC 拉取、回传或双向同步；连接时以 PC
+              显示的实际 IP 和端口为准。
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <section
+        class="download section-shell section-space"
+        id="download"
+        aria-labelledby="download-title"
+      >
+        <div class="download-copy reveal">
+          <p class="eyebrow">
+            <span class="section-number">04 /</span> 给灵感一个新家
+          </p>
+          <h2 id="download-title">
+            下一次创作，<br />从这里开始<span>↗</span>
+          </h2>
+          <p>把整理交给工具，把时间留给灵感。</p>
+          <div class="download-version">
+            <span class="status-dot"></span> 当前项目版本
+            <span data-version></span>
+          </div>
+        </div>
+        <div class="download-panel reveal">
+          <span class="download-label">选择你的创作设备</span
+          ><a
+            class="platform-download"
+            data-release-link
+            href="https://github.com/LKC218/prompt-image-tool/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><span class="platform-icon windows-icon" aria-hidden="true"
+              ><i></i><i></i><i></i><i></i></span
+            ><span
+              ><strong>Windows</strong
+              ><small>安装包 · 前往发布页下载</small></span
+            ><span class="download-arrow" aria-hidden="true">↗</span></a
+          ><a
+            class="platform-download"
+            data-release-link
+            href="https://github.com/LKC218/prompt-image-tool/releases/latest"
+            target="_blank"
+            rel="noopener noreferrer"
+            ><span class="platform-icon android-icon" aria-hidden="true">⌁</span
+            ><span
+              ><strong>Android</strong
+              ><small>APK · 以发布页可用附件为准</small></span
+            ><span class="download-arrow" aria-hidden="true">↗</span></a
+          >
+          <p>
+            无需开发环境，即可开始。<br />下载将打开 GitHub
+            Releases，请选择对应平台安装包。
+          </p>
+          <a
+            class="text-link"
+            href="https://github.com/LKC218/prompt-image-tool"
+            target="_blank"
+            rel="noopener noreferrer"
+            >查看项目与使用说明 <span>↗</span></a
+          >
+        </div>
+      </section>
+    </main>
+    <footer class="footer section-shell">
+      <a class="brand" href="#hero"
+        ><span class="brand-mark" aria-hidden="true">✳</span>提示词管家<span
+          class="brand-dot"
+          >.</span
+        ></a
+      >
+      <p>为灵感留白，为创作留存。</p>
+      <a
+        href="https://github.com/LKC218/prompt-image-tool"
+        target="_blank"
+        rel="noopener noreferrer"
+        >GitHub ↗</a
+      ><a class="back-top" href="#hero" aria-label="回到顶部">↑</a>
+    </footer>
+
+    <dialog class="preview-dialog" aria-labelledby="preview-title">
+      <div class="preview-toolbar">
+        <h2 id="preview-title">产品界面预览</h2>
+        <button class="preview-close" aria-label="关闭界面预览">×</button>
+      </div>
+      <img class="preview-image" alt="" />
+      <p>项目公开界面预览，具体界面以当前安装版本为准。</p>
+    </dialog>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

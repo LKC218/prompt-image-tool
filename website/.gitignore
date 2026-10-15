@@ -1,0 +1,8 @@
+# 官网独立构建与浏览器验收产物，不影响主应用产物。
+node_modules/
+dist/
+.vite/
+.env
+.env.*
+*.local
+*.log
