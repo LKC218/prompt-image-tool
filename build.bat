@@ -61,8 +61,9 @@ if %errorlevel% neq 0 (
 echo ✅ Sidecar 构建完成
 
 echo [3/4] 拷贝 Sidecar 到 Tauri 资源目录...
-if not exist src-tauri\server mkdir src-tauri\server
-copy /Y build\dist-server\PromptImageManager-Server.exe src-tauri\server\PromptImageManager-Server.exe >nul
+if exist src-tauri\server rmdir /s /q src-tauri\server
+mkdir src-tauri\server
+xcopy /E /I /Y build\dist-server\PromptImageManager-Server src-tauri\server >nul
 if %errorlevel% neq 0 (
     echo ❌ Sidecar 拷贝失败
     goto menu

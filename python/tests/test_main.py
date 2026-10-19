@@ -964,3 +964,37 @@ class TestAppHandler:
         result = load_data()
         assert len(result) == 1
         assert result[0]['id'] == '2'
+
+    def test_serve_image_cache_control_and_etag(self, tmp_path, monkeypatch):
+        data_dir = tmp_path / 'data'
+        images_dir = data_dir / 'images'
+        images_dir.mkdir(parents=True, exist_ok=True)
+        img_file = images_dir / 'test.png'
+        img_content = b'\x89PNG\r\n\x1a\nfake-png-data'
+        img_file.write_bytes(img_content)
+
+        monkeypatch.setattr('main.DATA_DIR', str(data_dir))
+        monkeypatch.setattr('main.IMAGES_DIR', str(images_dir))
+
+        server, thread = start_test_server()
+        try:
+            base_url = f'http://127.0.0.1:{server.server_address[1]}'
+            req = urllib.request.Request(f'{base_url}/images/test.png')
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                assert resp.status == 200
+                assert resp.read() == img_content
+                assert 'public, max-age=31536000, immutable' in resp.headers.get('Cache-Control', '')
+                etag = resp.headers.get('ETag')
+                assert etag is not None and len(etag) > 0
+
+            # 携带 ETag 进行 If-None-Match 请求，期望返回 304
+            req_304 = urllib.request.Request(f'{base_url}/images/test.png', headers={'If-None-Match': etag})
+            try:
+                urllib.request.urlopen(req_304, timeout=5)
+                # 在某些 urllib 版本中 304 会直接抛出 HTTPError
+            except urllib.error.HTTPError as error:
+                assert error.code == 304
+                assert error.headers.get('ETag') == etag
+                assert 'public, max-age=31536000, immutable' in error.headers.get('Cache-Control', '')
+        finally:
+            stop_test_server(server, thread)

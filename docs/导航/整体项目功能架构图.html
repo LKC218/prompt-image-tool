@@ -1,0 +1,3076 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark" data-density="normal">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示词管家 · 系统全景功能架构与关系拓扑图 (Master UI/UX)</title>
+    <style>
+        :root {
+            /* 基础深色调 (Cosmic Deep Slate) */
+            --bg-canvas: #070B14;
+            --bg-subtle: #0D1527;
+            --bg-surface: rgba(16, 26, 46, 0.78);
+            --bg-elevated: #162238;
+            --bg-card: rgba(22, 35, 58, 0.72);
+            --bg-card-hover: rgba(30, 48, 78, 0.92);
+            --bg-glass: rgba(11, 18, 33, 0.88);
+            
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-medium: rgba(255, 255, 255, 0.16);
+            --border-active: #38BDF8;
+
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-tertiary: #64748B;
+            --text-inverse: #0F172A;
+
+            /* 层级品牌色 */
+            --c-shell: #0EA5E9;
+            --c-shell-glow: rgba(14, 165, 233, 0.25);
+            --c-biz: #10B981;
+            --c-biz-glow: rgba(16, 185, 129, 0.25);
+            --c-storage: #8B5CF6;
+            --c-storage-glow: rgba(139, 92, 246, 0.25);
+            --c-engine: #F59E0B;
+            --c-engine-glow: rgba(245, 158, 11, 0.25);
+            --c-qa: #F43F5E;
+            --c-qa-glow: rgba(244, 63, 94, 0.25);
+
+            /* 关系连线专用色 */
+            --c-rel-ipc: #38BDF8;
+            --c-rel-storage: #A78BFA;
+            --c-rel-http: #34D399;
+            --c-rel-engine: #FBBF24;
+            --c-rel-qa: #FB7185;
+            --c-rel-native: #F472B6;
+
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --radius-full: 9999px;
+
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+            --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.35);
+            --shadow-lg: 0 20px 50px rgba(0, 0, 0, 0.55);
+            --shadow-glow: 0 0 35px rgba(56, 189, 248, 0.25);
+
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        [data-theme="light"] {
+            --bg-canvas: #F8FAFC;
+            --bg-subtle: #EDF2F7;
+            --bg-surface: rgba(255, 255, 255, 0.88);
+            --bg-elevated: #F1F5F9;
+            --bg-card: rgba(255, 255, 255, 0.94);
+            --bg-card-hover: #FFFFFF;
+            --bg-glass: rgba(255, 255, 255, 0.92);
+
+            --border-subtle: rgba(0, 0, 0, 0.08);
+            --border-medium: rgba(0, 0, 0, 0.16);
+            --border-active: #0284C7;
+
+            --text-primary: #0F172A;
+            --text-secondary: #475569;
+            --text-tertiary: #94A3B8;
+            --text-inverse: #FFFFFF;
+
+            --c-shell: #0284C7;
+            --c-shell-glow: rgba(2, 132, 199, 0.15);
+            --c-biz: #059669;
+            --c-biz-glow: rgba(5, 150, 105, 0.15);
+            --c-storage: #7C3AED;
+            --c-storage-glow: rgba(124, 58, 237, 0.15);
+            --c-engine: #D97706;
+            --c-engine-glow: rgba(217, 119, 6, 0.15);
+            --c-qa: #E11D48;
+            --c-qa-glow: rgba(225, 29, 72, 0.15);
+
+            --c-rel-ipc: #0284C7;
+            --c-rel-storage: #7C3AED;
+            --c-rel-http: #059669;
+            --c-rel-engine: #D97706;
+            --c-rel-qa: #E11D48;
+            --c-rel-native: #DB2777;
+
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.12);
+            --shadow-glow: 0 0 25px rgba(2, 132, 199, 0.18);
+        }
+
+        /* 紧凑密度调节 */
+        [data-density="compact"] .layer-block { margin-bottom: 20px; }
+        [data-density="compact"] .cards-grid { gap: 14px; }
+        [data-density="compact"] .arch-card { padding: 14px; }
+        [data-density="compact"] .card-desc { margin-bottom: 8px; font-size: 11.5px; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            line-height: 1.6;
+            background-image: 
+                radial-gradient(ellipse at 20% 0%, rgba(14, 165, 233, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 80%, rgba(16, 185, 129, 0.06) 0%, transparent 60%);
+            background-attachment: fixed;
+            transition: background 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
+        }
+
+        /* 顶部 Master Header */
+        header.master-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--bg-glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 12px 32px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-container {
+            max-width: 1520px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .brand-cluster {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0284C7, #38BDF8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF;
+            font-size: 22px;
+            box-shadow: 0 4px 16px var(--c-shell-glow);
+            position: relative;
+        }
+
+        .brand-icon::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #38BDF8, #8B5CF6);
+            z-index: -1;
+            opacity: 0.4;
+            filter: blur(4px);
+        }
+
+        .brand-info h1 {
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge-prod {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            background: var(--c-biz-glow);
+            color: var(--c-biz);
+            border: 1px solid var(--c-biz);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .brand-info p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* 顶部视图控制器 (Segmented Tab) */
+        .view-segmented {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            padding: 3px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .seg-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .seg-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .seg-btn.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* 搜索框与工具栏 */
+        .controls-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 220px;
+        }
+
+        .search-wrapper input {
+            width: 100%;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 7px 30px 7px 30px;
+            font-size: 13px;
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition-smooth);
+        }
+
+        .search-wrapper input:focus {
+            border-color: var(--border-active);
+            box-shadow: 0 0 0 3px var(--c-shell-glow);
+            width: 260px;
+        }
+
+        .search-icon-left {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: var(--text-tertiary);
+            pointer-events: none;
+        }
+
+        .search-kbd {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            background: var(--bg-elevated);
+            color: var(--text-tertiary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .icon-btn {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 7px 11px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition-smooth);
+        }
+
+        .icon-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--border-medium);
+            background: var(--bg-elevated);
+        }
+
+        /* 次级导航：楼层直达电梯 (Floor Jumper) */
+        nav.floor-jumper {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 8px 32px;
+            position: sticky;
+            top: 68px;
+            z-index: 90;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        .jumper-inner {
+            max-width: 1520px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+
+        .jumper-inner::-webkit-scrollbar { display: none; }
+
+        .jumper-tag {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-tertiary);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .jumper-pill {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            transition: var(--transition-smooth);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .jumper-pill:hover {
+            color: var(--text-primary);
+            border-color: var(--border-medium);
+            background: var(--bg-elevated);
+        }
+
+        .jumper-pill .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        /* 页面主体区域 */
+        main.content-area {
+            max-width: 1520px;
+            margin: 0 auto;
+            padding: 24px 32px 64px 32px;
+            position: relative;
+        }
+
+        /* 关键架构指标看板 */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-smooth);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-medium);
+            box-shadow: var(--shadow-md);
+        }
+
+        .kpi-icon-wrap {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .kpi-num {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* ==========================================================
+           关系链控制台 (Relationship Chain HUD) - 主流高阶架构图特色
+           ========================================================== */
+        .relation-hud {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            backdrop-filter: blur(12px);
+        }
+
+        .relation-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .hud-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-right: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .rel-btn {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition-smooth);
+        }
+
+        .rel-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--border-medium);
+            background: var(--bg-elevated);
+        }
+
+        .rel-btn.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border-color: var(--border-active);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+        }
+
+        .rel-btn .rel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .rel-btn .rel-count {
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            font-family: var(--font-mono);
+        }
+
+        .relation-switch-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .hud-switch-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .hud-switch-label input {
+            cursor: pointer;
+            accent-color: var(--border-active);
+        }
+
+        /* 关系链图例条 (Legend) */
+        .relation-legend-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 8px 16px;
+            background: var(--bg-subtle);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+            font-size: 11.5px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-line {
+            width: 24px;
+            height: 2px;
+            position: relative;
+        }
+
+        .legend-line::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -3px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid currentColor;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+
+        /* ==========================================================
+           分层拓扑容器 & 交互式动态 SVG 关系线覆盖层
+           ========================================================== */
+        .topo-canvas-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        /* SVG 连线画布 */
+        svg#archSvgOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 25;
+            overflow: visible;
+        }
+
+        /* SVG 路径样式 */
+        .rel-path-backbone {
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke-opacity 0.25s ease, stroke-width 0.25s ease;
+        }
+
+        .rel-path-hitarea {
+            fill: none;
+            stroke: transparent;
+            stroke-width: 18px;
+            cursor: pointer;
+            pointer-events: stroke;
+        }
+
+        .rel-path-hitarea:hover + .rel-path-backbone {
+            stroke-width: 3.5px !important;
+            stroke-opacity: 1 !important;
+            filter: drop-shadow(0 0 6px currentColor);
+        }
+
+        /* 动画粒子脉冲 */
+        .rel-pulse-flow {
+            stroke-dasharray: 6 6;
+            animation: dashPulse 1.2s linear infinite;
+        }
+
+        @keyframes dashPulse {
+            from { stroke-dashoffset: 24; }
+            to { stroke-dashoffset: 0; }
+        }
+
+        /* 关系连线标签浮层 */
+        .rel-label-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        .rel-label-pill {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            padding: 3px 8px;
+            border-radius: var(--radius-full);
+            font-size: 10px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            letter-spacing: 0.02em;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-medium);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+            pointer-events: auto;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: var(--transition-smooth);
+            opacity: 0.75;
+        }
+
+        .rel-label-pill:hover {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.08);
+            border-color: var(--border-active);
+            box-shadow: 0 2px 12px rgba(56, 189, 248, 0.4);
+            z-index: 40;
+        }
+
+        /* 状态模式：连线高亮与背景变暗 (Spotlight Focus) */
+        .topo-canvas-wrapper.is-focus-mode .arch-card:not(.card-focused):not(.card-upstream):not(.card-downstream) {
+            opacity: 0.18;
+            filter: grayscale(0.6) blur(0.5px);
+            transform: scale(0.99);
+        }
+
+        .topo-canvas-wrapper.is-focus-mode .rel-group:not(.line-active) {
+            opacity: 0.08 !important;
+        }
+
+        .topo-canvas-wrapper.is-focus-mode .rel-label-pill:not(.label-active) {
+            opacity: 0.05 !important;
+            pointer-events: none;
+        }
+
+        /* 卡片焦点高亮边框 */
+        .arch-card.card-focused {
+            border-color: var(--border-active) !important;
+            box-shadow: 0 0 0 2px var(--border-active), 0 12px 35px rgba(56, 189, 248, 0.35) !important;
+            transform: translateY(-2px);
+            z-index: 35;
+        }
+
+        .arch-card.card-upstream {
+            border-color: var(--c-shell) !important;
+            box-shadow: 0 0 0 2px var(--c-shell), 0 8px 25px var(--c-shell-glow) !important;
+            z-index: 34;
+        }
+
+        .arch-card.card-downstream {
+            border-color: var(--c-biz) !important;
+            box-shadow: 0 0 0 2px var(--c-biz), 0 8px 25px var(--c-biz-glow) !important;
+            z-index: 34;
+        }
+
+        /* 分层大板块 (Layer Container) */
+        .layer-block {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            margin-bottom: 28px;
+            box-shadow: var(--shadow-sm);
+            backdrop-filter: blur(16px);
+            position: relative;
+            transition: var(--transition-smooth);
+            z-index: 20;
+        }
+
+        .layer-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-top-left-radius: var(--radius-lg);
+            border-top-right-radius: var(--radius-lg);
+            background: var(--layer-accent, var(--c-shell));
+            opacity: 0.9;
+        }
+
+        .layer-header-bar {
+            padding: 16px 28px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .layer-meta-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .layer-index-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            background: var(--layer-glow, var(--c-shell-glow));
+            color: var(--layer-accent, var(--c-shell));
+            border: 1px solid var(--layer-accent, var(--c-shell));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .layer-headings h2 {
+            font-size: 16.5px;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .layer-headings p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .layer-layer-tag {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+
+        .layer-content-body {
+            padding: 24px 28px;
+        }
+
+        /* 卡片网格 */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+            gap: 18px;
+            position: relative;
+        }
+
+        /* 交互式架构卡片 */
+        .arch-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: var(--transition-smooth);
+            user-select: none;
+        }
+
+        .arch-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--card-color, var(--border-active));
+            transform: translateY(-3px) scale(1.008);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25), 0 0 20px var(--card-glow, var(--c-shell-glow));
+        }
+
+        /* 端口指示锚点 (Ports) */
+        .card-port {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: 2px solid var(--border-medium);
+            left: 50%;
+            transform: translateX(-50%);
+            transition: var(--transition-smooth);
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .card-port.port-top { top: -6px; }
+        .card-port.port-bottom { bottom: -6px; }
+
+        .arch-card:hover .card-port,
+        .arch-card.card-focused .card-port,
+        .arch-card.card-upstream .card-port,
+        .arch-card.card-downstream .card-port {
+            background: var(--border-active);
+            border-color: #FFFFFF;
+            box-shadow: 0 0 10px var(--border-active);
+            transform: translateX(-50%) scale(1.25);
+        }
+
+        .card-header-line {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-icon-headline {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-em-icon {
+            font-size: 26px;
+            line-height: 1;
+        }
+
+        .card-headline-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+
+        .card-mini-pill {
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            letter-spacing: 0.03em;
+            background: var(--pill-bg, rgba(255, 255, 255, 0.08));
+            color: var(--pill-color, var(--text-secondary));
+            border: 1px solid var(--pill-border, var(--border-subtle));
+            white-space: nowrap;
+        }
+
+        .card-desc {
+            font-size: 12.5px;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+            line-height: 1.65;
+            flex-grow: 1;
+        }
+
+        /* 关系链卡片内快捷统计条 */
+        .card-relation-tags {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .rel-stat-chip {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-tertiary);
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .rel-stat-chip.in { color: var(--c-shell); }
+        .rel-stat-chip.out { color: var(--c-biz); }
+
+        /* 卡片底部元信息栏 */
+        .card-footer-specs {
+            border-top: 1px solid var(--border-subtle);
+            padding-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        .card-code-mono {
+            font-family: var(--font-mono);
+            max-width: 190px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text-secondary);
+        }
+
+        .card-action-hint {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-tertiary);
+            transition: color 0.15s;
+        }
+
+        .arch-card:hover .card-action-hint {
+            color: var(--border-active);
+        }
+
+        /* 隐藏匹配不到搜索词的卡片 */
+        .arch-card.filtered-out {
+            display: none !important;
+        }
+
+        /* ==========================================================
+           交互侧滑抽屉 (Inspector Drawer) - 增强上下游链路追溯
+           ========================================================== */
+        .inspector-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .inspector-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .inspector-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            max-width: 600px;
+            background: var(--bg-surface);
+            border-left: 1px solid var(--border-medium);
+            box-shadow: -10px 0 50px rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            transform: translateX(100%);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .inspector-overlay.open .inspector-panel {
+            transform: translateX(0);
+        }
+
+        .inspector-top {
+            padding: 22px 28px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .inspector-top-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .inspector-icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+
+        .inspector-title-wrap h3 {
+            font-size: 18px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .inspector-close-btn {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: var(--transition-smooth);
+        }
+
+        .inspector-close-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--c-qa);
+        }
+
+        .inspector-scroll-body {
+            padding: 24px 28px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .insp-section {
+            margin-bottom: 22px;
+        }
+
+        .insp-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .insp-box {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .insp-code-box {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--c-shell);
+            background: rgba(14, 165, 233, 0.08);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            word-break: break-all;
+        }
+
+        /* 抽屉内关系链跳转列表 */
+        .insp-relation-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .insp-rel-item {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+        }
+
+        .insp-rel-item:hover {
+            background: var(--bg-elevated);
+            border-color: var(--border-active);
+            transform: translateX(3px);
+        }
+
+        .insp-rel-name {
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .insp-rel-proto {
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-tertiary);
+            background: rgba(255, 255, 255, 0.06);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* ==========================================================
+           视图 2：动态业务数据流链路 (Interactive Data Pipelines)
+           ========================================================== */
+        .flow-container {
+            display: none;
+            flex-direction: column;
+            gap: 24px;
+            max-width: 1080px;
+            margin: 0 auto;
+        }
+
+        .pipeline-tabs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-surface);
+            padding: 6px;
+            border-radius: 12px;
+            border: 1px solid var(--border-subtle);
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .pipeline-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pipeline-tab-btn:hover {
+            color: var(--text-primary);
+            background: var(--bg-subtle);
+        }
+
+        .pipeline-tab-btn.active {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-active);
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.2);
+        }
+
+        .pipeline-flow-deck {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            position: relative;
+        }
+
+        .flow-card-step {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 22px 26px;
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-smooth);
+            position: relative;
+            z-index: 2;
+        }
+
+        .flow-card-step:hover {
+            transform: translateX(4px);
+            border-color: var(--border-active);
+            box-shadow: var(--shadow-md);
+        }
+
+        .flow-badge-step {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--c-shell), #38BDF8);
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            font-weight: 800;
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px var(--c-shell-glow);
+        }
+
+        .flow-info-col {
+            flex-grow: 1;
+        }
+
+        .flow-step-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+
+        .flow-step-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .flow-metric-pill {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            background: var(--bg-subtle);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+        }
+
+        .flow-info-col p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 10px;
+        }
+
+        .flow-code-ref {
+            font-size: 11.5px;
+            font-family: var(--font-mono);
+            color: var(--c-shell);
+            background: rgba(14, 165, 233, 0.08);
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .flow-arrow-connector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .flow-arrow-line {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--border-active);
+            font-size: 11px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+        }
+
+        .flow-arrow-line span.label {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            color: var(--text-secondary);
+        }
+
+        .flow-arrow-line .down-arrow {
+            font-size: 18px;
+            animation: bounceSoft 1.5s infinite;
+        }
+
+        @keyframes bounceSoft {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(4px); }
+        }
+
+        /* ==========================================================
+           视图 3：双端能力对比矩阵 (Cross-Platform Matrix)
+           ========================================================== */
+        .matrix-container {
+            display: none;
+            overflow-x: auto;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            font-size: 13px;
+        }
+
+        .matrix-table th, .matrix-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            text-align: left;
+            line-height: 1.6;
+        }
+
+        .matrix-table th {
+            background: var(--bg-subtle);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .matrix-table tr:hover td {
+            background: var(--bg-elevated);
+        }
+
+        .matrix-feature-name {
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-right: 6px;
+        }
+
+        .status-badge.supported { background: var(--c-biz-glow); color: var(--c-biz); border: 1px solid var(--c-biz); }
+        .status-badge.optimized { background: var(--c-shell-glow); color: var(--c-shell); border: 1px solid var(--c-shell); }
+        .status-badge.na { background: var(--bg-subtle); color: var(--text-tertiary); border: 1px solid var(--border-subtle); }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部 Master Header -->
+    <header class="master-header">
+        <div class="header-container">
+            <div class="brand-cluster">
+                <div class="brand-icon">📐</div>
+                <div class="brand-info">
+                    <h1>
+                        提示词管家 · 系统全景架构图
+                        <span class="badge-prod">v2.5.32 生产架构</span>
+                    </h1>
+                    <p>Tauri 2.0 桌面端 · Capacitor 8 移动端 · Vite 纯共享前端 · Python FastAPI Sidecar</p>
+                </div>
+            </div>
+
+            <!-- 核心视图切换器 -->
+            <div class="view-segmented">
+                <button class="seg-btn active" id="tabTopo">
+                    <span>🏛️</span>
+                    <span>分层拓扑与关系链</span>
+                </button>
+                <button class="seg-btn" id="tabFlow">
+                    <span>⚡</span>
+                    <span>数据调用全链路</span>
+                </button>
+                <button class="seg-btn" id="tabMatrix">
+                    <span>📊</span>
+                    <span>双端能力矩阵</span>
+                </button>
+            </div>
+
+            <!-- 搜索与控制面板 -->
+            <div class="controls-group">
+                <div class="search-wrapper">
+                    <span class="search-icon-left">🔍</span>
+                    <input type="text" id="masterSearch" placeholder="检索模块、算法、协议..." />
+                    <span class="search-kbd">/</span>
+                </div>
+                <button class="icon-btn" id="densityBtn" title="切换排版密度">
+                    <span>📏</span>
+                    <span id="densityLabel">紧凑</span>
+                </button>
+                <button class="icon-btn" id="themeBtn" title="切换深浅主题">
+                    <span>🌓</span>
+                    <span>主题</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 次级导航：楼层直达电梯 (Floor Jumper) -->
+    <nav class="floor-jumper" id="floorJumperBar">
+        <div class="jumper-inner">
+            <span class="jumper-tag">📍 架构楼层：</span>
+            <a href="#layer1" class="jumper-pill">
+                <span class="dot" style="background: var(--c-shell);"></span>
+                <span>[1] 多端外壳与呈现层</span>
+            </a>
+            <a href="#layer2" class="jumper-pill">
+                <span class="dot" style="background: var(--c-biz);"></span>
+                <span>[2] 7大业务核心功能域</span>
+            </a>
+            <a href="#layer3" class="jumper-pill">
+                <span class="dot" style="background: var(--c-storage);"></span>
+                <span>[3] 跨端统一Storage抽象</span>
+            </a>
+            <a href="#layer4" class="jumper-pill">
+                <span class="dot" style="background: var(--c-engine);"></span>
+                <span>[4] 本地Sidecar与图形引擎</span>
+            </a>
+            <a href="#layer5" class="jumper-pill">
+                <span class="dot" style="background: var(--c-qa);"></span>
+                <span>[5] 质量工程与交互实验室</span>
+            </a>
+            <span style="opacity: 0.3; margin: 0 4px;">|</span>
+            <a href="index.html" class="jumper-pill" style="color: var(--c-shell);">⚡ 侧栏微动效实验室</a>
+            <a href="主窗三键常驻-多方案预览.html" class="jumper-pill">🪟 顶栏三键方案</a>
+        </div>
+    </nav>
+
+    <!-- 页面主体区域 -->
+    <main class="content-area">
+
+        <!-- 关键架构指标看板 -->
+        <section class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap" style="background: var(--c-shell-glow); color: var(--c-shell);">🖥️</div>
+                <div>
+                    <div class="kpi-num">3 端同源</div>
+                    <div class="kpi-label">PC桌面 (Tauri) · Android · 官网 (Astro)</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap" style="background: var(--c-biz-glow); color: var(--c-biz);">💎</div>
+                <div>
+                    <div class="kpi-num">7 大业务域</div>
+                    <div class="kpi-label">提示词 / 图像压制 / 脑图 / 养成 / 游戏 / 同步 / 更新</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap" style="background: var(--c-storage-glow); color: var(--c-storage);">🔌</div>
+                <div>
+                    <div class="kpi-num">零依赖抽象</div>
+                    <div class="kpi-label">storage.js 自动路由 REST / SQLite / LocalStorage</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap" style="background: var(--c-qa-glow); color: var(--c-qa);">🛡️</div>
+                <div>
+                    <div class="kpi-num">685+ 单测守护</div>
+                    <div class="kpi-label">476 Vitest (前端) + 209 Pytest (后端) 100%全绿</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 视图 1：分层架构全景图 (Layer Topology) -->
+        <div id="viewTopo">
+
+            <!-- 关系链控制台 (Relationship Chain HUD) -->
+            <div class="relation-hud">
+                <div class="relation-filter-group">
+                    <span class="hud-label">🔗 关系链筛选：</span>
+                    <button class="rel-btn active" data-rel="all">
+                        <span>全部关系链</span>
+                        <span class="rel-count">24</span>
+                    </button>
+                    <button class="rel-btn" data-rel="ipc">
+                        <span class="rel-dot" style="background: var(--c-rel-ipc);"></span>
+                        <span>Tauri IPC 原生</span>
+                        <span class="rel-count">5</span>
+                    </button>
+                    <button class="rel-btn" data-rel="storage">
+                        <span class="rel-dot" style="background: var(--c-rel-storage);"></span>
+                        <span>存储持久化</span>
+                        <span class="rel-count">8</span>
+                    </button>
+                    <button class="rel-btn" data-rel="http">
+                        <span class="rel-dot" style="background: var(--c-rel-http);"></span>
+                        <span>Sidecar HTTP</span>
+                        <span class="rel-count">4</span>
+                    </button>
+                    <button class="rel-btn" data-rel="engine">
+                        <span class="rel-dot" style="background: var(--c-rel-engine);"></span>
+                        <span>底层算力管道</span>
+                        <span class="rel-count">2</span>
+                    </button>
+                    <button class="rel-btn" data-rel="qa">
+                        <span class="rel-dot" style="background: var(--c-rel-qa);"></span>
+                        <span>构建与QA网</span>
+                        <span class="rel-count">5</span>
+                    </button>
+                </div>
+
+                <div class="relation-switch-group">
+                    <label class="hud-switch-label">
+                        <input type="checkbox" id="toggleFocusMode" checked>
+                        <span>悬停聚焦追踪</span>
+                    </label>
+                    <label class="hud-switch-label">
+                        <input type="checkbox" id="togglePulseFlow" checked>
+                        <span>动效流动光流</span>
+                    </label>
+                    <label class="hud-switch-label">
+                        <input type="checkbox" id="toggleLabels" checked>
+                        <span>显示协议标签</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 图例说明条 (Legend) -->
+            <div class="relation-legend-bar">
+                <span style="font-weight: 700; color: var(--text-tertiary);">图例说明：</span>
+                <div class="legend-item" style="color: var(--c-rel-ipc);">
+                    <div class="legend-line"></div>
+                    <span>Tauri IPC / 原生窗口调用</span>
+                </div>
+                <div class="legend-item" style="color: var(--c-rel-storage);">
+                    <div class="legend-line"></div>
+                    <span>Storage 统一抽象持久化</span>
+                </div>
+                <div class="legend-item" style="color: var(--c-rel-http);">
+                    <div class="legend-line"></div>
+                    <span>Localhost REST HTTP 通信</span>
+                </div>
+                <div class="legend-item" style="color: var(--c-rel-engine);">
+                    <div class="legend-line"></div>
+                    <span>独立子进程 / C&Rust 算力管道</span>
+                </div>
+                <div class="legend-item" style="color: var(--c-rel-native);">
+                    <div class="legend-line"></div>
+                    <span>Capacitor 原生插件桥接</span>
+                </div>
+                <div class="legend-item" style="color: var(--c-rel-qa);">
+                    <div class="legend-line"></div>
+                    <span>CI/CD 构建与自动化测试覆盖</span>
+                </div>
+            </div>
+
+            <!-- 拓扑画布容器与 SVG 关系连线层 -->
+            <div class="topo-canvas-wrapper" id="topoCanvasWrapper">
+
+                <!-- 动态 SVG 连线画布 -->
+                <svg id="archSvgOverlay">
+                    <defs>
+                        <!-- 动态箭头标记 -->
+                        <marker id="marker-arrow-ipc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--c-rel-ipc)"/>
+                        </marker>
+                        <marker id="marker-arrow-storage" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--c-rel-storage)"/>
+                        </marker>
+                        <marker id="marker-arrow-http" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--c-rel-http)"/>
+                        </marker>
+                        <marker id="marker-arrow-engine" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--c-rel-engine)"/>
+                        </marker>
+                        <marker id="marker-arrow-qa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--c-rel-qa)"/>
+                        </marker>
+                        <marker id="marker-arrow-native" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--c-rel-native)"/>
+                        </marker>
+                        <!-- 高亮发光箭头 -->
+                        <marker id="marker-arrow-highlight" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                            <path d="M 0 1 L 9 5 L 0 9 z" fill="#38BDF8"/>
+                        </marker>
+                    </defs>
+                    <g id="svgPathsGroup"></g>
+                </svg>
+
+                <!-- 浮动标签容器 -->
+                <div class="rel-label-container" id="relLabelContainer"></div>
+
+                <!-- Layer 1 -->
+                <section class="layer-block" id="layer1" style="--layer-accent: var(--c-shell); --layer-glow: var(--c-shell-glow);">
+                    <div class="layer-header-bar">
+                        <div class="layer-meta-title">
+                            <div class="layer-index-badge">1</div>
+                            <div class="layer-headings">
+                                <h2>多端外壳与呈现层 (Multi-Platform Presentation & Shells)</h2>
+                                <p>负责原生窗口管理、跨端硬件能力桥接、无边框沉浸式顶栏与自定义光标微动效</p>
+                            </div>
+                        </div>
+                        <span class="layer-layer-tag">PRESENTATION LAYER</span>
+                    </div>
+                    <div class="layer-content-body">
+                        <div class="cards-grid">
+                            <!-- 卡片 1.1 -->
+                            <div class="arch-card" id="card-pc-tauri"
+                                 data-title="PC 桌面端原生壳 (Tauri + Rust)"
+                                 data-tech="Tauri 2.0 / Rust / Windows Webview2"
+                                 data-file="src-tauri/src/main.rs"
+                                 data-tests="src/js/pc/pc-window-chrome.test.js"
+                                 data-desc="基于 Tauri v2 构建的高性能桌面容器（产物仅约 28MB）。集成纯前端绘制的无边框顶栏、Windows 标题栏拖拽穿透区域、原生系统托盘与本地 Python Sidecar 守护进程树生命周期管控。"
+                                 style="--card-color: var(--c-shell); --card-glow: var(--c-shell-glow); --pill-bg: var(--c-shell-glow); --pill-color: var(--c-shell);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🪟</span>
+                                        <span class="card-headline-title">PC 桌面端原生外壳</span>
+                                    </div>
+                                    <span class="card-mini-pill">Tauri / Rust</span>
+                                </div>
+                                <div class="card-desc">轻量 28MB 独立桌面容器，管理无头 Sidecar 子进程树与拖拽穿透。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 1</span>
+                                    <span class="rel-stat-chip out">📤 下游 3</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src-tauri/src/main.rs</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 1.2 -->
+                            <div class="arch-card" id="card-android-cap"
+                                 data-title="Android 移动端外壳 (Capacitor 8)"
+                                 data-tech="Capacitor 8 / Android Gradle / Java 17"
+                                 data-file="android/app/"
+                                 data-tests="src/js/mobile/mobile-regression.test.js"
+                                 data-desc="基于 Capacitor 8 的轻量跨端移动容器。深度适配 Android 沉浸式状态栏、原生物理返回按键拦截调度、手机本地图片安全相册存取，以及原生 SQLite 插件的嵌入式事务执行。"
+                                 style="--card-color: var(--c-shell); --card-glow: var(--c-shell-glow); --pill-bg: var(--c-shell-glow); --pill-color: var(--c-shell);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">📱</span>
+                                        <span class="card-headline-title">Android 移动端外壳</span>
+                                    </div>
+                                    <span class="card-mini-pill">Capacitor 8</span>
+                                </div>
+                                <div class="card-desc">移动端专属底部 TabBar、物理返回键监听、本地相册无缝授权存取。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 0</span>
+                                    <span class="rel-stat-chip out">📤 下游 2</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">android/app/src/</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 1.3 -->
+                            <div class="arch-card" id="card-web-landing"
+                                 data-title="产品独立宣传官网 (Website Landing)"
+                                 data-tech="Astro / Vite / Three.js / Vanilla JS"
+                                 data-file="website/src/main.js"
+                                 data-tests="website/tests/website.test.mjs"
+                                 data-desc="完全解耦的现代化产品官方落地页。集成 WebGL 3D 工作室三维视角拖动展示、版本发布说明、跨平台安装包快速下载直达与隐私边界声明。"
+                                 style="--card-color: var(--c-shell); --card-glow: var(--c-shell-glow); --pill-bg: var(--c-shell-glow); --pill-color: var(--c-shell);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🌐</span>
+                                        <span class="card-headline-title">独立产品宣传官网</span>
+                                    </div>
+                                    <span class="card-mini-pill">Astro / 3D</span>
+                                </div>
+                                <div class="card-desc">3D 实时拖动交互工作室、全平台下载直达、静态资源严格白名单。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 0</span>
+                                    <span class="rel-stat-chip out">📤 下游 0</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">website/src/main.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 1.4 -->
+                            <div class="arch-card" id="card-splash-motion"
+                                 data-title="开屏动画与全局微交互引擎"
+                                 data-tech="Canvas 2D / GSAP / Motion / Neumorphic Tokens"
+                                 data-file="src/js/splash-pixel-animation.js"
+                                 data-tests="src/js/splash-pixel-animation.test.js"
+                                 data-desc="开屏全屏彩色像素向中心凝聚成 Logo 的震撼入场（window.__splashPlay）；配套 84px/280px 侧栏平滑推开、0.94x 按下/1.06x 悬停微阻尼弹簧、圆环光标跟随系统。"
+                                 style="--card-color: var(--c-shell); --card-glow: var(--c-shell-glow); --pill-bg: var(--c-shell-glow); --pill-color: var(--c-shell);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">✨</span>
+                                        <span class="card-headline-title">开屏粒子与微动效引擎</span>
+                                    </div>
+                                    <span class="card-mini-pill">Canvas / GSAP</span>
+                                </div>
+                                <div class="card-desc">像素向心凝聚入场、阻尼悬停弹性、自定义柔和圆环光标。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 0</span>
+                                    <span class="rel-stat-chip out">📤 下游 1</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/pc/pc-cursor.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Layer 2 -->
+                <section class="layer-block" id="layer2" style="--layer-accent: var(--c-biz); --layer-glow: var(--c-biz-glow);">
+                    <div class="layer-header-bar">
+                        <div class="layer-meta-title">
+                            <div class="layer-index-badge">2</div>
+                            <div class="layer-headings">
+                                <h2>7 大业务核心功能域 (Core Business Domains)</h2>
+                                <p>承载生图提示词资产、高性能图片压制算力、目标脑图可视化与桌面趣味伴生功能</p>
+                            </div>
+                        </div>
+                        <span class="layer-layer-tag">BUSINESS DOMAINS</span>
+                    </div>
+                    <div class="layer-content-body">
+                        <div class="cards-grid">
+                            <!-- 卡片 2.1 -->
+                            <div class="arch-card" id="card-prompt-mgr"
+                                 data-title="提示词全生命周期管理工作台"
+                                 data-tech="React 19 / DOM Virtualization / SortableJS"
+                                 data-file="src/js/pc/pc-library.js"
+                                 data-tests="src/js/pc/pc-library.test.js, src/js/pc/pc-editor.test.js"
+                                 data-desc="提示词资产核心枢纽：支持无限多版本树形迭代、版本间文本差异精准高亮、主图与画廊图片多选联动、文件夹与双层色彩标签分类、Markdown/JSON/ZIP 导入导出。"
+                                 style="--card-color: var(--c-biz); --card-glow: var(--c-biz-glow); --pill-bg: var(--c-biz-glow); --pill-color: var(--c-biz);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">📝</span>
+                                        <span class="card-headline-title">提示词库与编辑工作台</span>
+                                    </div>
+                                    <span class="card-mini-pill">资产中心</span>
+                                </div>
+                                <div class="card-desc">多版本树、文本差异 Diff、图片画廊联动、双层文件夹与色彩标签。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 2</span>
+                                    <span class="rel-stat-chip out">📤 下游 1</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/pc/pc-editor.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 2.2 -->
+                            <div class="arch-card" id="card-image-opt"
+                                 data-title="图像处理与无损压缩工作台"
+                                 data-tech="Oxipng / MozJPEG / WebP / WebWorker"
+                                 data-file="src/js/pc/pc-compress.js"
+                                 data-tests="src/js/pc/pc-compress.test.js, python/tests/test_image_resize.py"
+                                 data-desc="集多格式转换（PNG/JPEG/WebP）与 Oxipng 深度无损压缩于一体。具备比例锁键盘快捷微调、长边/短边自适应缩放、逐图实时节约率预估与批量 ZIP 异步下载。"
+                                 style="--card-color: var(--c-biz); --card-glow: var(--c-biz-glow); --pill-bg: var(--c-biz-glow); --pill-color: var(--c-biz);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🖼️</span>
+                                        <span class="card-headline-title">图像优化与格式转换</span>
+                                    </div>
+                                    <span class="card-mini-pill">图形算力</span>
+                                </div>
+                                <div class="card-desc">Oxipng 极限保真瘦身、三格式自由互转、等比缩放、逐图预估对比。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 1</span>
+                                    <span class="rel-stat-chip out">📤 下游 2</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/pc/pc-compress.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 2.3 -->
+                            <div class="arch-card" id="card-goal-mindmap"
+                                 data-title="目标计划与思维导图可视化"
+                                 data-tech="Pure Canvas 2D / Bezier Curve / Tree Layout"
+                                 data-file="src/js/goal/goal-mindmap-core.js"
+                                 data-tests="src/js/goal/goal-mindmap-core.test.js"
+                                 data-desc="多项目任务树管理。树形表格与思维导图视图毫秒级联动切换，支持拖拽节点动态修改树层级、悬停落点吸附提示、自适应画布羽化边界及卡片悬浮视差动效。"
+                                 style="--card-color: var(--c-biz); --card-glow: var(--c-biz-glow); --pill-bg: var(--c-biz-glow); --pill-color: var(--c-biz);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🎯</span>
+                                        <span class="card-headline-title">目标计划与思维导图</span>
+                                    </div>
+                                    <span class="card-mini-pill">可视化算法</span>
+                                </div>
+                                <div class="card-desc">任务树分级、贝塞尔动态连线、拖拽改层级、自适应画布羽化。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 0</span>
+                                    <span class="rel-stat-chip out">📤 下游 1</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/goal/goal-mindmap-core.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 2.4 -->
+                            <div class="arch-card" id="card-plant-game"
+                                 data-title="首页挂机植物养成系统 (镜面草)"
+                                 data-tech="State Machine / Timer Tick / SVG"
+                                 data-file="src/js/plant/plant-core.js"
+                                 data-tests="src/js/plant/plant-core.test.js, src/js/plant/plant-persist.test.js"
+                                 data-desc="生动治愈的伴生式桌面绿植系统：遵循 30 天自然轮回状态机演进（萌芽、盛长、盛花、枯荣），内置水滴气泡交互、离线时间自动补偿与 API/LocalStorage 双写持久化。"
+                                 style="--card-color: var(--c-biz); --card-glow: var(--c-biz-glow); --pill-bg: var(--c-biz-glow); --pill-color: var(--c-biz);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🌱</span>
+                                        <span class="card-headline-title">首页挂机植物养成</span>
+                                    </div>
+                                    <span class="card-mini-pill">伴生状态机</span>
+                                </div>
+                                <div class="card-desc">30天自然轮回演化、浇水施肥养护交互、离线补偿双写存盘。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 0</span>
+                                    <span class="rel-stat-chip out">📤 下游 1</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/plant/plant-core.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 2.5 -->
+                            <div class="arch-card" id="card-arcade-games"
+                                 data-title="摸鱼小游戏娱乐中心"
+                                 data-tech="Canvas Game Engine / 60FPS GameLoop"
+                                 data-file="src/js/games/tetris-core.js"
+                                 data-tests="src/js/games/tetris-core.test.js, src/js/games/plane-war-core.test.js"
+                                 data-desc="内置两款高性能休闲游戏：纯 Canvas 绘制的俄罗斯方块（平滑阴影、消行粒子、动态计分）与飞机大战弹幕游戏，具备本地最高记录排行榜持久化。"
+                                 style="--card-color: var(--c-biz); --card-glow: var(--c-biz-glow); --pill-bg: var(--c-biz-glow); --pill-color: var(--c-biz);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🎮</span>
+                                        <span class="card-headline-title">摸鱼小游戏娱乐中心</span>
+                                    </div>
+                                    <span class="card-mini-pill">休闲引擎</span>
+                                </div>
+                                <div class="card-desc">俄罗斯方块消行碰撞、飞机大战弹幕引擎、本地排行榜纪录。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 0</span>
+                                    <span class="rel-stat-chip out">📤 下游 1</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/games/</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 2.6 -->
+                            <div class="arch-card" id="card-lan-sync"
+                                 data-title="局域网安全双端即时同步"
+                                 data-tech="LAN UDP Discovery / HTTP Sync / Token Auth"
+                                 data-file="src/js/sync/lan-sync.js"
+                                 data-tests="src/js/sync/lan-sync.test.js"
+                                 data-desc="零第三方云服务器依赖的局域网即时同步网络：支持 PC 桌面端与 Android 手机端相互发现、6 位配对 Token 动态认证、变更冲突可视化比对与增量双向平滑合并。"
+                                 style="--card-color: var(--c-biz); --card-glow: var(--c-biz-glow); --pill-bg: var(--c-biz-glow); --pill-color: var(--c-biz);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🔄</span>
+                                        <span class="card-headline-title">局域网双端即时同步</span>
+                                    </div>
+                                    <span class="card-mini-pill">P2P 协议</span>
+                                </div>
+                                <div class="card-desc">免云端内网发现、配对密钥认证、双向冲突合并预览与增量同步。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 0</span>
+                                    <span class="rel-stat-chip out">📤 下游 2</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/sync/lan-sync.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 2.7 -->
+                            <div class="arch-card" id="card-auto-updater"
+                                 data-title="应用内无缝自动更新"
+                                 data-tech="Async Job Queue / Detached Process / NSIS"
+                                 data-file="src/js/release/auto-updater.js"
+                                 data-tests="src/js/release/auto-updater.test.js"
+                                 data-desc="全自动发版更新闭环：增量检查 -> 异步后台下载 Job -> SHA256 完整性哈希校验 -> 启动轻量安装向导 -> 进程分离拉起安装器并自动优雅重启应用。"
+                                 style="--card-color: var(--c-biz); --card-glow: var(--c-biz-glow); --pill-bg: var(--c-biz-glow); --pill-color: var(--c-biz);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🚀</span>
+                                        <span class="card-headline-title">应用内平滑自动更新</span>
+                                    </div>
+                                    <span class="card-mini-pill">发布基建</span>
+                                </div>
+                                <div class="card-desc">版本阶段轨可视化、异步下载 Job 状态机、无死锁分离安装执行。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 1</span>
+                                    <span class="rel-stat-chip out">📤 下游 1</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/release/auto-updater.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Layer 3 -->
+                <section class="layer-block" id="layer3" style="--layer-accent: var(--c-storage); --layer-glow: var(--c-storage-glow);">
+                    <div class="layer-header-bar">
+                        <div class="layer-meta-title">
+                            <div class="layer-index-badge">3</div>
+                            <div class="layer-headings">
+                                <h2>跨端统一存储抽象层 (Unified Storage Layer)</h2>
+                                <p>彻底抹平桌面与移动端存储介质差异，为前端业务提供 100% 同构的 Promise 数据接口</p>
+                            </div>
+                        </div>
+                        <span class="layer-layer-tag">STORAGE ABSTRACTION</span>
+                    </div>
+                    <div class="layer-content-body">
+                        <div class="cards-grid">
+                            <!-- 卡片 3.1 -->
+                            <div class="arch-card" id="card-storage-router"
+                                 data-title="Storage 核心分发路由器"
+                                 data-tech="Adapter Pattern / Environment Detection"
+                                 data-file="src/js/core/storage.js"
+                                 data-tests="src/js/core/storage.test.js"
+                                 data-desc="双端统一存储抽象核心：应用启动时自动检测运行容器环境（isTauri / isCapacitor / isWeb），动态桥接注入底层实现驱动，实现一套前端代码跨端存储无感。"
+                                 style="--card-color: var(--c-storage); --card-glow: var(--c-storage-glow); --pill-bg: var(--c-storage-glow); --pill-color: var(--c-storage);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🔌</span>
+                                        <span class="card-headline-title">Storage 统一抽象分发器</span>
+                                    </div>
+                                    <span class="card-mini-pill">抽象网关</span>
+                                </div>
+                                <div class="card-desc">运行时智能自适应分流，对外暴露纯净的异步 CRUD 与批量事务接口。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 6</span>
+                                    <span class="rel-stat-chip out">📤 下游 2</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/core/storage.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 3.2 -->
+                            <div class="arch-card" id="card-api-storage"
+                                 data-title="ApiStorage (PC 桌面端驱动)"
+                                 data-tech="HTTP REST Client / Loopback Port Failover"
+                                 data-file="src/js/core/api-storage.js"
+                                 data-tests="src/js/core/api-storage.test.js"
+                                 data-desc="PC 端专用存储适配器：通过本地回环地址与 Python FastAPI Sidecar 进行高速通讯，具备端口冲突动态探针回退（8888 -> 8898）与自动重试重连熔断策略。"
+                                 style="--card-color: var(--c-storage); --card-glow: var(--c-storage-glow); --pill-bg: var(--c-storage-glow); --pill-color: var(--c-storage);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">💻</span>
+                                        <span class="card-headline-title">ApiStorage (PC 端适配器)</span>
+                                    </div>
+                                    <span class="card-mini-pill">HTTP REST</span>
+                                </div>
+                                <div class="card-desc">调度本地 Python 伴生进程，在系统应用数据区执行高可靠文件读写。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 1</span>
+                                    <span class="rel-stat-chip out">📤 下游 1</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/core/api-storage.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 3.3 -->
+                            <div class="arch-card" id="card-sqlite-storage"
+                                 data-title="SqliteStorage (Android 移动端驱动)"
+                                 data-tech="Capacitor SQLite Plugin / Relational DB"
+                                 data-file="src/js/core/sqlite-storage.js"
+                                 data-tests="src/js/mobile/mobile-regression.test.js"
+                                 data-desc="移动端专用离线数据库适配器：直接挂载 Capacitor 社区 SQLite 引擎，在移动设备沙盒中创建嵌入式关系型数据库，具备自动建表、数据版本迁移与零延迟查询能力。"
+                                 style="--card-color: var(--c-storage); --card-glow: var(--c-storage-glow); --pill-bg: var(--c-storage-glow); --pill-color: var(--c-storage);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">📱</span>
+                                        <span class="card-headline-title">SqliteStorage (移动端适配器)</span>
+                                    </div>
+                                    <span class="card-mini-pill">Native SQLite</span>
+                                </div>
+                                <div class="card-desc">手机沙盒本地 SQLite 关系型存储，完全离线运行、支持结构平滑迁移。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 2</span>
+                                    <span class="rel-stat-chip out">📤 下游 0</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">src/js/core/sqlite-storage.js</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Layer 4 -->
+                <section class="layer-block" id="layer4" style="--layer-accent: var(--c-engine); --layer-glow: var(--c-engine-glow);">
+                    <div class="layer-header-bar">
+                        <div class="layer-meta-title">
+                            <div class="layer-index-badge">4</div>
+                            <div class="layer-headings">
+                                <h2>本地后端服务与图形算力引擎 (Backend Sidecar & Native Engines)</h2>
+                                <p>为 PC 桌面端提供强大的异步多线程并发任务队列、底层 C/Rust 预编译图片压缩引擎</p>
+                            </div>
+                        </div>
+                        <span class="layer-layer-tag">BACKEND & ENGINES</span>
+                    </div>
+                    <div class="layer-content-body">
+                        <div class="cards-grid">
+                            <!-- 卡片 4.1 -->
+                            <div class="arch-card" id="card-sidecar-srv"
+                                 data-title="Python FastAPI 伴生服务 (Sidecar)"
+                                 data-tech="Python 3.12 / FastAPI / Uvicorn / PyInstaller"
+                                 data-file="python/main.py"
+                                 data-tests="python/tests/ (209 Passed)"
+                                 data-desc="由 Tauri 在后台静默拉起并守护的无头独立进程（PromptImageManager-Server.exe）。集成多线程工作队列（image_worker.py）、LRU 内存图片缓存（image_cache.py）与完整 RESTful 接口。"
+                                 style="--card-color: var(--c-engine); --card-glow: var(--c-engine-glow); --pill-bg: var(--c-engine-glow); --pill-color: var(--c-engine);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🐍</span>
+                                        <span class="card-headline-title">Python FastAPI 伴生服务</span>
+                                    </div>
+                                    <span class="card-mini-pill">Sidecar 核心</span>
+                                </div>
+                                <div class="card-desc">多线程并发任务队列、LRU 图片高速缓存、局域网服务端与安全数据盘。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 6</span>
+                                    <span class="rel-stat-chip out">📤 下游 2</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">python/main.py</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 4.2 -->
+                            <div class="arch-card" id="card-oxipng-bin"
+                                 data-title="Oxipng 10.2.1 极致无损优化引擎"
+                                 data-tech="Rust Precompiled / Deflate Optimizer"
+                                 data-file="vendor/oxipng/oxipng.exe"
+                                 data-tests="python/tests/test_png_compress.py"
+                                 data-desc="官方验证并固定哈希的 Oxipng 10.2.1 x64 高性能图片无损压缩引擎。由 Python 多进程管道直接驱动，深度优化 PNG IDAT 块与色板索引，零破坏像素的前提下极致压榨体积。"
+                                 style="--card-color: var(--c-engine); --card-glow: var(--c-engine-glow); --pill-bg: var(--c-engine-glow); --pill-color: var(--c-engine);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">⚙️</span>
+                                        <span class="card-headline-title">Oxipng 独立优化引擎</span>
+                                    </div>
+                                    <span class="card-mini-pill">Rust 算力</span>
+                                </div>
+                                <div class="card-desc">多线程深度 Deflate 优化、无用 Chunk 剥离、像素级严格校验保真。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 1</span>
+                                    <span class="rel-stat-chip out">📤 下游 0</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">vendor/oxipng/oxipng.exe</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 4.3 -->
+                            <div class="arch-card" id="card-mozjpeg-bin"
+                                 data-title="MozJPEG & Jpegoptim 编解码套件"
+                                 data-tech="C / Progressive JPEG Encoder"
+                                 data-file="vendor/jpegoptim/"
+                                 data-tests="python/tests/test_image_process.py"
+                                 data-desc="集成 Mozilla 官方 MozJPEG 4.1.1 与 Jpegoptim 1.5.6，支持渐进式渲染编码、动态霍夫曼表计算，并在转换为 WebP/JPEG 时灵活保留或剥离 EXIF 相机元数据。"
+                                 style="--card-color: var(--c-engine); --card-glow: var(--c-engine-glow); --pill-bg: var(--c-engine-glow); --pill-color: var(--c-engine);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">⚡</span>
+                                        <span class="card-headline-title">MozJPEG 渐进式编解码</span>
+                                    </div>
+                                    <span class="card-mini-pill">C 编解码库</span>
+                                </div>
+                                <div class="card-desc">渐进式 JPEG 优化算法、动态霍夫曼编码表、EXIF 方向自适应校正。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 1</span>
+                                    <span class="rel-stat-chip out">📤 下游 0</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">vendor/jpegoptim/</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Layer 5 -->
+                <section class="layer-block" id="layer5" style="--layer-accent: var(--c-qa); --layer-glow: var(--c-qa-glow);">
+                    <div class="layer-header-bar">
+                        <div class="layer-meta-title">
+                            <div class="layer-index-badge">5</div>
+                            <div class="layer-headings">
+                                <h2>工程构建、质量防护与交互原型实验室 (Build, QA & Preview Labs)</h2>
+                                <p>从代码提交、全域自动化断言测试、无边框顶栏架构预演到全自动生产发包的一体化流水线</p>
+                            </div>
+                        </div>
+                        <span class="layer-layer-tag">ENGINEERING & QA</span>
+                    </div>
+                    <div class="layer-content-body">
+                        <div class="cards-grid">
+                            <!-- 卡片 5.1 -->
+                            <div class="arch-card" id="card-build-pipeline"
+                                 data-title="全自动多端打包流水线"
+                                 data-tech="Tauri CLI / NSIS Shell / Gradle"
+                                 data-file="scripts/build_pc_package.py"
+                                 data-tests="scripts/verify_release_package.py"
+                                 data-desc="非交互式全自动发包流水线：按 Vite 构建 -> Sidecar 冻结 (server.spec) -> Tauri 构建 -> NSIS 嵌入顺序执行，自动生成带自定义安装器壳的 Windows Setup 安装包与 Android APK。"
+                                 style="--card-color: var(--c-qa); --card-glow: var(--c-qa-glow); --pill-bg: var(--c-qa-glow); --pill-color: var(--c-qa);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">📦</span>
+                                        <span class="card-headline-title">全自动发包流水线</span>
+                                    </div>
+                                    <span class="card-mini-pill">CI / CD</span>
+                                </div>
+                                <div class="card-desc">Vite -> Sidecar 冻结 -> Tauri 编译 -> NSIS 壳，一键产出正式发布包。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 0</span>
+                                    <span class="rel-stat-chip out">📤 下游 2</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">scripts/build_pc_package.py</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 5.2 -->
+                            <div class="arch-card" id="card-qa-network"
+                                 data-title="685+ 全域自动化测试安全网"
+                                 data-tech="Vitest / Pytest / Playwright E2E"
+                                 data-file="scripts/verify-*.mjs"
+                                 data-tests="npm test (476) + pytest (209)"
+                                 data-desc="覆盖全链路的多维测试阵列：51 个 Vitest 前端单测套件、209 个 Python 后端测试、10 个真实无头浏览器 Playwright 视觉走查套件（水波衰减、侧栏折叠、下拉菜单审计）。"
+                                 style="--card-color: var(--c-qa); --card-glow: var(--c-qa-glow); --pill-bg: var(--c-qa-glow); --pill-color: var(--c-qa);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🧪</span>
+                                        <span class="card-headline-title">全域自动化测试网络</span>
+                                    </div>
+                                    <span class="card-mini-pill">QA 防护网</span>
+                                </div>
+                                <div class="card-desc">双端单测全绿、UI 编码 UTF-8 扫描、Playwright 毫秒级逐帧动画采样。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 0</span>
+                                    <span class="rel-stat-chip out">📤 下游 3</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">scripts/verify-*.mjs</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+
+                            <!-- 卡片 5.3 -->
+                            <div class="arch-card" id="card-preview-lab"
+                                 data-title="独立交互原型对比实验室"
+                                 data-tech="Zero-Dependency Single HTML / HUD Controls"
+                                 data-file="output/preview/index.html"
+                                 data-tests="Zero-Runtime Sandbox"
+                                 data-desc="纯前端、零依赖单文件高保真设计实验场：包含侧栏微动效调参 HUD、主窗三键防遮挡预演、融合单顶栏架构论证与新拟态按钮走查，无需启动 Tauri 即可完成设计决策。"
+                                 style="--card-color: var(--c-qa); --card-glow: var(--c-qa-glow); --pill-bg: var(--c-qa-glow); --pill-color: var(--c-qa);">
+                                <div class="card-port port-top" data-port="in"></div>
+                                <div class="card-port port-bottom" data-port="out"></div>
+                                <div class="card-header-line">
+                                    <div class="card-icon-headline">
+                                        <span class="card-em-icon">🔬</span>
+                                        <span class="card-headline-title">交互原型与动效实验室</span>
+                                    </div>
+                                    <span class="card-mini-pill">设计沙盒</span>
+                                </div>
+                                <div class="card-desc">60fps 浏览器秒开调参、无边框桌面壳层级预演、新拟态 Token 视觉对齐。</div>
+                                <div class="card-relation-tags">
+                                    <span class="rel-stat-chip in">📥 上游 1</span>
+                                    <span class="rel-stat-chip out">📤 下游 0</span>
+                                </div>
+                                <div class="card-footer-specs">
+                                    <span class="card-code-mono">output/preview/index.html</span>
+                                    <span class="card-action-hint">查看详情 ➔</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+
+        <!-- 视图 2：动态业务数据流链路 (Interactive Data Pipelines) -->
+        <div id="viewFlow" class="flow-container">
+            
+            <!-- 业务场景切换器 -->
+            <div class="pipeline-tabs">
+                <button class="pipeline-tab-btn active" data-pipe="image">
+                    <span>🖼️</span>
+                    <span>图像无损压缩与格式转换流水线</span>
+                </button>
+                <button class="pipeline-tab-btn" data-pipe="prompt">
+                    <span>📝</span>
+                    <span>提示词多版本资产 CRUD 链路</span>
+                </button>
+                <button class="pipeline-tab-btn" data-pipe="sync">
+                    <span>🔄</span>
+                    <span>局域网双端即时同步协议网络</span>
+                </button>
+                <button class="pipeline-tab-btn" data-pipe="update">
+                    <span>🚀</span>
+                    <span>客户端无死锁自动更新管道</span>
+                </button>
+            </div>
+
+            <!-- 流水线具体步骤卡片栈 -->
+            <div class="pipeline-flow-deck" id="pipelineFlowDeck">
+                <!-- 动态由 JS 填充 -->
+            </div>
+
+        </div>
+
+        <!-- 视图 3：双端能力对比矩阵 (Cross-Platform Matrix) -->
+        <div id="viewMatrix" class="matrix-container">
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th style="width: 22%;">技术特性 / 架构维度</th>
+                        <th style="width: 26%;">🖥️ PC 桌面端 (Tauri + Rust)</th>
+                        <th style="width: 26%;">📱 Android 移动端 (Capacitor)</th>
+                        <th style="width: 26%;">🌐 独立产品官网 (Website)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="matrix-feature-name"><span>外壳容器架构</span></td>
+                        <td><span class="status-badge supported">已支持</span>Tauri v2 + Rust 原生轻量外壳（~28MB 独立内存常驻）</td>
+                        <td><span class="status-badge supported">已支持</span>Capacitor 8 原生 Android 容器（Java 17 Gradle 编译）</td>
+                        <td><span class="status-badge supported">已支持</span>Astro / Vite 纯静态 HTML+JS，完全解耦独立部署</td>
+                    </tr>
+                    <tr>
+                        <td class="matrix-feature-name"><span>持久化存储底座</span></td>
+                        <td><span class="status-badge optimized">双适配</span>Python Sidecar HTTP (8888) + %APPDATA% 本地 JSON 数据盘</td>
+                        <td><span class="status-badge supported">已支持</span>Capacitor SQLite 原生嵌入式关系型数据库（离线安全沙盒）</td>
+                        <td><span class="status-badge na">不适用</span>纯产品官方展示与下载引导，无敏感数据落地</td>
+                    </tr>
+                    <tr>
+                        <td class="matrix-feature-name"><span>图形处理与无损压制</span></td>
+                        <td><span class="status-badge optimized">极致算力</span>Oxipng 10.2.1 (Rust) + MozJPEG + 多线程 Worker 异步任务池</td>
+                        <td><span class="status-badge supported">已支持</span>HTML5 Canvas 2D + 原生 Bitmap 硬件加速压制与格式转换</td>
+                        <td><span class="status-badge supported">已支持</span>Three.js 3D 实时渲染交互工作室，展示 3D 悬浮组件</td>
+                    </tr>
+                    <tr>
+                        <td class="matrix-feature-name"><span>窗口形态与微交互</span></td>
+                        <td><span class="status-badge supported">已支持</span>无边框沉浸顶栏、Windows 标题栏拖拽穿透、自定义圆环光标跟随</td>
+                        <td><span class="status-badge supported">已支持</span>沉浸式透明状态栏、底部弹性导航 TabBar、原生物理返回键调度</td>
+                        <td><span class="status-badge supported">已支持</span>全响应式视口流式布局，支持移动端/桌面端弹性排版</td>
+                    </tr>
+                    <tr>
+                        <td class="matrix-feature-name"><span>网络与安全离线能力</span></td>
+                        <td><span class="status-badge supported">已支持</span>100% 本地完全离线可用，零第三方云服务器依赖与回传</td>
+                        <td><span class="status-badge supported">已支持</span>完全离线沙盒运行，支持局域网 UDP 发现与 6 位口令加密互通</td>
+                        <td><span class="status-badge supported">已支持</span>全球 CDN 高速分发，静态资源哈希防篡改与隐私白名单</td>
+                    </tr>
+                    <tr>
+                        <td class="matrix-feature-name"><span>自动热更与发版体系</span></td>
+                        <td><span class="status-badge supported">已支持</span>内置增量版本轨、后台静默断点下载 Job、SHA256 校验与分离拉起</td>
+                        <td><span class="status-badge supported">已支持</span>内置 APK 增量比对下载或引导至各大应用市场分发</td>
+                        <td><span class="status-badge supported">已支持</span>GitHub Actions 自动化 CI 构建并同步部署至边缘静态节点</td>
+                    </tr>
+                    <tr>
+                        <td class="matrix-feature-name"><span>发包产物格式与体积</span></td>
+                        <td><span class="status-badge supported">已支持</span>NSIS 自定义 Setup.exe (约 28~37MB)，静默提取免安装运行</td>
+                        <td><span class="status-badge supported">已支持</span>标准 Gradle Release APK (约 16~22MB)</td>
+                        <td><span class="status-badge supported">已支持</span>标准静态产物目录 dist/ (HTML + WebP + JS)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+
+    <!-- 交互式侧滑详情抽屉 (Slide-Over Inspector Sheet) -->
+    <div class="inspector-overlay" id="inspectorOverlay">
+        <aside class="inspector-panel" id="inspectorPanel">
+            <div class="inspector-top">
+                <div class="inspector-top-left">
+                    <span class="inspector-icon" id="inspIcon">📁</span>
+                    <div class="inspector-title-wrap">
+                        <h3 id="inspTitle">模块名称</h3>
+                        <span class="card-mini-pill" id="inspTechTag">Tech Stack</span>
+                    </div>
+                </div>
+                <button class="inspector-close-btn" id="inspCloseBtn">✕</button>
+            </div>
+
+            <div class="inspector-scroll-body">
+                <div class="insp-section">
+                    <div class="insp-label">📖 模块架构定位与功能职责</div>
+                    <div class="insp-box" id="inspDesc">详细职责说明...</div>
+                </div>
+
+                <div class="insp-section">
+                    <div class="insp-label">⚙️ 核心技术栈与执行引擎</div>
+                    <div class="insp-box" id="inspTechDetails">技术实现说明...</div>
+                </div>
+
+                <div class="insp-section">
+                    <div class="insp-label">🔗 关联关系链追溯 (Relationships)</div>
+                    <div class="insp-box" style="padding: 10px;">
+                        <div style="font-size: 11px; font-weight: 700; color: var(--c-shell); margin-bottom: 6px;">📥 上游调用方 (Who calls this module)：</div>
+                        <div class="insp-relation-list" id="inspInboundList"></div>
+                        
+                        <div style="font-size: 11px; font-weight: 700; color: var(--c-biz); margin: 12px 0 6px 0;">📤 下游依赖方 (Who this module calls)：</div>
+                        <div class="insp-relation-list" id="inspOutboundList"></div>
+                    </div>
+                </div>
+
+                <div class="insp-section">
+                    <div class="insp-label">📂 源码落地路径 (Repository Path)</div>
+                    <div class="insp-code-box" id="inspFilePath">src/js/pc/</div>
+                </div>
+
+                <div class="insp-section">
+                    <div class="insp-label">🛡️ 自动化测试防护网覆盖</div>
+                    <div class="insp-box" id="inspTestSuites">关联测试套件...</div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // ==========================================================
+        // 1. 系统核心拓扑关系链定义 (24 条生产级权威真实调用关系)
+        // ==========================================================
+        const RELATIONSHIPS = [
+            // 1. 原生宿主与子进程 / IPC
+            { id: 'rel-tauri-sidecar', from: 'card-pc-tauri', to: 'card-sidecar-srv', type: 'ipc', label: '拉起与守护后台进程树', protocol: 'std::process::Command', stroke: 'var(--c-rel-ipc)', marker: 'marker-arrow-ipc' },
+            { id: 'rel-tauri-prompt', from: 'card-pc-tauri', to: 'card-prompt-mgr', type: 'ipc', label: '无边框窗口与拖拽穿透', protocol: 'tauri://window-chrome', stroke: 'var(--c-rel-ipc)', marker: 'marker-arrow-ipc' },
+            { id: 'rel-tauri-updater', from: 'card-pc-tauri', to: 'card-auto-updater', type: 'ipc', label: '分离安装与安全退出', protocol: 'tauri::command closeShell', stroke: 'var(--c-rel-ipc)', marker: 'marker-arrow-ipc' },
+            { id: 'rel-cap-sqlite', from: 'card-android-cap', to: 'card-sqlite-storage', type: 'ipc', label: 'Capacitor 原生 SQLite 桥接', protocol: 'CapacitorSQLitePlugin', stroke: 'var(--c-rel-native)', marker: 'marker-arrow-native' },
+            { id: 'rel-cap-image', from: 'card-android-cap', to: 'card-image-opt', type: 'ipc', label: '原生相册安全存取授权', protocol: 'ImageGallerySaver', stroke: 'var(--c-rel-native)', marker: 'marker-arrow-native' },
+
+            // 2. 业务功能域 -> 统一存储网关
+            { id: 'rel-prompt-storage', from: 'card-prompt-mgr', to: 'card-storage-router', type: 'storage', label: '提示词版本/画廊 CRUD', protocol: 'storage.savePromptSet()', stroke: 'var(--c-rel-storage)', marker: 'marker-arrow-storage' },
+            { id: 'rel-image-storage', from: 'card-image-opt', to: 'card-storage-router', type: 'storage', label: '压缩历史与统计持久化', protocol: 'storage.saveHistory()', stroke: 'var(--c-rel-storage)', marker: 'marker-arrow-storage' },
+            { id: 'rel-goal-storage', from: 'card-goal-mindmap', to: 'card-storage-router', type: 'storage', label: '任务树与节点配置持久化', protocol: 'storage.saveGoalProjects()', stroke: 'var(--c-rel-storage)', marker: 'marker-arrow-storage' },
+            { id: 'rel-plant-storage', from: 'card-plant-game', to: 'card-storage-router', type: 'storage', label: '30天状态机双写存盘', protocol: 'storage.savePlant()', stroke: 'var(--c-rel-storage)', marker: 'marker-arrow-storage' },
+            { id: 'rel-arcade-storage', from: 'card-arcade-games', to: 'card-storage-router', type: 'storage', label: '排行榜高分持久化', protocol: 'storage.getLeaderboard()', stroke: 'var(--c-rel-storage)', marker: 'marker-arrow-storage' },
+            { id: 'rel-sync-storage', from: 'card-lan-sync', to: 'card-storage-router', type: 'storage', label: '快照差异比对与增量写回', protocol: 'storage.mergeSyncData()', stroke: 'var(--c-rel-storage)', marker: 'marker-arrow-storage' },
+
+            // 3. 业务域 -> 算力与服务
+            { id: 'rel-image-sidecar', from: 'card-image-opt', to: 'card-sidecar-srv', type: 'http', label: '多线程批量压制异步队列', protocol: 'POST /png/compress', stroke: 'var(--c-rel-http)', marker: 'marker-arrow-http' },
+            { id: 'rel-sync-sidecar', from: 'card-lan-sync', to: 'card-sidecar-srv', type: 'http', label: '局域网宿主握手与包分发', protocol: 'GET/POST /sync/*', stroke: 'var(--c-rel-http)', marker: 'marker-arrow-http' },
+            { id: 'rel-updater-sidecar', from: 'card-auto-updater', to: 'card-sidecar-srv', type: 'http', label: '后台断点续传下载 Job', protocol: 'POST /update/download', stroke: 'var(--c-rel-http)', marker: 'marker-arrow-http' },
+            { id: 'rel-splash-cursor', from: 'card-splash-motion', to: 'card-prompt-mgr', type: 'ipc', label: '入场凝聚完成并转接指针', protocol: 'window.__splashPlay()', stroke: 'var(--c-rel-ipc)', marker: 'marker-arrow-ipc' },
+
+            // 4. 存储网关分发路由
+            { id: 'rel-router-api', from: 'card-storage-router', to: 'card-api-storage', type: 'storage', label: 'PC 环境自适应分流', protocol: 'isTauri -> ApiStorage', stroke: 'var(--c-rel-storage)', marker: 'marker-arrow-storage' },
+            { id: 'rel-router-sqlite', from: 'card-storage-router', to: 'card-sqlite-storage', type: 'storage', label: 'Android 移动端分流', protocol: 'isCapacitor -> SqliteStorage', stroke: 'var(--c-rel-storage)', marker: 'marker-arrow-storage' },
+
+            // 5. 存储适配器 -> 实体后端
+            { id: 'rel-api-sidecar', from: 'card-api-storage', to: 'card-sidecar-srv', type: 'http', label: '本地数据盘读写与重连', protocol: 'http://127.0.0.1:8888/storage', stroke: 'var(--c-rel-http)', marker: 'marker-arrow-http' },
+
+            // 6. Python Sidecar -> 底层二进制引擎
+            { id: 'rel-sidecar-oxipng', from: 'card-sidecar-srv', to: 'card-oxipng-bin', type: 'engine', label: 'Rust 无损 Deflate 优化', protocol: 'subprocess.Popen(oxipng)', stroke: 'var(--c-rel-engine)', marker: 'marker-arrow-engine' },
+            { id: 'rel-sidecar-mozjpeg', from: 'card-sidecar-srv', to: 'card-mozjpeg-bin', type: 'engine', label: '渐进式 JPEG 霍夫曼重算', protocol: 'subprocess.Popen(jpegoptim)', stroke: 'var(--c-rel-engine)', marker: 'marker-arrow-engine' },
+
+            // 7. 工程与 QA 关系链
+            { id: 'rel-build-tauri', from: 'card-build-pipeline', to: 'card-pc-tauri', type: 'qa', label: 'Vite+Rust 发包构建装配', protocol: 'scripts/build_pc_package.py', stroke: 'var(--c-rel-qa)', marker: 'marker-arrow-qa' },
+            { id: 'rel-build-sidecar', from: 'card-build-pipeline', to: 'card-sidecar-srv', type: 'qa', label: 'PyInstaller 独立服务端冻结', protocol: 'pyinstaller server.spec', stroke: 'var(--c-rel-qa)', marker: 'marker-arrow-qa' },
+            { id: 'rel-qa-prompt', from: 'card-qa-network', to: 'card-prompt-mgr', type: 'qa', label: 'Vitest 业务单测断言 (476套)', protocol: 'npm test (Vitest)', stroke: 'var(--c-rel-qa)', marker: 'marker-arrow-qa' },
+            { id: 'rel-qa-sidecar', from: 'card-qa-network', to: 'card-sidecar-srv', type: 'qa', label: 'Pytest 图像与接口断言 (209套)', protocol: 'pytest python/tests', stroke: 'var(--c-rel-qa)', marker: 'marker-arrow-qa' },
+            { id: 'rel-qa-preview', from: 'card-qa-network', to: 'card-preview-lab', type: 'qa', label: 'Playwright 视觉与动效走查', protocol: 'scripts/verify-*.mjs', stroke: 'var(--c-rel-qa)', marker: 'marker-arrow-qa' }
+        ];
+
+        // 模块字典快速索引
+        const MODULE_MAP = {};
+        document.querySelectorAll('.arch-card').forEach(card => {
+            MODULE_MAP[card.id] = {
+                id: card.id,
+                title: card.dataset.title,
+                tech: card.dataset.tech,
+                file: card.dataset.file,
+                tests: card.dataset.tests,
+                desc: card.dataset.desc,
+                icon: card.querySelector('.card-em-icon')?.textContent || '📁'
+            };
+        });
+
+        // ==========================================================
+        // 2. 动态 SVG 关系连线引擎 (Dynamic Bezier Connectors)
+        // ==========================================================
+        const topoCanvasWrapper = document.getElementById('topoCanvasWrapper');
+        const svgPathsGroup = document.getElementById('svgPathsGroup');
+        const relLabelContainer = document.getElementById('relLabelContainer');
+        const toggleFocusMode = document.getElementById('toggleFocusMode');
+        const togglePulseFlow = document.getElementById('togglePulseFlow');
+        const toggleLabels = document.getElementById('toggleLabels');
+
+        let currentRelFilter = 'all';
+        let focusedCardId = null;
+
+        function updateSvgConnectors() {
+            if (viewTopo.style.display === 'none') return;
+
+            const containerRect = topoCanvasWrapper.getBoundingClientRect();
+            svgPathsGroup.innerHTML = '';
+            relLabelContainer.innerHTML = '';
+
+            const isPulseActive = togglePulseFlow.checked;
+            const showLabels = toggleLabels.checked;
+
+            RELATIONSHIPS.forEach(rel => {
+                // 筛选过滤检查
+                if (currentRelFilter !== 'all' && rel.type !== currentRelFilter) return;
+
+                const fromEl = document.getElementById(rel.from);
+                const toEl = document.getElementById(rel.to);
+                if (!fromEl || !toEl) return;
+                if (fromEl.classList.contains('filtered-out') || toEl.classList.contains('filtered-out')) return;
+
+                const fromRect = fromEl.getBoundingClientRect();
+                const toRect = toEl.getBoundingClientRect();
+
+                // 计算锚点中心坐标
+                let x1 = fromRect.left + fromRect.width / 2 - containerRect.left;
+                let y1 = fromRect.bottom - containerRect.top;
+                let x2 = toRect.left + toRect.width / 2 - containerRect.left;
+                let y2 = toRect.top - containerRect.top;
+
+                // 若目标在上游（逆向），则反向锚定
+                if (toRect.bottom < fromRect.top) {
+                    y1 = fromRect.top - containerRect.top;
+                    y2 = toRect.bottom - containerRect.top;
+                }
+
+                const dy = y2 - y1;
+                const cpOffset = Math.max(45, Math.abs(dy) * 0.45);
+                const cp1y = dy >= 0 ? y1 + cpOffset : y1 - cpOffset;
+                const cp2y = dy >= 0 ? y2 - cpOffset : y2 + cpOffset;
+                const pathD = `M ${x1} ${y1} C ${x1} ${cp1y}, ${x2} ${cp2y}, ${x2} ${y2}`;
+
+                // 连线分组
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.classList.add('rel-group');
+                g.dataset.id = rel.id;
+                g.dataset.from = rel.from;
+                g.dataset.to = rel.to;
+                g.dataset.type = rel.type;
+
+                // 隐形扩宽点击区域
+                const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                hitPath.setAttribute('d', pathD);
+                hitPath.classList.add('rel-path-hitarea');
+
+                // 实体骨架连线
+                const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                linePath.setAttribute('d', pathD);
+                linePath.classList.add('rel-path-backbone');
+                if (isPulseActive) linePath.classList.add('rel-pulse-flow');
+                linePath.style.stroke = rel.stroke;
+                linePath.style.strokeWidth = '2px';
+                linePath.style.strokeOpacity = '0.45';
+                linePath.setAttribute('marker-end', `url(#${rel.marker})`);
+
+                g.appendChild(hitPath);
+                g.appendChild(linePath);
+                svgPathsGroup.appendChild(g);
+
+                // 浮动标签胶囊
+                if (showLabels) {
+                    const midX = (x1 + x2) / 2;
+                    const midY = (y1 + y2) / 2;
+                    const pill = document.createElement('div');
+                    pill.classList.add('rel-label-pill');
+                    pill.dataset.relId = rel.id;
+                    pill.style.left = `${midX}px`;
+                    pill.style.top = `${midY}px`;
+                    pill.innerHTML = `<span>${rel.label}</span>`;
+                    
+                    pill.addEventListener('mouseenter', () => spotlightRelationship(rel.id));
+                    pill.addEventListener('mouseleave', clearSpotlight);
+                    pill.addEventListener('click', () => {
+                        openInspectorForCard(rel.from);
+                    });
+
+                    relLabelContainer.appendChild(pill);
+                }
+            });
+
+            // 保持当前卡片高亮状态
+            if (focusedCardId) {
+                applyCardFocus(focusedCardId);
+            }
+        }
+
+        // ==========================================================
+        // 3. 悬停聚焦追踪模式 (Spotlight & Trace Engine)
+        // ==========================================================
+        function spotlightRelationship(relId) {
+            if (!toggleFocusMode.checked) return;
+            const rel = RELATIONSHIPS.find(r => r.id === relId);
+            if (!rel) return;
+
+            topoCanvasWrapper.classList.add('is-focus-mode');
+            
+            // 高亮对应卡片
+            document.querySelectorAll('.arch-card').forEach(c => {
+                c.classList.remove('card-focused', 'card-upstream', 'card-downstream');
+                if (c.id === rel.from) c.classList.add('card-upstream');
+                if (c.id === rel.to) c.classList.add('card-downstream');
+            });
+
+            // 高亮当前关系线
+            document.querySelectorAll('.rel-group').forEach(g => {
+                const isActive = g.dataset.id === relId;
+                g.classList.toggle('line-active', isActive);
+                const line = g.querySelector('.rel-path-backbone');
+                if (line) {
+                    line.style.strokeOpacity = isActive ? '1' : '0.1';
+                    line.style.strokeWidth = isActive ? '3.5px' : '1.5px';
+                }
+            });
+
+            document.querySelectorAll('.rel-label-pill').forEach(p => {
+                p.classList.toggle('label-active', p.dataset.relId === relId);
+            });
+        }
+
+        function applyCardFocus(cardId) {
+            focusedCardId = cardId;
+            if (!toggleFocusMode.checked) return;
+
+            topoCanvasWrapper.classList.add('is-focus-mode');
+
+            // 找出所有与该卡片直接关联的上游与下游
+            const inRels = RELATIONSHIPS.filter(r => r.to === cardId);
+            const outRels = RELATIONSHIPS.filter(r => r.from === cardId);
+            const inCardIds = inRels.map(r => r.from);
+            const outCardIds = outRels.map(r => r.to);
+
+            document.querySelectorAll('.arch-card').forEach(c => {
+                c.classList.remove('card-focused', 'card-upstream', 'card-downstream');
+                if (c.id === cardId) c.classList.add('card-focused');
+                else if (inCardIds.includes(c.id)) c.classList.add('card-upstream');
+                else if (outCardIds.includes(c.id)) c.classList.add('card-downstream');
+            });
+
+            document.querySelectorAll('.rel-group').forEach(g => {
+                const isConn = g.dataset.from === cardId || g.dataset.to === cardId;
+                g.classList.toggle('line-active', isConn);
+                const line = g.querySelector('.rel-path-backbone');
+                if (line) {
+                    line.style.strokeOpacity = isConn ? '1' : '0.08';
+                    line.style.strokeWidth = isConn ? '3.5px' : '1.5px';
+                    if (isConn) {
+                        line.setAttribute('marker-end', 'url(#marker-arrow-highlight)');
+                    }
+                }
+            });
+
+            document.querySelectorAll('.rel-label-pill').forEach(p => {
+                const rel = RELATIONSHIPS.find(r => r.id === p.dataset.relId);
+                const isConn = rel && (rel.from === cardId || rel.to === cardId);
+                p.classList.toggle('label-active', isConn);
+            });
+        }
+
+        function clearSpotlight() {
+            if (inspectorOverlay.classList.contains('open')) return; // 抽屉打开时保持聚焦
+            focusedCardId = null;
+            topoCanvasWrapper.classList.remove('is-focus-mode');
+            document.querySelectorAll('.arch-card').forEach(c => {
+                c.classList.remove('card-focused', 'card-upstream', 'card-downstream');
+            });
+            document.querySelectorAll('.rel-group').forEach(g => {
+                g.classList.remove('line-active');
+                const rel = RELATIONSHIPS.find(r => r.id === g.dataset.id);
+                const line = g.querySelector('.rel-path-backbone');
+                if (line && rel) {
+                    line.style.strokeOpacity = '0.45';
+                    line.style.strokeWidth = '2px';
+                    line.setAttribute('marker-end', `url(#${rel.marker})`);
+                }
+            });
+            document.querySelectorAll('.rel-label-pill').forEach(p => {
+                p.classList.remove('label-active');
+            });
+        }
+
+        // 卡片悬停与点击事件绑定
+        document.querySelectorAll('.arch-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                if (!inspectorOverlay.classList.contains('open')) {
+                    applyCardFocus(card.id);
+                }
+            });
+            card.addEventListener('mouseleave', () => {
+                if (!inspectorOverlay.classList.contains('open')) {
+                    clearSpotlight();
+                }
+            });
+            card.addEventListener('click', () => {
+                applyCardFocus(card.id);
+                openInspectorForCard(card.id);
+            });
+        });
+
+        // 连线控制台按钮事件
+        document.querySelectorAll('.rel-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.rel-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentRelFilter = btn.dataset.rel;
+                updateSvgConnectors();
+            });
+        });
+
+        toggleFocusMode.addEventListener('change', () => {
+            if (!toggleFocusMode.checked) clearSpotlight();
+        });
+        togglePulseFlow.addEventListener('change', updateSvgConnectors);
+        toggleLabels.addEventListener('change', updateSvgConnectors);
+
+        // 窗口尺寸改变时重算连线
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(updateSvgConnectors, 80);
+        });
+
+        // ==========================================================
+        // 4. 视图 2：动态业务数据流链路 (Interactive Data Pipelines)
+        // ==========================================================
+        const PIPELINES = {
+            image: [
+                {
+                    step: 1,
+                    title: "前端拖拽与预读 (Presentation & WebWorker)",
+                    layer: "Layer 1 呈现层",
+                    metric: "耗时 ~15ms · 内存只读",
+                    desc: "用户在图像面板拖拽多张高清 PNG/JPEG，前端立即挂载 WebWorker 采用 Canvas 2D 提取尺寸宽高，按比例锁进行预设裁剪并初步预估各算法下节约率。",
+                    code: "src/js/pc/pc-compress.js (handleFileDrop)",
+                    arrow: "POST /png/compress 载荷分块 (Payload Streaming)"
+                },
+                {
+                    step: 2,
+                    title: "本地 Sidecar 调度与 LRU 缓存 (FastAPI Worker)",
+                    layer: "Layer 4 后端服务",
+                    metric: "线程池并发 · LRU 命中 0ms",
+                    desc: "HTTP 请求打入 Python FastAPI (8888 端口)，`image_worker.py` 线程池接管，比对 `image_cache.py` 内存哈希。若命中直接极速返回，未命中则分配底层压缩线程。",
+                    code: "python/image_worker.py (compress_job_queue)",
+                    arrow: "subprocess.Popen 管道参数传参 (Deflate Level 2)"
+                },
+                {
+                    step: 3,
+                    title: "Oxipng 10.2.1 极致无损算力执行 (Rust Engine)",
+                    layer: "Layer 4 原生算力",
+                    metric: "Rust 原生 x64 · 零破坏保真",
+                    desc: "直接调用官方预编译的 `vendor/oxipng/oxipng.exe`，执行深度 IDAT 数据流压缩，剔除无关元数据 Chunk 并重构调色板索引，零破坏像素的前提下压缩率突破极限。",
+                    code: "vendor/oxipng/oxipng.exe (Level 2 Multi-thread)",
+                    arrow: "异步压缩完成并回传原始大小与压缩体积"
+                },
+                {
+                    step: 4,
+                    title: "Storage 统一持久化与 ZIP 批导 (Unified Persistence)",
+                    layer: "Layer 3 统一存储",
+                    metric: "本地磁盘写入 · 导出 ZIP 打包",
+                    desc: "压缩后文件保存至用户指定导出目录，同时 `storage.saveHistory()` 将本次压制耗时、节约百分比记录写入本地数据盘，支持批量打包为 ZIP 一键下载。",
+                    code: "src/js/core/storage.js -> ApiStorage",
+                    arrow: "Toast 轻提示完成 · 动画水波衰减就绪"
+                }
+            ],
+            prompt: [
+                {
+                    step: 1,
+                    title: "工作台富文本编辑与画廊联动 (Editor & Gallery)",
+                    layer: "Layer 2 业务功能域",
+                    metric: "React 19 / 虚拟滚动",
+                    desc: "用户在右侧编辑器输入或修改 Midjourney / Stable Diffusion 提示词，联动选择画廊封面图，拖拽标签分类并触发自动版本快照检测。",
+                    code: "src/js/pc/pc-editor.js",
+                    arrow: "diff-match-patch 文本差异算法计算增量"
+                },
+                {
+                    step: 2,
+                    title: "无限版本树演化与文本 Diff (Version Tree Diff)",
+                    layer: "Layer 2 逻辑引擎",
+                    metric: "毫秒级计算 · 精确字符染色",
+                    desc: "比对历史基线版本，自动生成变更字符行号高亮与删除线，生成结构化 PromptSet 数据包（包含 tags, cover, versions 数组）。",
+                    code: "src/js/pc/pc-library.js (computeVersionDiff)",
+                    arrow: "调用统一异步接口 storage.savePromptSet()"
+                },
+                {
+                    step: 3,
+                    title: "Storage 网关自适应分流 (Adapter Gateway)",
+                    layer: "Layer 3 存储抽象",
+                    metric: "环境探针探测 (isTauri / isCapacitor)",
+                    desc: "调用 `storage.js`，内部根据 `window.__TAURI__` 或 `window.Capacitor` 标识，自动将 Promise 转发至 PC 端的 `ApiStorage` 或移动端的 `SqliteStorage`。",
+                    code: "src/js/core/storage.js",
+                    arrow: "双端同构接口协议分发"
+                },
+                {
+                    step: 4,
+                    title: "物理介质安全落盘 (Disk / SQLite Sandbox)",
+                    layer: "Layer 3/4 物理持久化",
+                    metric: "JSON 文件原子写入 / SQLite 事务",
+                    desc: "PC 端通过 REST API 写入 `%APPDATA%/PromptImageManager/data/prompts.json`；移动端进入 Android 隔离沙盒执行 SQLite 事务提交，完成高可靠落盘。",
+                    code: "src/js/core/api-storage.js / sqlite-storage.js",
+                    arrow: "前端虚拟列表即时响应式重新着色渲染"
+                }
+            ],
+            sync: [
+                {
+                    step: 1,
+                    title: "局域网组播探测与互联 (UDP Broadcast Discovery)",
+                    layer: "Layer 2 P2P网络",
+                    metric: "免云端中心 · 内网毫秒级发现",
+                    desc: "PC 桌面端启动 UDP 组播监听，Android 移动端进入同步页自动扫描同一 Wi-Fi 网段下的可用主机节点，展示在线设备卡片与 IP:Port。",
+                    code: "src/js/sync/lan-sync.js (discoverHosts)",
+                    arrow: "输入 6 位动态握手配对 Token"
+                },
+                {
+                    step: 2,
+                    title: "安全配对令牌认证 (Token Handshake)",
+                    layer: "Layer 4 Sidecar 网关",
+                    metric: "SHA256 会话鉴权 · 10分钟动态过期",
+                    desc: "手机端携带 6 位一次性配对 Token 向 PC 端发起 `/sync/auth` 请求。PC 端校验通过后颁发短期临时会话票据，建立双向通信会话。",
+                    code: "python/api_sync.py (verify_token)",
+                    arrow: "拉取全量元数据快照比对摘要"
+                },
+                {
+                    step: 3,
+                    title: "双端差异计算与冲突比对 (Diff & Merge Conflict UI)",
+                    layer: "Layer 2 同步控制器",
+                    metric: "多端变更可视化提示",
+                    desc: "比对本地与远端最后更新时间戳与哈希。若同一提示词在两端均有修改，弹出可视化冲突合并面板，由用户勾选以 PC 为准或以手机端为准。",
+                    code: "src/js/sync/lan-sync.js (resolveConflicts)",
+                    arrow: "增量双向数据同步包提交"
+                },
+                {
+                    step: 4,
+                    title: "双向增量合并与落盘 (Incremental Commit)",
+                    layer: "Layer 3 统一存储",
+                    metric: "无缝合并 · 刷新全量视图",
+                    desc: "两端各自调用本地 `storage.mergeSyncData()` 将差异包写入存储库，自动更新版本序号并刷新界面，实现零云端依赖的跨设备无缝协作。",
+                    code: "src/js/core/storage.js (mergeSyncData)",
+                    arrow: "同步成功指示灯常绿"
+                }
+            ],
+            update: [
+                {
+                    step: 1,
+                    title: "发版阶段轨与增量检查 (Update Check)",
+                    layer: "Layer 2 发布基建",
+                    metric: "GitHub Releases / 官网 latest.json",
+                    desc: "启动时或用户手动点击检查更新，后台异步拉取远程发布清单，比对语义化版本号（SemVer v2.5.32），渲染清晰的可视化阶段轨卡片。",
+                    code: "src/js/release/auto-updater.js (checkForUpdate)",
+                    arrow: "发现新版本，用户确认启动后台静默下载"
+                },
+                {
+                    step: 2,
+                    title: "异步断点续传下载 Job (Background Downloader)",
+                    layer: "Layer 4 后端服务",
+                    metric: "带进度百分比与瞬时网速回报",
+                    desc: "向 Python Sidecar 提交下载任务 `POST /update/download`。Sidecar 启动专用下载线程流式拉取 Setup.exe，并持续通过 session 状态机向前端推送进度。",
+                    code: "python/api_update.py (download_worker)",
+                    arrow: "下载完成，执行完整性哈希校验"
+                },
+                {
+                    step: 3,
+                    title: "SHA256 完整性校验与签名确认 (Integrity Verify)",
+                    layer: "Layer 5 质量安全",
+                    metric: "SHA-256 毫秒校验 · 防劫持篡改",
+                    desc: "计算下载包的实际哈希值，与官方清单中发布的校验码进行严格全字匹配。若哈希不匹配自动销毁脏文件并报错拦截，保障系统绝对安全。",
+                    code: "src/js/release/auto-updater.js (verifyHash)",
+                    arrow: "发起分离进程安装向导拉起"
+                },
+                {
+                    step: 4,
+                    title: "进程分离拉起与安全重启 (Detached Process Spawn)",
+                    layer: "Layer 1 Tauri 原生壳",
+                    metric: "无死锁退出 · 优雅重启覆盖",
+                    desc: "前端通过 Tauri IPC 调用原生命令拉起 NSIS 安装包并注入 `--silent /D` 参数；随即优雅关闭前端窗口与 Sidecar 进程树，释放所有文件占用完成平滑更新升级。",
+                    code: "src-tauri/src/main.rs (spawn_installer_and_exit)",
+                    arrow: "安装器执行完毕自动唤醒最新版客户端"
+                }
+            ]
+        };
+
+        const pipelineFlowDeck = document.getElementById('pipelineFlowDeck');
+
+        function renderPipeline(pipeKey) {
+            const steps = PIPELINES[pipeKey] || PIPELINES.image;
+            pipelineFlowDeck.innerHTML = '';
+
+            steps.forEach((step, idx) => {
+                const card = document.createElement('div');
+                card.classList.add('flow-card-step');
+                card.innerHTML = `
+                    <div class="flow-badge-step">${step.step}</div>
+                    <div class="flow-info-col">
+                        <div class="flow-step-header">
+                            <span class="flow-step-title">${step.title}</span>
+                            <span class="flow-metric-pill">${step.metric}</span>
+                        </div>
+                        <p>${step.desc}</p>
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                            <span class="flow-code-ref">${step.code}</span>
+                            <span style="font-size: 11px; font-weight: 700; color: var(--text-tertiary);">${step.layer}</span>
+                        </div>
+                    </div>
+                `;
+                pipelineFlowDeck.appendChild(card);
+
+                // 步骤之间的箭头连接
+                if (idx < steps.length - 1) {
+                    const arrow = document.createElement('div');
+                    arrow.classList.add('flow-arrow-connector');
+                    arrow.innerHTML = `
+                        <div class="flow-arrow-line">
+                            <span class="label">${step.arrow}</span>
+                            <span class="down-arrow">↓</span>
+                        </div>
+                    `;
+                    pipelineFlowDeck.appendChild(arrow);
+                }
+            });
+        }
+
+        // 切换业务流水线标签
+        document.querySelectorAll('.pipeline-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.pipeline-tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderPipeline(btn.dataset.pipe);
+            });
+        });
+
+        // 默认初始化渲染图片流水线
+        renderPipeline('image');
+
+        // ==========================================================
+        // 5. 视图切换控制器 (Topo / Flow / Matrix)
+        // ==========================================================
+        const tabTopo = document.getElementById('tabTopo');
+        const tabFlow = document.getElementById('tabFlow');
+        const tabMatrix = document.getElementById('tabMatrix');
+        const viewTopo = document.getElementById('viewTopo');
+        const viewFlow = document.getElementById('viewFlow');
+        const viewMatrix = document.getElementById('viewMatrix');
+        const floorJumperBar = document.getElementById('floorJumperBar');
+
+        function switchView(target) {
+            tabTopo.classList.toggle('active', target === 'topo');
+            tabFlow.classList.toggle('active', target === 'flow');
+            tabMatrix.classList.toggle('active', target === 'matrix');
+
+            viewTopo.style.display = target === 'topo' ? 'block' : 'none';
+            viewFlow.style.display = target === 'flow' ? 'flex' : 'none';
+            viewMatrix.style.display = target === 'matrix' ? 'block' : 'none';
+            floorJumperBar.style.display = target === 'topo' ? 'block' : 'none';
+
+            if (target === 'topo') {
+                setTimeout(updateSvgConnectors, 50);
+            }
+        }
+
+        tabTopo.addEventListener('click', () => switchView('topo'));
+        tabFlow.addEventListener('click', () => switchView('flow'));
+        tabMatrix.addEventListener('click', () => switchView('matrix'));
+
+        // ==========================================================
+        // 6. 主题切换与排版密度控制器
+        // ==========================================================
+        const themeBtn = document.getElementById('themeBtn');
+        themeBtn.addEventListener('click', () => {
+            const html = document.documentElement;
+            const nextTheme = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', nextTheme);
+            localStorage.setItem('pim_arch_theme', nextTheme);
+            setTimeout(updateSvgConnectors, 50);
+        });
+
+        const savedTheme = localStorage.getItem('pim_arch_theme');
+        if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
+        const densityBtn = document.getElementById('densityBtn');
+        const densityLabel = document.getElementById('densityLabel');
+        densityBtn.addEventListener('click', () => {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-density') || 'normal';
+            const next = current === 'normal' ? 'compact' : 'normal';
+            html.setAttribute('data-density', next);
+            densityLabel.textContent = next === 'compact' ? '宽松' : '紧凑';
+            setTimeout(updateSvgConnectors, 50);
+        });
+
+        // ==========================================================
+        // 7. 全局即时搜索过滤与快捷键
+        // ==========================================================
+        const masterSearch = document.getElementById('masterSearch');
+        const cards = document.querySelectorAll('.arch-card');
+
+        masterSearch.addEventListener('input', (e) => {
+            const query = e.target.value.trim().toLowerCase();
+            cards.forEach(card => {
+                const searchContent = (
+                    card.dataset.title + ' ' + 
+                    card.dataset.tech + ' ' + 
+                    card.dataset.file + ' ' + 
+                    card.dataset.desc + ' ' + 
+                    (card.dataset.tests || '')
+                ).toLowerCase();
+
+                if (!query || searchContent.includes(query)) {
+                    card.classList.remove('filtered-out');
+                } else {
+                    card.classList.add('filtered-out');
+                }
+            });
+            updateSvgConnectors();
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if ((e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) && document.activeElement !== masterSearch) {
+                e.preventDefault();
+                masterSearch.focus();
+                masterSearch.select();
+            }
+        });
+
+        // ==========================================================
+        // 8. 交互式抽屉查看详情 (双向上下游追溯链接)
+        // ==========================================================
+        const inspectorOverlay = document.getElementById('inspectorOverlay');
+        const inspectorPanel = document.getElementById('inspectorPanel');
+        const inspCloseBtn = document.getElementById('inspCloseBtn');
+        const inspIcon = document.getElementById('inspIcon');
+        const inspTitle = document.getElementById('inspTitle');
+        const inspTechTag = document.getElementById('inspTechTag');
+        const inspDesc = document.getElementById('inspDesc');
+        const inspTechDetails = document.getElementById('inspTechDetails');
+        const inspFilePath = document.getElementById('inspFilePath');
+        const inspTestSuites = document.getElementById('inspTestSuites');
+        const inspInboundList = document.getElementById('inspInboundList');
+        const inspOutboundList = document.getElementById('inspOutboundList');
+
+        function openInspectorForCard(cardId) {
+            const data = MODULE_MAP[cardId];
+            if (!data) return;
+
+            inspIcon.textContent = data.icon;
+            inspTitle.textContent = data.title;
+            inspTechTag.textContent = data.tech;
+            inspDesc.textContent = data.desc;
+            inspTechDetails.textContent = data.tech;
+            inspFilePath.textContent = data.file;
+            inspTestSuites.textContent = data.tests || '全量自动化测试覆盖';
+
+            // 填充上游调用者列表
+            const inRels = RELATIONSHIPS.filter(r => r.to === cardId);
+            inspInboundList.innerHTML = inRels.length ? '' : '<div style="color: var(--text-tertiary); font-size: 12px;">无直接上游调用方（作为入口起点或被动服务）</div>';
+            inRels.forEach(rel => {
+                const source = MODULE_MAP[rel.from];
+                if (!source) return;
+                const item = document.createElement('div');
+                item.classList.add('insp-rel-item');
+                item.innerHTML = `
+                    <span class="insp-rel-name">${source.icon} ${source.title}</span>
+                    <span class="insp-rel-proto">${rel.protocol}</span>
+                `;
+                item.addEventListener('click', () => {
+                    openInspectorForCard(rel.from);
+                    applyCardFocus(rel.from);
+                    document.getElementById(rel.from)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+                inspInboundList.appendChild(item);
+            });
+
+            // 填充下游依赖目标列表
+            const outRels = RELATIONSHIPS.filter(r => r.from === cardId);
+            inspOutboundList.innerHTML = outRels.length ? '' : '<div style="color: var(--text-tertiary); font-size: 12px;">无直接下游调用（叶子算力节点或最终落地层）</div>';
+            outRels.forEach(rel => {
+                const target = MODULE_MAP[rel.to];
+                if (!target) return;
+                const item = document.createElement('div');
+                item.classList.add('insp-rel-item');
+                item.innerHTML = `
+                    <span class="insp-rel-name">${target.icon} ${target.title}</span>
+                    <span class="insp-rel-proto">${rel.protocol}</span>
+                `;
+                item.addEventListener('click', () => {
+                    openInspectorForCard(rel.to);
+                    applyCardFocus(rel.to);
+                    document.getElementById(rel.to)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+                inspOutboundList.appendChild(item);
+            });
+
+            inspectorOverlay.classList.add('open');
+        }
+
+        function closeInspector() {
+            inspectorOverlay.classList.remove('open');
+            clearSpotlight();
+        }
+
+        inspCloseBtn.addEventListener('click', closeInspector);
+        inspectorOverlay.addEventListener('click', (e) => {
+            if (e.target === inspectorOverlay) closeInspector();
+        });
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && inspectorOverlay.classList.contains('open')) {
+                closeInspector();
+            }
+        });
+
+        // 页面初始化完成渲染
+        window.addEventListener('load', () => {
+            setTimeout(updateSvgConnectors, 100);
+        });
+    </script>
+</body>
+</html>

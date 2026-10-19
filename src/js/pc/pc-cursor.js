@@ -22,7 +22,14 @@ function isNativeCursorTarget(target) {
     const editable = target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
     if (editable && !editable.disabled && !editable.readOnly) return true;
 
-    return NATIVE_CURSOR_VALUES.has(window.getComputedStyle(target).cursor);
+    const inlineCursor = target.style?.cursor;
+    if (inlineCursor && NATIVE_CURSOR_VALUES.has(inlineCursor)) return true;
+
+    if (target.dataset?.resize || target.className?.includes?.('resize')) {
+        return NATIVE_CURSOR_VALUES.has(window.getComputedStyle(target).cursor);
+    }
+
+    return false;
 }
 
 function getCursorState(target, root) {
@@ -42,7 +49,7 @@ function getCursorState(target, root) {
     }
 
     const actionTarget = target.closest(
-        'button, a[href], [role="button"], [data-ripple], [data-nav], [tabindex]:not([tabindex="-1"]), .active, .selected, [aria-current], [aria-selected="true"], [data-cursor]'
+        'button, a[href], [role="button"], [data-ripple], [data-nav], [tabindex]:not([tabindex="-1"]), .active, .selected, [aria-current], [aria-selected="true"], [data-cursor], [style*="cursor:pointer"], [style*="cursor: pointer"]'
     );
     if (actionTarget && root.contains(actionTarget)) {
         const cursorAttr = actionTarget.dataset.cursor;
@@ -50,7 +57,12 @@ function getCursorState(target, root) {
         return 'hover';
     }
 
-    if (window.getComputedStyle(target).cursor === 'pointer' && root.contains(target)) return 'hover';
+    if (target.style?.cursor === 'pointer' && root.contains(target)) return 'hover';
+
+    if (root.contains(target)) {
+        const computed = window.getComputedStyle(target).cursor;
+        if (computed === 'pointer') return 'hover';
+    }
 
     return null;
 }
@@ -72,6 +84,7 @@ function initPcCursor(root) {
 
     let visible = false;
     let currentState = null;
+    let lastTarget = null;
 
     function applyState(nextState) {
         if (currentState === nextState) return;
@@ -110,11 +123,15 @@ function initPcCursor(root) {
         visible = true;
         setX(event.clientX);
         setY(event.clientY);
-        resolveTarget(event.target);
+        if (event.target !== lastTarget) {
+            lastTarget = event.target;
+            resolveTarget(event.target);
+        }
     }
 
     function handlePointerLeave() {
         visible = false;
+        lastTarget = null;
         cursor.classList.remove('is-custom-active', 'is-hover', 'is-disabled', 'is-loading', 'is-pressed', 'is-plant');
         delete cursor.dataset.plantSkin;
         cursor.style.removeProperty('--pc-plant-cursor-img');
@@ -136,6 +153,7 @@ function initPcCursor(root) {
     }
 
     function handleClick(event) {
+        lastTarget = event.target;
         queueMicrotask(() => resolveTarget(event.target));
     }
 

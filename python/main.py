@@ -2639,7 +2639,19 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
 
     def serve_image(self, relative_path):
         filepath = os.path.join(DATA_DIR, relative_path.replace('/', os.sep))
-        if os.path.exists(filepath):
+        if os.path.isfile(filepath):
+            stat = os.stat(filepath)
+            etag = f'"{int(stat.st_mtime)}-{stat.st_size}"'
+            if_none_match = self.headers.get('If-None-Match', '').strip()
+
+            if if_none_match and if_none_match == etag:
+                self.send_response(304)
+                self.send_header('ETag', etag)
+                self.send_header('Cache-Control', 'public, max-age=31536000, immutable')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                return
+
             ext = os.path.splitext(filepath)[1].lower()
             content_types = {
                 '.png': 'image/png',
@@ -2649,15 +2661,17 @@ class AppHandler(http.server.SimpleHTTPRequestHandler):
                 '.gif': 'image/gif',
             }
             content_type = content_types.get(ext, 'application/octet-stream')
-            with open(filepath, 'rb') as f:
-                content = f.read()
+
             self.send_response(200)
             self.send_header('Content-Type', content_type)
-            self.send_header('Content-Length', len(content))
-            self.send_header('Cache-Control', 'no-cache')
+            self.send_header('Content-Length', str(stat.st_size))
+            self.send_header('ETag', etag)
+            self.send_header('Cache-Control', 'public, max-age=31536000, immutable')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(content)
+
+            with open(filepath, 'rb') as f:
+                shutil.copyfileobj(f, self.wfile)
         else:
             self.send_error(404)
 

@@ -131,6 +131,8 @@ function createCardLiquid(card) {
     };
 }
 
+const LIQ_TARGET_FRAME_MS = 33; // 限制至约 30 FPS，显著降低 GPU 栅格化与重绘功耗
+
 function createStatLiquidController(pageEl) {
     if (!pageEl) return null;
     const cards = Array.from(pageEl.querySelectorAll('.pc-stat-card[data-stat-liquid]'));
@@ -146,21 +148,62 @@ function createStatLiquidController(pageEl) {
     const reduced = prefersReducedMotion();
     let rafId = 0;
     let lastTs = 0;
+    let lastRenderTs = 0;
     let alive = true;
+    let running = false;
 
     function frame(ts) {
-        if (!alive) return;
-        if (!lastTs) lastTs = ts;
-        const dt = Math.min(0.05, (ts - lastTs) / 1000);
-        lastTs = ts;
-        items.forEach((item) => item.liquid.step(dt, reduced));
-        if (!reduced && alive) rafId = requestAnimationFrame(frame);
+        if (!alive || !running) return;
+        if (!lastTs) {
+            lastTs = ts;
+            lastRenderTs = ts;
+        }
+
+        const elapsed = ts - lastRenderTs;
+        if (elapsed >= LIQ_TARGET_FRAME_MS) {
+            const dt = Math.min(0.05, (ts - lastTs) / 1000);
+            lastTs = ts;
+            lastRenderTs = ts;
+            items.forEach((item) => item.liquid.step(dt, reduced));
+        }
+
+        if (!reduced && alive && running) {
+            rafId = requestAnimationFrame(frame);
+        }
+    }
+
+    function start() {
+        if (!alive || running || reduced) return;
+        running = true;
+        lastTs = 0;
+        lastRenderTs = 0;
+        rafId = requestAnimationFrame(frame);
+    }
+
+    function stop() {
+        running = false;
+        if (rafId) {
+            cancelAnimationFrame(rafId);
+            rafId = 0;
+        }
+    }
+
+    function handleVisibility() {
+        if (typeof document !== 'undefined' && document.hidden) {
+            stop();
+        } else {
+            start();
+        }
+    }
+
+    if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', handleVisibility);
     }
 
     if (reduced) {
         items.forEach((item) => item.liquid.step(0, true));
     } else {
-        rafId = requestAnimationFrame(frame);
+        start();
     }
 
     return {
@@ -177,8 +220,10 @@ function createStatLiquidController(pageEl) {
         },
         destroy() {
             alive = false;
-            if (rafId) cancelAnimationFrame(rafId);
-            rafId = 0;
+            stop();
+            if (typeof document !== 'undefined') {
+                document.removeEventListener('visibilitychange', handleVisibility);
+            }
         },
     };
 }
