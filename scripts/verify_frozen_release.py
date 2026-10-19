@@ -23,7 +23,9 @@ def main():
     data.mkdir(parents=True, exist_ok=True)
     (data / 'prompt_sets.json').write_text('[]', encoding='utf-8')
     env = dict(os.environ, PROMPT_IMAGE_TOOL_DATA_DIR=str(data.parent))
-    executable = ROOT / 'build/dist-server/PromptImageManager-Server.exe'
+    executable = ROOT / 'build/dist-server/PromptImageManager-Server/PromptImageManager-Server.exe'
+    if not executable.is_file():
+        executable = ROOT / 'build/dist-server/PromptImageManager-Server.exe'
     results = []
     with (output / 'sidecar.log').open('w', encoding='utf-8') as log:
         process = subprocess.Popen([str(executable)], env=env, stdout=log, stderr=log,

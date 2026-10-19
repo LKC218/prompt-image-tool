@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
   One-click release for PromptImageManager:
@@ -71,6 +71,7 @@ function Find-Assets([string]$Root, [string]$Ver) {
     $patterns = @(
         ("PromptImageManager-Setup-{0}.exe" -f $Ver),
         ("PromptImageManager-Shell-Setup-{0}.exe" -f $Ver),
+        ("PromptImageManager-ThirdPartySources-{0}.zip" -f $Ver),
         ("PromptImageManager-v{0}-Android.apk" -f $Ver),
         ("PromptImageManager-{0}-Android.apk" -f $Ver)
     )

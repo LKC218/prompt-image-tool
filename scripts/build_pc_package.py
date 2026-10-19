@@ -63,13 +63,21 @@ def build_frontend() -> None:
     run_command(["npx", "vite", "build"])
 
 
+def get_python_exe() -> str:
+    venv_py = ROOT_DIR / "venv" / "Scripts" / "python.exe"
+    if venv_py.exists():
+        return str(venv_py)
+    return sys.executable
+
+
 def build_sidecar() -> None:
-    run_command([sys.executable, 'scripts/prepare_image_engines.py'])
-    run_command([sys.executable, 'scripts/prepare_release_sources.py'])
-    run_command([sys.executable, '-c', 'import png; from PIL import Image'])
+    py_exe = get_python_exe()
+    run_command([py_exe, 'scripts/prepare_image_engines.py'])
+    run_command([py_exe, 'scripts/prepare_release_sources.py'])
+    run_command([py_exe, '-c', 'import png; from PIL import Image'])
     run_command(
         [
-            sys.executable,
+            py_exe,
             "-m",
             "PyInstaller",
             "build/server.spec",
@@ -81,15 +89,39 @@ def build_sidecar() -> None:
             "-y",
         ]
     )
-    require_file(SIDECAR_SRC, "Sidecar 可执行文件缺失")
+    sidecar_exe = check_sidecar_built()
+    print(f"[完成] Sidecar 构建验证成功：{sidecar_exe}")
+
+
+def check_sidecar_built() -> Path:
+    dir_exe = SERVER_DIST / "PromptImageManager-Server" / "PromptImageManager-Server.exe"
+    if dir_exe.exists():
+        return dir_exe
+    if SIDECAR_SRC.exists():
+        return SIDECAR_SRC
+    raise SystemExit("[失败] Sidecar 可执行文件缺失")
 
 
 def copy_sidecar() -> None:
-    require_file(SIDECAR_SRC, "Sidecar 源文件缺失，请先构建 server.spec")
-    SIDECAR_DST.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(SIDECAR_SRC, SIDECAR_DST)
-    require_file(SIDECAR_DST, "Sidecar 拷贝到 Tauri 资源失败")
-    print(f"[完成] Sidecar → {SIDECAR_DST}")
+    sidecar_exe = check_sidecar_built()
+    target_dir = ROOT_DIR / "src-tauri" / "server"
+    if target_dir.exists():
+        shutil.rmtree(target_dir)
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    server_dir = SERVER_DIST / "PromptImageManager-Server"
+    if server_dir.is_dir():
+        for item in server_dir.iterdir():
+            if item.is_dir():
+                shutil.copytree(item, target_dir / item.name)
+            else:
+                shutil.copy2(item, target_dir / item.name)
+    else:
+        shutil.copy2(sidecar_exe, target_dir / "PromptImageManager-Server.exe")
+
+    target_exe = target_dir / "PromptImageManager-Server.exe"
+    require_file(target_exe, "Sidecar 拷贝到 Tauri 资源失败")
+    print(f"[完成] Sidecar → {target_exe}")
 
 
 def build_tauri() -> None:

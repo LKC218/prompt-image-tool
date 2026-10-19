@@ -32,13 +32,13 @@ PC 左侧导航默认显示窄图标栏，鼠标移入展开并推开正文，�
 
 图片引擎源码附件随 Windows 安装包提供，说明见 [第三方图片引擎分发说明](docs/构建方案/第三方图片引擎分发说明.md)。已安装软件可在设置页点击「检查更新」，下载后按可见安装向导完成升级。
 
-当前最新：[v2.5.32](https://github.com/LKC218/prompt-image-tool/releases/latest)
+当前最新：[v2.5.33](https://github.com/LKC218/prompt-image-tool/releases/latest)
 
 普通用户直接下载发布版，无需安装 Python 或前端依赖。
 
 - [GitHub Releases](https://github.com/LKC218/prompt-image-tool/releases/latest)
-- Windows：`PromptImageManager-Setup-2.5.32.exe`
-- Android：`PromptImageManager-v2.5.31-Android.apk`（若该版本未附带 APK，请继续使用 Release 页中可用的最新 Android 包）
+- Windows：`PromptImageManager-Setup-2.5.33.exe`
+- Android：`PromptImageManager-v2.5.33-Android.apk`（若该版本未附带 APK，请继续使用 Release 页中可用的最新 Android 包）
 
 > Android 首次安装如被拦截，请在系统设置中允许安装未知来源应用。
 

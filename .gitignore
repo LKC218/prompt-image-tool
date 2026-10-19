@@ -41,6 +41,9 @@ android/app/release/
 
 src-tauri/target/
 src-tauri/third-party/
+src-tauri/server/*
+!src-tauri/server/.gitkeep
+!src-tauri/server/runtime-port.json
 installer-shell/src-tauri/target/
 installer-shell/preview/
 installer-shell/preview/chrome-profile*/
