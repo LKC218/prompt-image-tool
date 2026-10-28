@@ -15,7 +15,6 @@ import { getThemeState, setAppearancePreference, setWorkbenchTheme } from '../co
 import corgiSettings from '../../assets/mobile/mascots/corgi-settings.png';
 import dataIcon from '../../assets/mobile/data.png';
 import saveIcon from '../../assets/mobile/save.png';
-import fileTextIcon from '../../assets/icons/mobile/file-text.svg';
 
 let lanScanner = null;
 let lanSync = null;
@@ -133,7 +132,7 @@ function render(params = {}) {
                         <span class="m-backup-desc">恢复整套数据</span>
                     </button>
                     <button class="m-backup-card m-backup-purple" id="mImportChatGptVault">
-                        <span class="m-backup-icon">${iconImg(fileTextIcon)}</span>
+                        <span class="m-backup-icon">${mobileIcon('chat-import', { duotone: true })}</span>
                         <span class="m-backup-label">导入对话</span>
                         <span class="m-backup-desc">从单条对话新建</span>
                     </button>

@@ -9,15 +9,7 @@ import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcom
 import categoryFolderIcon from '../../../UI设计稿/图标/插画设计/文件夹.png';
 import actionDeleteIcon from '../../assets/pc/action-delete.png';
 import actionRenameIcon from '../../assets/pc/action-rename.png';
-import plusIcon from '../../assets/icons/plus.svg';
-import gripVerticalIcon from '../../assets/icons/grip-vertical.svg';
-import arrowUpDownIcon from '../../assets/icons/arrow-up-down.svg';
-import searchIcon from '../../assets/icons/search.svg';
-import eyeIcon from '../../assets/icons/eye.svg';
-import paletteIcon from '../../assets/icons/palette-lucide.svg';
-import trashIcon from '../../assets/icons/trash-2.svg';
-import editIcon from '../../assets/icons/pencil-line.svg';
-import mergeIcon from '../../assets/icons/merge.svg';
+import { pcIcon } from './pc-icon-assets.js';
 import rabbitTip from '../../assets/mobile/mascots/rabbit-tip.png';
 
 let categoryData = null;
@@ -119,14 +111,14 @@ function renderCategoriesList(container) {
                 <span>包含提示词</span>
                 <div class="pc-category-head-actions">
                     <button class="pc-btn pc-btn-primary pc-btn-sm pc-category-create-btn" id="pcCreateFolder">
-                        <span class="pc-btn-icon">${iconImg(plusIcon)}</span>
+                        <span class="pc-btn-icon">${pcIcon('plus')}</span>
                         <span>新建分类</span>
                     </button>
                 </div>
             </div>
             <div class="pc-category-panel-tools">
                 <div class="pc-search-bar pc-search-bar-sm pc-category-search">
-                    <span class="pc-search-icon pc-inline-icon">${iconImg(searchIcon)}</span>
+                    <span class="pc-search-icon pc-inline-icon">${pcIcon('search')}</span>
                     <input type="text" class="pc-search-input" placeholder="搜索分类..." id="pcCategorySearch" value="${escapeHtml(categorySearchKeyword)}">
                 </div>
                 <span class="pc-category-total">共 ${folders.length} 个分类</span>
@@ -139,7 +131,7 @@ function renderCategoriesList(container) {
                     </div>
                 ` : filteredFolders.length === 0 ? `
                     <div class="pc-empty-state pc-category-empty">
-                        <span class="pc-empty-icon">${iconImg(searchIcon, '搜索')}</span>
+                        <span class="pc-empty-icon">${pcIcon('search', 'pc-icon-img', '搜索', { duotone: true })}</span>
                         <span class="pc-empty-text">没有匹配的分类</span>
                     </div>
                 ` : filteredFolders.map(folder => {
@@ -158,7 +150,7 @@ function renderCategoriesList(container) {
                                 <button class="pc-icon-btn pc-more-btn" type="button" aria-label="更多操作" aria-haspopup="menu" aria-expanded="false" title="更多操作" data-id="${folder.id}">
                                     <span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span>
                                 </button>
-                                <div class="pc-drag-handle" title="拖拽排序" aria-label="拖拽排序">${iconImg(gripVerticalIcon)}</div>
+                                <div class="pc-drag-handle" title="拖拽排序" aria-label="拖拽排序">${pcIcon('gripVertical')}</div>
                             </div>
                         </div>
                     `;
@@ -171,10 +163,10 @@ function renderCategoriesList(container) {
 
 function renderQuickActions() {
     const actions = [
-        { key: 'sort', icon: arrowUpDownIcon, label: '排序', tone: 'green' },
-        { key: 'batch', icon: editIcon, label: '批量编辑', tone: 'blue' },
-        { key: 'merge', icon: mergeIcon, label: '合并分类', tone: 'purple' },
-        { key: 'cleanup', icon: actionDeleteIcon, label: '删除空分类', tone: 'red' },
+        { key: 'sort', icon: pcIcon('arrowUpDown', 'pc-icon-img', '', { duotone: true }), label: '排序', tone: 'green' },
+        { key: 'batch', icon: pcIcon('pencilLine', 'pc-icon-img', '', { duotone: true }), label: '批量编辑', tone: 'blue' },
+        { key: 'merge', icon: pcIcon('merge', 'pc-icon-img', '', { duotone: true }), label: '合并分类', tone: 'purple' },
+        { key: 'cleanup', icon: iconImg(actionDeleteIcon), label: '删除空分类', tone: 'red' },
     ];
 
     return `
@@ -184,7 +176,7 @@ function renderQuickActions() {
                 <div class="pc-quick-actions">
                     ${actions.map(action => `
                         <button class="pc-quick-action-btn pc-quick-action-${action.tone}" data-quick="${action.key}">
-                            <span class="pc-quick-action-icon">${iconImg(action.icon)}</span>
+                            <span class="pc-quick-action-icon">${action.icon}</span>
                             <span class="pc-quick-action-copy">
                                 <span class="pc-quick-action-label">${action.label}</span>
                             </span>
@@ -214,7 +206,7 @@ function renderTagsList(container) {
                 <span>使用次数</span>
                 <div class="pc-category-head-actions">
                     <button class="pc-btn pc-btn-primary pc-btn-sm pc-category-create-btn" id="pcCreateTag">
-                        <span class="pc-btn-icon">${iconImg(plusIcon)}</span>
+                        <span class="pc-btn-icon">${pcIcon('plus')}</span>
                         <span>新建标签</span>
                     </button>
                     ${allTags.length > 0 ? `
@@ -226,7 +218,7 @@ function renderTagsList(container) {
             </div>
             <div class="pc-category-panel-tools">
                 <div class="pc-search-bar pc-search-bar-sm pc-category-search">
-                    <span class="pc-search-icon pc-inline-icon">${iconImg(searchIcon)}</span>
+                    <span class="pc-search-icon pc-inline-icon">${pcIcon('search')}</span>
                     <input type="text" class="pc-search-input" placeholder="搜索标签..." id="pcTagSearch" value="${escapeHtml(tagSearchKeyword)}">
                 </div>
                 <span class="pc-category-total">共 ${allTags.length} 个标签</span>
@@ -239,7 +231,7 @@ function renderTagsList(container) {
                     </div>
                 ` : filteredTags.length === 0 ? `
                     <div class="pc-empty-state pc-category-empty">
-                        <span class="pc-empty-icon">${iconImg(searchIcon, '搜索')}</span>
+                        <span class="pc-empty-icon">${pcIcon('search', 'pc-icon-img', '搜索', { duotone: true })}</span>
                         <span class="pc-empty-text">没有匹配的标签</span>
                     </div>
                 ` : filteredTags.map(tag => `
@@ -315,9 +307,9 @@ function setupCategoryEvents(pageEl) {
         if (moreBtn) {
             const folderId = moreBtn.dataset.id;
             const items = [
-                { action: 'view', icon: iconImg(eyeIcon), label: '查看提示词' },
+                { action: 'view', icon: pcIcon('eye'), label: '查看提示词' },
                 { action: 'rename', icon: iconImg(actionRenameIcon), tone: 'rename', label: '重命名' },
-                { action: 'color', icon: iconImg(paletteIcon), label: '更改颜色' },
+                { action: 'color', icon: pcIcon('palette'), label: '更改颜色' },
                 { divider: true },
                 { action: 'delete', icon: iconImg(actionDeleteIcon), tone: 'delete', label: '删除分类', danger: true }
             ];
@@ -335,7 +327,7 @@ function setupCategoryEvents(pageEl) {
             const tagName = tagPill.dataset.tagName;
             const tagCount = parseInt(tagPill.dataset.tagCount, 10);
             const items = [
-                { action: 'view-tag', icon: iconImg(searchIcon), label: '查看相关提示词' },
+                { action: 'view-tag', icon: pcIcon('search'), label: '查看相关提示词' },
                 { action: 'rename-tag', icon: iconImg(actionRenameIcon), tone: 'rename', label: '重命名标签' },
                 { divider: true },
                 { action: 'clear-tag', icon: iconImg(actionDeleteIcon), tone: 'delete', label: '清除该标签', danger: true }
@@ -356,7 +348,7 @@ function setupCategoryEvents(pageEl) {
         if (tagBulkMenuBtn) {
             const rect = tagBulkMenuBtn.getBoundingClientRect();
             const action = await showContextMenu(rect.right + 8, rect.bottom + 8, [
-                { action: 'clear-all-tags', icon: iconImg(trashIcon), tone: 'delete', label: '清除全部标签', danger: true }
+                { action: 'clear-all-tags', icon: pcIcon('trash'), tone: 'delete', label: '清除全部标签', danger: true }
             ], { anchor: tagBulkMenuBtn, source: 'more' });
             if (action === 'clear-all-tags') showClearAllTagsConfirm(pageEl);
             return;
@@ -395,9 +387,9 @@ function setupCategoryEvents(pageEl) {
         e.preventDefault();
         const folderId = item.dataset.folderId;
         const items = [
-            { action: 'view', icon: iconImg(eyeIcon), label: '查看提示词' },
+            { action: 'view', icon: pcIcon('eye'), label: '查看提示词' },
             { action: 'rename', icon: iconImg(actionRenameIcon), tone: 'rename', label: '重命名' },
-            { action: 'color', icon: iconImg(paletteIcon), label: '更改颜色' },
+            { action: 'color', icon: pcIcon('palette'), label: '更改颜色' },
             { divider: true },
             { action: 'delete', icon: iconImg(actionDeleteIcon), tone: 'delete', label: '删除分类', danger: true }
         ];

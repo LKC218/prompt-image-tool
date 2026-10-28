@@ -1,6 +1,6 @@
 import { getStorage } from '../core/storage.js';
 import { formatDate } from '../core/utils.js';
-import { navigate, showMobileToast, showActionSheet, iconImg } from './mobile-utils.js';
+import { navigate, showMobileToast, showActionSheet } from './mobile-utils.js';
 import { getPromptSetMenuItems } from './mobile-menu-actions.js';
 import { aggregateTags } from '../shared/tag-utils.js';
 import { mobileIcon } from './mobile-icon-assets.js';
@@ -8,8 +8,6 @@ import { isPromptImageToolImportStorageError, stagePromptImageToolImport } from 
 import { getFolderColor } from '../shared/folder-color.js';
 import corgiHome from '../../assets/mobile/mascots/corgi-home.png';
 import searchIcon from '../../assets/mobile/search.png';
-import plusIcon from '../../assets/icons/plus.svg';
-import importIcon from '../../assets/icons/import.svg';
 import imagePlaceholder from '../../assets/mobile/image-placeholder.png';
 import greetingHand from '../../assets/mobile/greeting-hand.png';
 import homeWelcomeBg from '../../assets/mobile/home-welcome-bg.png';
@@ -80,12 +78,12 @@ function render(params = {}) {
                 </div>
                 <div class="m-quick-create-grid">
                     <button class="m-quick-create-card" id="mQuickCreate">
-                        <span class="m-quick-create-icon">${iconImg(plusIcon)}</span>
+                        <span class="m-quick-create-icon">${mobileIcon('plus', { duotone: true })}</span>
                         <span class="m-quick-create-label">新建提示词</span>
                         <span class="m-quick-create-desc">从零开始写</span>
                     </button>
                     <button class="m-quick-create-card" id="mQuickImport">
-                        <span class="m-quick-create-icon">${iconImg(importIcon)}</span>
+                        <span class="m-quick-create-icon">${mobileIcon('import', { duotone: true })}</span>
                         <span class="m-quick-create-label">导入提示词</span>
                         <span class="m-quick-create-desc">从文件导入</span>
                     </button>

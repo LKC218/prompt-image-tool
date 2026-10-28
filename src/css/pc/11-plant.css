@@ -520,6 +520,10 @@
     stroke-linejoin: round;
 }
 
+.pc-plant-care-btn[data-plant-care="watered"] .pc-plant-care-icon { color: var(--icon-fg-info); }
+.pc-plant-care-btn[data-plant-care="fertilized"] .pc-plant-care-icon { color: var(--icon-fg-warning); }
+.pc-plant-care-btn[data-plant-care="deugged"] .pc-plant-care-icon { color: var(--icon-fg-success); }
+
 /* Debug：默认收起为「测」小钮，避免挡住养护 */
 .pc-plant-dev-wrap {
     position: absolute;

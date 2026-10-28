@@ -459,8 +459,8 @@
 .pc-select-card-arrow::before {
     width: 16px;
     height: 16px;
-    -webkit-mask-image: url('../../assets/icons/pc/chevron-right.svg');
-    mask-image: url('../../assets/icons/pc/chevron-right.svg');
+    -webkit-mask-image: url('../../assets/icons/chevron-right.svg');
+    mask-image: url('../../assets/icons/chevron-right.svg');
 }
 
 .pc-picker-list-check {
@@ -587,8 +587,8 @@
     width: 16px;
     height: 16px;
     background: currentColor;
-    -webkit-mask: url('../../assets/icons/pc/x.svg') center / contain no-repeat;
-    mask: url('../../assets/icons/pc/x.svg') center / contain no-repeat;
+    -webkit-mask: url('../../assets/icons/x.svg') center / contain no-repeat;
+    mask: url('../../assets/icons/x.svg') center / contain no-repeat;
 }
 
 .pc-image-import-area {
@@ -2639,7 +2639,8 @@
     width: 12px;
     height: 12px;
     display: block;
-    filter: brightness(0) invert(1);
+    color: currentColor;
+    filter: none;
 }
 
 .pc-editor-image-thumb:hover .pc-editor-image-delete {
@@ -3228,7 +3229,8 @@
 }
 
 .pc-detail-top-nav-btn-starred .pc-detail-button-icon {
-    filter: brightness(0) saturate(100%) invert(73%) sepia(52%) saturate(748%) hue-rotate(349deg) brightness(102%) contrast(101%);
+    color: var(--icon-fg-star);
+    filter: none;
 }
 
 .pc-detail-top-nav-btn:hover,
@@ -3265,8 +3267,8 @@
 
 .pc-detail-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
-    gap: 28px;
+    grid-template-columns: 360px minmax(0, 1fr);
+    gap: 24px;
     align-items: start;
 }
 
@@ -3742,8 +3744,8 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: var(--pc-space-lg);
-    margin: 24px 0 0;
-    padding: 24px;
+    margin: 0 0 20px 0;
+    padding: 20px 24px;
     border-radius: 16px;
     border: 1px solid rgba(233, 226, 218, 0.78);
     background: var(--pc-surface);
@@ -3782,7 +3784,7 @@
 }
 
 .pc-detail-fav-icon {
-    color: var(--pc-pink);
+    color: var(--icon-fg-heart);
     display: inline-flex;
 }
 
@@ -3790,7 +3792,8 @@
     width: 18px;
     height: 18px;
     display: block;
-    filter: brightness(0) saturate(100%) invert(57%) sepia(88%) saturate(1539%) hue-rotate(304deg) brightness(102%) contrast(101%);
+    color: currentColor;
+    filter: none;
 }
 
 .pc-detail-fav-count {
@@ -3905,17 +3908,19 @@
 }
 
 .pc-detail-prompt-icon-img {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     display: block;
+    color: currentColor;
+    filter: none;
 }
 
-.pc-detail-prompt-icon-positive .pc-detail-prompt-icon-img {
-    filter: brightness(0) saturate(100%) invert(55%) sepia(59%) saturate(584%) hue-rotate(105deg) brightness(91%) contrast(89%);
+.pc-detail-prompt-icon-positive {
+    color: var(--icon-fg-success);
 }
 
-.pc-detail-prompt-icon-negative .pc-detail-prompt-icon-img {
-    filter: brightness(0) saturate(100%) invert(57%) sepia(88%) saturate(1539%) hue-rotate(304deg) brightness(102%) contrast(101%);
+.pc-detail-prompt-icon-negative {
+    color: var(--icon-fg-danger);
 }
 
 .pc-detail-prompt-title {
@@ -4272,6 +4277,7 @@
     width: 22px;
     height: 22px;
     display: block;
+    color: var(--icon-fg-brand);
 }
 
 .pc-empty-icon-img {
@@ -4594,17 +4600,17 @@
     border: none;
     background: var(--pc-neu-bg);
     box-shadow: var(--pc-detail-neu-raised);
-    /* 覆盖默认 16:9 画布：竖图随内容收窄，避免大片灰边 */
-    aspect-ratio: auto;
-    width: fit-content;
+    aspect-ratio: 1 / 1;
+    width: 100%;
     max-width: 100%;
     height: auto;
-    max-height: min(50vh, 520px);
-    min-height: 200px;
-    margin-inline: auto;
+    max-height: 360px;
+    min-height: 180px;
+    margin: 0 0 16px 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-cover-img-wrap,
@@ -4703,7 +4709,9 @@
 }
 
 .pc-prompt-detail-modal-content .pc-detail-prompt-content-positive {
-    color: color-mix(in srgb, var(--pc-green) 78%, var(--pc-text));
+    color: var(--pc-text);
+    font: 400 15.5px/1.82 var(--pc-font-family);
+    letter-spacing: 0.25px;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-prompt-content-negative {
@@ -4816,15 +4824,13 @@
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-icon-img {
-    transition: filter 0.18s ease;
-}
-
-.pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-edit .pc-detail-action-icon-img {
-    filter: brightness(0) saturate(100%) invert(13%) sepia(11%) saturate(1044%) hue-rotate(183deg) brightness(94%) contrast(93%);
+    color: currentColor;
+    filter: none;
+    transition: color 0.18s ease, transform 0.18s ease;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-copy .pc-detail-action-icon-img {
-    filter: brightness(0) saturate(100%) invert(50%) sepia(88%) saturate(1931%) hue-rotate(194deg) brightness(101%) contrast(101%);
+    color: var(--pc-accent);
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-btn:hover {
@@ -4848,7 +4854,7 @@
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-edit:hover .pc-detail-action-icon-img {
-    filter: brightness(0) saturate(100%) invert(10%) sepia(14%) saturate(1356%) hue-rotate(183deg) brightness(88%) contrast(93%);
+    color: currentColor;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-edit:active {
@@ -4858,7 +4864,7 @@
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-edit:active .pc-detail-action-icon-img {
-    filter: brightness(0) saturate(100%) invert(100%);
+    color: currentColor;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-copy:hover {
@@ -4867,12 +4873,9 @@
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-copy:hover .pc-detail-action-icon-img,
-.pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-copy:focus-visible .pc-detail-action-icon-img {
-    filter: brightness(0) saturate(100%) invert(43%) sepia(99%) saturate(1794%) hue-rotate(194deg) brightness(98%) contrast(101%);
-}
-
+.pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-copy:focus-visible .pc-detail-action-icon-img,
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-copy:active .pc-detail-action-icon-img {
-    filter: brightness(0) saturate(100%) invert(50%) sepia(88%) saturate(1931%) hue-rotate(194deg) brightness(101%) contrast(101%);
+    color: currentColor;
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-more:hover {
@@ -4892,7 +4895,8 @@
 }
 
 .pc-prompt-detail-modal-content .pc-detail-bottom-bar .pc-detail-action-copy.td-copy-success .pc-detail-action-icon-img {
-    filter: brightness(0) saturate(100%) invert(55%) sepia(59%) saturate(584%) hue-rotate(105deg) brightness(91%) contrast(89%);
+    color: currentColor;
+    filter: none;
 }
 
 @keyframes pc-detail-copy-confirm {
@@ -5140,4 +5144,39 @@
         left: 50%;
         transform: translateX(-50%);
     }
+}
+
+/* ========================================================
+   提示词详情页 · 方案 6 (黄金字阶与纯正轻拟态) 增强规则
+   ======================================================== */
+.pc-detail-prompt-content {
+    font: 400 15.5px/1.82 var(--pc-font-family);
+    letter-spacing: 0.2px;
+}
+
+/* 负向提示词为空时的紧凑收拢状态 (释放 120px 垂直高度) */
+.pc-detail-prompt-card-empty {
+    padding: 14px 20px !important;
+}
+
+.pc-detail-prompt-card-empty .pc-detail-prompt-header {
+    margin-bottom: 6px !important;
+}
+
+.pc-detail-prompt-card-empty .pc-detail-prompt-content {
+    min-height: 38px !important;
+    padding: 8px 16px !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+}
+
+.pc-detail-prompt-card-empty .pc-detail-prompt-empty {
+    font-size: 12.5px;
+    color: var(--pc-text3);
+    font-style: normal;
+}
+
+/* 隐藏详情页中多余的推广安全卡片 */
+.pc-detail-safety-card {
+    display: none !important;
 }

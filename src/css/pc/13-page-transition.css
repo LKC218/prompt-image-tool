@@ -1,0 +1,78 @@
+/* ==================== PC 切页多层速度差与物理弹簧动效 ==================== */
+
+.pc-sidebar-nav {
+    position: relative;
+}
+
+.pc-nav-jelly-bar {
+    position: absolute;
+    left: 18px;
+    top: 20px;
+    width: 3.5px;
+    height: 22px;
+    border-radius: 0 var(--pc-radius-full) var(--pc-radius-full) 0;
+    background: var(--pc-accent);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--pc-accent) 52%, transparent);
+    pointer-events: none;
+    z-index: 3;
+    transform-origin: center center;
+    opacity: 0;
+    transition: opacity 0.16s ease, background-color 0.2s ease;
+}
+
+.pc-sidebar-nav.has-jelly-bar .pc-nav-jelly-bar {
+    opacity: 1;
+}
+
+/* 果冻弹簧滑条接管主导航激活竖条，避免与按钮静态 ::before 重影 */
+.pc-sidebar-nav.has-jelly-bar .pc-nav-item.pc-nav-active::before {
+    opacity: 0;
+}
+
+/* 由 WAAPI 接管弹簧编排时关闭旧版静态微弱淡入，防止双动画叠加抖动 */
+.pc-page.pc-page-kinetic,
+.pc-page.pc-page-kinetic .pc-editor-page {
+    animation: none;
+}
+
+.pc-page.pc-page-entering {
+    position: relative;
+    z-index: 2;
+}
+
+.pc-page.pc-page-exiting {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    pointer-events: none;
+    user-select: none;
+}
+
+.pc-welcome-mascot img {
+    transform-origin: bottom center;
+}
+
+.pc-greeting-hand {
+    transform-origin: 75% 85%;
+}
+
+.pc-home-page .pc-stat-liquid-svg {
+    transform-origin: bottom center;
+}
+
+.pc-goal-project-progress-fill {
+    transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pc-nav-jelly-bar {
+        display: none !important;
+    }
+
+    .pc-page,
+    .pc-page .pc-editor-page {
+        animation: none !important;
+    }
+}

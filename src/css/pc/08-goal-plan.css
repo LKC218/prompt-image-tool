@@ -225,7 +225,8 @@
     outline-offset: var(--td-focus-outline-offset);
 }
 
-.pc-goal-image-manager-delete img {
+.pc-goal-image-manager-delete img,
+.pc-goal-image-manager-delete svg {
     width: 14px;
     height: 14px;
     filter: none;
@@ -542,7 +543,8 @@
     outline-offset: var(--td-focus-outline-offset);
 }
 
-.pc-goal-project-more img {
+.pc-goal-project-more img,
+.pc-goal-project-more svg {
     width: 18px;
     height: 18px;
 }
@@ -610,6 +612,11 @@
     transform: rotate(90deg);
 }
 
+.pc-goal-detail-back svg {
+    width: 20px;
+    height: 20px;
+}
+
 .pc-goal-detail-title {
     flex: 1;
     font: var(--pc-font-h3);
@@ -662,6 +669,14 @@
     width: 100%;
     height: 100%;
     filter: brightness(0) invert(1);
+}
+
+#pcGoalAddTask .pc-btn-icon svg,
+#pcGoalCreateProject .pc-btn-icon svg {
+    width: 100%;
+    height: 100%;
+    color: #FFFFFF;
+    filter: none;
 }
 
 /* 详情页进度条容器：内凹槽 */
@@ -848,7 +863,8 @@
     cursor: grabbing;
 }
 
-.pc-goal-task-drag-handle img {
+.pc-goal-task-drag-handle img,
+.pc-goal-task-drag-handle svg {
     width: 14px;
     height: 14px;
     pointer-events: none;
@@ -962,13 +978,16 @@
     outline-offset: var(--td-focus-outline-offset);
 }
 
-.pc-goal-task-toggle img {
+.pc-goal-task-toggle img,
+.pc-goal-task-toggle svg {
     width: 16px;
     height: 16px;
     transform: rotate(-90deg);
+    transition: transform 0.18s ease;
 }
 
-.pc-goal-task-item.is-expanded > .pc-goal-task-row .pc-goal-task-toggle img {
+.pc-goal-task-item.is-expanded > .pc-goal-task-row .pc-goal-task-toggle img,
+.pc-goal-task-item.is-expanded > .pc-goal-task-row .pc-goal-task-toggle svg {
     transform: rotate(0deg);
 }
 
@@ -1183,7 +1202,8 @@
     outline-offset: var(--td-focus-outline-offset);
 }
 
-.pc-goal-task-action img {
+.pc-goal-task-action img,
+.pc-goal-task-action svg {
     width: 16px;
     height: 16px;
 }
@@ -1364,6 +1384,11 @@
     align-items: center;
     justify-content: center;
     opacity: 0.85;
+}
+
+.pc-goal-view-switch-icon svg {
+    width: 15px;
+    height: 15px;
 }
 
 .pc-goal-view-switch-btn.is-active .pc-goal-view-switch-icon {

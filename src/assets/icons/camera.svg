@@ -1,12 +1,5 @@
-<svg
-  xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
->
-  <path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z" />
-  <circle cx="12" cy="13" r="3" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path class="svg-duotone" d="M4.5 7.5h2.2a1.8 1.8 0 0 0 1.5-.8l.7-1.1A1.8 1.8 0 0 1 10.4 4.8h3.2a1.8 1.8 0 0 1 1.5.8l.7 1.1a1.8 1.8 0 0 0 1.5.8h2.2A2.5 2.5 0 0 1 22 10v7.5a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 17.5V10a2.5 2.5 0 0 1 2.5-2.5Z" fill="currentColor" fill-opacity="0" stroke="none"/>
+  <path d="M4.5 7.5h2.2a1.8 1.8 0 0 0 1.5-.8l.7-1.1A1.8 1.8 0 0 1 10.4 4.8h3.2a1.8 1.8 0 0 1 1.5.8l.7 1.1a1.8 1.8 0 0 0 1.5.8h2.2A2.5 2.5 0 0 1 22 10v7.5a2.5 2.5 0 0 1-2.5 2.5h-15A2.5 2.5 0 0 1 2 17.5V10a2.5 2.5 0 0 1 2.5-2.5Z"/>
+  <circle cx="12" cy="13.2" r="3.2"/>
 </svg>

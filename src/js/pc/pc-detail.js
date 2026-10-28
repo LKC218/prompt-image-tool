@@ -39,7 +39,7 @@ function render(params = {}) {
                 <div class="pc-detail-top-nav-actions">
                     <button class="pc-detail-top-nav-btn" id="pcDetailStar" title="收藏" aria-pressed="false" aria-label="收藏" type="button">${pcIcon('star', 'pc-detail-button-icon')}<span>收藏</span></button>
                     <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-more" id="pcDetailMoreTop" title="更多" aria-label="更多" aria-haspopup="menu" aria-expanded="false" type="button"><span class="pc-more-dots" aria-hidden="true"><span></span><span></span><span></span></span></button>
-                    <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-icon" data-detail-action="collapse" title="收起到托盘" aria-label="收起到托盘" type="button"><svg class="pc-detail-button-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-icon" data-detail-action="collapse" title="收起到托盘" aria-label="收起到托盘" type="button">${pcIcon('chevronDown', 'pc-detail-button-icon')}</button>
                     <button class="pc-detail-top-nav-btn pc-detail-top-nav-btn-close-detail" data-detail-action="close" title="关闭详情窗" aria-label="关闭详情窗" type="button">${pcIcon('x', 'pc-detail-button-icon')}<span>关闭详情</span></button>
                 </div>
             </div>
@@ -114,20 +114,19 @@ function renderDetailContent(pageEl) {
     container.innerHTML = `
         <div class="pc-detail-shell">
             <div class="pc-detail-layout">
-                <section class="pc-detail-main-column" aria-label="提示词主内容">
+                <aside class="pc-detail-side-column" aria-label="提示词媒体与参数">
                     ${renderCoverImage(pageEl)}
                     ${renderImageThumbs(pageEl)}
+                    ${renderInfoCard(currentVersion, tags, promptSet)}
+                    ${renderVersionCard(versions, pageEl)}
+                </aside>
+                <section class="pc-detail-main-column" aria-label="提示词主内容">
                     ${renderTitleRow(promptSet.name, tags, pageEl)}
                     ${renderMetaStrip(promptSet)}
                     ${renderPositivePromptCard(positivePrompt)}
                     ${renderNegativePromptCard(negativePrompt)}
                     ${renderBottomBar()}
                 </section>
-                <aside class="pc-detail-side-column" aria-label="提示词辅助信息">
-                    ${renderInfoCard(currentVersion, tags, promptSet)}
-                    ${renderVersionCard(versions, pageEl)}
-                    ${renderLocalSafetyCard()}
-                </aside>
             </div>
         </div>
     `;
@@ -302,7 +301,7 @@ function renderPositivePromptCard(text) {
         <div class="pc-detail-prompt-card pc-detail-fade-in">
             <div class="pc-detail-prompt-header">
                 <div class="pc-detail-prompt-header-left">
-                    <span class="pc-detail-prompt-icon pc-detail-prompt-icon-positive">${pcIcon('sparkles', 'pc-detail-prompt-icon-img')}</span>
+                    <span class="pc-detail-prompt-icon pc-detail-prompt-icon-positive">${pcIcon('sparkles', 'pc-detail-prompt-icon-img', '', { duotone: true })}</span>
                     <span class="pc-detail-prompt-title">正向提示词 (Positive)</span>
                 </div>
                 <button class="pc-detail-prompt-copy pc-detail-prompt-copy-positive" data-copy="positive">复制</button>
@@ -314,17 +313,18 @@ function renderPositivePromptCard(text) {
 
 function renderNegativePromptCard(text) {
     const displayText = formatPromptForDisplay(text);
+    const hasText = Boolean(displayText);
 
     return `
-        <div class="pc-detail-prompt-card pc-detail-fade-in">
+        <div class="pc-detail-prompt-card pc-detail-prompt-card-negative ${hasText ? '' : 'pc-detail-prompt-card-empty'} pc-detail-fade-in">
             <div class="pc-detail-prompt-header">
                 <div class="pc-detail-prompt-header-left">
-                    <span class="pc-detail-prompt-icon pc-detail-prompt-icon-negative">${pcIcon('ban', 'pc-detail-prompt-icon-img')}</span>
+                    <span class="pc-detail-prompt-icon pc-detail-prompt-icon-negative">${pcIcon('ban', 'pc-detail-prompt-icon-img', '', { duotone: true })}</span>
                     <span class="pc-detail-prompt-title">负向提示词 (Negative)</span>
                 </div>
                 <button class="pc-detail-prompt-copy pc-detail-prompt-copy-negative" data-copy="negative">复制</button>
             </div>
-            <div class="pc-detail-prompt-content pc-detail-prompt-content-negative">${displayText ? escapeHtml(displayText) : '<span class="pc-detail-prompt-empty">暂无负向提示词</span>'}</div>
+            <div class="pc-detail-prompt-content pc-detail-prompt-content-negative">${hasText ? escapeHtml(displayText) : '<span class="pc-detail-prompt-empty">暂无负向提示词 · 已自动紧凑收缩释放阅读空间</span>'}</div>
         </div>
     `;
 }
@@ -339,21 +339,21 @@ function renderInfoCard(currentVersion, tags, set) {
 
     return `
         <div class="pc-detail-info-card pc-detail-fade-in">
-            <h2 class="pc-detail-side-title">信息概览</h2>
+            <h2 class="pc-detail-side-title">参数档案</h2>
             <div class="pc-detail-info-grid">
                 <div class="pc-detail-info-item">
-                    <span class="pc-detail-info-label">标签</span>
-                    <div class="pc-detail-info-tags">
-                        ${tagsHtml}
-                    </div>
-                </div>
-                <div class="pc-detail-info-item">
-                    <span class="pc-detail-info-label">比例</span>
+                    <span class="pc-detail-info-label">画幅比例</span>
                     <span class="pc-detail-info-value">${escapeHtml(aspectRatio)}</span>
                 </div>
                 <div class="pc-detail-info-item">
                     <span class="pc-detail-info-label">创建时间</span>
                     <span class="pc-detail-info-value">${createdAt || '-'}</span>
+                </div>
+                <div class="pc-detail-info-item">
+                    <span class="pc-detail-info-label">分类标签</span>
+                    <div class="pc-detail-info-tags">
+                        ${tagsHtml}
+                    </div>
                 </div>
             </div>
         </div>
@@ -395,7 +395,7 @@ function renderLocalSafetyCard() {
     return `
         <div class="pc-detail-safety-card pc-detail-fade-in">
             <div class="pc-detail-safety-copy">
-                <span class="pc-detail-safety-icon">${pcIcon('shield', 'pc-detail-safety-icon-img')}</span>
+                <span class="pc-detail-safety-icon">${pcIcon('shield', 'pc-detail-safety-icon-img', '', { duotone: true })}</span>
                 <div>
                     <strong>开始编写提示词</strong>
                 </div>

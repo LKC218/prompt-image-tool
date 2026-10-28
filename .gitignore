@@ -68,6 +68,8 @@ build/app.log
 debug-backups/
 output/
 .dbg/
+.codebuddy/
+*.codebuddy/
 .workbuddy/
 .worktrees/
 
@@ -85,13 +87,13 @@ Thumbs.db
 id_rsa*
 credentials*
 *.token
-*.codebuddy/
 
 # 临时 / 备份 / 生成检查文件
 .mimocode/temp/
+.mimocode/node_modules/
+.mimocode/package.json
+.mimocode/package-lock.json
 python/runtime-port.json
-build/_*.txt
-build/_*.py
 docs/*.bak
 debug-*.md
 tmp-*.log
@@ -100,4 +102,3 @@ task_plan.md
 # 防止命令参数误写成文件名（如 afecrlf=false diff -- docs --stat）
 afecrlf*
 *--stat
-.pytest_cache/

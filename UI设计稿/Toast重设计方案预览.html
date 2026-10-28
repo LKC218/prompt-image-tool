@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>提示词管家 · 全局 Toast 信息弹窗重设计预览</title>
+  <style>
+    @font-face {
+      font-family: '乐米沐和圆体';
+      src: url('../src/assets/fonts/乐米沐和圆体.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: '乐米沐和圆体', 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #EEF2F7;
+      color: #1E2B3A;
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    .page-wrap {
+      max-width: 1320px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* 顶部控制台 */
+    .control-panel {
+      background: #FFFFFF;
+      border: 1px solid #DCE5EF;
+      border-radius: 20px;
+      padding: 20px 24px;
+      box-shadow: 0 8px 24px rgb(20 42 64 / 6%);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .panel-title { font-size: 20px; font-weight: 700; color: #1E2B3A; }
+    .panel-sub { font-size: 13px; color: #596B7D; margin-top: 2px; }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .pill-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      border-radius: 10px;
+      border: 1px solid #DCE5EF;
+      background: #F7F9FC;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .ctrl-btn {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 7px 13px;
+      border-radius: 10px;
+      border: 1px solid #DCE5EF;
+      background: #FFFFFF;
+      color: #1E2B3A;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .ctrl-btn:hover { background: #F0F5FA; border-color: #B9C7D8; }
+    .ctrl-btn:active { transform: scale(0.97); }
+    .ctrl-btn.primary {
+      background: #2477D4;
+      border-color: #2477D4;
+      color: #FFFFFF;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgb(36 119 212 / 26%);
+    }
+    .ctrl-btn.primary:hover { background: #195FAE; }
+
+    .ctrl-select {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 7px 11px;
+      border-radius: 10px;
+      border: 1px solid #DCE5EF;
+      background: #F7F9FC;
+      color: #1E2B3A;
+      cursor: pointer;
+    }
+
+    /* 方案选项卡 */
+    .variant-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+    }
+
+    .variant-card {
+      font-family: inherit;
+      text-align: left;
+      padding: 13px 15px;
+      border-radius: 14px;
+      border: 1.5px solid #DCE5EF;
+      background: #F9FBFD;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .variant-card:hover { background: #F0F6FC; border-color: #B9C7D8; }
+    .variant-card.active {
+      background: #EAF3FF;
+      border-color: #2477D4;
+      box-shadow: 0 4px 14px rgb(36 119 212 / 12%);
+    }
+    .variant-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1E2B3A;
+    }
+    .variant-tag {
+      font-size: 12px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: #E8F6EF;
+      color: #1F8A5B;
+      font-weight: 600;
+    }
+    .variant-tag.old { background: #FFF5DB; color: #B87508; }
+    .variant-desc {
+      font-size: 12px;
+      color: #596B7D;
+      margin-top: 5px;
+      line-height: 1.45;
+    }
+
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #EEF3F8;
+    }
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ==================== 项目真实 Token 作用域 ==================== */
+    .pim-env {
+      --color-surface-canvas: #F7F9FC;
+      --color-surface-subtle: #EEF3F8;
+      --color-surface-raised: #FFFFFF;
+      --color-surface-floating: #FFFFFF;
+      --color-border-subtle: #DCE5EF;
+      --color-border-strong: #B9C7D8;
+      --color-text-primary: #1E2B3A;
+      --color-text-secondary: #596B7D;
+      --color-text-tertiary: #8A99A8;
+      --color-shadow-dark: rgb(20 42 64 / 14%);
+      --color-shadow-highlight: rgb(255 255 255 / 92%);
+      --color-shadow-neu-dark: rgb(20 42 64 / 14%);
+      --color-text-on-solid: #FFFFFF;
+      --color-border-translucent: rgb(220 229 239 / 72%);
+      --color-surface-context-menu-blur: rgb(255 252 247 / 54%);
+      --color-state-success-fg: #1F8A5B;
+      --color-state-success-bg: #E8F6EF;
+      --color-state-info-fg: #2477D4;
+      --color-state-info-bg: #EAF3FF;
+      --color-state-warning-fg: #B87508;
+      --color-state-warning-bg: #FFF5DB;
+      --color-state-danger-fg: #C73E4B;
+      --color-state-danger-bg: #FDECEF;
+      --color-brand-primary: #2477D4;
+      --color-brand-subtle: #EAF3FF;
+      --pc-green: #29B37A;
+      --pc-yellow: #FFC94A;
+      --pc-danger: #FF5A5A;
+      --pc-window-chrome-height: 36px;
+      --pc-control-float-shadow: 0 10px 28px var(--color-shadow-dark), inset 0 1px 0 color-mix(in srgb, var(--color-shadow-highlight) 70%, transparent);
+    }
+
+    .pim-env[data-appearance="dark"] {
+      --color-surface-canvas: #101822;
+      --color-surface-subtle: #152131;
+      --color-surface-raised: #1B2A3A;
+      --color-surface-floating: #223448;
+      --color-border-subtle: #2C4055;
+      --color-border-strong: #3D5973;
+      --color-text-primary: #E8F1FA;
+      --color-text-secondary: #AABBCD;
+      --color-text-tertiary: #71869B;
+      --color-shadow-dark: rgb(0 8 18 / 46%);
+      --color-shadow-highlight: rgb(95 128 158 / 15%);
+      --color-shadow-neu-dark: rgb(0 8 18 / 52%);
+      --color-text-on-solid: #F4F8FC;
+      --color-border-translucent: rgb(74 100 125 / 68%);
+      --color-surface-context-menu-blur: rgb(22 35 49 / 68%);
+      --color-state-success-fg: #6ED7A3;
+      --color-state-success-bg: #194A37;
+      --color-state-info-fg: #7DBDFF;
+      --color-state-info-bg: #173C63;
+      --color-state-warning-fg: #FFCA6B;
+      --color-state-warning-bg: #583F13;
+      --color-state-danger-fg: #FF9EAA;
+      --color-state-danger-bg: #5D2832;
+      --color-brand-primary: #69AEFF;
+      --color-brand-subtle: #173C63;
+    }
+
+    .pim-env[data-theme="caramel"] { --color-brand-primary: #C96A2C; --color-brand-subtle: #FFF0E6; --color-state-info-fg: #C96A2C; --color-state-info-bg: #FFF0E6; }
+    .pim-env[data-appearance="dark"][data-theme="caramel"] { --color-brand-primary: #FFB078; --color-brand-subtle: #59341F; --color-state-info-fg: #FFB078; --color-state-info-bg: #4A2B19; }
+    .pim-env[data-theme="rose"] { --color-brand-primary: #C94F83; --color-brand-subtle: #FFF0F6; --color-state-info-fg: #C94F83; --color-state-info-bg: #FFF0F6; }
+    .pim-env[data-appearance="dark"][data-theme="rose"] { --color-brand-primary: #FF9BC1; --color-brand-subtle: #5B2741; --color-state-info-fg: #FF9BC1; --color-state-info-bg: #4D2137; }
+    .pim-env[data-theme="forest"] { --color-brand-primary: #2E8B69; --color-brand-subtle: #E7F6F0; --color-state-info-fg: #2E8B69; --color-state-info-bg: #E7F6F0; }
+    .pim-env[data-appearance="dark"][data-theme="forest"] { --color-brand-primary: #7BD6AA; --color-brand-subtle: #1C503D; --color-state-info-fg: #7BD6AA; --color-state-info-bg: #184434; }
+    .pim-env[data-theme="mint"] { --color-brand-primary: #168A9A; --color-brand-subtle: #E4F7F8; --color-state-info-fg: #168A9A; --color-state-info-bg: #E4F7F8; }
+    .pim-env[data-appearance="dark"][data-theme="mint"] { --color-brand-primary: #68D5DE; --color-brand-subtle: #174C55; --color-state-info-fg: #68D5DE; --color-state-info-bg: #144149; }
+    .pim-env[data-theme="night"] { --color-brand-primary: #5C62C9; --color-brand-subtle: #EEEFFF; --color-state-info-fg: #5C62C9; --color-state-info-bg: #EEEFFF; }
+    .pim-env[data-appearance="dark"][data-theme="night"] { --color-brand-primary: #B2B6FF; --color-brand-subtle: #373967; --color-state-info-fg: #B2B6FF; --color-state-info-bg: #2E3058; }
+
+    /* 模拟桌面端应用窗口 */
+    .mock-window {
+      position: relative;
+      overflow: hidden;
+      border-radius: 20px;
+      background: var(--color-surface-canvas);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border-subtle);
+      box-shadow: 0 22px 54px rgb(15 28 46 / 18%);
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    .mock-chrome {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-left: 16px;
+      background: color-mix(in srgb, var(--color-surface-subtle) 90%, transparent);
+      border-bottom: 1px solid var(--color-border-subtle);
+      position: relative;
+      z-index: 40;
+      user-select: none;
+    }
+    .mock-chrome-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+    .mock-win-btns { display: flex; height: 100%; }
+    .mock-win-btn {
+      width: 46px;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      color: var(--color-text-secondary);
+    }
+    .mock-win-btn:hover { background: color-mix(in srgb, var(--color-text-primary) 8%, transparent); }
+    .mock-win-btn.close:hover { background: #E81123; color: #FFFFFF; }
+
+    .mock-body {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 380px;
+    }
+    @media (max-width: 768px) {
+      .mock-body { grid-template-columns: 1fr; }
+      .mock-sidebar { display: none; }
+    }
+
+    .mock-sidebar {
+      padding: 16px;
+      background: var(--color-surface-subtle);
+      border-right: 1px solid var(--color-border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .nav-item {
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+    .nav-item.active {
+      background: var(--color-surface-raised);
+      color: var(--color-brand-primary);
+      font-weight: 700;
+      box-shadow: -4px -4px 10px var(--color-shadow-highlight), 4px 4px 10px var(--color-shadow-neu-dark);
+    }
+
+    .mock-main {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .mock-banner {
+      position: relative;
+      border-radius: 24px;
+      padding: 26px 28px;
+      overflow: hidden;
+      background:
+        linear-gradient(115deg, color-mix(in srgb, var(--color-surface-raised) 86%, transparent), color-mix(in srgb, var(--color-brand-subtle) 78%, transparent)),
+        url('../src/assets/pc/home-bg2.jpg') center/cover no-repeat;
+      border: 1px solid var(--color-border-subtle);
+      box-shadow: -6px -6px 14px var(--color-shadow-highlight), 8px 10px 22px var(--color-shadow-neu-dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .neu-action-btn {
+      font-family: inherit;
+      padding: 10px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--color-border-subtle);
+      background: var(--color-surface-raised);
+      color: var(--color-brand-primary);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: -4px -4px 10px var(--color-shadow-highlight), 4px 4px 12px var(--color-shadow-neu-dark);
+      transition: transform 0.15s ease;
+    }
+    .neu-action-btn:active { transform: scale(0.96); }
+
+    .info-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .info-card {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border-subtle);
+    }
+
+    /* ==================== Toast 舞台挂载容器 ==================== */
+    .stage-toast-host {
+      position: absolute;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .stage-toast-host[data-pos="legacy-overlap"] { top: 16px; right: 20px; align-items: flex-end; }
+    .stage-toast-host[data-pos="top-right"] { top: 48px; right: 20px; align-items: flex-end; }
+    .stage-toast-host[data-pos="top-center"] { top: 48px; left: 50%; transform: translateX(-50%); align-items: center; }
+    .stage-toast-host[data-pos="bottom-right"] { bottom: 20px; right: 20px; align-items: flex-end; flex-direction: column-reverse; }
+
+    .t-item {
+      pointer-events: auto;
+      position: relative;
+      max-width: 360px;
+      opacity: 0;
+      transition:
+        transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.24s ease;
+    }
+    .stage-toast-host[data-pos="top-right"] .t-item,
+    .stage-toast-host[data-pos="legacy-overlap"] .t-item,
+    .stage-toast-host[data-pos="bottom-right"] .t-item {
+      transform: translateX(36px) scale(0.96);
+    }
+    .stage-toast-host[data-pos="top-center"] .t-item {
+      transform: translateY(-16px) scale(0.94);
+    }
+    .t-item.is-visible {
+      opacity: 1;
+      transform: translate(0, 0) scale(1) !important;
+    }
+    .t-item.is-leaving {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.95) !important;
+      transition-duration: 0.2s;
+    }
+
+    @keyframes toastSpin { to { transform: rotate(360deg); } }
+    .t-spin { animation: toastSpin 0.9s linear infinite; }
+
+    @keyframes toastProgress {
+      from { transform: scaleX(1); }
+      to { transform: scaleX(0); }
+    }
+    .t-progress-bar {
+      width: 100%;
+      height: 100%;
+      transform-origin: left center;
+      animation: toastProgress var(--toast-duration, 2800ms) linear forwards;
+    }
+    .t-item:hover .t-progress-bar { animation-play-state: paused; }
+
+    /* 0. 旧版复现 */
+    .v-legacy {
+      padding: 12px 20px;
+      border-radius: 16px;
+      font-size: 17px;
+      color: var(--color-text-on-solid);
+      background: var(--color-text-primary);
+      box-shadow: var(--pc-control-float-shadow);
+    }
+    .v-legacy[data-type="success"] { background: var(--pc-green); color: #fff; }
+    .v-legacy[data-type="error"] { background: var(--pc-danger); color: #fff; }
+    .v-legacy[data-type="warning"] { background: var(--pc-yellow); color: #1E2B3A; }
+
+    /* 方案 A：新拟态软陶岛 */
+    .v-neu {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px 11px 12px;
+      min-width: 224px;
+      border-radius: 18px;
+      background: var(--color-surface-raised);
+      color: var(--color-text-primary);
+      border: 1px solid color-mix(in srgb, var(--color-border-subtle) 85%, transparent);
+      box-shadow:
+        0 12px 28px var(--color-shadow-dark),
+        -4px -4px 10px color-mix(in srgb, var(--color-shadow-highlight) 65%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--color-shadow-highlight) 85%, transparent);
+      overflow: hidden;
+    }
+    .v-neu .t-badge {
+      width: 34px;
+      height: 34px;
+      flex-shrink: 0;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      box-shadow:
+        inset 2px 2px 5px color-mix(in srgb, var(--color-shadow-neu-dark) 55%, transparent),
+        inset -2px -2px 5px color-mix(in srgb, var(--color-shadow-highlight) 75%, transparent);
+    }
+    .v-neu[data-type="info"] .t-badge, .v-neu[data-type="loading"] .t-badge { background: var(--color-state-info-bg); color: var(--color-state-info-fg); }
+    .v-neu[data-type="success"] .t-badge { background: var(--color-state-success-bg); color: var(--color-state-success-fg); }
+    .v-neu[data-type="warning"] .t-badge { background: var(--color-state-warning-bg); color: var(--color-state-warning-fg); }
+    .v-neu[data-type="error"] .t-badge { background: var(--color-state-danger-bg); color: var(--color-state-danger-fg); }
+
+    .v-neu .t-progress-wrap {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 0;
+      height: 2.5px;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .v-neu[data-type="info"] .t-progress-bar, .v-neu[data-type="loading"] .t-progress-bar { background: color-mix(in srgb, var(--color-state-info-fg) 48%, transparent); }
+    .v-neu[data-type="success"] .t-progress-bar { background: color-mix(in srgb, var(--color-state-success-fg) 48%, transparent); }
+    .v-neu[data-type="warning"] .t-progress-bar { background: color-mix(in srgb, var(--color-state-warning-fg) 52%, transparent); }
+    .v-neu[data-type="error"] .t-progress-bar { background: color-mix(in srgb, var(--color-state-danger-fg) 52%, transparent); }
+
+    /* 方案 B：冰透双层晶格 */
+    .v-glass {
+      padding: 5px;
+      border-radius: 20px;
+      background: var(--color-surface-context-menu-blur);
+      -webkit-backdrop-filter: blur(14px) saturate(1.18);
+      backdrop-filter: blur(14px) saturate(1.18);
+      border: 1px solid var(--color-border-translucent);
+      box-shadow: 0 14px 32px var(--color-shadow-dark);
+    }
+    .v-glass-inner {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 9px 14px 9px 11px;
+      border-radius: 15px;
+      background: color-mix(in srgb, var(--color-surface-floating) 90%, transparent);
+      box-shadow: 0 3px 10px color-mix(in srgb, var(--color-shadow-dark) 50%, transparent);
+    }
+    .v-glass .t-accent-bar { width: 4px; align-self: stretch; min-height: 22px; border-radius: 999px; flex-shrink: 0; }
+    .v-glass[data-type="info"] .t-accent-bar, .v-glass[data-type="loading"] .t-accent-bar { background: var(--color-state-info-fg); }
+    .v-glass[data-type="success"] .t-accent-bar { background: var(--color-state-success-fg); }
+    .v-glass[data-type="warning"] .t-accent-bar { background: var(--color-state-warning-fg); }
+    .v-glass[data-type="error"] .t-accent-bar { background: var(--color-state-danger-fg); }
+
+    .v-glass[data-type="info"] .t-icon, .v-glass[data-type="loading"] .t-icon { color: var(--color-state-info-fg); display: grid; }
+    .v-glass[data-type="success"] .t-icon { color: var(--color-state-success-fg); display: grid; }
+    .v-glass[data-type="warning"] .t-icon { color: var(--color-state-warning-fg); display: grid; }
+    .v-glass[data-type="error"] .t-icon { color: var(--color-state-danger-fg); display: grid; }
+
+    /* 方案 C：顶部灵动胶囊 */
+    .v-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 16px 7px 9px;
+      border-radius: 9999px;
+      background: color-mix(in srgb, var(--color-surface-raised) 94%, transparent);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--color-border-subtle);
+      box-shadow:
+        0 10px 26px var(--color-shadow-dark),
+        inset 0 1px 0 color-mix(in srgb, var(--color-shadow-highlight) 85%, transparent);
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .v-pill .t-dot-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 9999px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .v-pill[data-type="info"] .t-dot-badge, .v-pill[data-type="loading"] .t-dot-badge { background: var(--color-state-info-bg); color: var(--color-state-info-fg); }
+    .v-pill[data-type="success"] .t-dot-badge { background: var(--color-state-success-bg); color: var(--color-state-success-fg); }
+    .v-pill[data-type="warning"] .t-dot-badge { background: var(--color-state-warning-bg); color: var(--color-state-warning-fg); }
+    .v-pill[data-type="error"] .t-dot-badge { background: var(--color-state-danger-bg); color: var(--color-state-danger-fg); }
+
+    /* 方案 D：柔光语义彩笺 */
+    .v-pastel {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 11px 15px 11px 13px;
+      min-width: 220px;
+      border-radius: 16px;
+      box-shadow: 0 10px 24px var(--color-shadow-dark);
+      position: relative;
+      overflow: hidden;
+    }
+    .v-pastel[data-type="info"], .v-pastel[data-type="loading"] {
+      background: color-mix(in srgb, var(--color-state-info-bg) 88%, var(--color-surface-raised));
+      color: var(--color-state-info-fg);
+      border: 1px solid color-mix(in srgb, var(--color-state-info-fg) 24%, transparent);
+    }
+    .v-pastel[data-type="success"] {
+      background: color-mix(in srgb, var(--color-state-success-bg) 88%, var(--color-surface-raised));
+      color: var(--color-state-success-fg);
+      border: 1px solid color-mix(in srgb, var(--color-state-success-fg) 24%, transparent);
+    }
+    .v-pastel[data-type="warning"] {
+      background: color-mix(in srgb, var(--color-state-warning-bg) 90%, var(--color-surface-raised));
+      color: var(--color-state-warning-fg);
+      border: 1px solid color-mix(in srgb, var(--color-state-warning-fg) 26%, transparent);
+    }
+    .v-pastel[data-type="error"] {
+      background: color-mix(in srgb, var(--color-state-danger-bg) 88%, var(--color-surface-raised));
+      color: var(--color-state-danger-fg);
+      border: 1px solid color-mix(in srgb, var(--color-state-danger-fg) 24%, transparent);
+    }
+    .v-pastel .t-pastel-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      background: color-mix(in srgb, currentColor 13%, transparent);
+    }
+
+    .t-msg {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+      line-height: 1.4;
+      padding-right: 4px;
+    }
+
+    .t-close-btn {
+      border: none;
+      background: transparent;
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: var(--color-text-tertiary);
+      cursor: pointer;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .t-close-btn:hover {
+      background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+      color: var(--color-text-primary);
+    }
+
+    /* 底部静态对比墙 */
+    .matrix-section {
+      margin-top: 20px;
+      padding: 22px;
+      border-radius: 20px;
+      background: var(--color-surface-subtle);
+      border: 1px solid var(--color-border-subtle);
+    }
+    .matrix-grid {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 16px;
+    }
+    .matrix-col {
+      padding: 16px;
+      border-radius: 16px;
+      background: var(--color-surface-canvas);
+      border: 1px solid var(--color-border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+    .matrix-col-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-text-secondary);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--color-border-subtle);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <section class="control-panel">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">提示词管家 · 全局 Toast 信息弹窗重设计预览</h1>
+          <p class="panel-sub">已接入项目本地「乐米沐和圆体」与真实 Token 配色体系，点击卡片切换设计方案，点击按钮实时体验交互。</p>
+        </div>
+        <div class="header-actions">
+          <label class="pill-label">
+            <input type="checkbox" id="pinToggle">
+            <span>常驻检视（不自动消失）</span>
+          </label>
+          <button type="button" class="ctrl-btn" id="clearAllBtn">清空弹窗</button>
+        </div>
+      </div>
+
+      <div class="variant-grid" id="variantTabs">
+        <button type="button" class="variant-card active" data-variant="neu">
+          <div class="variant-card-head">
+            <span>方案 A · 新拟态软陶岛</span>
+            <span class="variant-tag">推荐</span>
+          </div>
+          <p class="variant-desc">原生新拟态内凹徽章槽 + 底部流光计时线，与工作台视觉语言高度统一</p>
+        </button>
+
+        <button type="button" class="variant-card" data-variant="glass">
+          <div class="variant-card-head">
+            <span>方案 B · 冰透双层晶格</span>
+          </div>
+          <p class="variant-desc">延续右键菜单双层毛玻璃光晕外壳 + 左侧胶囊语义色条，插画透底轻盈精致</p>
+        </button>
+
+        <button type="button" class="variant-card" data-variant="pill">
+          <div class="variant-card-head">
+            <span>方案 C · 顶部灵动胶囊</span>
+          </div>
+          <p class="variant-desc">窗口顶部居中零遮挡，支持“正在检查更新… → 已是最新”原地丝滑变形</p>
+        </button>
+
+        <button type="button" class="variant-card" data-variant="pastel">
+          <div class="variant-card-head">
+            <span>方案 D · 柔光语义彩笺</span>
+          </div>
+          <p class="variant-desc">复用项目柔和语义底色取代刺眼高饱和色块，余光一扫即可辨识状态</p>
+        </button>
+
+        <button type="button" class="variant-card" data-variant="legacy">
+          <div class="variant-card-head">
+            <span>现状对照（旧版）</span>
+            <span class="variant-tag old">旧</span>
+          </div>
+          <p class="variant-desc">1:1 复现当前黑底白字与遮挡 36px 窗口右上角按钮的现状问题</p>
+        </button>
+      </div>
+
+      <div class="toolbar-row">
+        <div class="btn-group">
+          <button type="button" class="ctrl-btn primary" data-trigger="update-flow">🔄 模拟「正在检查更新…」全流程</button>
+          <button type="button" class="ctrl-btn" data-trigger="success">✅ 成功：已复制到剪贴板</button>
+          <button type="button" class="ctrl-btn" data-trigger="info">ℹ️ 信息：外观模式已更新</button>
+          <button type="button" class="ctrl-btn" data-trigger="warning">⚠️ 警告：该标签已存在</button>
+          <button type="button" class="ctrl-btn" data-trigger="error">❌ 错误：检查更新失败</button>
+          <button type="button" class="ctrl-btn" data-trigger="stack">📚 连发 3 条测试堆叠</button>
+        </div>
+
+        <div class="btn-group">
+          <select id="appearanceSelect" class="ctrl-select">
+            <option value="light">☀️ 浅色模式 (Light)</option>
+            <option value="dark">🌙 深色模式 (Dark)</option>
+          </select>
+          <select id="themeSelect" class="ctrl-select">
+            <option value="sky">🎨 晴空蓝 (默认)</option>
+            <option value="caramel">🎨 焦糖暖橙</option>
+            <option value="rose">🎨 蔷薇柔粉</option>
+            <option value="forest">🎨 森林松绿</option>
+            <option value="mint">🎨 薄荷冰青</option>
+            <option value="night">🎨 静谧星夜</option>
+          </select>
+          <select id="posSelect" class="ctrl-select">
+            <option value="top-right">📍 右上角（安全避让标题栏）</option>
+            <option value="top-center">📍 顶部居中（零遮挡胶囊位）</option>
+            <option value="bottom-right">📍 右下角</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <div class="pim-env" id="pimStageEnv" data-appearance="light" data-theme="sky">
+      <div class="mock-window">
+        <header class="mock-chrome">
+          <div class="mock-chrome-title">
+            <span style="width:10px;height:10px;border-radius:999px;background:var(--color-brand-primary);display:inline-block;"></span>
+            <span>提示词管家 · 1:1 窗口标题栏与插画背景预览沙盒（标题栏高 36px）</span>
+          </div>
+          <div class="mock-win-btns">
+            <div class="mock-win-btn" title="最小化">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2 6h8"/></svg>
+            </div>
+            <div class="mock-win-btn" title="最大化">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.2" y="2.2" width="7.6" height="7.6" rx="1"/></svg>
+            </div>
+            <div class="mock-win-btn close" title="关闭">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg>
+            </div>
+          </div>
+        </header>
+
+        <div class="stage-toast-host" id="liveToastHost" data-pos="top-right"></div>
+
+        <div class="mock-body">
+          <aside class="mock-sidebar">
+            <div class="nav-item active">🏠 欢迎首页</div>
+            <div class="nav-item">📚 提示词库</div>
+            <div class="nav-item">🗂️ 分类与标签</div>
+            <div class="nav-item">🎯 目标计划</div>
+            <div class="nav-item">⚙️ 系统设置</div>
+          </aside>
+
+          <main class="mock-main">
+            <div class="mock-banner">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--color-brand-primary);">✨ 真实插画横幅透底对比</div>
+                <div style="font-size:20px;font-weight:700;margin-top:4px;">观察新 Toast 在窗口右上角或顶部居中的视觉呼吸感</div>
+                <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px;">鼠标移入弹窗可暂停自动消失倒计时，点击关闭图标或胶囊可立即收起。</div>
+              </div>
+              <button type="button" class="neu-action-btn" id="stageQuickCheckBtn">检查更新</button>
+            </div>
+
+            <div class="info-cards">
+              <div class="info-card">
+                <div style="font-size:12px;color:var(--color-text-tertiary);">标题栏安全避让</div>
+                <div style="font-size:15px;font-weight:700;margin-top:4px;">top: calc(36px + 12px)</div>
+                <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px;">不再遮挡右上角最小化、最大化与关闭按钮</div>
+              </div>
+              <div class="info-card">
+                <div style="font-size:12px;color:var(--color-text-tertiary);">完整语义与加载动效</div>
+                <div style="font-size:15px;font-weight:700;margin-top:4px;">Loading / Info / Success / Warn / Error</div>
+                <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px;">告别缺失 info 样式导致的突兀黑底白字</div>
+              </div>
+              <div class="info-card">
+                <div style="font-size:12px;color:var(--color-text-tertiary);">平滑兼容现有调用</div>
+                <div style="font-size:15px;font-weight:700;margin-top:4px;">保留 showToast(msg, type)</div>
+                <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px;">实装时仅需升级 pc-utils.js 与 05c-global-overlays.css</div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <section class="matrix-section">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;">
+          <h2 style="font-size:16px;font-weight:700;color:var(--color-text-primary);">四套新方案 × 四种状态 · 同屏静态对比墙</h2>
+          <span style="font-size:13px;color:var(--color-text-secondary);">切换上方「浅色/深色模式」或「主题色」可同步查看换肤效果</span>
+        </div>
+        <div class="matrix-grid" id="staticMatrix"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const SVG_ICONS = {
+      loading: `<svg class="t-spin" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`,
+      info: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
+      success: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`,
+      warning: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+      error: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`,
+      close: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`
+    };
+
+    const state = { variant: 'neu', pos: 'top-right', pinned: false };
+    const stageEnv = document.getElementById('pimStageEnv');
+    const host = document.getElementById('liveToastHost');
+    const posSelect = document.getElementById('posSelect');
+    const pinToggle = document.getElementById('pinToggle');
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
+    }
+
+    function getVariantClass(variant) {
+      return { legacy: 'v-legacy', neu: 'v-neu', glass: 'v-glass', pill: 'v-pill', pastel: 'v-pastel' }[variant] || 'v-neu';
+    }
+
+    function buildToastInnerHTML(variant, message, type, showProgress = true) {
+      const icon = SVG_ICONS[type] || SVG_ICONS.info;
+      const safeMsg = escapeHtml(message);
+      if (variant === 'legacy') return `<span>${safeMsg}</span>`;
+      if (variant === 'neu') {
+        return `
+          <div class="t-badge">${icon}</div>
+          <div class="t-msg">${safeMsg}</div>
+          <button type="button" class="t-close-btn" data-dismiss aria-label="关闭">${SVG_ICONS.close}</button>
+          ${showProgress && type !== 'loading' ? `<div class="t-progress-wrap"><div class="t-progress-bar"></div></div>` : ''}
+        `;
+      }
+      if (variant === 'glass') {
+        return `
+          <div class="v-glass-inner">
+            <span class="t-accent-bar"></span>
+            <span class="t-icon">${icon}</span>
+            <span class="t-msg">${safeMsg}</span>
+            <button type="button" class="t-close-btn" data-dismiss aria-label="关闭">${SVG_ICONS.close}</button>
+          </div>
+        `;
+      }
+      if (variant === 'pill') {
+        return `<span class="t-dot-badge">${icon}</span><span class="t-msg" style="padding-right:0;">${safeMsg}</span>`;
+      }
+      if (variant === 'pastel') {
+        return `
+          <span class="t-pastel-icon">${icon}</span>
+          <span class="t-msg">${safeMsg}</span>
+          <button type="button" class="t-close-btn" data-dismiss aria-label="关闭">${SVG_ICONS.close}</button>
+        `;
+      }
+      return safeMsg;
+    }
+
+    function removeToastEl(el) {
+      if (!el || el.classList.contains('is-leaving')) return;
+      clearTimeout(el._timer);
+      el.classList.remove('is-visible');
+      el.classList.add('is-leaving');
+      setTimeout(() => el.remove(), 220);
+    }
+
+    function scheduleAutoDismiss(el, duration = 2800) {
+      clearTimeout(el._timer);
+      if (state.pinned || el.dataset.type === 'loading') return;
+      el._remaining = duration;
+      el._start = Date.now();
+      el._timer = setTimeout(() => removeToastEl(el), duration);
+    }
+
+    function spawnToast(message, type = 'success', options = {}) {
+      const variant = state.variant;
+      const el = document.createElement('div');
+      const duration = options.duration ?? 2800;
+      el.className = `t-item ${getVariantClass(variant)}`;
+      el.dataset.type = type === 'loading' && variant === 'legacy' ? 'info' : type;
+      el.style.setProperty('--toast-duration', `${duration}ms`);
+      el.innerHTML = buildToastInnerHTML(variant, message, type, !state.pinned);
+
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('[data-dismiss]') || variant === 'pill') removeToastEl(el);
+      });
+      el.addEventListener('mouseenter', () => {
+        if (el._timer) {
+          clearTimeout(el._timer);
+          el._remaining = Math.max(600, (el._remaining || duration) - (Date.now() - (el._start || Date.now())));
+        }
+      });
+      el.addEventListener('mouseleave', () => {
+        if (!state.pinned && el.dataset.type !== 'loading') {
+          el._start = Date.now();
+          el._timer = setTimeout(() => removeToastEl(el), el._remaining || 1400);
+        }
+      });
+
+      while (host.children.length >= 4) host.firstElementChild.remove();
+      host.appendChild(el);
+      requestAnimationFrame(() => el.classList.add('is-visible'));
+      scheduleAutoDismiss(el, duration);
+      return el;
+    }
+
+    let updateFlowTimer = null;
+    function triggerUpdateFlow() {
+      clearTimeout(updateFlowTimer);
+      if (state.variant === 'legacy') {
+        spawnToast('正在检查更新…', 'info', { duration: 1500 });
+        updateFlowTimer = setTimeout(() => spawnToast('已是最新版本 v2.5.33', 'success'), 1250);
+        return;
+      }
+      const loadingEl = spawnToast('正在检查更新…', 'loading');
+      updateFlowTimer = setTimeout(() => {
+        if (!loadingEl.isConnected) return;
+        loadingEl.dataset.type = 'success';
+        loadingEl.style.setProperty('--toast-duration', '2600ms');
+        loadingEl.innerHTML = buildToastInnerHTML(state.variant, '已是最新版本 v2.5.33', 'success', !state.pinned);
+        scheduleAutoDismiss(loadingEl, 2600);
+      }, 1200);
+    }
+
+    function syncVariantUI() {
+      document.querySelectorAll('.variant-card').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.variant === state.variant);
+      });
+      if (state.variant === 'legacy') {
+        host.dataset.pos = 'legacy-overlap';
+      } else if (state.variant === 'pill') {
+        posSelect.value = 'top-center';
+        host.dataset.pos = 'top-center';
+      } else {
+        if (host.dataset.pos === 'legacy-overlap' || state.pos === 'top-center') {
+          posSelect.value = 'top-right';
+          state.pos = 'top-right';
+        }
+        host.dataset.pos = posSelect.value;
+      }
+      host.innerHTML = '';
+      triggerUpdateFlow();
+    }
+
+    function renderStaticMatrix() {
+      const variants = [
+        { key: 'neu', title: '方案 A · 新拟态软陶岛' },
+        { key: 'glass', title: '方案 B · 冰透双层晶格' },
+        { key: 'pill', title: '方案 C · 顶部灵动胶囊' },
+        { key: 'pastel', title: '方案 D · 柔光语义彩笺' }
+      ];
+      const samples = [
+        { type: 'loading', text: '正在检查更新…' },
+        { type: 'success', text: '已是最新版本 v2.5.33' },
+        { type: 'warning', text: '该标签已存在' },
+        { type: 'error', text: '检查更新失败：网络超时' }
+      ];
+      document.getElementById('staticMatrix').innerHTML = variants.map(v => `
+        <div class="matrix-col" style="${v.key === 'pill' ? 'align-items:flex-start;' : ''}">
+          <div class="matrix-col-title" style="width:100%;">${v.title}</div>
+          ${samples.map(s => `
+            <div class="${getVariantClass(v.key)}" data-type="${s.type}">
+              ${buildToastInnerHTML(v.key, s.text, s.type, false)}
+            </div>
+          `).join('')}
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('variantTabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-variant]');
+      if (!btn) return;
+      state.variant = btn.dataset.variant;
+      syncVariantUI();
+    });
+
+    document.querySelectorAll('[data-trigger]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const kind = btn.dataset.trigger;
+        if (kind === 'update-flow') return triggerUpdateFlow();
+        if (kind === 'success') return spawnToast('已复制到剪贴板', 'success');
+        if (kind === 'info') return spawnToast('外观模式已更新', 'info');
+        if (kind === 'warning') return spawnToast('该标签已存在，请勿重复创建', 'warning');
+        if (kind === 'error') return spawnToast('检查更新失败：请求连接超时', 'error');
+        if (kind === 'stack') {
+          spawnToast('正在检查更新…', 'loading', { duration: 3200 });
+          setTimeout(() => spawnToast('已复制提示词内容', 'success'), 160);
+          setTimeout(() => spawnToast('部分分类存在空文件夹', 'warning'), 320);
+        }
+      });
+    });
+
+    document.getElementById('stageQuickCheckBtn').addEventListener('click', triggerUpdateFlow);
+    document.getElementById('clearAllBtn').addEventListener('click', () => { host.innerHTML = ''; });
+    document.getElementById('appearanceSelect').addEventListener('change', (e) => { stageEnv.dataset.appearance = e.target.value; });
+    document.getElementById('themeSelect').addEventListener('change', (e) => { stageEnv.dataset.theme = e.target.value; });
+    posSelect.addEventListener('change', (e) => {
+      state.pos = e.target.value;
+      if (state.variant !== 'legacy') host.dataset.pos = e.target.value;
+    });
+    pinToggle.addEventListener('change', (e) => {
+      state.pinned = e.target.checked;
+      if (!state.pinned) {
+        [...host.children].forEach(el => { if (el.dataset.type !== 'loading') scheduleAutoDismiss(el, 2200); });
+      } else {
+        [...host.children].forEach(el => clearTimeout(el._timer));
+      }
+    });
+
+    renderStaticMatrix();
+    syncVariantUI();
+  </script>
+</body>
+</html>

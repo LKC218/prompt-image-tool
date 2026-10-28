@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>提示词管家 · 纯正轻拟态 (Neumorphism) 可读性专项 8大升级方案预览</title>
+  <style>
+    @font-face {
+      font-family: '乐米沐和圆体';
+      src: url('../src/assets/fonts/乐米沐和圆体.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    :root {
+      --font-main: '乐米沐和圆体', 'PingFang SC', 'HarmonyOS Sans SC', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+      /* 项目原生轻拟态色板 (与 01-foundation-shell.css 严格一致) */
+      --neu-bg: #F4EFEB;
+      --neu-surface: #F4EFEB;
+      --neu-dark: #D4CBC0;
+      --neu-light: #FFFFFF;
+
+      /* 品牌马卡龙主色与语义色 */
+      --brand-pink: #FF6B9A;
+      --brand-blue: #2D8CFF;
+      --brand-green: #24A16C;
+      --brand-yellow: #E59819;
+      --brand-purple: #8A6BFF;
+
+      /* 针对可读性优化的文本对比度 (达 WCAG AAA 级标准) */
+      --text-heading: #261F1A;
+      --text-body: #3C332C;
+      --text-sub: #5F544B;
+      --text-muted: #8E8276;
+      --text-code: #1F2937;
+
+      /* 拟态光影系统 */
+      --neu-offset: 7px;
+      --neu-blur: 15px;
+      --neu-raised: var(--neu-offset) var(--neu-offset) var(--neu-blur) var(--neu-dark), 
+                    calc(-1 * var(--neu-offset)) calc(-1 * var(--neu-offset)) var(--neu-blur) var(--neu-light);
+      --neu-raised-sm: 4px 4px 9px var(--neu-dark), -4px -4px 9px var(--neu-light);
+      --neu-raised-hover: 9px 9px 20px var(--neu-dark), -9px -9px 20px var(--neu-light);
+      --neu-inset: inset 4px 4px 10px var(--neu-dark), inset -4px -4px 10px var(--neu-light);
+      --neu-inset-deep: inset 6px 6px 14px var(--neu-dark), inset -6px -6px 14px var(--neu-light);
+      --neu-inset-subtle: inset 2px 2px 6px var(--neu-dark), inset -2px -2px 6px var(--neu-light);
+
+      --radius-sm: 12px;
+      --radius-md: 18px;
+      --radius-lg: 24px;
+      --radius-full: 9999px;
+      --trans-spring: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--neu-bg);
+      color: var(--text-heading);
+      padding: 16px 24px 64px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .main-wrap {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ==================== 顶部拟态展厅控制台 ==================== */
+    .neu-console-panel {
+      background-color: var(--neu-bg);
+      border-radius: var(--radius-lg);
+      padding: 18px 24px;
+      box-shadow: var(--neu-raised);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: sticky;
+      top: 10px;
+      z-index: 1000;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .console-header-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .console-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .mascot-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .mascot-avatar img { width: 36px; height: 36px; object-fit: contain; }
+
+    .brand-text h1 {
+      font-size: 20px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-focus {
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: var(--radius-full);
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      color: var(--brand-green);
+    }
+
+    .brand-text p {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .console-tools {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* 拟态槽 (Inset Slot) */
+    .neu-slot-group {
+      display: flex;
+      background-color: var(--neu-bg);
+      padding: 3px;
+      border-radius: var(--radius-full);
+      box-shadow: var(--neu-inset);
+      gap: 2px;
+    }
+
+    .neu-slot-btn {
+      border: none;
+      background: transparent;
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: var(--trans-spring);
+    }
+
+    .neu-slot-btn.active {
+      background-color: var(--neu-bg);
+      color: var(--text-heading);
+      box-shadow: var(--neu-raised-sm);
+    }
+
+    /* 方案切换格架 (8 大可读性方案) */
+    .neu-tabs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 1200px) {
+      .neu-tabs-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .neu-tab-card {
+      border: none;
+      background-color: var(--neu-bg);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      box-shadow: var(--neu-raised-sm);
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      transition: var(--trans-spring);
+    }
+
+    .neu-tab-card:hover {
+      box-shadow: var(--neu-raised);
+      transform: translateY(-2px);
+    }
+
+    .neu-tab-card.active {
+      box-shadow: var(--neu-inset);
+      transform: translateY(1px);
+    }
+
+    .tab-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .tab-no-pill {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 1px 7px;
+      border-radius: var(--radius-full);
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--text-muted);
+    }
+
+    .neu-tab-card.active .tab-no-pill {
+      background: var(--brand-pink);
+      color: #fff;
+    }
+
+    .tab-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text-heading);
+    }
+
+    .neu-tab-card.active .tab-title {
+      color: var(--brand-pink);
+    }
+
+    .tab-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 方案精髓解说条 */
+    .neu-desc-strip {
+      background-color: var(--neu-bg);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      box-shadow: var(--neu-inset);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .desc-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .desc-mascot {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+    }
+
+    .desc-text h4 {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-heading);
+      margin-bottom: 2px;
+    }
+
+    .desc-text p {
+      font-size: 12.5px;
+      color: var(--text-sub);
+    }
+
+    .desc-chips {
+      display: flex;
+      gap: 6px;
+    }
+
+    .neu-chip {
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: var(--radius-full);
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      color: var(--brand-green);
+    }
+
+    /* ==================== 演示交互视口 ==================== */
+    .neu-stage {
+      display: flex;
+      justify-content: center;
+      transition: all 0.3s;
+    }
+
+    .neu-stage.mode-modal .window-frame {
+      width: 1280px;
+      max-width: 100%;
+      height: 840px;
+      max-height: calc(100vh - 200px);
+      border-radius: var(--radius-lg);
+      box-shadow: 14px 18px 40px var(--neu-dark), -14px -18px 40px var(--neu-light);
+    }
+
+    .neu-stage.mode-full .window-frame {
+      width: 100%;
+      height: auto;
+      min-height: 860px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--neu-raised);
+    }
+
+    .window-frame {
+      background-color: var(--neu-bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+
+    /* 顶栏导航 */
+    .window-top-bar {
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+      background-color: var(--neu-bg);
+    }
+
+    .bar-nav-crumbs {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .neu-pill-badge {
+      font-size: 11.5px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      color: var(--brand-pink);
+    }
+
+    /* 拟态实体按钮 */
+    .neu-btn {
+      border: none;
+      background-color: var(--neu-bg);
+      border-radius: var(--radius-full);
+      padding: 7px 16px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-heading);
+      cursor: pointer;
+      box-shadow: var(--neu-raised-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--trans-spring);
+      user-select: none;
+    }
+
+    .neu-btn:hover {
+      box-shadow: var(--neu-raised);
+      transform: translateY(-1px);
+    }
+
+    .neu-btn:active {
+      box-shadow: var(--neu-inset);
+      transform: translateY(1px);
+    }
+
+    .neu-btn.starred {
+      color: #D97706;
+      box-shadow: var(--neu-inset);
+    }
+
+    .neu-btn.btn-accent { color: var(--brand-pink); }
+    .neu-btn.btn-green { color: var(--brand-green); }
+    .neu-btn.btn-blue { color: var(--brand-blue); }
+
+    .window-body-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 26px;
+    }
+
+    /* 视图切换 */
+    .scheme-panel { display: none; }
+    .scheme-panel.active { display: block; animation: panelIn 0.22s var(--trans-spring); }
+
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 双栏公用网格 */
+    .neu-dual-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 26px;
+      align-items: start;
+    }
+
+    /* 左侧视觉媒体栏 */
+    .side-media-col {
+      background-color: var(--neu-bg);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--neu-raised);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .media-inset-frame {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: var(--radius-md);
+      padding: 8px;
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-inset);
+      position: relative;
+    }
+
+    .media-inset-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: calc(var(--radius-md) - 6px);
+      display: block;
+    }
+
+    .media-tag-float {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--brand-blue);
+    }
+
+    .side-thumbs-row {
+      display: flex;
+      gap: 8px;
+      background-color: var(--neu-bg);
+      padding: 6px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--neu-inset);
+    }
+
+    .thumb-btn {
+      width: 54px;
+      height: 54px;
+      border-radius: 10px;
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      overflow: hidden;
+      cursor: pointer;
+      padding: 2px;
+      border: none;
+      transition: var(--trans-spring);
+    }
+
+    .thumb-btn.active {
+      box-shadow: var(--neu-inset);
+      transform: scale(0.95);
+    }
+
+    .thumb-btn img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+
+    .side-info-card {
+      background-color: var(--neu-bg);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      box-shadow: var(--neu-raised-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 右侧主阅读工作区 */
+    .main-reader-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .reader-title-area {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .reader-main-title {
+      font-size: 25px;
+      font-weight: 800;
+      color: var(--text-heading);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .reader-tags-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .neu-pill {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      color: var(--text-body);
+    }
+
+    /* 拟态卡片容器 */
+    .neu-reading-card {
+      background-color: var(--neu-bg);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: var(--neu-raised);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .reading-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .reading-card-title {
+      font-size: 15px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 负向词紧凑收拢槽 */
+    .neg-slim-slot {
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-inset);
+      border-radius: 14px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: var(--trans-spring);
+    }
+
+    .neg-slim-slot:hover { box-shadow: var(--neu-raised-sm); }
+
+    /* 底部操作工具条 */
+    .reader-bottom-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 10px;
+    }
+
+    /* ============================================================
+       【可读性方案 1：工作流指令段落卡片型 (语义清晰解构)】
+       ============================================================ */
+    .chunk-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chunk-item {
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: var(--trans-spring);
+      border-left: 4px solid transparent;
+    }
+
+    .chunk-item:hover {
+      box-shadow: var(--neu-raised);
+      border-left-color: var(--brand-pink);
+    }
+
+    .chunk-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chunk-tag-name {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--brand-pink);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chunk-content-text {
+      font-size: 14.5px;
+      line-height: 1.7;
+      color: var(--text-body);
+    }
+
+    /* ============================================================
+       【可读性方案 2：代码编辑器行号对照型 (极客高精度排版)】
+       ============================================================ */
+    .code-editor-trough {
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-inset-deep);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      gap: 16px;
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      line-height: 1.85;
+      overflow-x: auto;
+    }
+
+    .line-numbers-col {
+      display: flex;
+      flex-direction: column;
+      color: var(--text-muted);
+      user-select: none;
+      text-align: right;
+      padding-right: 12px;
+      border-right: 1px solid rgba(0, 0, 0, 0.08);
+      opacity: 0.7;
+    }
+
+    .code-lines-col {
+      display: flex;
+      flex-direction: column;
+      color: var(--text-code);
+      flex: 1;
+    }
+
+    .code-heading-line {
+      color: #D946EF;
+      font-weight: 800;
+      background: rgba(217, 70, 239, 0.06);
+      padding: 0 6px;
+      border-radius: 4px;
+    }
+
+    .code-keyword-action {
+      color: #0284C7;
+      font-weight: 700;
+    }
+
+    .code-notice-line {
+      color: #EA580C;
+      font-weight: 700;
+    }
+
+    /* ============================================================
+       【可读性方案 3：清单条目检查列表型 (Checklist Legibility)】
+       ============================================================ */
+    .checklist-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .checklist-row {
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-inset-subtle);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transition: var(--trans-spring);
+    }
+
+    .checklist-row:hover {
+      box-shadow: var(--neu-raised-sm);
+    }
+
+    .checklist-index {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--brand-blue);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .checklist-text {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-body);
+    }
+
+    /* ============================================================
+       【可读性方案 4：双语段落译注对照型 (Bilingual Annotations)】
+       ============================================================ */
+    .bilingual-block {
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-inset);
+      border-radius: var(--radius-md);
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .bilingual-item {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+    }
+
+    .bilingual-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .bilingual-original {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text-heading);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .bilingual-translated {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      padding-left: 2px;
+    }
+
+    /* ============================================================
+       【可读性方案 5：手风琴大纲折叠型 (Accordion Outline Reader)】
+       ============================================================ */
+    .accordion-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .accordion-card {
+      background-color: var(--neu-bg);
+      border-radius: var(--radius-md);
+      box-shadow: var(--neu-raised-sm);
+      overflow: hidden;
+      transition: var(--trans-spring);
+    }
+
+    .accordion-header {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .accordion-header:hover {
+      box-shadow: var(--neu-raised);
+    }
+
+    .accordion-title {
+      font-size: 14px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .accordion-body {
+      padding: 14px 18px;
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-inset-subtle);
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-body);
+      border-top: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    /* ============================================================
+       【可读性方案 6：黄金字阶大师排版型 (Editorial Typography)】
+       ============================================================ */
+    .editorial-paper-slot {
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-inset-deep);
+      border-radius: var(--radius-md);
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .editorial-paragraph {
+      font-size: 15.5px;
+      line-height: 1.85;
+      color: #2D251F;
+      letter-spacing: 0.3px;
+    }
+
+    .editorial-lead {
+      font-size: 16.5px;
+      font-weight: 700;
+      color: #1A1410;
+      border-bottom: 2px solid var(--brand-pink);
+      padding-bottom: 6px;
+      display: inline-block;
+    }
+
+    .editorial-blockquote {
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-raised-sm);
+      border-radius: 12px;
+      padding: 12px 18px;
+      border-left: 4px solid var(--brand-green);
+      font-size: 14px;
+      color: var(--text-body);
+    }
+
+    /* ============================================================
+       【可读性方案 7：视觉权重热力分布型 (Weight Heatmap Pills)】
+       ============================================================ */
+    .heatmap-cluster {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 18px;
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-inset);
+      border-radius: var(--radius-md);
+    }
+
+    .heat-pill {
+      border: none;
+      background-color: var(--neu-bg);
+      padding: 7px 14px;
+      border-radius: var(--radius-full);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 700;
+      box-shadow: var(--neu-raised-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: var(--trans-spring);
+    }
+
+    .heat-pill:hover { box-shadow: var(--neu-raised); transform: translateY(-1px); }
+    .heat-pill:active { box-shadow: var(--neu-inset); }
+
+    .heat-high { color: #DC2626; border-left: 3px solid #DC2626; }
+    .heat-med { color: #D97706; border-left: 3px solid #D97706; }
+    .heat-normal { color: #059669; border-left: 3px solid #059669; }
+    .heat-subtle { color: #64748B; }
+
+    .weight-tag {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.06);
+    }
+
+    /* ============================================================
+       【可读性方案 8：多模态阅读自适应工作台 (Adaptive Reader Pro)】
+       ============================================================ */
+    .adaptive-mode-switcher {
+      display: flex;
+      background-color: var(--neu-bg);
+      box-shadow: var(--neu-inset);
+      padding: 4px;
+      border-radius: var(--radius-full);
+      gap: 4px;
+    }
+
+    .adaptive-btn {
+      border: none;
+      background: transparent;
+      padding: 6px 14px;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--text-muted);
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: var(--trans-spring);
+    }
+
+    .adaptive-btn.active {
+      background-color: var(--neu-bg);
+      color: var(--brand-pink);
+      box-shadow: var(--neu-raised-sm);
+    }
+
+    /* 吐司反馈 */
+    .neu-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(30px);
+      opacity: 0;
+      background-color: var(--neu-bg);
+      color: var(--text-heading);
+      padding: 12px 26px;
+      border-radius: var(--radius-full);
+      font-size: 14px;
+      font-weight: 800;
+      box-shadow: 8px 8px 24px var(--neu-dark), -8px -8px 24px var(--neu-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      pointer-events: none;
+      transition: var(--trans-spring);
+      z-index: 99999;
+    }
+
+    .neu-toast.active {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="main-wrap">
+
+  <!-- ==================== 顶部拟态展厅控制台 ==================== -->
+  <header class="neu-console-panel">
+    <div class="console-header-row">
+      <div class="console-brand">
+        <div class="mascot-avatar">
+          <img src="../src/assets/mobile/mascots/corgi-settings.png" alt="柯基" onerror="this.src='./ChatGPT Image 2026年5月5日 10_53_01 (1).png'">
+        </div>
+        <div class="brand-text">
+          <h1>
+            提示词管家 · 纯正轻拟态可读性专项 8 大升级方案
+            <span class="badge-focus">深度排版与字阶重塑</span>
+          </h1>
+          <p>解决原版草绿色长文本拥挤难读痛点 · 采用真实截屏长中文指令作为演示样本 · 100% 契合轻拟态光影规范</p>
+        </div>
+      </div>
+
+      <div class="console-tools">
+        <!-- 窗口模式 -->
+        <div class="neu-slot-group">
+          <button class="neu-slot-btn active" id="btnModal" onclick="setStageMode('modal')">🪟 模态窗口</button>
+          <button class="neu-slot-btn" id="btnFull" onclick="setStageMode('full')">🖥️ 展开全屏</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 方案选择格架 (8 大可读性方案) -->
+    <nav class="neu-tabs-grid">
+      <button class="neu-tab-card active" onclick="switchReadScheme(1)">
+        <div class="tab-top-row">
+          <span class="tab-no-pill">方案 1 · 首选</span>
+          <span style="color:var(--brand-pink); font-size:11px;">❤️ 推荐</span>
+        </div>
+        <div class="tab-title">语义分段卡片型</div>
+        <div class="tab-desc">按逻辑目标拆解 · 单段复制</div>
+      </button>
+
+      <button class="neu-tab-card" onclick="switchReadScheme(2)">
+        <div class="tab-top-row">
+          <span class="tab-no-pill">方案 2 · 极客</span>
+          <span style="color:var(--brand-blue); font-size:11px;">精细</span>
+        </div>
+        <div class="tab-title">代码行号排版型</div>
+        <div class="tab-desc">行号对齐 · Markdown着色</div>
+      </button>
+
+      <button class="neu-tab-card" onclick="switchReadScheme(3)">
+        <div class="tab-top-row">
+          <span class="tab-no-pill">方案 3 · 条理</span>
+          <span style="color:var(--brand-green); font-size:11px;">清晰</span>
+        </div>
+        <div class="tab-title">清单条目检查型</div>
+        <div class="tab-desc">序号徽章 · 条分缕析</div>
+      </button>
+
+      <button class="neu-tab-card" onclick="switchReadScheme(4)">
+        <div class="tab-top-row">
+          <span class="tab-no-pill">方案 4 · 翻译</span>
+          <span style="color:var(--brand-purple); font-size:11px;">双语</span>
+        </div>
+        <div class="tab-title">双语段落译注型</div>
+        <div class="tab-desc">英中逐句对照 · 生词无忧</div>
+      </button>
+
+      <button class="neu-tab-card" onclick="switchReadScheme(5)">
+        <div class="tab-top-row">
+          <span class="tab-no-pill">方案 5 · 大纲</span>
+          <span style="color:var(--brand-yellow); font-size:11px;">抽屉</span>
+        </div>
+        <div class="tab-title">手风琴折叠大纲型</div>
+        <div class="tab-desc">模块收放自如 · 解决超长</div>
+      </button>
+
+      <button class="neu-tab-card" onclick="switchReadScheme(6)">
+        <div class="tab-top-row">
+          <span class="tab-no-pill">方案 6 · 典雅</span>
+          <span style="color:#C2410C; font-size:11px;">出版级</span>
+        </div>
+        <div class="tab-title">黄金字阶大师排版</div>
+        <div class="tab-desc">宽行距大字号 · 羊皮纸温润</div>
+      </button>
+
+      <button class="neu-tab-card" onclick="switchReadScheme(7)">
+        <div class="tab-top-row">
+          <span class="tab-no-pill">方案 7 · 直观</span>
+          <span style="color:#DC2626; font-size:11px;">热力</span>
+        </div>
+        <div class="tab-title">视觉权重热力胶囊</div>
+        <div class="tab-desc">权重一眼识别 · 快速锚定</div>
+      </button>
+
+      <button class="neu-tab-card" onclick="switchReadScheme(8)">
+        <div class="tab-top-row">
+          <span class="tab-no-pill">方案 8 · 自由</span>
+          <span style="color:var(--brand-blue); font-size:11px;">多模</span>
+        </div>
+        <div class="tab-title">多模态自适应工作台</div>
+        <div class="tab-desc">随时在段落/代码/清单切换</div>
+      </button>
+    </nav>
+
+    <!-- 方案解说 -->
+    <div class="neu-desc-strip" id="neuDescStrip">
+      <div class="desc-left">
+        <img class="desc-mascot" src="../src/assets/mobile/mascots/corgi-home.png" alt="柯基" onerror="this.src='./ChatGPT Image 2026年5月5日 10_53_01 (1).png'">
+        <div class="desc-text">
+          <h4 id="descTitle">方案 1：语义分段卡片型（工作流指令首选推荐）</h4>
+          <p id="descSub">彻底解决截图中长中文指令挤成一坨的痛点。把任务根据 `#` 与逻辑目标拆解成多个独立微拟态卡片，每一小段清晰好读，且支持单段独立复制！</p>
+        </div>
+      </div>
+      <div class="desc-chips" id="descChips">
+        <span class="neu-chip">逻辑段落拆解</span>
+        <span class="neu-chip">单段一键复制</span>
+        <span class="neu-chip">视线轻松聚焦</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 演示交互视口 ==================== -->
+  <main class="neu-stage mode-modal" id="neuStage">
+    <div class="window-frame">
+
+      <!-- 顶栏导航 -->
+      <div class="window-top-bar">
+        <div class="bar-nav-crumbs">
+          <span class="neu-pill-badge">功能提示词指令</span>
+          <span style="font-weight: 800; font-size: 15px;">自动化 Git 提交与周报生成工作流</span>
+          <span style="font-size: 12px; color: var(--text-muted);">(V1.0 活跃)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="neu-btn starred" onclick="toggleStar(this)">
+            <span>★</span> <span>已收藏</span>
+          </button>
+          <button class="neu-btn" onclick="toastMsg('已呼出更多菜单')">
+            <span>⋯</span>
+          </button>
+          <button class="neu-btn" onclick="toastMsg('模拟关闭详情弹窗')">
+            <span>✕ 关闭</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 滚动主体区 -->
+      <div class="window-body-scroll">
+        <div class="neu-dual-layout">
+
+          <!-- 左侧：多媒体与技术参数 (自适应拟态) -->
+          <aside class="side-media-col">
+            <div class="media-inset-frame">
+              <img id="sideImg" src="./ChatGPT Image 2026年5月5日 10_53_01 (1).png" alt="主图">
+              <div class="media-tag-float">1:1 · 工作流指令</div>
+            </div>
+
+            <!-- 缩略条 -->
+            <div class="side-thumbs-row">
+              <button class="thumb-btn active" onclick="switchMediaImg(this, './ChatGPT Image 2026年5月5日 10_53_01 (1).png')">
+                <img src="./ChatGPT Image 2026年5月5日 10_53_01 (1).png" alt="图1">
+              </button>
+              <button class="thumb-btn" onclick="switchMediaImg(this, './ChatGPT Image 2026年5月5日 10_53_01 (2).png')">
+                <img src="./ChatGPT Image 2026年5月5日 10_53_01 (2).png" alt="图2">
+              </button>
+              <button class="thumb-btn" onclick="switchMediaImg(this, './ChatGPT Image 2026年5月5日 10_53_01 (3).png')">
+                <img src="./ChatGPT Image 2026年5月5日 10_53_01 (3).png" alt="图3">
+              </button>
+            </div>
+
+            <!-- 参数卡 -->
+            <div class="side-info-card">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:12.5px; font-weight:800;">⚙️ 提示词元属性</span>
+                <span style="font-size:11px; color:var(--text-muted);">GPT-4o / Claude 3.5</span>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:12px; margin-top:4px;">
+                <div style="background:var(--neu-bg); box-shadow:var(--neu-inset); padding:6px 8px; border-radius:8px;">
+                  <span style="color:var(--text-muted); font-size:10.5px;">创建时间</span>
+                  <div style="font-weight:700;">2026-05-11</div>
+                </div>
+                <div style="background:var(--neu-bg); box-shadow:var(--neu-inset); padding:6px 8px; border-radius:8px;">
+                  <span style="color:var(--text-muted); font-size:10.5px;">总字数</span>
+                  <div style="font-weight:700;">384 字符</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 版本记录 -->
+            <div class="side-info-card" style="padding:10px 14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+                <span style="font-weight:800;">🕒 当前版本: V1.0</span>
+                <span style="color:var(--brand-green); font-weight:700;">最新</span>
+              </div>
+            </div>
+          </aside>
+
+          <!-- 右侧：可读性专项工作区 -->
+          <section class="main-reader-col">
+
+            <!-- 标题区 -->
+            <div class="reader-title-area">
+              <h2 class="reader-main-title">
+                功能提示词指令 · 自动化办公全套
+                <span class="neu-pill" style="color:var(--brand-pink);">❤️ 1 喜欢</span>
+              </h2>
+              <div class="reader-tags-row">
+                <span class="neu-pill">Git自动化</span>
+                <span class="neu-pill">周报汇总</span>
+                <span class="neu-pill">领导汇报精简</span>
+                <span style="font-size:12px; color:var(--text-muted); margin-left:4px;">创建者：提示词管家</span>
+              </div>
+            </div>
+
+            <!-- ========================================================
+                 【方案 1：语义分段卡片型 (Semantic Chunked)】
+                 ======================================================== -->
+            <div class="scheme-panel active" id="schemePanel1">
+              <div class="neu-reading-card">
+                <div class="reading-card-header">
+                  <div class="reading-card-title">
+                    <span style="color:var(--brand-green);">✨</span>
+                    <span>正向提示词 (按语义目标拆解，共 5 组)</span>
+                  </div>
+                  <button class="neu-btn btn-accent" onclick="toastMsg('已复制全部正向指令！')">📋 复制全部指令</button>
+                </div>
+
+                <div class="chunk-list">
+                  <div class="chunk-item">
+                    <div class="chunk-head">
+                      <span class="chunk-tag-name">📌 模块 1 · Git 提交消息审查</span>
+                      <button class="neu-btn" style="font-size:11px; padding:2px 8px;" onclick="toastMsg('已复制模块 1 内容')">复制此段</button>
+                    </div>
+                    <div class="chunk-content-text">
+                      根据我的 git 更改，使用中文编写提交消息，给我人工审核，合理分开内容提交。
+                    </div>
+                  </div>
+
+                  <div class="chunk-item">
+                    <div class="chunk-head">
+                      <span class="chunk-tag-name">📌 模块 2 · 上周推送工作汇总与精简</span>
+                      <button class="neu-btn" style="font-size:11px; padding:2px 8px;" onclick="toastMsg('已复制模块 2 内容')">复制此段</button>
+                    </div>
+                    <div class="chunk-content-text">
+                      帮我汇总上周到今天在推送工作的内容（推送者为 LKC218），帮我整理成简洁文档。<br>
+                      仅保留精简版本，去掉专业名词和英文，需要汇报给领导的，给我整理一份更加口语化的周会演讲话稿。
+                    </div>
+                  </div>
+
+                  <div class="chunk-item">
+                    <div class="chunk-head">
+                      <span class="chunk-tag-name">📌 模块 3 · 交互执行原则</span>
+                      <button class="neu-btn" style="font-size:11px; padding:2px 8px;" onclick="toastMsg('已复制模块 3 内容')">复制此段</button>
+                    </div>
+                    <div class="chunk-content-text">
+                      给我简单明了建议，避免过多解释内容，只需要告诉我重点。<br>
+                      将计划整理成文档放入 docs 文件夹，做好功能文件夹分类。全自动执行，测试验证，部署上线全流程。
+                    </div>
+                  </div>
+
+                  <div class="chunk-item">
+                    <div class="chunk-head">
+                      <span class="chunk-tag-name">📌 模块 4 · 对话规范与严谨性</span>
+                      <button class="neu-btn" style="font-size:11px; padding:2px 8px;" onclick="toastMsg('已复制模块 4 内容')">复制此段</button>
+                    </div>
+                    <div class="chunk-content-text">
+                      不要用代码术语和我讨论，用正常话语。帮我断开对话，延续对话上下文内容。<br>
+                      注意：还有什么需要确认和注意的点，直接提问我，多提问我，避免反复跟讯问题，然后再执行任务。
+                    </div>
+                  </div>
+
+                  <div class="chunk-item">
+                    <div class="chunk-head">
+                      <span class="chunk-tag-name">📌 模块 5 · 高级执行模型与预览</span>
+                      <button class="neu-btn" style="font-size:11px; padding:2px 8px;" onclick="toastMsg('已复制模块 5 内容')">复制此段</button>
+                    </div>
+                    <div class="chunk-content-text">
+                      新开对话执行计划，模型以 gpt4.1 So1 极高执行，验证测试，自行判断并闭合任务。生成一个预览 html，给我先预览看看先，考虑是否实装。
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================================
+                 【方案 2：代码行号排版型 (Code Editor Legibility)】
+                 ======================================================== -->
+            <div class="scheme-panel" id="schemePanel2">
+              <div class="neu-reading-card">
+                <div class="reading-card-header">
+                  <div class="reading-card-title">
+                    <span style="color:var(--brand-blue);">💻</span>
+                    <span>带行号结构化视图 (Markdown 高精度排版)</span>
+                  </div>
+                  <button class="neu-btn btn-blue" onclick="toastMsg('已复制代码格式指令！')">复制代码</button>
+                </div>
+
+                <div class="code-editor-trough">
+                  <div class="line-numbers-col">
+                    <span>01</span><span>02</span><span>03</span><span>04</span><span>05</span>
+                    <span>06</span><span>07</span><span>08</span><span>09</span><span>10</span>
+                    <span>11</span><span>12</span><span>13</span><span>14</span>
+                  </div>
+                  <div class="code-lines-col">
+                    <span class="code-heading-line"># 1. 根据我的 git 更改编写提交消息</span>
+                    <span>&nbsp;&nbsp;&nbsp;&nbsp;使用中文编写提交消息，给我人工审核，合理分开内容提交。</span>
+                    <span class="code-heading-line"># 2. 帮我汇总上周工作内容 (推送者为 LKC218)</span>
+                    <span>&nbsp;&nbsp;&nbsp;&nbsp;帮我整理成简洁文档，仅保留精简版本，去掉专业名词和英文；</span>
+                    <span>&nbsp;&nbsp;&nbsp;&nbsp;需要汇报给领导的，给我整理一份口语化周会演讲话稿。</span>
+                    <span class="code-heading-line"># 3. 规划与归档要求</span>
+                    <span>&nbsp;&nbsp;&nbsp;&nbsp;将计划整理成文档放入 docs 文件夹，做好功能分类；全自动测试与部署。</span>
+                    <span class="code-heading-line"># 4. 对话与沟通原则</span>
+                    <span>&nbsp;&nbsp;&nbsp;&nbsp;不要用代码术语和我讨论，用正常话语；</span>
+                    <span class="code-notice-line">&nbsp;&nbsp;&nbsp;&nbsp;注意：多提问确认，避免反复跟讯，再行任务。</span>
+                    <span class="code-heading-line"># 5. 模型配置与预览交付</span>
+                    <span>&nbsp;&nbsp;&nbsp;&nbsp;模型以 gpt4.1 So1 极高执行，自行验证闭合；</span>
+                    <span class="code-keyword-action">&nbsp;&nbsp;&nbsp;&nbsp;生成一个预览 html，给我先预览看看先，考虑是否实装。</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================================
+                 【方案 3：清单条目检查型 (Checklist Legibility)】
+                 ======================================================== -->
+            <div class="scheme-panel" id="schemePanel3">
+              <div class="neu-reading-card">
+                <div class="reading-card-header">
+                  <div class="reading-card-title">
+                    <span style="color:var(--brand-green);">📋</span>
+                    <span>条目化执行清单 (清晰度与辨识度极致优化)</span>
+                  </div>
+                  <button class="neu-btn btn-green" onclick="toastMsg('已复制清单！')">复制条目清单</button>
+                </div>
+
+                <div class="checklist-container">
+                  <div class="checklist-row">
+                    <div class="checklist-index">1</div>
+                    <div class="checklist-text">根据我的 git 更改，使用中文编写提交消息，给我人工审核，合理分开内容提交。</div>
+                  </div>
+                  <div class="checklist-row">
+                    <div class="checklist-index">2</div>
+                    <div class="checklist-text">帮我汇总上周到今天在推送工作的内容（推送者为 LKC218），帮我整理成简洁文档。</div>
+                  </div>
+                  <div class="checklist-row">
+                    <div class="checklist-index">3</div>
+                    <div class="checklist-text">仅保留精简版本，去掉专业名词和英文，需要汇报给领导的，给我整理一份更加口语化的周会演讲话稿。</div>
+                  </div>
+                  <div class="checklist-row">
+                    <div class="checklist-index">4</div>
+                    <div class="checklist-text">给我简单明了建议，避免过多解释内容，只需要告诉我重点。</div>
+                  </div>
+                  <div class="checklist-row">
+                    <div class="checklist-index">5</div>
+                    <div class="checklist-text">将计划整理成文档放入 docs 文件夹，做好功能文件夹分类。全自动执行，测试验证，部署上线全流程。</div>
+                  </div>
+                  <div class="checklist-row">
+                    <div class="checklist-index">6</div>
+                    <div class="checklist-text"><strong>重要注意：</strong>还有什么需要确认和注意的点，直接提问我，多提问我，避免反复跟讯问题，然后再执行任务。</div>
+                  </div>
+                  <div class="checklist-row">
+                    <div class="checklist-index">7</div>
+                    <div class="checklist-text">生成一个预览 html，给我先预览看看先，考虑是否实装。</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================================
+                 【方案 4：双语段落译注型 (Bilingual Annotations)】
+                 ======================================================== -->
+            <div class="scheme-panel" id="schemePanel4">
+              <div class="neu-reading-card">
+                <div class="reading-card-header">
+                  <div class="reading-card-title">
+                    <span style="color:var(--brand-purple);">🌐</span>
+                    <span>双语逐句注记视图 (适合含英译/Prompt 生图对照场景)</span>
+                  </div>
+                  <button class="neu-btn" onclick="toastMsg('已复制双语内容！')">复制双语</button>
+                </div>
+
+                <div class="bilingual-block">
+                  <div class="bilingual-item">
+                    <div class="bilingual-original">
+                      <span>Git Commit Message Review</span>
+                      <span style="font-size:12px; color:var(--brand-blue);">模块 01</span>
+                    </div>
+                    <div class="bilingual-translated">
+                      根据我的 git 更改，使用中文编写提交消息，给我人工审核，合理分开内容提交。
+                    </div>
+                  </div>
+
+                  <div class="bilingual-item">
+                    <div class="bilingual-original">
+                      <span>Weekly Progress Summary for Leadership</span>
+                      <span style="font-size:12px; color:var(--brand-blue);">模块 02</span>
+                    </div>
+                    <div class="bilingual-translated">
+                      帮我汇总上周推送工作，整理成精炼口语化讲稿，去掉生僻英文名词，便于向领导汇报。
+                    </div>
+                  </div>
+
+                  <div class="bilingual-item">
+                    <div class="bilingual-original">
+                      <span>Documentation & Full-Auto Workflow</span>
+                      <span style="font-size:12px; color:var(--brand-blue);">模块 03</span>
+                    </div>
+                    <div class="bilingual-translated">
+                      将计划文档放入 docs 文件夹做好分类，全自动测试验证并上线部署。
+                    </div>
+                  </div>
+
+                  <div class="bilingual-item">
+                    <div class="bilingual-original">
+                      <span>Live HTML Prototype Delivery</span>
+                      <span style="font-size:12px; color:var(--brand-blue);">模块 04</span>
+                    </div>
+                    <div class="bilingual-translated">
+                      生成一个高保真预览 html，先预览直观体验，再行决定实装。
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================================
+                 【方案 5：手风琴大纲折叠型 (Accordion Outline Reader)】
+                 ======================================================== -->
+            <div class="scheme-panel" id="schemePanel5">
+              <div class="neu-reading-card">
+                <div class="reading-card-header">
+                  <div class="reading-card-title">
+                    <span style="color:var(--brand-yellow);">📂</span>
+                    <span>手风琴可折叠大纲 (解决超级长文本滚动负担)</span>
+                  </div>
+                  <div style="display:flex; gap:6px;">
+                    <button class="neu-btn" style="font-size:11px;" onclick="toggleAllAccordions(true)">全部展开</button>
+                    <button class="neu-btn" style="font-size:11px;" onclick="toggleAllAccordions(false)">全部折叠</button>
+                  </div>
+                </div>
+
+                <div class="accordion-group">
+                  <div class="accordion-card">
+                    <div class="accordion-header" onclick="toggleAcc(this)">
+                      <span class="accordion-title">📂 阶段一：代码提审与 Git 变更审查 (1条)</span>
+                      <span>▼</span>
+                    </div>
+                    <div class="accordion-body">
+                      根据我的 git 更改，使用中文编写提交消息，给我人工审核，合理分开内容提交。
+                    </div>
+                  </div>
+
+                  <div class="accordion-card">
+                    <div class="accordion-header" onclick="toggleAcc(this)">
+                      <span class="accordion-title">📂 阶段二：周报文档精简化与演讲稿 (3条)</span>
+                      <span>▼</span>
+                    </div>
+                    <div class="accordion-body">
+                      帮我汇总上周到今天在推送工作的内容（推送者为 LKC218），帮我整理成简洁文档。<br>
+                      仅保留精简版本，去掉专业名词和英文，需要汇报给领导的，给我整理一份更加口语化的周会演讲话稿。<br>
+                      给我简单明了建议，避免过多解释内容，只需要告诉我重点。
+                    </div>
+                  </div>
+
+                  <div class="accordion-card">
+                    <div class="accordion-header" onclick="toggleAcc(this)">
+                      <span class="accordion-title">📂 阶段三：自动化部署与文档归档 (2条)</span>
+                      <span>▼</span>
+                    </div>
+                    <div class="accordion-body">
+                      将计划整理成文档放入 docs 文件夹，做好功能文件夹分类。全自动执行，测试验证，部署上线全流程。<br>
+                      发布最新安装包并更新首页版本信息。
+                    </div>
+                  </div>
+
+                  <div class="accordion-card">
+                    <div class="accordion-header" onclick="toggleAcc(this)">
+                      <span class="accordion-title">📂 阶段四：对话规则与高阶模型执行 (3条)</span>
+                      <span>▼</span>
+                    </div>
+                    <div class="accordion-body">
+                      不要用代码术语和我讨论，用正常话语。帮我断开对话，延续对话上下文内容。<br>
+                      <strong>关键：</strong>有什么需要确认的直接多提问我，避免反复跟讯。<br>
+                      模型以 gpt4.1 So1 极高执行，生成一个预览 html 供先行体验。
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================================
+                 【方案 6：黄金字阶大师排版型 (Editorial Typography)】
+                 ======================================================== -->
+            <div class="scheme-panel" id="schemePanel6">
+              <div class="neu-reading-card">
+                <div class="reading-card-header">
+                  <div class="reading-card-title">
+                    <span style="color:#C2410C;">📖</span>
+                    <span>黄金字阶大师排版 (字号 16px · 行高 1.85 · AAA 级柔和护眼)</span>
+                  </div>
+                  <button class="neu-btn" onclick="toastMsg('已复制正文！')">复制正文</button>
+                </div>
+
+                <div class="editorial-paper-slot">
+                  <div>
+                    <span class="editorial-lead">Git 提交消息与上周推送汇总</span>
+                  </div>
+                  <p class="editorial-paragraph">
+                    根据我的 git 更改，使用中文编写提交消息，给我人工审核，合理分开内容提交。帮我汇总上周到今天在推送工作的内容（推送者为 LKC218），帮我整理成简洁文档。
+                  </p>
+                  <p class="editorial-paragraph">
+                    仅保留精简版本，去掉专业名词和英文，需要汇报给领导的，给我整理一份更加口语化的周会演讲话稿。给我简单明了建议，避免过多解释内容，只需要告诉我重点。
+                  </p>
+                  <div class="editorial-blockquote">
+                    <strong>执行守则：</strong>将计划整理成文档放入 docs 文件夹，做好功能文件夹分类。全自动执行，测试验证，部署上线全流程。遇到不明确处直接多提问我，避免反复跟讯。
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================================
+                 【方案 7：视觉权重热力分布型 (Weight Heatmap Pills)】
+                 ======================================================== -->
+            <div class="scheme-panel" id="schemePanel7">
+              <div class="neu-reading-card">
+                <div class="reading-card-header">
+                  <div class="reading-card-title">
+                    <span style="color:#DC2626;">🔥</span>
+                    <span>视觉权重热力胶囊 (单项直观点击复制)</span>
+                  </div>
+                  <button class="neu-btn btn-accent" onclick="toastMsg('已复制全部胶囊！')">全部复制</button>
+                </div>
+
+                <div class="heatmap-cluster">
+                  <button class="heat-pill heat-high" onclick="toastMsg('已单独复制：git 更改中文提交')">
+                    <span>📌 git更改中文提交</span>
+                    <span class="weight-tag">必选</span>
+                  </button>
+                  <button class="heat-pill heat-high" onclick="toastMsg('已单独复制：推送工作汇总(LKC218)')">
+                    <span>📋 工作汇总 (LKC218)</span>
+                    <span class="weight-tag">高优</span>
+                  </button>
+                  <button class="heat-pill heat-med" onclick="toastMsg('已单独复制：汇报领导精简演讲稿')">
+                    <span>🗣️ 领导口语化演讲稿</span>
+                    <span class="weight-tag">口语</span>
+                  </button>
+                  <button class="heat-pill heat-med" onclick="toastMsg('已单独复制：去专业名词与英文')">
+                    <span>🚫 去专业名词与英文</span>
+                  </button>
+                  <button class="heat-pill heat-normal" onclick="toastMsg('已单独复制：计划归档docs分类')">
+                    <span>📁 归档至 docs 目录</span>
+                  </button>
+                  <button class="heat-pill heat-normal" onclick="toastMsg('已单独复制：全自动测试上线')">
+                    <span>⚡ 全自动测试上线</span>
+                  </button>
+                  <button class="heat-pill heat-high" onclick="toastMsg('已单独复制：多提问确认避免跟讯')">
+                    <span>❓ 多提问确认避免反复</span>
+                    <span class="weight-tag">核心</span>
+                  </button>
+                  <button class="heat-pill heat-subtle" onclick="toastMsg('已单独复制：正常话语不扯术语')">
+                    <span>💬 用正常话语讨论</span>
+                  </button>
+                  <button class="heat-pill heat-high" onclick="toastMsg('已单独复制：生成预览HTML')">
+                    <span>🌐 生成预览 HTML 先行体验</span>
+                    <span class="weight-tag">产物</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ========================================================
+                 【方案 8：多模态阅读自适应工作台 (Adaptive Reader Pro)】
+                 ======================================================== -->
+            <div class="scheme-panel" id="schemePanel8">
+              <div class="neu-reading-card">
+                <div class="reading-card-header">
+                  <div class="reading-card-title">
+                    <span style="color:var(--brand-blue);">⚡</span>
+                    <span>多模态阅读模式自由切换 (一键切换排版形态)</span>
+                  </div>
+                  <div class="adaptive-mode-switcher">
+                    <button class="adaptive-btn active" onclick="switchAdaptiveSubView('card', this)">📑 语义卡片</button>
+                    <button class="adaptive-btn" onclick="switchAdaptiveSubView('code', this)">💻 行号代码</button>
+                    <button class="adaptive-btn" onclick="switchAdaptiveSubView('text', this)">📄 纯净排版</button>
+                  </div>
+                </div>
+
+                <!-- 自适应子视图容器 -->
+                <div id="adaptiveSubContent" style="background:var(--neu-bg); box-shadow:var(--neu-inset); border-radius:var(--radius-md); padding:20px;">
+                  <div id="subViewCard" style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="background:var(--neu-bg); box-shadow:var(--neu-raised-sm); padding:10px 14px; border-radius:10px;">
+                      <strong style="color:var(--brand-pink);">1. Git 提交审核：</strong> 使用中文编写提交消息，人工审核，分开提交。
+                    </div>
+                    <div style="background:var(--neu-bg); box-shadow:var(--neu-raised-sm); padding:10px 14px; border-radius:10px;">
+                      <strong style="color:var(--brand-blue);">2. 周会演讲稿：</strong> 汇总 LKC218 推送工作，去除专业词，整理领导口语版。
+                    </div>
+                    <div style="background:var(--neu-bg); box-shadow:var(--neu-raised-sm); padding:10px 14px; border-radius:10px;">
+                      <strong style="color:var(--brand-green);">3. 归档与流程：</strong> 整理入 docs 文件夹，全自动测试上线，生成预览 html。
+                    </div>
+                  </div>
+
+                  <div id="subViewCode" style="display:none; font-family:var(--font-mono); font-size:13px; line-height:1.7;">
+                    01 | # Git提审: 中文编写提交消息，人工审核分开提交<br>
+                    02 | # 周报汇总: 汇总LKC218推送，做精简口语化讲稿<br>
+                    03 | # 交付要求: 整理入docs，全自动测试，生成预览html先行体验
+                  </div>
+
+                  <div id="subViewText" style="display:none; font-size:15px; line-height:1.8; color:var(--text-body);">
+                    根据我的 git 更改，使用中文编写提交消息，给我人工审核，合理分开内容提交。帮我汇总上周到今天在推送工作的内容（推送者为 LKC218），帮我整理成简洁文档，仅保留精简版本，去掉专业名词和英文，需要汇报给领导的，给我整理一份更加口语化的周会演讲话稿。
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 负向词智能收拢条演示 -->
+            <div class="neg-slim-slot" onclick="toastMsg('已收起，点击可添加负向提示词')">
+              <div style="font-size:12.5px; display:flex; align-items:center; gap:8px;">
+                <span>🚫</span>
+                <strong>未设置负向提示词</strong>
+                <span style="color:var(--text-muted); font-size:11.5px;">（负向词为空时已自动紧凑收缩，为长文本正文释放 120px 黄金阅读高度）</span>
+              </div>
+              <button class="neu-btn" style="font-size:11px; padding:3px 10px;">+ 添加负向</button>
+            </div>
+
+            <!-- 底部操作条 -->
+            <div class="reader-bottom-bar">
+              <div style="display:flex; gap:10px;">
+                <button class="neu-btn btn-accent" style="font-size:14px; font-weight:800; padding:10px 24px;" onclick="toastMsg('已复制全部完整正反向提示词！')">
+                  <span>📋 复制全部指令 (直接使用)</span>
+                </button>
+                <button class="neu-btn" onclick="toastMsg('进入可视化编辑')">
+                  <span>✏️ 编辑指令</span>
+                </button>
+              </div>
+              <div>
+                <button class="neu-btn" onclick="toastMsg('已导出为 Markdown / JSON')">
+                  <span>⚡ 导出文档</span>
+                </button>
+              </div>
+            </div>
+
+          </section>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<!-- 拟态 Toast 提示 -->
+<div class="neu-toast" id="neuToast">
+  <span style="color:var(--brand-green);">✓</span>
+  <span id="toastMsgTxt">已复制到剪贴板！</span>
+</div>
+
+<script>
+  const SCHEME_DESC = {
+    1: {
+      title: "方案 1：语义分段卡片型（工作流长指令首推）",
+      sub: "针对长中文工作流指令，按语义目标自动拆解为 5 个独立微拟态卡片，每段可单独扫读与独立复制，层次极度分明。",
+      chips: ["逻辑段落拆解", "单段一键复制", "视线轻松聚焦"]
+    },
+    2: {
+      title: "方案 2：代码行号排版型（极客高精度排版）",
+      sub: "引入等宽代码编辑器槽与行号标注，Markdown 语法着色（标题粉色、关键动作青色、警告橙色），适合程序员与重度极客。",
+      chips: ["行号严格对齐", "语法高亮着色", "长代码极佳"]
+    },
+    3: {
+      title: "方案 3：清单条目检查型（条理清晰度极致优化）",
+      sub: "将指令转化为序号清晰的列表条目，每个要点独立一行，避免长句黏连，方便逐条核对执行要求。",
+      chips: ["序号圆点引导", "防跳行防遗漏", "扫读速度最快"]
+    },
+    4: {
+      title: "方案 4：双语段落译注型（适合多语言/生图Prompt对照）",
+      sub: "英文原句居上加粗，中文释义紧随其下，彻底解决生图关键词与中文字面翻译混淆的问题。",
+      chips: ["双语严格对照", "词汇无障碍", "生图学习两不误"]
+    },
+    5: {
+      title: "方案 5：手风琴可折叠大纲型（抽屉收放自如）",
+      sub: "面对超长篇商业提示词，分章节折叠收纳。用户可只展开关心的部分，彻底告别无休止的滚动条疲劳。",
+      chips: ["章节折叠收拢", "一键展开折叠", "告别长滚动条"]
+    },
+    6: {
+      title: "方案 6：黄金字阶大师排版（出版物级阅读舒适度）",
+      sub: "精调 16.5px 黄金字阶与 1.85 宽绰行高，深炭灰高对比文字配合羊皮纸深雕刻槽，达到 WCAG AAA 护眼标准。",
+      chips: ["宽绰舒适行高", "高对比防疲劳", "久看绝不累眼"]
+    },
+    7: {
+      title: "方案 7：视觉权重热力胶囊（权重一眼识别）",
+      sub: "将关键指令与高权重词赋予不同热力色标（红=必选、黄=中优、绿=常规），眼睛 0.1 秒即可捕捉最重要的执行点。",
+      chips: ["颜色识别重点", "单按即拷", "视觉锚点明确"]
+    },
+    8: {
+      title: "方案 8：多模态阅读自适应工作台（自由切换排版形态）",
+      sub: "右上角提供【语义卡片】、【行号代码】、【纯净排版】三种形态随时切换，一人满足所有不同习惯的使用诉求。",
+      chips: ["一键切换形态", "随心所欲阅读", "全场景通吃"]
+    }
+  };
+
+  // 切换方案
+  function switchReadScheme(id) {
+    document.querySelectorAll('.neu-tab-card').forEach((card, idx) => {
+      card.classList.toggle('active', (idx + 1) === id);
+    });
+
+    for (let i = 1; i <= 8; i++) {
+      const el = document.getElementById(`schemePanel${i}`);
+      if (el) el.classList.toggle('active', i === id);
+    }
+
+    const data = SCHEME_DESC[id];
+    if (data) {
+      document.getElementById('descTitle').textContent = data.title;
+      document.getElementById('descSub').textContent = data.sub;
+      document.getElementById('descChips').innerHTML = data.chips.map(c => `<span class="neu-chip">${c}</span>`).join('');
+    }
+  }
+
+  // 视口切换
+  function setStageMode(mode) {
+    const stage = document.getElementById('neuStage');
+    const btnM = document.getElementById('btnModal');
+    const btnF = document.getElementById('btnFull');
+    if (mode === 'modal') {
+      stage.className = 'neu-stage mode-modal';
+      btnM.classList.add('active');
+      btnF.classList.remove('active');
+    } else {
+      stage.className = 'neu-stage mode-full';
+      btnF.classList.add('active');
+      btnM.classList.remove('active');
+    }
+  }
+
+  // 切换多媒体图
+  function switchMediaImg(btn, src) {
+    document.querySelectorAll('.thumb-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const img = document.getElementById('sideImg');
+    if (img) {
+      img.style.opacity = '0.3';
+      setTimeout(() => {
+        img.src = src;
+        img.style.opacity = '1';
+      }, 120);
+    }
+  }
+
+  // 手风琴折叠
+  function toggleAcc(headerEl) {
+    const body = headerEl.nextElementSibling;
+    const arrow = headerEl.querySelector('span:last-child');
+    if (body.style.display === 'none') {
+      body.style.display = 'block';
+      arrow.textContent = '▼';
+    } else {
+      body.style.display = 'none';
+      arrow.textContent = '▶';
+    }
+  }
+
+  function toggleAllAccordions(expand) {
+    document.querySelectorAll('.accordion-body').forEach(b => {
+      b.style.display = expand ? 'block' : 'none';
+      b.previousElementSibling.querySelector('span:last-child').textContent = expand ? '▼' : '▶';
+    });
+    toastMsg(expand ? '已全部展开' : '已全部折叠');
+  }
+
+  // 方案8自适应子视图
+  function switchAdaptiveSubView(type, btn) {
+    btn.parentElement.querySelectorAll('.adaptive-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('subViewCard').style.display = (type === 'card') ? 'flex' : 'none';
+    document.getElementById('subViewCode').style.display = (type === 'code') ? 'block' : 'none';
+    document.getElementById('subViewText').style.display = (type === 'text') ? 'block' : 'none';
+  }
+
+  // 收藏切换
+  function toggleStar(btn) {
+    if (btn.classList.contains('starred')) {
+      btn.classList.remove('starred');
+      btn.innerHTML = '<span>☆</span> <span>收藏</span>';
+      toastMsg('已取消收藏');
+    } else {
+      btn.classList.add('starred');
+      btn.innerHTML = '<span>★</span> <span>已收藏</span>';
+      toastMsg('已加入我的收藏！');
+    }
+  }
+
+  // 吐司反馈
+  let toastTimer = null;
+  function toastMsg(txt) {
+    const el = document.getElementById('neuToast');
+    const msgEl = document.getElementById('toastMsgTxt');
+    msgEl.textContent = txt;
+    el.classList.add('active');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      el.classList.remove('active');
+    }, 1800);
+  }
+</script>
+
+</body>
+</html>

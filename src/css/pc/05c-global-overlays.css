@@ -1150,19 +1150,20 @@
     background: var(--color-context-danger-bg);
 }
 
-.pc-context-action.pc-context-tone-copy:hover .pc-context-icon img,
-.pc-context-action.pc-context-tone-copy:hover .pc-context-icon svg {
+.pc-context-action.pc-context-tone-copy:hover .pc-context-icon img {
     filter: brightness(0) saturate(100%) invert(48%) sepia(35%) saturate(936%) hue-rotate(105deg) brightness(91%) contrast(87%);
 }
 
-.pc-context-action.pc-context-tone-paste:hover .pc-context-icon img,
-.pc-context-action.pc-context-tone-paste:hover .pc-context-icon svg {
+.pc-context-action.pc-context-tone-paste:hover .pc-context-icon img {
     filter: brightness(0) saturate(100%) invert(46%) sepia(17%) saturate(2021%) hue-rotate(194deg) brightness(89%) contrast(89%);
 }
 
-.pc-context-action.pc-context-tone-delete:hover .pc-context-icon img,
-.pc-context-action.pc-context-tone-delete:hover .pc-context-icon svg {
+.pc-context-action.pc-context-tone-delete:hover .pc-context-icon img {
     filter: brightness(0) saturate(100%) invert(45%) sepia(83%) saturate(997%) hue-rotate(315deg) brightness(94%) contrast(89%);
+}
+
+.pc-context-icon svg {
+    filter: none;
 }
 
 .pc-context-action:active .pc-context-label,
@@ -1209,6 +1210,7 @@
 
 .pc-context-icon.pc-context-tone-rename {
     background: var(--color-context-rename-bg);
+    color: var(--color-context-rename-fg);
 }
 
 .pc-context-icon.pc-context-tone-rename img {
@@ -1217,6 +1219,7 @@
 
 .pc-context-icon.pc-context-tone-move {
     background: var(--color-context-move-bg);
+    color: var(--color-context-move-fg);
 }
 
 .pc-context-icon.pc-context-tone-move img {
@@ -1225,6 +1228,7 @@
 
 .pc-context-icon.pc-context-tone-copy {
     background: var(--color-context-copy-bg);
+    color: var(--color-context-copy-fg);
 }
 
 .pc-context-icon.pc-context-tone-copy img {
@@ -1233,6 +1237,7 @@
 
 .pc-context-icon.pc-context-tone-paste {
     background: var(--color-context-paste-bg);
+    color: var(--color-context-paste-fg);
 }
 
 .pc-context-icon.pc-context-tone-paste img {
@@ -1241,6 +1246,7 @@
 
 .pc-context-icon.pc-context-tone-delete {
     background: var(--color-context-danger-bg);
+    color: var(--color-context-danger-fg);
 }
 
 .pc-context-icon.pc-context-tone-delete img {
@@ -1432,7 +1438,8 @@
     width: 17px;
     height: 17px;
     display: block;
-    filter: brightness(0) invert(1);
+    color: currentColor;
+    filter: none;
 }
 
 .pc-image-viewer-tool:hover {

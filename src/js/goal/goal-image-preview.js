@@ -1,6 +1,7 @@
 import { escapeHtml } from '../pc/pc-utils.js';
+import { renderSvgIcon } from '../shared/svg-icons.js';
 
-const ICON_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="m21 15-4.5-4.5L8 19"></path></svg>`;
+const ICON_SVG = renderSvgIcon('image', { duotone: true });
 
 let activePreview = null;
 let activeIcon = null;

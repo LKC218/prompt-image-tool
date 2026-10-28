@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   One-click release for PromptImageManager:
@@ -181,6 +181,12 @@ function Get-ReleaseSections([string]$Root, [string]$Ver) {
 function Get-GitHubToken {
     if ($env:GH_TOKEN) { return $env:GH_TOKEN }
     if ($env:GITHUB_TOKEN) { return $env:GITHUB_TOKEN }
+    try {
+        $ghTok = (gh auth token 2>$null)
+        if ($ghTok -and $ghTok.Trim().Length -gt 0) {
+            return $ghTok.Trim()
+        }
+    } catch {}
     $payload = "protocol=https`nhost=github.com`n`n"
     $filled = $payload | git credential fill 2>$null
     if (-not $filled) { return $null }

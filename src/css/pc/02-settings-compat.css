@@ -1,48 +1,19 @@
+/* 设置页轻拟态令牌与外观模式自定义下拉（方案 4 精工仪表台配套） */
 .pc-settings-page {
-    --pc-settings-neu-raised: var(--pc-control-raised-shadow), inset 1px 1px 1px color-mix(in srgb, var(--pc-neu-light) 70%, transparent);
-    --pc-settings-neu-raised-hover: calc(-1 * var(--pc-neu-offset) - 2px) calc(-1 * var(--pc-neu-offset) - 2px) calc(var(--pc-neu-blur) + 6px) var(--pc-neu-light), calc(var(--pc-neu-offset) + 2px) calc(var(--pc-neu-offset) + 2px) calc(var(--pc-neu-blur) + 8px) var(--pc-neu-dark-accent), inset 1px 1px 1px color-mix(in srgb, var(--pc-neu-light) 78%, transparent);
+    --pc-settings-neu-soft: var(--pc-control-soft-shadow);
+    --pc-settings-neu-raised: var(--pc-control-raised-shadow);
     --pc-settings-neu-inset: var(--pc-control-pressed-shadow);
-    --pc-settings-neu-inset-soft: inset 3px 3px 8px color-mix(in srgb, var(--pc-neu-dark) 70%, transparent), inset -3px -3px 8px color-mix(in srgb, var(--pc-neu-light) 80%, transparent);
-}
-
-.pc-settings-panel {
-    border: 0;
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-settings-neu-raised);
-}
-
-.pc-settings-list,
-.pc-settings-export-mode {
-    border: 0;
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-settings-neu-inset);
-}
-
-.pc-settings-list-row + .pc-settings-list-row {
-    border-top-color: rgba(120, 90, 50, 0.08);
-}
-
-.pc-theme-dot {
-    box-shadow: 3px 3px 7px color-mix(in srgb, var(--pc-neu-dark) 72%, var(--dot-color)), -3px -3px 7px var(--pc-neu-light);
-}
-
-.pc-theme-dot:hover {
-    transform: translateY(-1px) scale(1.08);
-}
-
-.pc-theme-dot:active {
-    transform: translateY(1px) scale(0.96);
-    box-shadow: inset 2px 2px 5px color-mix(in srgb, var(--pc-neu-dark) 72%, var(--dot-color)), inset -2px -2px 5px var(--pc-neu-light);
-}
-
-.pc-theme-dot.pc-theme-active {
-    box-shadow: 0 0 0 2px var(--pc-neu-bg), 0 0 0 4px var(--dot-color), 4px 4px 9px var(--pc-neu-dark), -4px -4px 9px var(--pc-neu-light);
+    --pc-settings-neu-hover:
+        -5px -5px 12px var(--color-shadow-highlight),
+        5px 5px 13px color-mix(in srgb, var(--color-brand-primary) 18%, var(--color-shadow-neu-dark));
+    --pc-settings-line: color-mix(in srgb, var(--color-border-subtle) 68%, transparent);
+    --pc-settings-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .pc-theme-appearance-select {
     position: relative;
     flex: 0 0 auto;
-    min-width: 144px;
+    min-width: 138px;
     z-index: 40;
 }
 
@@ -52,29 +23,31 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
-    min-height: 38px;
-    border: 0;
-    border-radius: var(--pc-radius-sm);
-    background: var(--pc-neu-bg);
-    color: var(--pc-text);
-    font: var(--pc-font-caption);
-    padding: 8px 12px 8px 14px;
+    min-height: 34px;
+    border: 1px solid var(--pc-settings-line);
+    border-radius: 11px;
+    background: var(--color-surface-canvas);
+    color: var(--color-text-primary);
+    font: 600 13px/1.35 var(--pc-font-family);
+    padding: 6px 12px;
     cursor: pointer;
-    box-shadow: var(--pc-settings-neu-raised);
-    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    box-shadow: var(--pc-settings-neu-soft);
+    transition: transform 0.15s var(--pc-settings-ease), box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 
 .pc-theme-appearance-trigger:hover {
     transform: translateY(-1px);
-    box-shadow: var(--pc-settings-neu-raised-hover);
+    box-shadow: var(--pc-settings-neu-hover);
+    color: var(--color-brand-primary);
 }
 
 .pc-theme-appearance-select.pc-theme-appearance-open .pc-theme-appearance-trigger,
 .pc-theme-appearance-trigger:active {
     transform: translateY(1px);
-    box-shadow: var(--pc-settings-neu-inset-soft);
+    background: var(--color-surface-subtle);
+    box-shadow: var(--pc-settings-neu-inset);
 }
 
 .pc-theme-appearance-trigger:focus-visible {
@@ -93,34 +66,35 @@
 
 .pc-theme-appearance-arrow {
     flex: 0 0 auto;
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     margin-right: 2px;
-    border-right: 2px solid var(--pc-text2);
-    border-bottom: 2px solid var(--pc-text2);
+    border-right: 2px solid var(--color-text-secondary);
+    border-bottom: 2px solid var(--color-text-secondary);
     transform: rotate(45deg) translateY(-2px);
     transition: transform 0.18s ease, border-color 0.18s ease;
 }
 
 .pc-theme-appearance-select.pc-theme-appearance-open .pc-theme-appearance-arrow {
     transform: rotate(225deg) translateY(-2px);
-    border-color: var(--pc-accent);
+    border-color: var(--color-brand-primary);
 }
 
 .pc-theme-appearance-menu {
     position: absolute;
-    top: calc(100% + 10px);
+    top: calc(100% + 8px);
     right: 0;
     left: 0;
     z-index: 50;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
     margin: 0;
-    padding: 8px;
+    padding: 7px;
     list-style: none;
-    border-radius: var(--pc-radius-md);
-    background: var(--pc-neu-bg);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 14px;
+    background: var(--color-surface-canvas);
     box-shadow: var(--pc-control-float-shadow);
     transform-origin: top center;
     animation: pc-appearance-menu-in 0.18s cubic-bezier(.2, .8, .2, 1);
@@ -146,38 +120,29 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    min-height: 36px;
-    padding: 8px 12px;
+    min-height: 34px;
+    padding: 7px 11px;
     border: 0;
-    border-radius: 12px;
+    border-radius: 10px;
     background: transparent;
-    color: var(--pc-text);
-    font: var(--pc-font-caption);
+    color: var(--color-text-primary);
+    font: 500 13px/1.35 var(--pc-font-family);
     cursor: pointer;
-    transition: background-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
 }
 
 .pc-theme-appearance-option:hover,
 .pc-theme-appearance-option.pc-theme-appearance-option-active {
-    background: color-mix(in srgb, var(--pc-accent) 8%, var(--pc-neu-bg));
-    box-shadow:
-        3px 3px 8px color-mix(in srgb, var(--pc-neu-dark) 70%, transparent),
-        -3px -3px 8px var(--pc-neu-light);
-    color: var(--pc-accent-strong);
+    background: color-mix(in srgb, var(--color-brand-primary) 10%, var(--color-surface-canvas));
+    box-shadow: var(--pc-settings-neu-soft);
+    color: var(--color-brand-primary);
 }
 
 .pc-theme-appearance-option[aria-selected="true"] {
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-settings-neu-inset-soft);
-    color: var(--pc-accent);
-    font-weight: 600;
-}
-
-.pc-theme-appearance-option[aria-selected="true"]:hover,
-.pc-theme-appearance-option[aria-selected="true"].pc-theme-appearance-option-active {
-    box-shadow:
-        inset 3px 3px 8px var(--pc-neu-dark),
-        inset -3px -3px 8px var(--pc-neu-light);
+    background: var(--color-surface-subtle);
+    box-shadow: var(--pc-settings-neu-inset);
+    color: var(--color-brand-primary);
+    font-weight: 700;
 }
 
 .pc-theme-appearance-option:focus-visible {
@@ -215,13 +180,12 @@
 
 .pc-theme-appearance-option[aria-selected="true"] .pc-theme-appearance-option-check {
     opacity: 1;
-    background: var(--pc-accent);
-    border-color: var(--pc-accent);
+    background: var(--color-brand-primary);
+    border-color: var(--color-brand-primary);
     color: var(--color-text-on-brand);
 }
 
-:root[data-appearance="dark"] .pc-theme-appearance-trigger,
-:root[data-appearance="dark"] .pc-theme-appearance-menu {
+:root[data-appearance="dark"] .pc-theme-appearance-trigger {
     background: var(--color-surface-raised);
     box-shadow: var(--pc-control-soft-shadow);
 }
@@ -233,117 +197,11 @@
 
 :root[data-appearance="dark"] .pc-theme-appearance-select.pc-theme-appearance-open .pc-theme-appearance-trigger,
 :root[data-appearance="dark"] .pc-theme-appearance-trigger:active {
-    box-shadow: var(--pc-control-pressed-shadow);
-}
-
-:root[data-appearance="dark"] .pc-theme-appearance-option:hover,
-:root[data-appearance="dark"] .pc-theme-appearance-option.pc-theme-appearance-option-active {
-    background: color-mix(in srgb, var(--pc-accent) 14%, var(--color-surface-raised));
-    box-shadow: var(--pc-control-soft-shadow);
-}
-
-:root[data-appearance="dark"] .pc-theme-appearance-option[aria-selected="true"] {
     background: var(--color-surface-subtle);
     box-shadow: var(--pc-control-pressed-shadow);
 }
 
-.pc-settings-storage-tile {
-    border: 0;
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-settings-neu-inset-soft);
-}
-
-.pc-settings-space-tile {
-    background: var(--pc-neu-bg);
-}
-
-.pc-settings-storage-ring {
-    box-shadow: 4px 4px 10px var(--pc-neu-dark), -4px -4px 10px var(--pc-neu-light);
-}
-
-.pc-settings-storage-ring::after {
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-settings-neu-inset-soft);
-}
-
-.pc-settings-meta-row span,
-.pc-settings-meta-row .pc-version-info,
-.pc-settings-download-history-count,
-.pc-settings-sync-badge {
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-settings-neu-inset-soft);
-}
-
-.pc-settings-export-mode-option input:checked + span {
-    background: var(--pc-neu-bg);
-    box-shadow: 3px 3px 8px var(--pc-neu-dark-accent), -3px -3px 8px var(--pc-neu-light);
-}
-
-.pc-settings-action-card {
-    border: 0;
-    background: var(--pc-neu-bg);
-    box-shadow: 5px 5px 12px var(--pc-neu-dark), -5px -5px 12px var(--pc-neu-light);
-}
-
-.pc-settings-action-card:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--pc-settings-neu-raised-hover);
-}
-
-.pc-settings-action-card:active {
-    transform: translateY(1px);
-    box-shadow: var(--pc-settings-neu-inset);
-}
-
-.pc-settings-action-icon,
-.pc-settings-sync-icon {
-    background: var(--pc-neu-bg);
-    box-shadow: var(--pc-settings-neu-inset-soft);
-}
-
-.pc-settings-action-blue .pc-settings-action-icon { color: #2688E8; }
-.pc-settings-action-orange .pc-settings-action-icon { color: #F28A17; }
-.pc-settings-action-purple .pc-settings-action-icon { color: #7A4FF0; }
-.pc-settings-action-green .pc-settings-action-icon { color: #18A650; }
-
-.pc-settings-action-icon img,
-.pc-settings-sync-icon img {
-    filter: none;
-}
-
-.pc-settings-backup-panel > .pc-btn,
-.pc-settings-download-history-panel .pc-btn,
-.pc-settings-sync-panel .pc-btn {
-    border: 0;
-    background: var(--pc-neu-bg);
-    box-shadow: 3px 3px 8px var(--pc-neu-dark), -3px -3px 8px var(--pc-neu-light);
-}
-
-.pc-settings-backup-panel > .pc-btn:hover,
-.pc-settings-download-history-panel .pc-btn:hover,
-.pc-settings-sync-panel .pc-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 5px 5px 11px var(--pc-neu-dark-accent), -5px -5px 11px var(--pc-neu-light);
-}
-
-.pc-settings-backup-panel > .pc-btn:active,
-.pc-settings-download-history-panel .pc-btn:active,
-.pc-settings-sync-panel .pc-btn:active {
-    transform: translateY(1px);
-    box-shadow: var(--pc-settings-neu-inset-soft);
-}
-
-.pc-settings-sync-panel .pc-btn-primary { color: var(--pc-accent); }
-.pc-settings-download-history-panel .pc-btn-danger-outline { color: var(--pc-danger); }
-
 @media (prefers-reduced-motion: reduce) {
-    .pc-settings-action-card:hover,
-    .pc-settings-backup-panel > .pc-btn:hover,
-    .pc-settings-download-history-panel .pc-btn:hover,
-    .pc-settings-sync-panel .pc-btn:hover {
-        box-shadow: var(--pc-settings-neu-raised);
-    }
-
     .pc-theme-appearance-trigger,
     .pc-theme-appearance-option,
     .pc-theme-appearance-arrow {

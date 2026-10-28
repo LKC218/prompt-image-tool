@@ -1,5 +1,6 @@
 import { CARE_TYPES } from './plant-core.js';
 import { showConfirmModal } from '../pc/pc-utils.js';
+import { renderSvgIcon } from '../shared/svg-icons.js';
 
 import s01 from '../../assets/pc/plant/cycle/01-seed.png';
 import s02 from '../../assets/pc/plant/cycle/02-sprout.png';
@@ -60,12 +61,12 @@ function careLabel(type) {
 
 function careIcon(type) {
     if (type === 'watered') {
-        return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3s6 7 6 11a6 6 0 1 1-12 0c0-4 6-11 6-11z"/></svg>';
+        return renderSvgIcon('plant-water', { duotone: true });
     }
     if (type === 'fertilized') {
-        return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 5v2M12 17v2M5 12h2M17 12h2M7 7l1.5 1.5M15.5 15.5 17 17M17 7l-1.5 1.5M7 17l1.5-1.5"/></svg>';
+        return renderSvgIcon('plant-fertilize', { duotone: true });
     }
-    return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="10" r="2"/><circle cx="16" cy="8" r="2"/><circle cx="14" cy="16" r="2"/><path d="M4 18c2-2 4-2 6 0M12 14c2-1 4-1 6 1"/></svg>';
+    return renderSvgIcon('plant-bug-clear', { duotone: true });
 }
 
 function renderDecorations(state, payload) {

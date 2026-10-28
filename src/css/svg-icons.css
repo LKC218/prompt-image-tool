@@ -1,0 +1,71 @@
+/* =========================================================================
+   全局统一纯矢量 SVG 图标基础层（Soft Precision & Soft Duotone）
+   所有由 svg-icons.js / pcIcon / mobileIcon 输出的 <svg> 均携带 .ui-svg-icon
+   ========================================================================= */
+
+:where(.ui-svg-icon) {
+    width: 1em;
+    height: 1em;
+}
+
+.ui-svg-icon {
+    display: inline-block;
+    flex-shrink: 0;
+    vertical-align: middle;
+    color: currentColor;
+    overflow: visible;
+    -webkit-user-select: none;
+    user-select: none;
+    transition:
+        color 0.18s ease,
+        transform 0.18s ease,
+        opacity 0.18s ease,
+        filter 0.18s ease;
+}
+
+/* 轻双色调（Soft Duotone）内衬面：默认透明，开启 .ui-svg-icon--duotone 后呈现温润柔光 */
+.ui-svg-icon .svg-duotone {
+    fill: currentColor;
+    fill-opacity: 0;
+    stroke: none !important;
+    transition: fill-opacity 0.18s ease;
+}
+
+.ui-svg-icon--duotone .svg-duotone {
+    fill-opacity: var(--icon-duotone-alpha, 0.14);
+}
+
+/* 跨主题自适应语义色调工具类 */
+.ui-svg-icon--muted { color: var(--icon-fg-muted); }
+.ui-svg-icon--default { color: var(--icon-fg-default); }
+.ui-svg-icon--strong { color: var(--icon-fg-strong); }
+.ui-svg-icon--brand { color: var(--icon-fg-brand); }
+.ui-svg-icon--info { color: var(--icon-fg-info); }
+.ui-svg-icon--success { color: var(--icon-fg-success); }
+.ui-svg-icon--warning { color: var(--icon-fg-warning); }
+.ui-svg-icon--danger { color: var(--icon-fg-danger); }
+.ui-svg-icon--violet { color: var(--icon-fg-violet); }
+.ui-svg-icon--star { color: var(--icon-fg-star); }
+.ui-svg-icon--heart { color: var(--icon-fg-heart); }
+
+/* 加载中图标平滑旋转 */
+.ui-svg-icon-loader-circle {
+    animation: ui-svg-icon-spin 0.9s linear infinite;
+}
+
+@keyframes ui-svg-icon-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ui-svg-icon,
+    .ui-svg-icon .svg-duotone {
+        transition: none;
+    }
+
+    .ui-svg-icon-loader-circle {
+        animation: none;
+    }
+}

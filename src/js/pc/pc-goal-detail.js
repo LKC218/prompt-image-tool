@@ -55,16 +55,7 @@ import {
     MINDMAP_DEFAULT_TRANSFORM
 } from '../goal/goal-mindmap-core.js';
 import Sortable from 'sortablejs';
-import plusIcon from '../../assets/icons/plus.svg';
-import chevronDownIcon from '../../assets/icons/mobile/chevron-down.svg';
-import moreIcon from '../../assets/icons/more-horizontal.svg';
-import renameIcon from '../../assets/icons/pencil-line.svg';
-import copyIcon from '../../assets/icons/copy.svg';
-import imageIcon from '../../assets/icons/image.svg';
-import deleteIcon from '../../assets/icons/trash-2.svg';
-import gripIcon from '../../assets/icons/grip-vertical.svg';
-import checkIcon from '../../assets/icons/check.svg';
-import mapIcon from '../../assets/icons/map.svg';
+import { pcIcon } from './pc-icon-assets.js';
 import rabbitTip from '../../assets/mobile/mascots/rabbit-tip.png';
 
 let project = null;
@@ -111,32 +102,21 @@ function render(params = {}) {
     return `
         <div class="pc-goal-detail-page">
             <div class="pc-goal-detail-header">
-                <button class="pc-goal-detail-back" id="pcGoalDetailBack" aria-label="返回">${iconImg(chevronDownIcon)}</button>
+                <button class="pc-goal-detail-back" id="pcGoalDetailBack" aria-label="返回">${pcIcon('chevronLeft')}</button>
                 <h2 class="pc-goal-detail-title" id="pcGoalDetailTitle">加载中...</h2>
                 <div class="pc-goal-detail-actions">
                     <div class="pc-goal-view-switch" role="tablist" aria-label="视图切换">
                         <button type="button" class="pc-goal-view-switch-btn" data-view="list" id="pcGoalViewList" role="tab" aria-label="列表视图">
-                            <span class="pc-goal-view-switch-icon" aria-hidden="true">
-                                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-                                    <path d="M3 4h10M3 8h10M3 12h10"></path>
-                                </svg>
-                            </span>
+                            <span class="pc-goal-view-switch-icon" aria-hidden="true">${pcIcon('listView')}</span>
                             <span>列表</span>
                         </button>
                         <button type="button" class="pc-goal-view-switch-btn" data-view="mindmap" id="pcGoalViewMindmap" role="tab" aria-label="思维导图视图">
-                            <span class="pc-goal-view-switch-icon" aria-hidden="true">
-                                <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="4" cy="4" r="1.5"></circle>
-                                    <circle cx="12" cy="8" r="1.5"></circle>
-                                    <circle cx="4" cy="12" r="1.5"></circle>
-                                    <path d="M5.4 4.6 10.3 7.2M5.4 11.4 10.3 8.8"></path>
-                                </svg>
-                            </span>
+                            <span class="pc-goal-view-switch-icon" aria-hidden="true">${pcIcon('mindmap')}</span>
                             <span>思维导图</span>
                         </button>
                     </div>
                     <button class="pc-btn pc-btn-primary pc-btn-sm" id="pcGoalAddTask">
-                        <span class="pc-btn-icon">${iconImg(plusIcon)}</span>
+                        <span class="pc-btn-icon">${pcIcon('plus')}</span>
                         <span>添加任务</span>
                     </button>
                 </div>
@@ -301,10 +281,10 @@ function renderTaskTree(tree, depth) {
                 <div class="pc-goal-task-row" data-executing="${isTaskExecuting(task) ? 'true' : 'false'}">
                     ${renderTaskPriority(task)}
                     <button class="pc-goal-task-drag-handle" type="button" aria-label="拖动排序" data-task-id="${escapeHtml(task.id)}">
-                        ${iconImg(gripIcon)}
+                        ${pcIcon('gripVertical')}
                     </button>
                     <button class="pc-goal-task-toggle ${hasChildren ? '' : 'is-leaf'}" type="button" aria-label="${isExpanded ? '折叠' : '展开'}" data-task-id="${escapeHtml(task.id)}">
-                        ${hasChildren ? iconImg(chevronDownIcon) : ''}
+                        ${hasChildren ? pcIcon('chevronDown') : ''}
                     </button>
                     <label class="pc-goal-task-check ${isIndeterminate ? 'is-indeterminate' : ''} ${isChecked ? 'is-checked' : ''}">
                         <input type="checkbox" data-task-id="${escapeHtml(task.id)}" ${isChecked ? 'checked' : ''}>
@@ -315,10 +295,10 @@ function renderTaskTree(tree, depth) {
                         ${renderGoalImageIcon(task)}
                     </div>
                     <button class="pc-icon-btn pc-goal-task-action" data-action="add-child" data-task-id="${escapeHtml(task.id)}" title="添加子任务">
-                        ${iconImg(plusIcon)}
+                        ${pcIcon('plus')}
                     </button>
                     <button class="pc-icon-btn pc-goal-task-action" data-action="more" data-task-id="${escapeHtml(task.id)}" title="更多">
-                        ${iconImg(moreIcon)}
+                        ${pcIcon('moreHorizontal')}
                     </button>
                 </div>
                 <div class="pc-goal-task-children" data-parent-id="${escapeHtml(task.id)}">
@@ -767,24 +747,24 @@ async function showTaskMenu(id, anchorEl, options = {}) {
     const rect = anchorEl.getBoundingClientRect();
     const fromMindmap = options.source === 'mindmap';
     const iconByAction = {
-        'toggle-complete': iconImg(checkIcon),
+        'toggle-complete': pcIcon('check'),
         'toggle-executing': '',
-        'add-child': iconImg(plusIcon),
-        'rename': iconImg(renameIcon),
-        'copy': iconImg(copyIcon),
-        'set-priority': iconImg(moreIcon),
-        'import-image': iconImg(imageIcon),
-        'image-manager': iconImg(imageIcon),
-        'view-images': iconImg(imageIcon),
-        'locate-mindmap': iconImg(mapIcon),
-        'locate-list': iconImg(chevronDownIcon),
-        'delete': iconImg(deleteIcon)
+        'add-child': pcIcon('plus'),
+        'rename': pcIcon('pencilLine'),
+        'copy': pcIcon('copy'),
+        'set-priority': pcIcon('moreHorizontal'),
+        'import-image': pcIcon('image'),
+        'image-manager': pcIcon('image'),
+        'view-images': pcIcon('image'),
+        'locate-mindmap': pcIcon('mindmap'),
+        'locate-list': pcIcon('listView'),
+        'delete': pcIcon('trash')
     };
     const items = buildTaskContextMenuItems(task, { hasImages, source: options.source }).map(item => {
         if (item.divider) return item;
         const children = item.children?.map(child => ({
             ...child,
-            icon: child.selected ? iconImg(checkIcon) : ''
+            icon: child.selected ? pcIcon('check') : ''
         }));
         return {
             ...item,
@@ -1000,7 +980,7 @@ function showTaskImageManager(id) {
                 <div class="pc-goal-image-manager-item" data-index="${index}">
                     <img data-src="${url}" alt="任务图片" decoding="async">
                     <button class="pc-goal-image-manager-delete" type="button" aria-label="删除图片" data-index="${index}">
-                        ${iconImg(deleteIcon)}
+                        ${pcIcon('trash')}
                     </button>
                 </div>
             `);
@@ -1122,9 +1102,7 @@ function mindmapImageMarkup(node) {
     const count = node.imageCount || 0;
     const importBtn = `
         <button type="button" class="pc-goal-mindmap-image-add" data-task-id="${escapeHtml(node.id)}" aria-label="导入图片" title="导入图片">
-            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-                <path d="M8 3.2v9.6M3.2 8h9.6"></path>
-            </svg>
+            ${pcIcon('plus', 'pc-mindmap-add-icon', '', { size: 12 })}
         </button>
     `;
     if (!count) return importBtn;

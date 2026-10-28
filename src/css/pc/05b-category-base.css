@@ -65,8 +65,11 @@
 }
 
 .pc-segment-icon img,
+.pc-segment-icon svg,
 .pc-inline-icon img,
-.pc-btn-icon img {
+.pc-inline-icon svg,
+.pc-btn-icon img,
+.pc-btn-icon svg {
     width: 16px;
     height: 16px;
     object-fit: contain;
@@ -113,8 +116,18 @@
     filter: brightness(0) invert(1);
 }
 
+.pc-category-create-btn .pc-btn-icon svg {
+    color: currentColor;
+    filter: none;
+}
+
 .pc-btn-danger-outline .pc-btn-icon img {
     filter: invert(55%) sepia(77%) saturate(2710%) hue-rotate(326deg) brightness(103%) contrast(101%);
+}
+
+.pc-btn-danger-outline .pc-btn-icon svg {
+    color: var(--pc-danger);
+    filter: none;
 }
 
 .pc-category-panel-tools {
@@ -189,7 +202,8 @@
 }
 
 .pc-category-icon img,
-.pc-quick-action-icon img {
+.pc-quick-action-icon img,
+.pc-quick-action-icon svg {
     width: 24px;
     height: 24px;
     object-fit: contain;
@@ -273,8 +287,11 @@
 }
 
 .pc-icon-btn img,
+.pc-icon-btn svg,
 .pc-drag-handle img,
+.pc-drag-handle svg,
 .pc-tag-row-actions img,
+.pc-tag-row-actions svg,
 .pc-context-icon img,
 .pc-icon-img {
     width: 20px;
@@ -334,9 +351,14 @@
     margin-bottom: var(--pc-space-lg);
 }
 
-.pc-category-empty .pc-empty-icon img {
+.pc-category-empty .pc-empty-icon img,
+.pc-category-empty .pc-empty-icon svg {
     width: 34px;
     height: 34px;
+}
+
+.pc-category-empty .pc-empty-icon svg {
+    color: var(--icon-fg-brand);
 }
 
 .pc-tag-row {
@@ -407,24 +429,19 @@
     border-radius: 50%;
 }
 
-.pc-quick-action-icon img {
+.pc-quick-action-icon img,
+.pc-quick-action-icon svg {
     width: 22px;
     height: 22px;
     object-fit: contain;
 }
 
-.pc-quick-action-green .pc-quick-action-icon img {
-    filter: brightness(0) saturate(100%) invert(55%) sepia(59%) saturate(584%) hue-rotate(105deg) brightness(91%) contrast(89%);
+.pc-quick-action-icon svg {
+    color: currentColor;
+    filter: none;
 }
 
-.pc-quick-action-blue .pc-quick-action-icon img {
-    filter: brightness(0) saturate(100%) invert(50%) sepia(88%) saturate(1931%) hue-rotate(194deg) brightness(101%) contrast(101%);
-}
-
-.pc-quick-action-purple .pc-quick-action-icon img {
-    filter: brightness(0) saturate(100%) invert(49%) sepia(89%) saturate(1668%) hue-rotate(224deg) brightness(103%) contrast(101%);
-}
-
+/* 保留位图删除按钮 action-delete.png 的色调着色 */
 .pc-quick-action-red .pc-quick-action-icon img {
     filter: brightness(0) saturate(100%) invert(55%) sepia(77%) saturate(2710%) hue-rotate(326deg) brightness(103%) contrast(101%);
 }

@@ -6,6 +6,7 @@ import { getPromptSetMenuItems } from './pc-menu-actions.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { countPromptSetsByFolder, getPromptFolderId } from './pc-prompt-ui-utils.js';
 import { pcIcon } from './pc-icon-assets.js';
+import { renderSvgIcon } from '../shared/svg-icons.js';
 import { playPcFavoriteFeedback } from './pc-favorite-feedback.js';
 import { aggregateTags, getLibraryTagStyleClass, getPcTagStyleClass } from '../shared/tag-utils.js';
 import { openPromptDetail } from './pc-detail-modal.js';
@@ -65,15 +66,15 @@ function restoreLibraryScrollState(pageEl) {
 }
 
 const ICONS = {
-    search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg>',
-    plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>',
-    chevronDown: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>',
-    star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path></svg>',
-    more: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>',
-    image: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="m21 15-4.5-4.5L8 19"></path></svg>',
-    edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z"></path></svg>',
-    copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><rect x="4" y="4" width="11" height="11" rx="2"></rect></svg>',
-    folder: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-9Z"></path></svg>'
+    search: renderSvgIcon('search'),
+    plus: renderSvgIcon('plus'),
+    chevronDown: renderSvgIcon('chevron-down'),
+    star: renderSvgIcon('star'),
+    more: renderSvgIcon('more-horizontal'),
+    image: renderSvgIcon('image', { duotone: true }),
+    edit: renderSvgIcon('pencil-line'),
+    copy: renderSvgIcon('copy'),
+    folder: renderSvgIcon('folder', { duotone: true })
 };
 
 function render(params = {}) {
@@ -115,7 +116,7 @@ function render(params = {}) {
 
                     <span class="pc-create-btn-state pc-create-btn-state--acting" aria-hidden="true">
                         <span class="pc-create-btn-icon">
-                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                            ${renderSvgIcon('check')}
                         </span>
                         <span class="pc-create-btn-text">
                             <span style="--i:0">创</span>

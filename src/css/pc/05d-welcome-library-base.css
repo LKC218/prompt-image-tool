@@ -208,7 +208,8 @@
     width: 15px;
     height: 15px;
     display: block;
-    filter: invert(47%) sepia(50%) saturate(786%) hue-rotate(305deg) brightness(88%) contrast(91%);
+    color: currentColor;
+    filter: none;
 }
 
 .pc-welcome-banner-editor .pc-editor-clear-all-btn:hover:not(:disabled) {

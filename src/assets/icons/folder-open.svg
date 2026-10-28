@@ -1,11 +1,5 @@
-<svg
-  xmlns="http://www.w3.org/2000/svg"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
->
-  <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path class="svg-duotone" d="M5.2 19.5h13.1a2.2 2.2 0 0 0 2.1-1.6l1.3-4.8a1.8 1.8 0 0 0-1.74-2.3H8.4a2.2 2.2 0 0 0-2.06 1.44L4.4 17.5a1.6 1.6 0 0 0 .8 2Z" fill="currentColor" fill-opacity="0" stroke="none"/>
+  <path d="M3.5 18V6.5A2.5 2.5 0 0 1 6 4h3.4a2 2 0 0 1 1.6.8l1 1.3a1.6 1.6 0 0 0 1.3.6H17.5A2.5 2.5 0 0 1 20 9.2v1.6"/>
+  <path d="M4.2 19.5h14.1a2.2 2.2 0 0 0 2.1-1.6l1.2-4.6a1.8 1.8 0 0 0-1.74-2.3H8.3a2.2 2.2 0 0 0-2.06 1.44L4.2 18.2"/>
 </svg>

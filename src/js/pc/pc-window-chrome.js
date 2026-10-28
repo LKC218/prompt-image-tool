@@ -1,3 +1,5 @@
+import { renderSvgIcon } from '../shared/svg-icons.js';
+
 const CHROME_ID = 'pcWindowChrome';
 const DRAG_ATTR = 'data-tauri-drag-region';
 const DRAG_CLASS = 'pywebview-drag-region';
@@ -55,37 +57,12 @@ async function resolveWindowApi() {
 }
 
 const ICONS = {
-    back: `
-        <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M10 3.5 5.5 8 10 12.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-    `,
-    forward: `
-        <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-    `,
-    minimize: `
-        <svg viewBox="0 0 12 12" aria-hidden="true">
-            <path d="M2.2 6.2h7.6" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
-        </svg>
-    `,
-    maximize: `
-        <svg viewBox="0 0 12 12" aria-hidden="true">
-            <rect x="2.4" y="2.4" width="7.2" height="7.2" rx="0.5" fill="none" stroke="currentColor" stroke-width="1.15"/>
-        </svg>
-    `,
-    restore: `
-        <svg viewBox="0 0 12 12" aria-hidden="true">
-            <rect x="2.2" y="3.6" width="5.6" height="5.6" rx="0.45" fill="none" stroke="currentColor" stroke-width="1.1"/>
-            <path d="M4.2 3.5V2.9A.5.5 0 0 1 4.7 2.4h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5H8.3" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-        </svg>
-    `,
-    close: `
-        <svg viewBox="0 0 12 12" aria-hidden="true">
-            <path d="M3.4 3.4l5.2 5.2M8.6 3.4L3.4 8.6" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
-        </svg>
-    `,
+    back: renderSvgIcon('window-back'),
+    forward: renderSvgIcon('window-forward'),
+    minimize: renderSvgIcon('window-minimize'),
+    maximize: renderSvgIcon('window-maximize'),
+    restore: renderSvgIcon('window-restore'),
+    close: renderSvgIcon('window-close'),
 };
 
 export function renderWindowChrome() {

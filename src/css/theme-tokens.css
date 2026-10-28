@@ -64,6 +64,18 @@
     --color-context-paste-bg: #EEF0FF;
     --color-context-danger-fg: #D95761;
     --color-context-danger-bg: #FFEDEF;
+    --icon-duotone-alpha: 0.14;
+    --icon-fg-muted: #7F90A2;
+    --icon-fg-default: #526477;
+    --icon-fg-strong: #1E2B3A;
+    --icon-fg-brand: var(--color-brand-primary);
+    --icon-fg-info: #2578D8;
+    --icon-fg-success: #1F9665;
+    --icon-fg-warning: #D97706;
+    --icon-fg-danger: #D84356;
+    --icon-fg-violet: #7C5AE6;
+    --icon-fg-star: #F59E0B;
+    --icon-fg-heart: #EC4899;
 }
 
 :root[data-appearance="dark"] {
@@ -126,6 +138,18 @@
     --color-context-paste-bg: #373967;
     --color-context-danger-fg: #FF9EAA;
     --color-context-danger-bg: #642B35;
+    --icon-duotone-alpha: 0.20;
+    --icon-fg-muted: #788FA6;
+    --icon-fg-default: #AEC0D3;
+    --icon-fg-strong: #EAF2FA;
+    --icon-fg-brand: var(--color-brand-primary);
+    --icon-fg-info: #78BCFF;
+    --icon-fg-success: #6EE0A8;
+    --icon-fg-warning: #FBBF4C;
+    --icon-fg-danger: #FF8FA0;
+    --icon-fg-violet: #BCA6FF;
+    --icon-fg-star: #FBBF24;
+    --icon-fg-heart: #F472B6;
 }
 
 :root[data-workbench-theme="caramel"] {

@@ -1,6 +1,6 @@
 # 工具脚本说明
 
-本目录存放不属于运行时源码的一次性或专项维护脚本。
+本目录存放不属于运行时源码的构建、发包、专项维护与自动化验收脚本。
 
 ## 产品官网验收
 
@@ -77,16 +77,31 @@ venv/Scripts/python.exe -m pytest python/tests/test_png_compress.py python/tests
 
 验收产物位于已忽略的 `output/png-validation/`；引擎产物由 `vendor/oxipng/.gitignore` 精准排除。引擎测试需要先完成准备，不以跳过引擎测试冒充成功。前端可用 `PNG_TEST_URL` 指向其他 Vite 实例，后端安全检查仍使用专用 8898 端口。
 
-## 脚本清单
+## 脚本分类索引
 
-- `compress_icon.py`：压缩 `src/assets/icons/图标.svg` 内嵌的 PNG 数据。会直接改写图标文件，运行前应确认当前工作区状态。
-- `patch-java-version.ps1`：将 Capacitor 相关 Gradle 配置中的 Java 版本从 21 修补为 17。该脚本会修改 `android` 和 `node_modules` 下的 Gradle 文件，仅在 Android 构建遇到 Java 版本兼容问题时使用。
+### 1. 本地开发与引擎准备
 - `start_dev_server.py`：本地开发服务器启动入口，优先复用现有 `5173/8888` 服务，缺失时启动 Python 后端与 Vite 前端，并验证 PC / 移动端预览地址和实际数据目录。
-- `一键启动-服务器和网页.bat`：Windows 双击入口，直接调用 `scripts/start_dev_server.py --pc-only`，一键启动后端和前端并打开 PC 预览页。
+- `一键启动-服务器和网页.bat`（根目录）：Windows 双击入口，直接调用 `scripts/start_dev_server.py --pc-only`，一键启动后端和前端并打开 PC 预览页。
+- `prepare_image_engines.py`：统一准备 PNG（Oxipng）与 JPEG（Jpegoptim）引擎，执行 SHA256 校验并保留许可证文件。
+- `prepare_png_engine.py`：固定准备 Oxipng 10.2.1 官方 Windows x64 引擎、清单与许可证。
+- `compress_icon.py`：压缩 `src/assets/icons/图标.svg` 内嵌的 PNG 数据。会直接改写图标文件，运行前应确认当前工作区状态。
+
+### 2. 构建、打包与发布
 - `build_pc_package.py`：**Tauri 主路径**非交互式 PC 发包入口（`vite → server.spec Sidecar → npx tauri build → releases/PromptImageManager-Setup-<ver>.exe`）。禁止 `app.spec` 全量旧壳。
 - `build_installer_shell_package.py`：Tauri 安装器壳发布产物构建入口，可将现有 NSIS 安装核心嵌入自定义安装器壳，并输出到 `releases/`。
 - `build_android_package.py`：非交互式 Android 安装包构建入口，按 `Vite -> Capacitor sync -> Java 版本修补 -> Gradle assembleRelease -> releases` 顺序执行，并校验版本、签名配置和 APK 产物。
 - `build_release_packages.py`：发布包总构建入口，可构建 PC、Android 或全部安装包。
+- `prepare_release_sources.py`：校验并准备第三方图片引擎源码分发包，同时复制到 Tauri 安装资源目录。
+- `publish_release.ps1`：一键发版脚本（版本一致性校验、Release 创建/更新、上传安装包与源码附件）。
+- `normalize_changelog.py` / `gen_release_body.py` / `backfill_release_notes.py`：规范化 `changelog.md` 章节、生成或回填 GitHub Release 更新说明。
+- `capture_readme_previews.py`：自动截取并更新 `docs/assets/readme/` 下的 README 界面预览图。
+- `patch-java-version.ps1`：将 Capacitor 相关 Gradle 配置中的 Java 版本从 21 修补为 17。该脚本会修改 `android` 和 `node_modules` 下的 Gradle 文件，仅在 Android 构建遇到 Java 版本兼容问题时使用。
+
+### 3. 自动化核验与测试样本（`verify-*` / `*-fixtures`）
+- **构建与发布校验**：`verify-ui-encoding.mjs`、`verify-dist-assets.mjs`、`verify_release_package.py`、`verify_frozen_release.py`、`frameless_probe.py`。
+- **侧栏与窗口壳验收**：`verify-sidebar-collapse.mjs`、`verify-sidebar-hover.mjs`、`verify-sidebar-micro-motion.mjs`、`verify-sidebar-more-menu.mjs`、`verify-window-header.mjs`。
+- **图片处理与缩放验收**：`verify-image-processing.mjs`、`verify-image-resize.mjs`、`verify-image-interactions.mjs`、`verify-image-panel-motion.mjs`、`verify-image-settings-density.mjs`、`verify-png-compression.mjs`；配套样本与隔离服务：`image_validation_fixtures.py`、`resize_validation_fixtures.py`、`png_validation_fixtures.py`、`serve_png_validation.py`。
+- **全局轻拟态与专项视觉验收**：`verify-global-neu-sweep.mjs`、`verify-neu-select-sweep.mjs`、`verify-neu-dropdown-audit.mjs`、`verify-appearance-neu-select.mjs`、`verify-pc-home-liquid.mjs`、`repro-liquid-wave-decay.mjs`、`verify-cover-persist.mjs`、`verify-goal-mindmap-height.mjs`、`verify-goal-sort.mjs`、`verify-goal-view-switch.mjs`、`goal-mindmap-visual.mjs`、`goal-mindmap-neu-visual.mjs`、`goal-mindmap-import-visual.mjs`、`verify-website.mjs`。
 
 ## 使用原则
 
@@ -165,7 +180,8 @@ python scripts\build_release_packages.py
 python scripts\build_release_packages.py --pc
 python scripts\build_release_packages.py --android
 ```
-# 发布源码材料
+
+## 发布源码材料
 
 `venv/Scripts/python.exe scripts/verify_release_package.py` 在发布预演生成 `latest.json` 后，检查版本、哈希、实际 NSIS 文件资源及源码附件一致性。不会访问远端或执行安装。
 

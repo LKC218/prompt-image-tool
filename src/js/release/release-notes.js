@@ -1,5 +1,6 @@
 import { closeModal, showModal } from '../pc/pc-utils.js';
 import { getVersion } from '../core/version-info.js';
+import { renderSvgIcon } from '../shared/svg-icons.js';
 import { RELEASE_NOTES } from './release-notes-data.js';
 
 const LAST_SEEN_VERSION_KEY = 'pc-release-notes-last-seen-version';
@@ -118,7 +119,7 @@ function renderReleaseNotes() {
                     <h3 id="pcReleaseNotesTitle">更新记录</h3>
                 </div>
                 <button class="pc-release-close" type="button" data-release-close aria-label="关闭更新记录" title="关闭">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"></path></svg>
+                    ${renderSvgIcon('x')}
                 </button>
             </header>
             <div class="pc-release-notes-body">

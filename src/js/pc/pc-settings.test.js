@@ -40,6 +40,7 @@ vi.mock('./pc-utils.js', () => ({
 vi.mock('../shared/backup-utils.js', () => ({
     buildExportSuccessMessage: vi.fn(),
     exportBackup: vi.fn(),
+    exportZipBackup: vi.fn(),
     getErrorMessage: vi.fn(),
 }));
 
@@ -89,7 +90,7 @@ async function mountPage() {
     return pageEl;
 }
 
-describe('PC 设置页下载历史', () => {
+describe('PC 设置页下载历史与存储遥测', () => {
     beforeEach(() => {
         storageMocks.getStorage.mockReturnValue(createStorage());
         document.body.innerHTML = '<div id="pcApp"></div>';
@@ -147,7 +148,7 @@ describe('PC 设置页下载历史', () => {
         expect(pageEl.querySelector('#pcClearDownloadHistory').disabled).toBe(true);
     });
 
-    it('将非零且低于 1% 的业务数据大小显示为最小可见进度', async () => {
+    it('将非零且低于 1% 的业务数据大小显示为最小可见进度并点亮 1 格刻度', async () => {
         storageMocks.getStorage.mockReturnValue(createStorage(50 * 1024 * 1024));
         mockStorageEstimate(0, 25 * 1024 * 1024 * 1024);
 
@@ -155,9 +156,11 @@ describe('PC 设置页下载历史', () => {
 
         expect(pageEl.querySelector('#pcStorageRingValue').textContent).toBe('<1%');
         expect(pageEl.querySelector('#pcStorageRing').style.getPropertyValue('--ring-percent')).toBe('1%');
+        expect(pageEl.querySelectorAll('#pcStorageTicks i')).toHaveLength(16);
+        expect(pageEl.querySelectorAll('#pcStorageTicks i.is-lit')).toHaveLength(1);
     });
 
-    it('将零存储占用保持为零进度', async () => {
+    it('将零存储占用保持为零进度且不点亮刻度', async () => {
         storageMocks.getStorage.mockReturnValue(createStorage(0));
         mockStorageEstimate(0, 25 * 1024 * 1024 * 1024);
 
@@ -165,9 +168,10 @@ describe('PC 设置页下载历史', () => {
 
         expect(pageEl.querySelector('#pcStorageRingValue').textContent).toBe('0%');
         expect(pageEl.querySelector('#pcStorageRing').style.getPropertyValue('--ring-percent')).toBe('0%');
+        expect(pageEl.querySelectorAll('#pcStorageTicks i.is-lit')).toHaveLength(0);
     });
 
-    it('按业务数据大小展示正常进度', async () => {
+    it('按业务数据大小展示正常进度并点亮对应刻度格', async () => {
         storageMocks.getStorage.mockReturnValue(createStorage(6 * 1024 * 1024 * 1024));
         mockStorageEstimate(0, 25 * 1024 * 1024 * 1024);
 
@@ -175,6 +179,7 @@ describe('PC 设置页下载历史', () => {
 
         expect(pageEl.querySelector('#pcStorageRingValue').textContent).toBe('24%');
         expect(pageEl.querySelector('#pcStorageRing').style.getPropertyValue('--ring-percent')).toBe('24%');
+        expect(pageEl.querySelectorAll('#pcStorageTicks i.is-lit')).toHaveLength(4);
     });
 
     it('业务数据大小不可用时回退浏览器存储占用', async () => {
@@ -190,7 +195,7 @@ describe('PC 设置页下载历史', () => {
     });
 });
 
-describe('PC 设置页外观模式轻拟态下拉', () => {
+describe('PC 设置页轻拟态精工仪表台与外观联动', () => {
     beforeEach(() => {
         storageMocks.getStorage.mockReturnValue(createStorage());
         document.body.innerHTML = '<div id="pcApp"></div>';
@@ -207,7 +212,7 @@ describe('PC 设置页外观模式轻拟态下拉', () => {
         }
     });
 
-    it('渲染自定义下拉而非原生 select，并可选择外观模式', async () => {
+    it('渲染自定义下拉而非原生 select，并与微缩外观拨盘卡双向同步', async () => {
         const pageEl = await mountPage();
         const root = pageEl.querySelector('#pcAppearancePicker');
         const trigger = root.querySelector('.pc-theme-appearance-trigger');
@@ -230,12 +235,34 @@ describe('PC 设置页外观模式轻拟态下拉', () => {
         expect(root.dataset.value).toBe('dark');
         expect(root.querySelector('.pc-theme-appearance-value').textContent).toBe('深色');
         expect(darkOption.getAttribute('aria-selected')).toBe('true');
+        expect(pageEl.querySelector('[data-appearance-card="dark"]').getAttribute('aria-checked')).toBe('true');
         expect(localStorage.getItem('appearance-preference')).toBe('dark');
         expect(pcUtilsMocks.showToast).toHaveBeenCalledWith('外观模式已更新');
     });
+
+    it('支持点击微缩外观拨盘卡、切换白瓷主题色珠并复制本地数据目录', async () => {
+        const pageEl = await mountPage();
+
+        expect(pageEl.querySelector('.pc-settings-console')).toBeTruthy();
+        expect(pageEl.querySelectorAll('[data-appearance-card]')).toHaveLength(4);
+
+        const systemCard = pageEl.querySelector('[data-appearance-card="system"]');
+        systemCard.click();
+        expect(systemCard.classList.contains('is-active')).toBe(true);
+        expect(pageEl.querySelector('#pcAppearancePicker').dataset.value).toBe('system');
+        expect(localStorage.getItem('appearance-preference')).toBe('system');
+
+        const roseDot = pageEl.querySelector('[data-workbench-theme="rose"]');
+        roseDot.click();
+        expect(roseDot.getAttribute('aria-checked')).toBe('true');
+        expect(pageEl.querySelector('#pcActiveThemeBadge').textContent).toBe('蔷薇漫游');
+
+        pageEl.querySelector('#pcCopyDataDir').click();
+        expect(pcUtilsMocks.copyToClipboard).toHaveBeenCalledWith('C:\\Users\\Tester\\AppData\\Roaming\\PromptImageManager\\data');
+    });
 });
 
-describe('PC 设置页软件更新卡片', () => {
+describe('PC 设置页软件更新控制区', () => {
     beforeEach(() => {
         storageMocks.getStorage.mockReturnValue(createStorage());
         document.body.innerHTML = '<div id="pcApp"></div>';
@@ -253,7 +280,7 @@ describe('PC 设置页软件更新卡片', () => {
         }
     });
 
-    it('渲染独立更新卡片并可点击检查', async () => {
+    it('在仪表顶栏集成软件更新控制区并可点击检查', async () => {
         const pageEl = await mountPage();
         const panel = pageEl.querySelector('.pc-settings-update-panel');
         const btn = pageEl.querySelector('#pcCheckUpdateBtn');

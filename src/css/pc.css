@@ -1,3 +1,4 @@
+@import "./svg-icons.css";
 @import "./pc/01-foundation-shell.css";
 @import "./pc/02-settings-compat.css";
 @import "./pc/03-shared-components.css";
@@ -14,3 +15,4 @@
 @import "./pc/10-plane.css";
 @import "./pc/11-plant.css";
 @import "./pc/12-compress.css";
+@import "./pc/13-page-transition.css";

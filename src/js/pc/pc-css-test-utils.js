@@ -18,6 +18,7 @@ const PC_CSS_FILES = [
     '10-plane.css',
     '11-plant.css',
     '12-compress.css',
+    '13-page-transition.css',
 ];
 
 export function readPcCss() {

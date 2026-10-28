@@ -19,6 +19,8 @@ import { getThemeState, setAppearancePreference, setWorkbenchTheme } from '../co
 import { renderWindowChrome, mountWindowChrome } from './pc-window-chrome.js';
 import { setupSidebarHover } from './pc-sidebar.js';
 import { initWindowSizePolicy } from './pc-window-size.js';
+import { renderSvgIcon } from '../shared/svg-icons.js';
+import { createSidebarJellyController, createPageTransitionOrchestrator } from './pc-page-transition.js';
 
 const LAZY_ROUTES = {
     '/': () => import('./pc-home.js'),
@@ -45,6 +47,8 @@ let activePage = null;
 let currentAccent = 'sky';
 let isSidebarCollapsed = true;
 let cleanupSidebarHover = null;
+let sidebarJelly = null;
+let pageTransition = null;
 
 const NAV_ITEMS = [
     { path: '/', icon: navHome, label: '首页' },
@@ -58,43 +62,16 @@ const NAV_ITEMS = [
 
 const SETTINGS_NAV_ITEM = { path: '/settings', icon: navSettings, label: '设置' };
 
-const RELEASE_NOTES_ICON = `
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M8 7h12M8 12h12M8 17h8"></path>
-        <path d="M4 7h.01M4 12h.01M4 17h.01"></path>
-    </svg>
-`;
+const RELEASE_NOTES_ICON = renderSvgIcon('release-notes', { duotone: true });
 
-const CHECK_UPDATE_ICON = `
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 4v10"></path>
-        <path d="m8 10 4 4 4-4"></path>
-        <path d="M5 18h14"></path>
-        <path d="M7 21h10"></path>
-    </svg>
-`;
+const CHECK_UPDATE_ICON = renderSvgIcon('check-update', { duotone: true });
 
 const THEME_TOGGLE_ICONS = {
-    light: `
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path d="M12 2.5v2M12 19.5v2M21.5 12h-2M4.5 12h-2M18.72 5.28l-1.42 1.42M6.7 17.3l-1.42 1.42M18.72 18.72 17.3 17.3M6.7 6.7 5.28 5.28"></path>
-        </svg>
-    `,
-    dark: `
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z"></path>
-        </svg>
-    `,
+    light: renderSvgIcon('sun', { duotone: true }),
+    dark: renderSvgIcon('moon', { duotone: true }),
 };
 
-const MORE_MENU_ICON = `
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="6" cy="12" r="1.35" fill="currentColor" stroke="none"></circle>
-        <circle cx="12" cy="12" r="1.35" fill="currentColor" stroke="none"></circle>
-        <circle cx="18" cy="12" r="1.35" fill="currentColor" stroke="none"></circle>
-    </svg>
-`;
+const MORE_MENU_ICON = renderSvgIcon('more-horizontal');
 
 const TAB_ROUTES = ['/', '/library', '/compress', '/goals', '/category', '/games', '/settings'];
 const NAV_CLICK_MOTION_CLASS = 'pc-nav-clicking';
@@ -254,12 +231,19 @@ function prefetchRouteModules() {
 async function mount(el) {
     appEl = el;
     cleanupSidebarHover?.();
+    sidebarJelly?.dispose();
+    sidebarJelly = null;
+    pageTransition?.abort();
+    pageTransition = null;
+    activePage = null;
     isSidebarCollapsed = !window.matchMedia?.('(hover: none)')?.matches;
     appEl.classList.add('pc-app');
     appEl.dataset.appVersion = document.querySelector('meta[name="version"]')?.content || 'unknown';
     applySidebarState(isSidebarCollapsed);
     appEl.innerHTML = renderShell();
     pageContainer = document.getElementById('pcMain');
+    pageTransition = createPageTransitionOrchestrator(pageContainer);
+    sidebarJelly = createSidebarJellyController(appEl);
 
     currentAccent = getThemeState().workbenchTheme;
 
@@ -268,7 +252,10 @@ async function mount(el) {
     setupSidebarNav();
     cleanupSidebarHover = setupSidebarHover(appEl, {
         onStateChange: applySidebarState,
-        onLayoutChange: positionSidebarMoreMenu,
+        onLayoutChange: () => {
+            positionSidebarMoreMenu();
+            sidebarJelly?.sync(activeNav, { animate: false });
+        },
     });
     setupKeyboardShortcuts();
     setupSidebarClock();
@@ -285,15 +272,15 @@ async function mount(el) {
     const initialRoute = initRouter() || getCurrentRoute() || { path: '/', params: {} };
     const initialPath = initialRoute.path || '/';
     if (TAB_ROUTES.includes(initialPath)) {
-        updateNavHighlight(initialPath);
+        updateNavHighlight(initialPath, { animate: false });
     } else if (initialPath.startsWith('/detail')) {
-        updateNavHighlight('/library');
+        updateNavHighlight('/library', { animate: false });
     } else if (initialPath.startsWith('/editor')) {
-        updateNavHighlight('/editor/');
+        updateNavHighlight('/editor/', { animate: false });
     } else if (initialPath.startsWith('/goals')) {
-        updateNavHighlight('/goals');
+        updateNavHighlight('/goals', { animate: false });
     } else if (initialPath === '/tetris' || initialPath === '/plane') {
-        updateNavHighlight('/games');
+        updateNavHighlight('/games', { animate: false });
     }
     await createPage(resolveRouteKey(initialPath), initialRoute.params || {}, 'tab');
     prefetchRouteModules();
@@ -587,7 +574,7 @@ function setupKeyboardShortcuts() {
     });
 }
 
-function updateNavHighlight(path) {
+function updateNavHighlight(path, options = { animate: true }) {
     activeNav = path;
     const navItems = document.querySelectorAll('.pc-nav-item');
     navItems.forEach(item => {
@@ -604,6 +591,7 @@ function updateNavHighlight(path) {
             item.removeAttribute('aria-current');
         }
     });
+    sidebarJelly?.sync(activeNav, options);
 }
 
 function handleRouteChange(newRoute, oldRoute, direction) {
@@ -644,6 +632,7 @@ function handleRouteChange(newRoute, oldRoute, direction) {
 }
 
 function destroyCurrentPage() {
+    pageTransition?.abort();
     if (!activePage) return;
     if (activePage.handler && activePage.handler.unmount) {
         activePage.handler.unmount(activePage.el);
@@ -670,24 +659,58 @@ async function createPage(routeKey, params = {}, direction = 'tab') {
         return;
     }
 
-    destroyCurrentPage();
+    const prevPage = activePage;
+    const prevRouteKey = prevPage?.routeKey || null;
+    const prevScrollTop = pageContainer?.scrollTop || 0;
+    if (prevPage) {
+        if (prevPage.handler && prevPage.handler.unmount) {
+            prevPage.handler.unmount(prevPage.el);
+        }
+        activePage = null;
+    }
 
     const pageEl = document.createElement('div');
     pageEl.className = 'pc-page';
     pageEl.dataset.route = routeKey;
     pageEl.innerHTML = handler.render(params);
-    pageContainer.appendChild(pageEl);
-    activePage = { el: pageEl, handler };
+
+    let transitionSession = null;
+    if (pageTransition) {
+        transitionSession = pageTransition.startTransition({
+            oldPageEl: prevPage?.el || null,
+            nextPageEl: pageEl,
+            oldRouteKey: prevRouteKey,
+            newRouteKey: routeKey,
+            direction,
+            prevScrollTop,
+        });
+    } else {
+        if (prevPage?.el?.parentNode) prevPage.el.remove();
+        pageContainer.appendChild(pageEl);
+    }
+
+    activePage = { el: pageEl, handler, routeKey };
 
     if (handler.mount) {
         try {
             const result = handler.mount(pageEl, params);
             if (result && typeof result.then === 'function') {
-                result.catch((error) => console.error('page mount error:', routeKey, error));
+                result.then(
+                    () => {
+                        if (seq === createPageSeq) {
+                            transitionSession?.onMounted();
+                        }
+                    },
+                    (error) => console.error('page mount error:', routeKey, error)
+                );
+            } else {
+                transitionSession?.onMounted();
             }
         } catch (error) {
             console.error('page mount error:', routeKey, error);
         }
+    } else {
+        transitionSession?.onMounted();
     }
 
     pageContainer.scrollTop = 0;

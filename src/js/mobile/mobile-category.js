@@ -5,11 +5,6 @@ import { getFolderColor as resolveFolderColor } from '../shared/folder-color.js'
 import { mobileIcon } from './mobile-icon-assets.js';
 import rabbitTip from '../../assets/mobile/mascots/rabbit-tip.png';
 import folderIcon from '../../assets/mobile/folder.png';
-import arrowUpDownIcon from '../../assets/icons/arrow-up-down.svg';
-import pencilLineIcon from '../../assets/icons/pencil-line.svg';
-import mergeIcon from '../../assets/icons/merge.svg';
-import trashIcon from '../../assets/icons/trash-2.svg';
-import tagIcon from '../../assets/icons/tag.svg';
 import emptyTagIcon from '../../assets/mobile/tag.png';
 
 let currentSegment = 'category';
@@ -69,19 +64,19 @@ function render(params = {}) {
                     </div>
                     <div class="m-quick-actions">
                         <button class="m-quick-action-btn m-action-green" id="mSortBtn">
-                            <span class="m-quick-action-icon">${iconImg(arrowUpDownIcon)}</span>
+                            <span class="m-quick-action-icon">${mobileIcon('sort', { duotone: true })}</span>
                             <span>排序</span>
                         </button>
                         <button class="m-quick-action-btn m-action-blue" id="mBatchEditBtn">
-                            <span class="m-quick-action-icon">${iconImg(pencilLineIcon)}</span>
+                            <span class="m-quick-action-icon">${mobileIcon('rename', { duotone: true })}</span>
                             <span>批量编辑</span>
                         </button>
                         <button class="m-quick-action-btn m-action-purple" id="mMergeBtn">
-                            <span class="m-quick-action-icon">${iconImg(mergeIcon)}</span>
+                            <span class="m-quick-action-icon">${mobileIcon('merge', { duotone: true })}</span>
                             <span>合并分类</span>
                         </button>
                         <button class="m-quick-action-btn m-action-pink" id="mDeleteBtn">
-                            <span class="m-quick-action-icon">${iconImg(trashIcon)}</span>
+                            <span class="m-quick-action-icon">${mobileIcon('trash', { duotone: true })}</span>
                             <span>删除</span>
                         </button>
                     </div>
@@ -229,9 +224,9 @@ function setupCategoryEvents(pageEl) {
         if (moreBtn) {
             const folderId = moreBtn.dataset.folderId;
             showActionSheet([
-                { action: 'rename', icon: iconImg(pencilLineIcon), label: '重命名', handler: () => showRenameDialog(pageEl, folderId) },
+                { action: 'rename', icon: mobileIcon('rename'), label: '重命名', handler: () => showRenameDialog(pageEl, folderId) },
                 { action: 'color', icon: iconImg(folderIcon), label: '更改颜色', handler: () => showChangeColorDialog(pageEl, folderId) },
-                { action: 'delete', icon: iconImg(trashIcon), label: '删除分类', danger: true, handler: () => handleDeleteFolder(pageEl, folderId) },
+                { action: 'delete', icon: mobileIcon('trash'), label: '删除分类', danger: true, handler: () => handleDeleteFolder(pageEl, folderId) },
             ]);
         }
     });
@@ -245,7 +240,7 @@ function setupCategoryEvents(pageEl) {
 
     pageEl.querySelector('#mTagBulkMenuBtn')?.addEventListener('click', () => {
         showActionSheet([
-            { action: 'clear-all', icon: iconImg(trashIcon), label: '清除全部标签', danger: true, handler: () => showClearAllTagsConfirm(pageEl) }
+            { action: 'clear-all', icon: mobileIcon('trash'), label: '清除全部标签', danger: true, handler: () => showClearAllTagsConfirm(pageEl) }
         ]);
     });
 
@@ -469,9 +464,9 @@ function showTagActionMenu(pageEl, tagName) {
     const tagInfo = tags.find(t => t.name === tagName);
     const count = tagInfo ? tagInfo.count : 0;
     showActionSheet([
-        { action: 'info', icon: iconImg(tagIcon), label: `标签：${tagName}（${count} 个提示词）`, handler: () => {} },
-        { action: 'rename', icon: iconImg(pencilLineIcon), label: '重命名', handler: () => showRenameTagDialog(pageEl, tagName, count) },
-        { action: 'clear', icon: iconImg(trashIcon), label: '清除该标签', danger: true, handler: () => showClearTagConfirm(pageEl, tagName, count) },
+        { action: 'info', icon: mobileIcon('tag'), label: `标签：${tagName}（${count} 个提示词）`, handler: () => {} },
+        { action: 'rename', icon: mobileIcon('rename'), label: '重命名', handler: () => showRenameTagDialog(pageEl, tagName, count) },
+        { action: 'clear', icon: mobileIcon('trash'), label: '清除该标签', danger: true, handler: () => showClearTagConfirm(pageEl, tagName, count) },
     ]);
 }
 

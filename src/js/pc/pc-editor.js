@@ -336,7 +336,7 @@ function render(params = {}) {
 
                         <span class="pc-create-btn-state pc-create-btn-state--default">
                             <span class="pc-create-btn-icon">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5z"></path><path d="M8 3v6h8V3"></path><path d="M8 21v-7h8v7"></path></svg>
+                                ${pcIcon('save', 'pc-create-btn-svg')}
                             </span>
                             <span class="pc-create-btn-text" aria-hidden="true">
                                 <span style="--i:0">保</span>
@@ -346,7 +346,7 @@ function render(params = {}) {
 
                         <span class="pc-create-btn-state pc-create-btn-state--acting" aria-hidden="true">
                             <span class="pc-create-btn-icon">
-                                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                                ${pcIcon('check', 'pc-create-btn-svg')}
                             </span>
                             <span class="pc-create-btn-text">
                                 <span style="--i:0">保</span>
@@ -542,7 +542,7 @@ function renderEditorContent(pageEl) {
                     <div class="pc-editor-prompt-section">
                         <div class="pc-editor-prompt-header">
                             <span class="pc-editor-prompt-label pc-editor-prompt-label-positive">
-                                ${pcIcon('sparkles', 'pc-editor-prompt-label-icon')}<span>正向提示词</span><span class="pc-editor-form-required">*</span>
+                                ${pcIcon('sparkles', 'pc-editor-prompt-label-icon', '', { duotone: true })}<span>正向提示词</span><span class="pc-editor-form-required">*</span>
                                 <span class="pc-editor-prompt-voice-icon"
                                     data-react-icon="audio-lines"
                                     data-icon-size="16"
@@ -565,7 +565,7 @@ function renderEditorContent(pageEl) {
                     <div class="pc-editor-prompt-section">
                         <div class="pc-editor-prompt-header">
                             <span class="pc-editor-prompt-label pc-editor-prompt-label-negative">
-                                ${pcIcon('ban', 'pc-editor-prompt-label-icon')}<span>负向提示词</span>
+                                ${pcIcon('ban', 'pc-editor-prompt-label-icon', '', { duotone: true })}<span>负向提示词</span>
                             </span>
                             <button class="pc-editor-prompt-clear" id="pcClearNegative" type="button" ${!negativePrompt ? 'disabled' : ''}>清空</button>
                         </div>

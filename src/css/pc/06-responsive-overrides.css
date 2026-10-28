@@ -984,32 +984,15 @@
 :root[data-appearance="dark"] .pc-library-prompt-cell .pc-library-tag-pink { --pc-library-tag-bg: #642B4B; --pc-library-tag-color: #FFA7CC; --pc-library-tag-border: #914567; }
 :root[data-appearance="dark"] .pc-library-prompt-cell .pc-library-tag-coral { --pc-library-tag-bg: #642B35; --pc-library-tag-color: #FF9EAA; --pc-library-tag-border: #934650; }
 
-:root[data-appearance="dark"] .pc-settings-panel,
-:root[data-appearance="dark"] .pc-settings-list,
-:root[data-appearance="dark"] .pc-settings-storage-tile,
-:root[data-appearance="dark"] .pc-settings-space-tile {
+:root[data-appearance="dark"] .pc-settings-panel {
     background: var(--color-surface-raised);
     border-color: var(--color-border-subtle);
     box-shadow: var(--pc-control-soft-shadow);
 }
 
 :root[data-appearance="dark"] .pc-settings-storage-tile {
-    background: linear-gradient(135deg, color-mix(in srgb, var(--pc-accent) 12%, var(--color-surface-raised)), var(--color-surface-raised));
-}
-
-:root[data-appearance="dark"] .pc-settings-switch {
     background: var(--color-surface-subtle);
     box-shadow: var(--pc-control-pressed-shadow);
-}
-
-:root[data-appearance="dark"] .pc-settings-switch span {
-    background: var(--color-surface-floating);
-    box-shadow: var(--pc-control-soft-shadow);
-}
-
-:root[data-appearance="dark"] .pc-theme-dot.pc-theme-active {
-    border-color: var(--color-surface-floating);
-    box-shadow: 0 0 0 2px var(--dot-color), 0 6px 12px var(--color-shadow-dark);
 }
 
 :root[data-appearance="dark"] .pc-category-segment,

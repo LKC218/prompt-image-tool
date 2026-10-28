@@ -5,6 +5,7 @@ import { showToast, showContextMenu, setContextMenuTargetId, escapeHtml, formatR
 import { aggregateTags, getPcTagStyleClass } from '../shared/tag-utils.js';
 import { getPromptSetMenuItems } from './pc-menu-actions.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
+import { renderSvgIcon } from '../shared/svg-icons.js';
 import { isPromptImageToolImportStorageError, stagePromptImageToolImport } from '../shared/prompt-tool-json-import.js';
 import { getFolderColor } from '../shared/folder-color.js';
 import { openPromptDetail } from './pc-detail-modal.js';
@@ -41,17 +42,17 @@ function assetIcon(src, className = 'pc-home-asset-icon') {
 }
 
 const ICONS = {
-    search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16.5 16.5 4 4"></path></svg>',
-    focus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2"></path><path d="M16 4h2a2 2 0 0 1 2 2v2"></path><path d="M20 16v2a2 2 0 0 1-2 2h-2"></path><path d="M8 20H6a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3"></circle></svg>',
-    prompt: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path><path d="M8 10h8"></path><path d="M8 14h5"></path></svg>',
-    folder: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path></svg>',
+    search: renderSvgIcon('search'),
+    focus: renderSvgIcon('focus', { duotone: true }),
+    prompt: renderSvgIcon('prompt', { duotone: true }),
+    folder: renderSvgIcon('folder', { duotone: true }),
     tag: '<span class="pc-home-tag-icon" aria-hidden="true"></span>',
-    star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9L12 3Z"></path></svg>',
-    more: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.5"></circle><circle cx="12" cy="12" r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg>',
-    plus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>',
-    import: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"></path><path d="M12 4v12"></path><path d="m7 11 5 5 5-5"></path></svg>',
-    image: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"></rect><circle cx="8.5" cy="9.5" r="1.5"></circle><path d="m21 15-4.5-4.5L8 19"></path></svg>',
-    arrowRight: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>'
+    star: renderSvgIcon('star'),
+    more: renderSvgIcon('more-horizontal'),
+    plus: renderSvgIcon('plus'),
+    import: renderSvgIcon('import'),
+    image: renderSvgIcon('image', { duotone: true }),
+    arrowRight: renderSvgIcon('chevron-right')
 };
 
 function render(params = {}) {

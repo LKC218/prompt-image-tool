@@ -1,10 +1,6 @@
 import { renderPcWelcomeBanner } from './pc-welcome-banner.js';
 import { escapeHtml } from './pc-utils.js';
-import folderOpenIcon from '../../assets/icons/folder-open.svg?raw';
-import folderIcon from '../../assets/icons/folder.svg?raw';
-import plusIcon from '../../assets/icons/plus.svg?raw';
-import downloadIcon from '../../assets/icons/pc/download.svg?raw';
-import xIcon from '../../assets/icons/pc/x.svg?raw';
+import { renderSvgIcon } from '../shared/svg-icons.js';
 import { connectCompressor, fileKey, outputPath, formatSize, PNG_LIMITS } from '../shared/png-compression.js';
 import { resizeDefaults, normalizeResize, calculateResize } from '../shared/image-resize.js';
 
@@ -68,9 +64,8 @@ function dimensionNote(item) {
     }
     return text;
 }
-// 只内联项目内的可信图标，描边随主题继承，不拼接用户 SVG。
-const icons = { folderOpen: folderOpenIcon, folder: folderIcon, plus: plusIcon, download: downloadIcon, x: xIcon };
-const pcIcon = name => (icons[name] || '').replace('<svg', '<svg class="png-glyph" aria-hidden="true"').replace(/stroke="#[^"]+"/g, 'stroke="currentColor"');
+// 统一通过全局可信 SVG 引擎渲染，描边与双色调随主题自动继承。
+const pcIcon = (name, duotone = false) => renderSvgIcon(name, { className: 'png-glyph', duotone });
 
 export function render() {
     return `${renderPcWelcomeBanner({ title: '图片处理', subtitle: '批量压缩与格式转换，图片轻松整理。', className: 'pc-welcome-banner-category' })}<section class="pc-compress">
@@ -88,7 +83,7 @@ export function render() {
                 <span id="pngCount" hidden>0 张</span></div>
                 <div class="png-mode"><span id="pngSettingLabel">标准 · 等级 2</span><button class="pc-btn pc-btn-secondary" data-action="settings" aria-controls="pngSettings" aria-expanded="false">处理设置<span class="image-settings-arrow" aria-hidden="true">‹</span></button><button class="png-text-button" data-action="clear" hidden>清空</button></div>
             </div>
-            <div class="png-empty" id="pngEmpty">${pcIcon('folderOpen')}<h2>拖入图片</h2><p>PNG、JPEG、WebP · 支持混合批量导入</p></div>
+            <div class="png-empty" id="pngEmpty">${pcIcon('folderOpen', true)}<h2>拖入图片</h2><p>PNG、JPEG、WebP · 支持混合批量导入</p></div>
             <div class="png-table-wrap" hidden><table class="png-table"><thead><tr><th><input type="checkbox" id="pngAll" aria-label="全选图片"></th><th>图片</th><th>体积变化</th><th>状态</th><th><span class="png-sr-only">操作</span></th></tr></thead><tbody id="pngRows"></tbody></table></div>
         </section>
         <div class="image-settings-slot"><aside class="png-settings" id="pngSettings" aria-label="处理设置" aria-hidden="true" inert>

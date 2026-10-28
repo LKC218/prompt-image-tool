@@ -15,14 +15,7 @@ import {
 import { requestOpenMindmapView } from '../goal/goal-mindmap-core.js';
 import { renderPcWelcomeBanner, renderPcWelcomeWalkAnimation } from './pc-welcome-banner.js';
 import { setupCardParallaxTilt, clearCardParallaxIn } from './pc-card-parallax.js';
-import plusIcon from '../../assets/icons/plus.svg';
-import moreIcon from '../../assets/icons/more-horizontal.svg';
-import imageIcon from '../../assets/icons/image.svg';
-import renameIcon from '../../assets/icons/pencil-line.svg';
-import copyIcon from '../../assets/icons/copy.svg';
-import deleteIcon from '../../assets/icons/trash-2.svg';
-import sortIcon from '../../assets/icons/arrow-up-down.svg';
-import checkIcon from '../../assets/icons/check.svg';
+import { pcIcon } from './pc-icon-assets.js';
 import rabbitTip from '../../assets/mobile/mascots/rabbit-tip.png';
 
 const PROJECT_SORT_KEY = 'pc-goal-project-sort';
@@ -102,10 +95,10 @@ function render(params = {}) {
                 <h2 class="pc-goal-projects-title">我的项目</h2>
                 <div class="pc-goal-projects-actions">
                     <button class="pc-icon-btn pc-goal-project-sort" id="pcGoalProjectSort" type="button" aria-label="项目排序" aria-haspopup="menu" aria-expanded="false" title="排序：${escapeHtml(getSortLabel())}">
-                        ${iconImg(sortIcon)}
+                        ${pcIcon('arrowUpDown')}
                     </button>
                     <button class="pc-btn pc-btn-primary pc-btn-sm" id="pcGoalCreateProject">
-                        <span class="pc-btn-icon">${iconImg(plusIcon)}</span>
+                        <span class="pc-btn-icon">${pcIcon('plus')}</span>
                         <span>新建项目</span>
                     </button>
                 </div>
@@ -166,7 +159,7 @@ function renderList() {
                 <div class="pc-goal-project-header">
                     <h3 class="pc-goal-project-name" title="${escapeHtml(p.name)}"><span>${escapeHtml(p.name)}</span></h3>
                     <button class="pc-icon-btn pc-goal-project-more" type="button" aria-label="更多操作" data-project-id="${escapeHtml(p.id)}">
-                        ${iconImg(moreIcon)}
+                        ${pcIcon('moreHorizontal')}
                     </button>
                 </div>
                 <div class="pc-goal-project-meta">
@@ -377,7 +370,7 @@ async function showSortMenu(anchorEl) {
     const items = PROJECT_SORT_OPTIONS.map(opt => ({
         action: `sort:${opt.key}`,
         label: opt.label,
-        icon: opt.key === currentSort ? iconImg(checkIcon) : ''
+        icon: opt.key === currentSort ? pcIcon('check') : ''
     }));
     const action = await showContextMenu(rect.left, rect.bottom + 8, items, {
         anchor: anchorEl,
@@ -397,11 +390,11 @@ async function showProjectMenu(id, anchorEl) {
 
     const rect = anchorEl.getBoundingClientRect();
     const action = await showContextMenu(rect.right + 8, rect.bottom + 8, [
-        { action: 'openMindmap', icon: iconImg(sortIcon), tone: 'default', label: '查看思维导图' },
-        { action: 'setCover', icon: iconImg(imageIcon), tone: 'default', label: '设置封面' },
-        { action: 'rename', icon: iconImg(renameIcon), tone: 'rename', label: '重命名' },
-        { action: 'copy', icon: iconImg(copyIcon), tone: 'copy', label: '复制' },
-        { action: 'delete', icon: iconImg(deleteIcon), tone: 'delete', label: '删除', danger: true }
+        { action: 'openMindmap', icon: pcIcon('mindmap'), tone: 'default', label: '查看思维导图' },
+        { action: 'setCover', icon: pcIcon('image'), tone: 'default', label: '设置封面' },
+        { action: 'rename', icon: pcIcon('pencilLine'), tone: 'rename', label: '重命名' },
+        { action: 'copy', icon: pcIcon('copy'), tone: 'copy', label: '复制' },
+        { action: 'delete', icon: pcIcon('trash'), tone: 'delete', label: '删除', danger: true }
     ], { anchor: anchorEl, source: 'more' });
 
     if (action === 'openMindmap') {
